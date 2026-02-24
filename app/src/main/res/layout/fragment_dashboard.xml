@@ -1,0 +1,476 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="horizontal">
+
+    <!-- ── LEFT SIDEBAR ── -->
+    <LinearLayout
+        android:layout_width="72dp"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:background="@color/bakery_amber"
+        android:gravity="center_horizontal"
+        android:paddingTop="24dp"
+        android:paddingBottom="24dp">
+
+        <!-- Rotated brand text -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="ARTISANBAKE"
+            android:textSize="13sp"
+            android:textStyle="bold"
+            android:textColor="@color/white"
+            android:letterSpacing="0.15"
+            android:rotation="-90"
+            android:layout_marginBottom="32dp" />
+
+        <!-- Home (active) -->
+        <ImageView
+            android:id="@+id/btn_nav_home"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:layout_marginBottom="8dp"
+            android:src="@android:drawable/ic_menu_compass"
+            android:padding="8dp"
+            android:background="@drawable/sidebar_icon_selected_bg"
+            android:contentDescription="Home"
+            android:tint="@color/white" />
+
+        <!-- Products -->
+        <ImageView
+            android:id="@+id/btn_nav_products"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:layout_marginBottom="8dp"
+            android:src="@android:drawable/ic_menu_gallery"
+            android:padding="8dp"
+            android:contentDescription="Products"
+            android:tint="@color/bakery_gold" />
+
+        <!-- Orders -->
+        <ImageView
+            android:id="@+id/btn_nav_orders"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:layout_marginBottom="8dp"
+            android:src="@android:drawable/ic_menu_agenda"
+            android:padding="8dp"
+            android:contentDescription="Orders"
+            android:tint="@color/bakery_gold" />
+
+        <!-- Profile -->
+        <ImageView
+            android:id="@+id/btn_nav_profile"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:src="@android:drawable/ic_menu_myplaces"
+            android:padding="8dp"
+            android:contentDescription="Profile"
+            android:tint="@color/bakery_gold" />
+
+    </LinearLayout>
+
+    <!-- ── RIGHT MAIN CONTENT ── -->
+    <ScrollView
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:layout_weight="1"
+        android:background="@color/bakery_cream"
+        android:fillViewport="true">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="16dp">
+
+            <!-- Admin label + name -->
+            <TextView
+                android:id="@+id/tv_dashboard_role"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="ADMIN"
+                android:textSize="11sp"
+                android:textColor="@color/bakery_amber"
+                android:letterSpacing="0.1"
+                android:layout_marginBottom="2dp" />
+
+            <TextView
+                android:id="@+id/tv_dashboard_name"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textSize="22sp"
+                android:textStyle="bold"
+                android:textColor="@color/bakery_text_dark"
+                android:layout_marginBottom="20dp" />
+
+            <!-- Orders + Revenue cards -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:weightSum="2"
+                android:layout_marginBottom="16dp">
+
+                <com.google.android.material.card.MaterialCardView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:layout_marginEnd="8dp"
+                    app:cardBackgroundColor="@color/bakery_card_white"
+                    app:cardCornerRadius="12dp"
+                    app:cardElevation="3dp">
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:padding="14dp">
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Orders"
+                            android:textSize="12sp"
+                            android:textColor="@color/bakery_text_dark" />
+                        <TextView
+                            android:id="@+id/tv_orders_count"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="0"
+                            android:textSize="28sp"
+                            android:textStyle="bold"
+                            android:textColor="@color/bakery_gold_bright" />
+                    </LinearLayout>
+                </com.google.android.material.card.MaterialCardView>
+
+                <com.google.android.material.card.MaterialCardView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    app:cardBackgroundColor="@color/bakery_amber"
+                    app:cardCornerRadius="12dp"
+                    app:cardElevation="3dp">
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:padding="14dp">
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Revenue"
+                            android:textSize="12sp"
+                            android:textColor="@color/bakery_gold" />
+                        <TextView
+                            android:id="@+id/tv_revenue_value"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="$0"
+                            android:textSize="28sp"
+                            android:textStyle="bold"
+                            android:textColor="@color/white" />
+                    </LinearLayout>
+                </com.google.android.material.card.MaterialCardView>
+
+            </LinearLayout>
+
+            <!-- Bar Chart section -->
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="16dp"
+                app:cardBackgroundColor="@color/bakery_card_white"
+                app:cardCornerRadius="12dp"
+                app:cardElevation="3dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="14dp">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical"
+                        android:layout_marginBottom="8dp">
+
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="THIS MONTH"
+                            android:textSize="12sp"
+                            android:textColor="@color/bakery_text_dark"
+                            android:letterSpacing="0.1" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="$84,220"
+                            android:textSize="18sp"
+                            android:textStyle="bold"
+                            android:textColor="@color/bakery_amber"
+                            android:layout_marginEnd="8dp" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="+8.2%"
+                            android:textSize="11sp"
+                            android:textColor="@color/bakery_status_open"
+                            android:background="@drawable/badge_green_bg"
+                            android:paddingLeft="6dp"
+                            android:paddingRight="6dp"
+                            android:paddingTop="2dp"
+                            android:paddingBottom="2dp" />
+
+                    </LinearLayout>
+
+                    <!-- Bar chart: 4 weeks -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="100dp"
+                        android:orientation="horizontal"
+                        android:gravity="bottom"
+                        android:weightSum="4">
+
+                        <!-- W1 -->
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="match_parent"
+                            android:layout_weight="1"
+                            android:orientation="vertical"
+                            android:gravity="bottom|center_horizontal"
+                            android:layout_marginLeft="4dp"
+                            android:layout_marginRight="4dp">
+                            <View
+                                android:layout_width="24dp"
+                                android:layout_height="55dp"
+                                android:background="@color/bakery_gold"
+                                android:alpha="0.6" />
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="W1"
+                                android:textSize="10sp"
+                                android:textColor="@color/bakery_text_dark"
+                                android:layout_marginTop="4dp" />
+                        </LinearLayout>
+
+                        <!-- W2 -->
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="match_parent"
+                            android:layout_weight="1"
+                            android:orientation="vertical"
+                            android:gravity="bottom|center_horizontal"
+                            android:layout_marginLeft="4dp"
+                            android:layout_marginRight="4dp">
+                            <View
+                                android:layout_width="24dp"
+                                android:layout_height="75dp"
+                                android:background="@color/bakery_gold"
+                                android:alpha="0.6" />
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="W2"
+                                android:textSize="10sp"
+                                android:textColor="@color/bakery_text_dark"
+                                android:layout_marginTop="4dp" />
+                        </LinearLayout>
+
+                        <!-- W3 (tallest/current) -->
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="match_parent"
+                            android:layout_weight="1"
+                            android:orientation="vertical"
+                            android:gravity="bottom|center_horizontal"
+                            android:layout_marginLeft="4dp"
+                            android:layout_marginRight="4dp">
+                            <View
+                                android:layout_width="24dp"
+                                android:layout_height="90dp"
+                                android:background="@color/bakery_amber" />
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="W3"
+                                android:textSize="10sp"
+                                android:textColor="@color/bakery_text_dark"
+                                android:layout_marginTop="4dp" />
+                        </LinearLayout>
+
+                        <!-- W4 -->
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="match_parent"
+                            android:layout_weight="1"
+                            android:orientation="vertical"
+                            android:gravity="bottom|center_horizontal"
+                            android:layout_marginLeft="4dp"
+                            android:layout_marginRight="4dp">
+                            <View
+                                android:layout_width="24dp"
+                                android:layout_height="40dp"
+                                android:background="@color/bakery_gold"
+                                android:alpha="0.6" />
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="W4"
+                                android:textSize="10sp"
+                                android:textColor="@color/bakery_text_dark"
+                                android:layout_marginTop="4dp" />
+                        </LinearLayout>
+
+                    </LinearLayout>
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- Stats row: Customers | Products | Locations -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:weightSum="3"
+                android:layout_marginBottom="20dp">
+
+                <com.google.android.material.card.MaterialCardView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:layout_marginEnd="6dp"
+                    app:cardBackgroundColor="@color/bakery_card_white"
+                    app:cardCornerRadius="12dp"
+                    app:cardElevation="2dp">
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:padding="12dp"
+                        android:gravity="center">
+                        <TextView
+                            android:id="@+id/tv_stat_customers"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="0"
+                            android:textSize="22sp"
+                            android:textStyle="bold"
+                            android:textColor="@color/bakery_gold_bright" />
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/label_customers"
+                            android:textSize="10sp"
+                            android:textColor="@color/bakery_text_dark" />
+                    </LinearLayout>
+                </com.google.android.material.card.MaterialCardView>
+
+                <com.google.android.material.card.MaterialCardView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:layout_marginEnd="6dp"
+                    app:cardBackgroundColor="@color/bakery_card_white"
+                    app:cardCornerRadius="12dp"
+                    app:cardElevation="2dp">
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:padding="12dp"
+                        android:gravity="center">
+                        <TextView
+                            android:id="@+id/tv_stat_products"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="0"
+                            android:textSize="22sp"
+                            android:textStyle="bold"
+                            android:textColor="@color/bakery_gold_bright" />
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/label_products"
+                            android:textSize="10sp"
+                            android:textColor="@color/bakery_text_dark" />
+                    </LinearLayout>
+                </com.google.android.material.card.MaterialCardView>
+
+                <com.google.android.material.card.MaterialCardView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    app:cardBackgroundColor="@color/bakery_card_white"
+                    app:cardCornerRadius="12dp"
+                    app:cardElevation="2dp">
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:padding="12dp"
+                        android:gravity="center">
+                        <TextView
+                            android:id="@+id/tv_stat_locations"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="0"
+                            android:textSize="22sp"
+                            android:textStyle="bold"
+                            android:textColor="@color/bakery_gold_bright" />
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/label_locations"
+                            android:textSize="10sp"
+                            android:textColor="@color/bakery_text_dark" />
+                    </LinearLayout>
+                </com.google.android.material.card.MaterialCardView>
+
+            </LinearLayout>
+
+            <!-- BAKERY LOCATIONS section -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:layout_marginBottom="8dp">
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="BAKERY LOCATIONS"
+                    android:textSize="13sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/bakery_text_dark"
+                    android:letterSpacing="0.08" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btn_view_all_locations"
+                    style="@style/Widget.MaterialComponents.Button.TextButton"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="View All"
+                    android:textColor="@color/bakery_gold" />
+
+            </LinearLayout>
+
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/rv_dashboard_locations"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:nestedScrollingEnabled="false" />
+
+        </LinearLayout>
+    </ScrollView>
+
+</LinearLayout>

@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="utf-8"?>
+<navigation xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/nav_graph"
+    app:startDestination="@id/nav_home">
+
+    <!-- Bottom nav destinations — IDs MUST match bottom_nav_menu.xml item IDs -->
+    <fragment
+        android:id="@+id/nav_home"
+        android:name="com.example.workshop6.ui.dashboard.DashboardFragment"
+        android:label="Home"
+        tools:layout="@layout/fragment_dashboard">
+        <action
+            android:id="@+id/action_home_to_locations"
+            app:destination="@id/locationsFragment" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/nav_products"
+        android:name="com.example.workshop6.ui.products.ProductsFragment"
+        android:label="Products"
+        tools:layout="@layout/fragment_placeholder" />
+
+    <fragment
+        android:id="@+id/nav_orders"
+        android:name="com.example.workshop6.ui.orders.OrdersFragment"
+        android:label="Orders"
+        tools:layout="@layout/fragment_placeholder" />
+
+    <fragment
+        android:id="@+id/nav_team"
+        android:name="com.example.workshop6.ui.team.TeamFragment"
+        android:label="Team"
+        tools:layout="@layout/fragment_placeholder" />
+
+    <fragment
+        android:id="@+id/nav_profile"
+        android:name="com.example.workshop6.ui.profile.ProfileFragment"
+        android:label="Profile"
+        tools:layout="@layout/fragment_placeholder" />
+
+    <!-- Locations screens — reached from Dashboard or via deep-link -->
+    <fragment
+        android:id="@+id/locationsFragment"
+        android:name="com.example.workshop6.ui.locations.LocationsFragment"
+        android:label="@string/locations_title"
+        tools:layout="@layout/fragment_locations">
+        <action
+            android:id="@+id/action_locations_to_addEdit"
+            app:destination="@id/addEditLocationFragment" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/addEditLocationFragment"
+        android:name="com.example.workshop6.ui.locations.AddEditLocationFragment"
+        android:label="Location Details"
+        tools:layout="@layout/fragment_add_edit_location">
+        <!-- -1 = create new; any positive value = edit existing -->
+        <argument
+            android:name="locationId"
+            app:argType="integer"
+            android:defaultValue="-1" />
+    </fragment>
+
+</navigation>

@@ -1,3 +1,26 @@
 <resources>
-    <string name="app_name">Workshop6</string>
+    <string name="app_name">Peelin\' Good</string>
+    <!-- Auth -->
+    <string name="login_title">Welcome Back</string>
+    <string name="hint_email">Email address</string>
+    <string name="hint_password">Password</string>
+    <string name="btn_login">Sign In</string>
+    <string name="login_error_invalid">Invalid email or password</string>
+    <!-- Navigation -->
+    <string name="nav_home">Home</string>
+    <string name="nav_products">Products</string>
+    <string name="nav_orders">Orders</string>
+    <string name="nav_team">Team</string>
+    <string name="nav_profile">Profile</string>
+    <!-- Locations -->
+    <string name="locations_title">Bakery Locations</string>
+    <string name="add_location">Add Location</string>
+    <string name="btn_show_nearby">Nearby</string>
+    <string name="btn_show_all">Show All</string>
+    <string name="permission_location_rationale">Location permission is needed to find nearby bakeries.</string>
+    <!-- Dashboard -->
+    <string name="dashboard_welcome">Welcome, %1$s</string>
+    <string name="label_customers">Customers</string>
+    <string name="label_products">Products</string>
+    <string name="label_locations">Locations</string>
 </resources>
