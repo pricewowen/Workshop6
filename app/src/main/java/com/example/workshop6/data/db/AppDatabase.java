@@ -54,7 +54,7 @@ public abstract class AppDatabase extends RoomDatabase {
                 admin.fullName = "Admin User";
                 admin.email = "admin@bakery.com";
                 admin.phone = "555-0100";
-                admin.passwordHash = HashUtils.sha256("admin123");
+                admin.passwordHash = HashUtils.hash("admin123");
                 admin.role = "ADMIN";
                 INSTANCE.userDao().insert(admin);
             });
