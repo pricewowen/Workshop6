@@ -4,6 +4,7 @@ import com.example.workshop6.data.model.BakeryLocation;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 public class LocationUtils {
 
@@ -46,8 +47,8 @@ public class LocationUtils {
      */
     public static String formatDistance(double km) {
         if (km < 1.0) {
-            return String.format("%.0f m", km * 1000);
+            return String.format(Locale.getDefault(), "%.0f m", km * 1000);
         }
-        return String.format("%.1f km", km);
+        return String.format(Locale.getDefault(), "%.1f km", km);
     }
 }

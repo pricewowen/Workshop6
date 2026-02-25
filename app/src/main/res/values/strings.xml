@@ -6,6 +6,8 @@
     <string name="hint_password">Password</string>
     <string name="btn_login">Sign In</string>
     <string name="login_error_invalid">Invalid email or password</string>
+    <string name="error_email_required">Email is required</string>
+    <string name="error_password_required">Password is required</string>
     <!-- Navigation -->
     <string name="nav_home">Home</string>
     <string name="nav_products">Products</string>
@@ -19,9 +21,39 @@
     <string name="btn_show_nearby">Nearby</string>
     <string name="btn_show_all">Show All</string>
     <string name="permission_location_rationale">Location permission is needed to find nearby bakeries.</string>
+    <string name="error_could_not_get_location">Could not get your location. Try again.</string>
+    <string name="search_locations_hint">Search locations…</string>
+    <!-- Add/Edit Location form hints -->
+    <string name="hint_location_name">Location Name</string>
+    <string name="hint_street_address">Street Address</string>
+    <string name="hint_city">City</string>
+    <string name="hint_province">Province</string>
+    <string name="hint_postal_code">Postal Code</string>
+    <string name="hint_phone">Phone</string>
+    <string name="hint_email_address">Email</string>
+    <string name="hint_opening_hours">Opening Hours (e.g. Mon–Fri 7am–6pm)</string>
+    <string name="hint_status">Status</string>
+    <string name="hint_latitude">Latitude</string>
+    <string name="hint_longitude">Longitude</string>
+    <string name="btn_save_location">Save Location</string>
+    <string name="btn_delete_location">Delete Location</string>
     <!-- Dashboard -->
     <string name="dashboard_welcome">Welcome, %1$s</string>
     <string name="label_customers">Customers</string>
     <string name="label_products">Products</string>
     <string name="label_locations">Locations</string>
+    <string name="dashboard_brand">ARTISANBAKE</string>
+    <string name="dashboard_role_admin">ADMIN</string>
+    <string name="dashboard_section_orders">Orders</string>
+    <string name="dashboard_section_revenue">Revenue</string>
+    <string name="dashboard_this_month">THIS MONTH</string>
+    <string name="dashboard_section_bakery_locations">BAKERY LOCATIONS</string>
+    <string name="dashboard_view_all">View All</string>
+    <!-- Placeholder screens -->
+    <string name="coming_soon">Coming Soon</string>
+    <!-- Content descriptions -->
+    <string name="cd_nav_home">Home</string>
+    <string name="cd_nav_products">Products</string>
+    <string name="cd_nav_orders">Orders</string>
+    <string name="cd_nav_profile">Profile</string>
 </resources>

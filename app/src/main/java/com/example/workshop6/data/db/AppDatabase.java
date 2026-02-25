@@ -49,15 +49,18 @@ public abstract class AppDatabase extends RoomDatabase {
         @Override
         public void onCreate(@NonNull SupportSQLiteDatabase db) {
             super.onCreate(db);
-            databaseWriteExecutor.execute(() -> {
-                User admin = new User();
-                admin.fullName = "Admin User";
-                admin.email = "admin@bakery.com";
-                admin.phone = "555-0100";
-                admin.passwordHash = HashUtils.hash("admin123");
-                admin.role = "ADMIN";
-                INSTANCE.userDao().insert(admin);
-            });
+            String passwordHash = HashUtils.hash("admin123");
+            db.execSQL(
+                    "INSERT INTO User (fullName, email, phone, passwordHash, role)"
+                            + " VALUES (?, ?, ?, ?, ?)",
+                    new Object[] {
+                            "Admin User",
+                            "admin@bakery.com",
+                            "555-0100",
+                            passwordHash,
+                            "ADMIN"
+                    }
+            );
         }
     };
 }

@@ -53,13 +53,13 @@ public class LoginActivity extends AppCompatActivity {
         // Input validation
         boolean valid = true;
         if (TextUtils.isEmpty(email)) {
-            tilEmail.setError("Email is required");
+            tilEmail.setError(getString(R.string.error_email_required));
             valid = false;
         } else {
             tilEmail.setError(null);
         }
         if (TextUtils.isEmpty(pass)) {
-            tilPassword.setError("Password is required");
+            tilPassword.setError(getString(R.string.error_password_required));
             valid = false;
         } else {
             tilPassword.setError(null);

@@ -101,10 +101,14 @@ public class LocationAdapter extends ListAdapter<BakeryLocation, LocationAdapter
                     open ? R.color.bakery_status_open : R.color.bakery_status_closed);
 
             if (nearbyMode) {
-                double dist = LocationUtils.haversineDistanceKm(
-                        userLat, userLon, loc.latitude, loc.longitude);
-                distance.setText(LocationUtils.formatDistance(dist));
-                distance.setVisibility(View.VISIBLE);
+                if (loc.latitude != 0.0 || loc.longitude != 0.0) {
+                    double dist = LocationUtils.haversineDistanceKm(
+                            userLat, userLon, loc.latitude, loc.longitude);
+                    distance.setText(LocationUtils.formatDistance(dist));
+                    distance.setVisibility(View.VISIBLE);
+                } else {
+                    distance.setVisibility(View.GONE);
+                }
             } else {
                 distance.setVisibility(View.GONE);
             }

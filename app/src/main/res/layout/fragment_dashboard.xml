@@ -20,7 +20,7 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="ARTISANBAKE"
+            android:text="@string/dashboard_brand"
             android:textSize="13sp"
             android:textStyle="bold"
             android:textColor="@color/white"
@@ -37,7 +37,7 @@
             android:src="@android:drawable/ic_menu_compass"
             android:padding="8dp"
             android:background="@drawable/sidebar_icon_selected_bg"
-            android:contentDescription="Home"
+            android:contentDescription="@string/cd_nav_home"
             android:tint="@color/white" />
 
         <!-- Products -->
@@ -48,7 +48,7 @@
             android:layout_marginBottom="8dp"
             android:src="@android:drawable/ic_menu_gallery"
             android:padding="8dp"
-            android:contentDescription="Products"
+            android:contentDescription="@string/cd_nav_products"
             android:tint="@color/bakery_gold" />
 
         <!-- Orders -->
@@ -59,7 +59,7 @@
             android:layout_marginBottom="8dp"
             android:src="@android:drawable/ic_menu_agenda"
             android:padding="8dp"
-            android:contentDescription="Orders"
+            android:contentDescription="@string/cd_nav_orders"
             android:tint="@color/bakery_gold" />
 
         <!-- Profile -->
@@ -69,7 +69,7 @@
             android:layout_height="40dp"
             android:src="@android:drawable/ic_menu_myplaces"
             android:padding="8dp"
-            android:contentDescription="Profile"
+            android:contentDescription="@string/cd_nav_profile"
             android:tint="@color/bakery_gold" />
 
     </LinearLayout>
@@ -132,7 +132,7 @@
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="Orders"
+                            android:text="@string/dashboard_section_orders"
                             android:textSize="12sp"
                             android:textColor="@color/bakery_text_dark" />
                         <TextView
@@ -161,7 +161,7 @@
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="Revenue"
+                            android:text="@string/dashboard_section_revenue"
                             android:textSize="12sp"
                             android:textColor="@color/bakery_gold" />
                         <TextView
@@ -203,7 +203,7 @@
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
-                            android:text="THIS MONTH"
+                            android:text="@string/dashboard_this_month"
                             android:textSize="12sp"
                             android:textColor="@color/bakery_text_dark"
                             android:letterSpacing="0.1" />
@@ -448,7 +448,7 @@
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
-                    android:text="BAKERY LOCATIONS"
+                    android:text="@string/dashboard_section_bakery_locations"
                     android:textSize="13sp"
                     android:textStyle="bold"
                     android:textColor="@color/bakery_text_dark"
@@ -459,7 +459,7 @@
                     style="@style/Widget.MaterialComponents.Button.TextButton"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="View All"
+                    android:text="@string/dashboard_view_all"
                     android:textColor="@color/bakery_gold" />
 
             </LinearLayout>
