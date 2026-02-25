@@ -32,7 +32,7 @@ public interface BakeryLocationDao {
     @Query("SELECT * FROM bakery_locations WHERE id = :id")
     BakeryLocation getLocationById(int id);
 
-    @Query("SELECT * FROM bakery_locations LIMIT 3")
+    @Query("SELECT * FROM bakery_locations ORDER BY name ASC LIMIT 3")
     LiveData<List<BakeryLocation>> getTopThreeLocations();
 
     @Query("SELECT COUNT(*) FROM bakery_locations")
