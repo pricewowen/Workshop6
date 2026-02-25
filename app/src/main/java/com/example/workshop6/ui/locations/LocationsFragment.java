@@ -44,6 +44,7 @@ public class LocationsFragment extends Fragment {
     private MaterialButton btnNearby;
 
     private boolean nearbyMode = false;
+    private boolean hasUserLocation = false;
     private double userLat = 0, userLon = 0;
     private FusedLocationProviderClient fusedClient;
 
@@ -59,6 +60,7 @@ public class LocationsFragment extends Fragment {
                     fetchUserLocation();
                 } else {
                     // User denied — reset nearby toggle
+                    hasUserLocation = false;
                     nearbyMode = false;
                     if (btnNearby != null) btnNearby.setText(R.string.btn_show_nearby);
                     View v = getView();
@@ -138,7 +140,7 @@ public class LocationsFragment extends Fragment {
 
     /** Called whenever the LiveData query emits a new list. */
     private void onLocationsUpdated(List<BakeryLocation> locs) {
-        if (nearbyMode && userLat != 0) {
+        if (nearbyMode && hasUserLocation) {
             adapter.setLocations(LocationUtils.sortByDistance(locs, userLat, userLon));
             adapter.setNearbyMode(true, userLat, userLon);
         } else {
@@ -178,9 +180,11 @@ public class LocationsFragment extends Fragment {
                 if (location != null) {
                     userLat = location.getLatitude();
                     userLon = location.getLongitude();
+                    hasUserLocation = true;
                     // Re-trigger to sort by distance
                     searchQuery.setValue(searchQuery.getValue());
                 } else {
+                    hasUserLocation = false;
                     nearbyMode = false;
                     btnNearby.setText(R.string.btn_show_nearby);
                     View v = getView();
