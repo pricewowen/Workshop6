@@ -141,7 +141,6 @@ public class LocationsFragment extends Fragment {
     /** Called whenever the LiveData query emits a new list. */
     private void onLocationsUpdated(List<BakeryLocation> locs) {
         if (nearbyMode && hasUserLocation) {
-            adapter.setLocations(LocationUtils.sortByDistance(locs, userLat, userLon));
             adapter.setNearbyMode(true, userLat, userLon);
             adapter.submitList(LocationUtils.sortByDistance(locs, userLat, userLon));
         } else {
@@ -190,7 +189,7 @@ public class LocationsFragment extends Fragment {
                     btnNearby.setText(R.string.btn_show_nearby);
                     View v = getView();
                     if (v != null) {
-                        Snackbar.make(v, "Could not get your location. Try again.",
+                        Snackbar.make(v, R.string.error_could_not_get_location,
                                 Snackbar.LENGTH_SHORT).show();
                     }
                 }

@@ -17,7 +17,7 @@
             style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="Location Name"
+            android:hint="@string/hint_location_name"
             android:layout_marginBottom="12dp">
             <com.google.android.material.textfield.TextInputEditText
                 android:id="@+id/et_loc_name"
@@ -31,7 +31,7 @@
             style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="Street Address"
+            android:hint="@string/hint_street_address"
             android:layout_marginBottom="12dp">
             <com.google.android.material.textfield.TextInputEditText
                 android:id="@+id/et_loc_address"
@@ -53,7 +53,7 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:hint="City"
+                android:hint="@string/hint_city"
                 android:layout_marginEnd="8dp">
                 <com.google.android.material.textfield.TextInputEditText
                     android:id="@+id/et_loc_city"
@@ -68,7 +68,7 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:hint="Province">
+                android:hint="@string/hint_province">
                 <com.google.android.material.textfield.TextInputEditText
                     android:id="@+id/et_loc_province"
                     android:layout_width="match_parent"
@@ -83,7 +83,7 @@
             style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="Postal Code"
+            android:hint="@string/hint_postal_code"
             android:layout_marginBottom="12dp">
             <com.google.android.material.textfield.TextInputEditText
                 android:id="@+id/et_loc_postal"
@@ -98,7 +98,7 @@
             style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="Phone"
+            android:hint="@string/hint_phone"
             android:layout_marginBottom="12dp">
             <com.google.android.material.textfield.TextInputEditText
                 android:id="@+id/et_loc_phone"
@@ -112,7 +112,7 @@
             style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="Email"
+            android:hint="@string/hint_email_address"
             android:layout_marginBottom="12dp">
             <com.google.android.material.textfield.TextInputEditText
                 android:id="@+id/et_loc_email"
@@ -126,7 +126,7 @@
             style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="Opening Hours (e.g. Mon–Fri 7am–6pm)"
+            android:hint="@string/hint_opening_hours"
             android:layout_marginBottom="12dp">
             <com.google.android.material.textfield.TextInputEditText
                 android:id="@+id/et_loc_hours"
@@ -140,7 +140,7 @@
             style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="Status"
+            android:hint="@string/hint_status"
             android:layout_marginBottom="12dp">
             <AutoCompleteTextView
                 android:id="@+id/acv_loc_status"
@@ -162,7 +162,7 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:hint="Latitude"
+                android:hint="@string/hint_latitude"
                 android:layout_marginEnd="8dp">
                 <com.google.android.material.textfield.TextInputEditText
                     android:id="@+id/et_loc_lat"
@@ -177,7 +177,7 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:hint="Longitude">
+                android:hint="@string/hint_longitude">
                 <com.google.android.material.textfield.TextInputEditText
                     android:id="@+id/et_loc_lng"
                     android:layout_width="match_parent"
@@ -191,7 +191,7 @@
             android:id="@+id/btn_save_location"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Save Location"
+            android:text="@string/btn_save_location"
             android:layout_marginBottom="12dp"
             app:backgroundTint="@color/bakery_amber" />
 
@@ -201,7 +201,7 @@
             style="@style/Widget.MaterialComponents.Button.OutlinedButton"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Delete Location"
+            android:text="@string/btn_delete_location"
             android:textColor="@color/bakery_status_closed"
             android:visibility="gone"
             app:strokeColor="@color/bakery_status_closed" />

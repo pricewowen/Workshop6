@@ -26,7 +26,7 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             app:iconifiedByDefault="false"
-            app:queryHint="Search locations..."
+            app:queryHint="@string/search_locations_hint"
             app:searchIcon="@null"
             app:closeIcon="@null" />
 
