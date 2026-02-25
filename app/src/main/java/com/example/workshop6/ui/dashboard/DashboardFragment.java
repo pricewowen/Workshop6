@@ -56,10 +56,10 @@ public class DashboardFragment extends Fragment {
         RecyclerView rv = view.findViewById(R.id.rv_dashboard_locations);
         rv.setLayoutManager(new LinearLayoutManager(requireContext()));
         rv.setNestedScrollingEnabled(false);
-        LocationAdapter adapter = new LocationAdapter(null, false, null);
+        LocationAdapter adapter = new LocationAdapter(false, null);
         rv.setAdapter(adapter);
         db.bakeryLocationDao().getTopThreeLocations()
-                .observe(getViewLifecycleOwner(), adapter::setLocations);
+                .observe(getViewLifecycleOwner(), adapter::submitList);
 
         // Stats row — live from DB
         db.userDao().getUserCount().observe(getViewLifecycleOwner(),

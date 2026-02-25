@@ -89,7 +89,7 @@ public class LocationsFragment extends Fragment {
         // RecyclerView
         RecyclerView rv = view.findViewById(R.id.rv_locations);
         rv.setLayoutManager(new LinearLayoutManager(requireContext()));
-        adapter = new LocationAdapter(null, false, loc -> {
+        adapter = new LocationAdapter(false, loc -> {
             Bundle args = new Bundle();
             args.putInt("locationId", loc.id);
             Navigation.findNavController(view)
@@ -139,11 +139,11 @@ public class LocationsFragment extends Fragment {
     /** Called whenever the LiveData query emits a new list. */
     private void onLocationsUpdated(List<BakeryLocation> locs) {
         if (nearbyMode && userLat != 0) {
-            adapter.setLocations(LocationUtils.sortByDistance(locs, userLat, userLon));
             adapter.setNearbyMode(true, userLat, userLon);
+            adapter.submitList(LocationUtils.sortByDistance(locs, userLat, userLon));
         } else {
-            adapter.setLocations(locs);
             adapter.setNearbyMode(false, 0, 0);
+            adapter.submitList(locs);
         }
     }
 

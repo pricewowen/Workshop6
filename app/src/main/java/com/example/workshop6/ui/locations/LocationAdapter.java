@@ -7,6 +7,8 @@ import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.recyclerview.widget.DiffUtil;
+import androidx.recyclerview.widget.ListAdapter;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.workshop6.R;
@@ -14,31 +16,44 @@ import com.example.workshop6.data.model.BakeryLocation;
 import com.example.workshop6.util.LocationUtils;
 import com.google.android.material.chip.Chip;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.Objects;
 
-public class LocationAdapter extends RecyclerView.Adapter<LocationAdapter.VH> {
+public class LocationAdapter extends ListAdapter<BakeryLocation, LocationAdapter.VH> {
 
     public interface OnClickListener {
         void onClick(BakeryLocation location);
     }
 
-    private List<BakeryLocation> locations;
+    private static final DiffUtil.ItemCallback<BakeryLocation> DIFF_CALLBACK =
+            new DiffUtil.ItemCallback<BakeryLocation>() {
+                @Override
+                public boolean areItemsTheSame(@NonNull BakeryLocation oldItem,
+                                               @NonNull BakeryLocation newItem) {
+                    return oldItem.id == newItem.id;
+                }
+
+                @Override
+                public boolean areContentsTheSame(@NonNull BakeryLocation oldItem,
+                                                  @NonNull BakeryLocation newItem) {
+                    return oldItem.id == newItem.id
+                            && Objects.equals(oldItem.name, newItem.name)
+                            && Objects.equals(oldItem.address, newItem.address)
+                            && Objects.equals(oldItem.city, newItem.city)
+                            && Objects.equals(oldItem.status, newItem.status)
+                            && Objects.equals(oldItem.openingHours, newItem.openingHours)
+                            && Double.compare(oldItem.latitude, newItem.latitude) == 0
+                            && Double.compare(oldItem.longitude, newItem.longitude) == 0;
+                }
+            };
+
     private boolean nearbyMode;
     private double userLat, userLon;
     private final OnClickListener listener;
 
-    public LocationAdapter(@Nullable List<BakeryLocation> locations,
-                           boolean nearbyMode,
-                           @Nullable OnClickListener listener) {
-        this.locations  = locations != null ? locations : new ArrayList<>();
+    public LocationAdapter(boolean nearbyMode, @Nullable OnClickListener listener) {
+        super(DIFF_CALLBACK);
         this.nearbyMode = nearbyMode;
         this.listener   = listener;
-    }
-
-    public void setLocations(List<BakeryLocation> locations) {
-        this.locations = locations != null ? locations : new ArrayList<>();
-        notifyDataSetChanged();
     }
 
     public void setNearbyMode(boolean nearbyMode, double userLat, double userLon) {
@@ -58,13 +73,7 @@ public class LocationAdapter extends RecyclerView.Adapter<LocationAdapter.VH> {
 
     @Override
     public void onBindViewHolder(@NonNull VH holder, int position) {
-        BakeryLocation loc = locations.get(position);
-        holder.bind(loc, nearbyMode, userLat, userLon, listener);
-    }
-
-    @Override
-    public int getItemCount() {
-        return locations.size();
+        holder.bind(getItem(position), nearbyMode, userLat, userLon, listener);
     }
 
     static class VH extends RecyclerView.ViewHolder {
