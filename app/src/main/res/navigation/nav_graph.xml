@@ -9,7 +9,7 @@
     <fragment
         android:id="@+id/nav_home"
         android:name="com.example.workshop6.ui.dashboard.DashboardFragment"
-        android:label="Home"
+        android:label="@string/nav_home"
         tools:layout="@layout/fragment_dashboard">
         <action
             android:id="@+id/action_home_to_locations"
@@ -19,25 +19,25 @@
     <fragment
         android:id="@+id/nav_products"
         android:name="com.example.workshop6.ui.products.ProductsFragment"
-        android:label="Products"
+        android:label="@string/nav_products"
         tools:layout="@layout/fragment_placeholder" />
 
     <fragment
         android:id="@+id/nav_orders"
         android:name="com.example.workshop6.ui.orders.OrdersFragment"
-        android:label="Orders"
+        android:label="@string/nav_orders"
         tools:layout="@layout/fragment_placeholder" />
 
     <fragment
         android:id="@+id/nav_team"
         android:name="com.example.workshop6.ui.team.TeamFragment"
-        android:label="Team"
+        android:label="@string/nav_team"
         tools:layout="@layout/fragment_placeholder" />
 
     <fragment
         android:id="@+id/nav_profile"
         android:name="com.example.workshop6.ui.profile.ProfileFragment"
-        android:label="Profile"
+        android:label="@string/nav_profile"
         tools:layout="@layout/fragment_placeholder" />
 
     <!-- Locations screens — reached from Dashboard or via deep-link -->
@@ -54,7 +54,7 @@
     <fragment
         android:id="@+id/addEditLocationFragment"
         android:name="com.example.workshop6.ui.locations.AddEditLocationFragment"
-        android:label="Location Details"
+        android:label="@string/location_details"
         tools:layout="@layout/fragment_add_edit_location">
         <!-- -1 = create new; any positive value = edit existing -->
         <argument
