@@ -1,10 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="purple_200">#FFBB86FC</color>
-    <color name="purple_500">#FF6200EE</color>
-    <color name="purple_700">#FF3700B3</color>
-    <color name="teal_200">#FF03DAC5</color>
-    <color name="teal_700">#FF018786</color>
-    <color name="black">#FF000000</color>
+    <color name="bakery_amber">#7A5C1E</color>
+    <color name="bakery_cream">#EDE8DC</color>
+    <color name="bakery_gold">#C49A22</color>
+    <color name="bakery_gold_bright">#E8B400</color>
+    <color name="bakery_card_white">#FDFAF5</color>
+    <color name="bakery_text_dark">#2C1A00</color>
+    <color name="bakery_text_light">#FDFAF5</color>
+    <color name="bakery_status_open">#4CAF50</color>
+    <color name="bakery_status_closed">#F44336</color>
     <color name="white">#FFFFFFFF</color>
+    <color name="black">#FF000000</color>
 </resources>
