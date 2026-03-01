@@ -30,37 +30,48 @@ public abstract class AppDatabase extends RoomDatabase {
         if (INSTANCE == null) {
             synchronized (AppDatabase.class) {
                 if (INSTANCE == null) {
+
+                    // Create a callback that seeds using DAOs (no raw SQL)
+                    RoomDatabase.Callback seedCallback = new RoomDatabase.Callback() {
+                        @Override
+                        public void onCreate(@NonNull SupportSQLiteDatabase db) {
+                            super.onCreate(db);
+
+                            // Seed in background after Room finishes creating tables
+                            databaseWriteExecutor.execute(() -> {
+                                try {
+                                    UserDao userDao = INSTANCE.userDao();
+
+                                    // Only seed if admin doesn't already exist
+                                    User existing = userDao.getUserByEmail("admin@bakery.com");
+                                    if (existing == null) {
+                                        User admin = new User();
+                                        admin.fullName = "Admin User";
+                                        admin.email = "admin@bakery.com";
+                                        admin.phone = "555-0100";
+                                        admin.passwordHash = HashUtils.hash("admin123");
+                                        admin.role = "ADMIN";
+
+                                        userDao.insert(admin);
+                                    }
+                                } catch (Exception ignored) {
+                                    // If something goes wrong, login will simply fail rather than crash the app
+                                }
+                            });
+                        }
+                    };
+
                     INSTANCE = Room.databaseBuilder(
-                            context.getApplicationContext(),
-                            AppDatabase.class,
-                            "workshop6_database"
-                    )
-                    .fallbackToDestructiveMigration()
-                    .addCallback(seedCallback)
-                    .build();
+                                    context.getApplicationContext(),
+                                    AppDatabase.class,
+                                    "workshop6_database"
+                            )
+                            .fallbackToDestructiveMigration()
+                            .addCallback(seedCallback)
+                            .build();
                 }
             }
         }
         return INSTANCE;
     }
-
-    // Seed a default Admin account on first creation
-    private static final RoomDatabase.Callback seedCallback = new RoomDatabase.Callback() {
-        @Override
-        public void onCreate(@NonNull SupportSQLiteDatabase db) {
-            super.onCreate(db);
-            String passwordHash = HashUtils.hash("admin123");
-            db.execSQL(
-                    "INSERT INTO User (fullName, email, phone, passwordHash, role)"
-                            + " VALUES (?, ?, ?, ?, ?)",
-                    new Object[] {
-                            "Admin User",
-                            "admin@bakery.com",
-                            "555-0100",
-                            passwordHash,
-                            "ADMIN"
-                    }
-            );
-        }
-    };
 }
