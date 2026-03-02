@@ -16,4 +16,5 @@
 .cxx
 local.properties
 docs
+/.idea/markdown.xml
 /.claude

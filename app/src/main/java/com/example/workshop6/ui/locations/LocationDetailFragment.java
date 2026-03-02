@@ -121,8 +121,9 @@ public class LocationDetailFragment extends Fragment {
         MaterialButton btnDirections = view.findViewById(R.id.btn_directions);
         if (loc.latitude != 0.0 || loc.longitude != 0.0) {
             btnDirections.setOnClickListener(v -> {
+                String encodedName = Uri.encode(loc.name != null ? loc.name : "");
                 String uri = String.format(Locale.US,
-                        "geo:0,0?q=%f,%f(%s)", loc.latitude, loc.longitude, loc.name);
+                        "geo:0,0?q=%f,%f(%s)", loc.latitude, loc.longitude, encodedName);
                 Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(uri));
                 intent.setPackage("com.google.android.apps.maps");
                 if (intent.resolveActivity(requireActivity().getPackageManager()) != null) {
