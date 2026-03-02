@@ -56,4 +56,21 @@
     <string name="btn_redeem">Redeem →</string>
     <string name="label_categories">CATEGORIES</string>
     <string name="label_category">CATEGORY</string>
+    <string name="label_products">PRODUCTS</string>
+
+    <!-- getting it to run -->
+    <!-- Content Descriptions -->
+    <string name="cd_navigate_up">Navigate up</string>
+    <string name="cd_hero_image">Location image</string>
+    <string name="cd_location_thumbnail">Location thumbnail</string>
+
+    <!-- Stub Review 1 -->
+    <string name="stub_review_1_rating">4.5</string>
+    <string name="stub_review_1_text">temp review 1</string>
+    <string name="stub_review_1_author">Alex Johnson</string>
+
+    <!-- Stub Review 2 -->
+    <string name="stub_review_2_rating">4.0</string>
+    <string name="stub_review_2_text">temp review 2</string>
+    <string name="stub_review_2_author">Taylor Smith</string>
 </resources>

@@ -14,9 +14,9 @@
 
     <fragment
         android:id="@+id/nav_browse"
-        android:name="com.example.workshop6.ui.browse.BrowseFragment"
+        android:name="com.example.workshop6.ui.products.ProductsFragment"
         android:label="@string/nav_browse"
-        tools:layout="@layout/fragment_browse" />
+        tools:layout="@layout/fragment_products" />
 
     <fragment
         android:id="@+id/nav_map"
