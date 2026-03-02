@@ -8,9 +8,8 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="center"
-        android:text="@string/coming_soon"
+        android:text="@string/stub_home_message"
         android:textSize="20sp"
-        android:textColor="@color/bakery_primary"
-        android:fontFamily="serif" />
+        android:textColor="@color/bakery_text_dark" />
 
 </FrameLayout>

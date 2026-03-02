@@ -4,14 +4,14 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/bakery_cream">
+    android:background="@color/bakery_background">
 
     <!-- Amber header banner -->
     <View
         android:id="@+id/view_header_bg"
         android:layout_width="match_parent"
         android:layout_height="220dp"
-        android:background="@color/bakery_amber"
+        android:background="@color/bakery_primary"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintStart_toStartOf="parent" />
 
@@ -105,7 +105,7 @@
                 android:layout_height="wrap_content"
                 android:text="@string/btn_login"
                 android:layout_marginTop="20dp"
-                app:backgroundTint="@color/bakery_amber" />
+                app:backgroundTint="@color/bakery_gold_bright" />
 
         </LinearLayout>
     </com.google.android.material.card.MaterialCardView>

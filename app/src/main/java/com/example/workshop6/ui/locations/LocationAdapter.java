@@ -3,6 +3,7 @@ package com.example.workshop6.ui.locations;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ImageView;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
@@ -77,15 +78,18 @@ public class LocationAdapter extends ListAdapter<BakeryLocation, LocationAdapter
     }
 
     static class VH extends RecyclerView.ViewHolder {
-        final TextView name, address, distance;
+        final ImageView thumbnail;
+        final TextView name, address, distance, dotSeparator;
         final Chip chipStatus;
 
         VH(@NonNull View itemView) {
             super(itemView);
-            name      = itemView.findViewById(R.id.tv_location_name);
-            address   = itemView.findViewById(R.id.tv_location_address);
-            distance  = itemView.findViewById(R.id.tv_location_distance);
-            chipStatus = itemView.findViewById(R.id.chip_status);
+            thumbnail    = itemView.findViewById(R.id.iv_location_thumb);
+            name         = itemView.findViewById(R.id.tv_location_name);
+            address      = itemView.findViewById(R.id.tv_location_address);
+            distance     = itemView.findViewById(R.id.tv_location_distance);
+            dotSeparator = itemView.findViewById(R.id.tv_dot_separator);
+            chipStatus   = itemView.findViewById(R.id.chip_status);
         }
 
         void bind(BakeryLocation loc,
@@ -93,25 +97,36 @@ public class LocationAdapter extends ListAdapter<BakeryLocation, LocationAdapter
                   @Nullable OnClickListener listener) {
 
             name.setText(loc.name);
-            address.setText(loc.address + ", " + loc.city);
+            StringBuilder addressBuilder = new StringBuilder();
+            if (loc.address != null && !loc.address.isEmpty()) addressBuilder.append(loc.address);
+            if (loc.city != null && !loc.city.isEmpty()) {
+                if (addressBuilder.length() > 0) addressBuilder.append(", ");
+                addressBuilder.append(loc.city);
+            }
+            address.setText(addressBuilder.toString());
 
+            // Status chip
             boolean open = "Open".equalsIgnoreCase(loc.status);
-            chipStatus.setText(open ? "Open" : "Closed");
+            chipStatus.setText(open
+                    ? itemView.getContext().getString(R.string.label_open)
+                    : itemView.getContext().getString(R.string.label_closed));
             chipStatus.setChipBackgroundColorResource(
                     open ? R.color.bakery_status_open : R.color.bakery_status_closed);
 
-            if (nearbyMode) {
-                if (loc.latitude != 0.0 || loc.longitude != 0.0) {
-                    double dist = LocationUtils.haversineDistanceKm(
-                            userLat, userLon, loc.latitude, loc.longitude);
-                    distance.setText(LocationUtils.formatDistance(dist));
-                    distance.setVisibility(View.VISIBLE);
-                } else {
-                    distance.setVisibility(View.GONE);
-                }
+            // Distance (nearby mode only)
+            if (nearbyMode && (loc.latitude != 0.0 || loc.longitude != 0.0)) {
+                double dist = LocationUtils.haversineDistanceKm(
+                        userLat, userLon, loc.latitude, loc.longitude);
+                distance.setText(LocationUtils.formatDistance(dist));
+                distance.setVisibility(View.VISIBLE);
+                dotSeparator.setVisibility(View.VISIBLE);
             } else {
                 distance.setVisibility(View.GONE);
+                dotSeparator.setVisibility(View.GONE);
             }
+
+            // Thumbnail placeholder
+            thumbnail.setImageResource(android.R.drawable.ic_menu_mapmode);
 
             itemView.setOnClickListener(v -> {
                 if (listener != null) listener.onClick(loc);
