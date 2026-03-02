@@ -14,6 +14,7 @@ import android.view.ViewGroup;
 import com.example.workshop6.R;
 import com.example.workshop6.data.db.AppDatabase;
 import com.example.workshop6.data.model.Category;
+import com.example.workshop6.data.model.Product;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -26,6 +27,7 @@ import java.util.List;
 public class ProductsFragment extends Fragment {
 
     private RecyclerView rvCategories;
+    private RecyclerView rvProducts;
 
 
     // TODO: Rename parameter arguments, choose names that match
@@ -80,11 +82,20 @@ public class ProductsFragment extends Fragment {
         super.onViewCreated(view, savedInstanceState);
 
         rvCategories = view.findViewById(R.id.rvCategories);
+        rvProducts = view.findViewById(R.id.rvProducts);
 
-        // set rvCategories to horizontal
+
+        // set up recycler view for categories and set to horizontal
         rvCategories.setLayoutManager(new LinearLayoutManager(
                 requireContext(),
                 LinearLayoutManager.HORIZONTAL,
+                false
+        ));
+
+        // set up recycler view for products
+        rvProducts.setLayoutManager(new LinearLayoutManager(
+                requireContext(),
+                LinearLayoutManager.VERTICAL,
                 false
         ));
 
@@ -93,12 +104,17 @@ public class ProductsFragment extends Fragment {
 
         AppDatabase.databaseWriteExecutor.execute(() -> {
             List<Category> categories = db.categoryDao().getAllCategories();
+            List<Product> products = db.productDao().getAllProducts();
 
             // update component on the main thread
             requireActivity().runOnUiThread(() -> {
                 CategoriesAdapter categoriesAdapter = new CategoriesAdapter(categories);
+                ProductAdapter productAdapter = new ProductAdapter(products);
+
+                rvProducts.setAdapter(productAdapter);
                 rvCategories.setAdapter(categoriesAdapter);
             });
         });
+
     }
 }

@@ -10,18 +10,20 @@ import androidx.sqlite.db.SupportSQLiteDatabase;
 
 import com.example.workshop6.data.model.BakeryLocation;
 import com.example.workshop6.data.model.Category;
+import com.example.workshop6.data.model.Product;
 import com.example.workshop6.data.model.User;
 import com.example.workshop6.util.HashUtils;
 
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-@Database(entities = { User.class, BakeryLocation.class, Category.class }, version = 1, exportSchema = false)
+@Database(entities = { User.class, BakeryLocation.class, Category.class, Product.class }, version = 1, exportSchema = false)
 public abstract class AppDatabase extends RoomDatabase {
 
     public abstract UserDao userDao();
     public abstract BakeryLocationDao bakeryLocationDao();
     public abstract CategoryDao categoryDao();
+    public abstract ProductDao productDao();
 
     private static volatile AppDatabase INSTANCE;
 
