@@ -2,6 +2,7 @@ package com.example.workshop6.ui.products;
 
 import android.os.Bundle;
 
+import androidx.annotation.NonNull;
 import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
@@ -11,6 +12,10 @@ import android.view.View;
 import android.view.ViewGroup;
 
 import com.example.workshop6.R;
+import com.example.workshop6.data.model.Category;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * A simple {@link Fragment} subclass.
@@ -19,7 +24,7 @@ import com.example.workshop6.R;
  */
 public class ProductsFragment extends Fragment {
 
-    // display rvCategories horizontally
+    private RecyclerView rvCategories;
 
 
     // TODO: Rename parameter arguments, choose names that match
@@ -67,5 +72,33 @@ public class ProductsFragment extends Fragment {
                              Bundle savedInstanceState) {
         // Inflate the layout for this fragment
         return inflater.inflate(R.layout.fragment_products, container, false);
+    }
+
+    @Override
+    public void onViewCreated(@NonNull View view, Bundle savedInstanceState) {
+        super.onViewCreated(view, savedInstanceState);
+
+        rvCategories = view.findViewById(R.id.rvCategories);
+
+        // set rvCategories to horizontal
+        rvCategories.setLayoutManager(new LinearLayoutManager(
+                requireContext(),
+                LinearLayoutManager.HORIZONTAL,
+                false
+        ));
+
+        // temporary list
+        List<Category> categories = new ArrayList<>();
+        categories.add(new Category(1, "Bread"));
+        categories.add(new Category(2, "Cake"));
+        categories.add(new Category(3, "Cookie"));
+        categories.add(new Category(4, "Dessert"));
+        categories.add(new Category(5, "Vegan"));
+
+        // create adapter
+        CategoriesAdapter categoriesAdapter = new CategoriesAdapter(categories);
+
+        // attach adapter to Recycler View
+        rvCategories.setAdapter(categoriesAdapter);
     }
 }

@@ -67,4 +67,5 @@
     <string name="label_points_to_next">Gold • 260 to Platinum</string>
     <string name="btn_redeem">Redeem →</string>
     <string name="label_categories">CATEGORIES</string>
+    <string name="label_category">CATEGORY</string>
 </resources>
