@@ -2,7 +2,6 @@ package com.example.workshop6.ui;
 
 import android.content.Intent;
 import android.os.Bundle;
-import android.view.View;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.navigation.NavController;
@@ -41,18 +40,9 @@ public class MainActivity extends AppCompatActivity {
 
         BottomNavigationView bottomNav = findViewById(R.id.bottom_nav);
         NavigationUI.setupWithNavController(bottomNav, navController);
-
-        // Hide BottomNav on home — dashboard has its own sidebar navigation
-        navController.addOnDestinationChangedListener((controller, destination, arguments) -> {
-            if (destination.getId() == R.id.nav_home) {
-                bottomNav.setVisibility(View.GONE);
-            } else {
-                bottomNav.setVisibility(View.VISIBLE);
-            }
-        });
     }
 
-    /** Expose session to fragments without requiring a Context. */
+    /** Expose session to fragments. */
     public SessionManager getSessionManager() {
         return sessionManager;
     }

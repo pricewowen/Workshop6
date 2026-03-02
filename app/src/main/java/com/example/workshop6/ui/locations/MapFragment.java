@@ -21,37 +21,29 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.workshop6.R;
-import com.example.workshop6.auth.SessionManager;
 import com.example.workshop6.data.db.AppDatabase;
 import com.example.workshop6.data.model.BakeryLocation;
-import com.example.workshop6.ui.MainActivity;
 import com.example.workshop6.util.LocationUtils;
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.location.Priority;
-import com.google.android.material.button.MaterialButton;
-import com.google.android.material.floatingactionbutton.FloatingActionButton;
+import com.google.android.material.chip.Chip;
 import com.google.android.material.snackbar.Snackbar;
 
 import java.util.List;
 
-public class LocationsFragment extends Fragment {
+public class MapFragment extends Fragment {
 
     private LocationAdapter adapter;
     private AppDatabase db;
-    private SessionManager session;
-    private FloatingActionButton fabAdd;
-    private MaterialButton btnNearby;
 
     private boolean nearbyMode = false;
     private boolean hasUserLocation = false;
     private double userLat = 0, userLon = 0;
     private FusedLocationProviderClient fusedClient;
 
-    // Drives the reactive search — changing this value automatically re-queries Room
     private final MutableLiveData<String> searchQuery = new MutableLiveData<>("");
 
-    // Modern permission API: replaces deprecated requestPermissions / onRequestPermissionsResult
     private final ActivityResultLauncher<String> locationPermissionLauncher =
         registerForActivityResult(
             new ActivityResultContracts.RequestPermission(),
@@ -59,12 +51,11 @@ public class LocationsFragment extends Fragment {
                 if (isGranted) {
                     fetchUserLocation();
                 } else {
-                    // User denied — reset nearby toggle
                     hasUserLocation = false;
                     nearbyMode = false;
-                    if (btnNearby != null) btnNearby.setText(R.string.btn_show_nearby);
                     View v = getView();
                     if (v != null) {
+                        ((Chip) v.findViewById(R.id.chip_all)).setChecked(true);
                         Snackbar.make(v, R.string.permission_location_rationale,
                                 Snackbar.LENGTH_LONG).show();
                     }
@@ -77,48 +68,43 @@ public class LocationsFragment extends Fragment {
     public View onCreateView(@NonNull LayoutInflater inflater,
                              @Nullable ViewGroup container,
                              @Nullable Bundle savedInstanceState) {
-        return inflater.inflate(R.layout.fragment_locations, container, false);
+        return inflater.inflate(R.layout.fragment_map, container, false);
     }
 
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
 
-        db        = AppDatabase.getInstance(requireContext());
-        session   = ((MainActivity) requireActivity()).getSessionManager();
+        db = AppDatabase.getInstance(requireContext());
         fusedClient = LocationServices.getFusedLocationProviderClient(requireActivity());
 
-        // RecyclerView
+        // RecyclerView — tap navigates to detail
         RecyclerView rv = view.findViewById(R.id.rv_locations);
         rv.setLayoutManager(new LinearLayoutManager(requireContext()));
         adapter = new LocationAdapter(false, loc -> {
             Bundle args = new Bundle();
             args.putInt("locationId", loc.id);
             Navigation.findNavController(view)
-                    .navigate(R.id.action_locations_to_addEdit, args);
+                    .navigate(R.id.action_map_to_detail, args);
         });
         rv.setAdapter(adapter);
 
-        // FAB: Admin only
-        fabAdd = view.findViewById(R.id.fab_add_location);
-        if (session.isAdmin()) {
-            fabAdd.setVisibility(View.VISIBLE);
-            fabAdd.setOnClickListener(v -> {
-                Bundle args = new Bundle();
-                args.putInt("locationId", -1);
-                Navigation.findNavController(view)
-                        .navigate(R.id.action_locations_to_addEdit, args);
-            });
-        } else {
-            fabAdd.setVisibility(View.GONE);
-        }
+        // Chip toggle: Nearby vs All
+        Chip chipNearby = view.findViewById(R.id.chip_nearby);
+        Chip chipAll = view.findViewById(R.id.chip_all);
 
-        // Nearby toggle
-        btnNearby = view.findViewById(R.id.btn_nearby);
-        btnNearby.setOnClickListener(v -> toggleNearbyMode());
+        chipNearby.setOnClickListener(v -> {
+            nearbyMode = true;
+            requestOrFetchLocation();
+        });
 
-        // Reactive search via switchMap:
-        // Every time searchQuery changes, this switches to the correct LiveData query.
+        chipAll.setOnClickListener(v -> {
+            nearbyMode = false;
+            adapter.setNearbyMode(false, 0, 0);
+            searchQuery.setValue(searchQuery.getValue());
+        });
+
+        // Reactive search
         Transformations.switchMap(searchQuery, query -> {
             if (query == null || query.trim().isEmpty()) {
                 return db.bakeryLocationDao().getAllLocations();
@@ -127,7 +113,7 @@ public class LocationsFragment extends Fragment {
             }
         }).observe(getViewLifecycleOwner(), this::onLocationsUpdated);
 
-        // SearchView text listener
+        // SearchView
         SearchView searchView = view.findViewById(R.id.search_view);
         searchView.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
             @Override public boolean onQueryTextSubmit(String query) { return false; }
@@ -138,7 +124,6 @@ public class LocationsFragment extends Fragment {
         });
     }
 
-    /** Called whenever the LiveData query emits a new list. */
     private void onLocationsUpdated(List<BakeryLocation> locs) {
         if (nearbyMode && hasUserLocation) {
             adapter.setNearbyMode(true, userLat, userLon);
@@ -146,18 +131,6 @@ public class LocationsFragment extends Fragment {
         } else {
             adapter.setNearbyMode(false, 0, 0);
             adapter.submitList(locs);
-        }
-    }
-
-    private void toggleNearbyMode() {
-        nearbyMode = !nearbyMode;
-        btnNearby.setText(nearbyMode ? R.string.btn_show_all : R.string.btn_show_nearby);
-        if (nearbyMode) {
-            requestOrFetchLocation();
-        } else {
-            adapter.setNearbyMode(false, 0, 0);
-            // Re-trigger the existing query so the list re-renders without distances
-            searchQuery.setValue(searchQuery.getValue());
         }
     }
 
@@ -181,14 +154,13 @@ public class LocationsFragment extends Fragment {
                     userLat = location.getLatitude();
                     userLon = location.getLongitude();
                     hasUserLocation = true;
-                    // Re-trigger to sort by distance
                     searchQuery.setValue(searchQuery.getValue());
                 } else {
                     hasUserLocation = false;
                     nearbyMode = false;
-                    btnNearby.setText(R.string.btn_show_nearby);
                     View v = getView();
                     if (v != null) {
+                        ((Chip) v.findViewById(R.id.chip_all)).setChecked(true);
                         Snackbar.make(v, R.string.error_could_not_get_location,
                                 Snackbar.LENGTH_SHORT).show();
                     }

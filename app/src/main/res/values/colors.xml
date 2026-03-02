@@ -1,14 +1,30 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="bakery_amber">#7A5C1E</color>
-    <color name="bakery_cream">#EDE8DC</color>
+    <!-- Primary: Dark Navy -->
+    <color name="bakery_primary">#1A1A2E</color>
+    <color name="bakery_primary_dark">#12122A</color>
+
+    <!-- Accent: Gold -->
     <color name="bakery_gold">#C49A22</color>
     <color name="bakery_gold_bright">#E8B400</color>
-    <color name="bakery_card_white">#FDFAF5</color>
-    <color name="bakery_text_dark">#2C1A00</color>
-    <color name="bakery_text_light">#FDFAF5</color>
+
+    <!-- Backgrounds -->
+    <color name="bakery_background">#F5F5F5</color>
+    <color name="bakery_card_white">#FFFFFF</color>
+
+    <!-- Text -->
+    <color name="bakery_text_dark">#1A1A2E</color>
+    <color name="bakery_text_light">#FFFFFF</color>
+    <color name="bakery_text_secondary">#6B6B80</color>
+
+    <!-- Status -->
     <color name="bakery_status_open">#4CAF50</color>
     <color name="bakery_status_closed">#F44336</color>
+
+    <!-- Standard -->
     <color name="white">#FFFFFFFF</color>
     <color name="black">#FF000000</color>
+
+    <!-- Bottom nav icon tints -->
+    <color name="bakery_nav_icon_inactive">#80FFFFFF</color>
 </resources>

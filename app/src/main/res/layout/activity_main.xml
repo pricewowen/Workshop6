@@ -4,9 +4,8 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/bakery_cream">
+    android:background="@color/bakery_background">
 
-    <!-- Fragment container fills the space above the bottom nav -->
     <androidx.fragment.app.FragmentContainerView
         android:id="@+id/nav_host_fragment"
         android:name="androidx.navigation.fragment.NavHostFragment"
@@ -23,10 +22,10 @@
         android:id="@+id/bottom_nav"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="@color/bakery_amber"
+        android:background="@color/bakery_primary"
         app:menu="@menu/bottom_nav_menu"
-        app:itemIconTint="@color/bakery_gold"
-        app:itemTextColor="@color/bakery_card_white"
+        app:itemIconTint="@color/bakery_gold_bright"
+        app:itemTextColor="@color/bakery_text_light"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />

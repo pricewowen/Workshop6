@@ -1,13 +1,13 @@
 <resources>
     <style name="Theme.Workshop6" parent="Theme.MaterialComponents.Light.NoActionBar">
-        <item name="colorPrimary">@color/bakery_amber</item>
-        <item name="colorPrimaryVariant">@color/bakery_gold</item>
+        <item name="colorPrimary">@color/bakery_primary</item>
+        <item name="colorPrimaryVariant">@color/bakery_primary_dark</item>
         <item name="colorOnPrimary">@color/bakery_text_light</item>
-        <item name="colorSecondary">@color/bakery_gold</item>
-        <item name="colorSecondaryVariant">@color/bakery_gold_bright</item>
+        <item name="colorSecondary">@color/bakery_gold_bright</item>
+        <item name="colorSecondaryVariant">@color/bakery_gold</item>
         <item name="colorOnSecondary">@color/bakery_text_dark</item>
-        <item name="android:colorBackground">@color/bakery_cream</item>
-        <item name="android:statusBarColor">@color/bakery_amber</item>
+        <item name="android:colorBackground">@color/bakery_background</item>
+        <item name="android:statusBarColor">@color/bakery_primary_dark</item>
         <item name="android:windowLightStatusBar">false</item>
     </style>
 </resources>
