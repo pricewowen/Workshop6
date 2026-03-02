@@ -58,4 +58,13 @@
     <string name="cd_nav_profile">Profile</string>
     <!-- TODO: Remove or change this placeholder text -->
     <string name="hello_blank_fragment">Hello blank fragment</string>
+    <!-- Products -->
+    <string name="label_featured_product_name">Butter Croissant</string>
+    <string name="label_featured_product_price">$4.50</string>
+    <string name="label_featured">TODAY\'S FEATURE</string>
+    <string name="btn_add_to_cart">Add to Cart</string>
+    <string name="label_points_available">1,240 pts</string>
+    <string name="label_points_to_next">Gold • 260 to Platinum</string>
+    <string name="btn_redeem">Redeem →</string>
+    <string name="label_categories">CATEGORIES</string>
 </resources>
