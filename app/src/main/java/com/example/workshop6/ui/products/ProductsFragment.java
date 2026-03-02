@@ -12,6 +12,7 @@ import android.view.View;
 import android.view.ViewGroup;
 
 import com.example.workshop6.R;
+import com.example.workshop6.data.db.AppDatabase;
 import com.example.workshop6.data.model.Category;
 
 import java.util.ArrayList;
@@ -87,18 +88,17 @@ public class ProductsFragment extends Fragment {
                 false
         ));
 
-        // temporary list
-        List<Category> categories = new ArrayList<>();
-        categories.add(new Category(1, "Bread"));
-        categories.add(new Category(2, "Cake"));
-        categories.add(new Category(3, "Cookie"));
-        categories.add(new Category(4, "Dessert"));
-        categories.add(new Category(5, "Vegan"));
+        // attaches adapter with the data from the database
+        AppDatabase db = AppDatabase.getInstance(requireContext());
 
-        // create adapter
-        CategoriesAdapter categoriesAdapter = new CategoriesAdapter(categories);
+        AppDatabase.databaseWriteExecutor.execute(() -> {
+            List<Category> categories = db.categoryDao().getAllCategories();
 
-        // attach adapter to Recycler View
-        rvCategories.setAdapter(categoriesAdapter);
+            // update component on the main thread
+            requireActivity().runOnUiThread(() -> {
+                CategoriesAdapter categoriesAdapter = new CategoriesAdapter(categories);
+                rvCategories.setAdapter(categoriesAdapter);
+            });
+        });
     }
 }

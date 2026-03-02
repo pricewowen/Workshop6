@@ -56,6 +56,8 @@ public abstract class AppDatabase extends RoomDatabase {
 
                                         userDao.insert(admin);
                                     }
+
+                                    DatabaseSeeder.seed(INSTANCE);
                                 } catch (Exception ignored) {
                                     // If something goes wrong, login will simply fail rather than crash the app
                                 }
