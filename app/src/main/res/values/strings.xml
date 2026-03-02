@@ -42,4 +42,13 @@
     <!-- Content descriptions -->
     <string name="cd_location_thumbnail">Location photo</string>
     <string name="cd_hero_image">Bakery storefront</string>
+    <string name="cd_navigate_up">Navigate up</string>
+
+    <!-- Stub review data (TODO: Cantor — replace with real review data) -->
+    <string name="stub_review_1_rating">\u2605\u2605\u2605\u2605\u2606&#160;&#160;4.0</string>
+    <string name="stub_review_1_text">Great croissants! Always fresh.</string>
+    <string name="stub_review_1_author">- Sophie L.</string>
+    <string name="stub_review_2_rating">\u2605\u2605\u2605\u2605\u2605&#160;&#160;5.0</string>
+    <string name="stub_review_2_text">Love this place! Best sourdough in town.</string>
+    <string name="stub_review_2_author">- James R.</string>
 </resources>

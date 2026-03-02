@@ -14,7 +14,8 @@
         android:background="@color/bakery_primary"
         app:titleTextColor="@color/white"
         app:navigationIcon="@android:drawable/ic_menu_revert"
-        app:navigationIconTint="@color/white" />
+        app:navigationIconTint="@color/white"
+        app:navigationContentDescription="@string/cd_navigate_up" />
 
     <ScrollView
         android:layout_width="match_parent"
@@ -160,7 +161,6 @@
                     android:id="@+id/rv_products_stub"
                     android:layout_width="match_parent"
                     android:layout_height="100dp"
-                    android:orientation="horizontal"
                     android:layout_marginBottom="24dp" />
 
                 <!-- STUB: Reviews -->
@@ -189,20 +189,20 @@
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="\u2605\u2605\u2605\u2605\u2606  4.0"
+                            android:text="@string/stub_review_1_rating"
                             android:textColor="@color/bakery_gold_bright"
                             android:textSize="13sp" />
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="Great croissants! Always fresh."
+                            android:text="@string/stub_review_1_text"
                             android:textColor="@color/bakery_text_dark"
                             android:textSize="13sp"
                             android:layout_marginTop="4dp" />
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="- Sophie L."
+                            android:text="@string/stub_review_1_author"
                             android:textColor="@color/bakery_text_secondary"
                             android:textSize="11sp"
                             android:layout_marginTop="2dp" />
@@ -224,20 +224,20 @@
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="\u2605\u2605\u2605\u2605\u2605  5.0"
+                            android:text="@string/stub_review_2_rating"
                             android:textColor="@color/bakery_gold_bright"
                             android:textSize="13sp" />
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="Love this place! Best sourdough in town."
+                            android:text="@string/stub_review_2_text"
                             android:textColor="@color/bakery_text_dark"
                             android:textSize="13sp"
                             android:layout_marginTop="4dp" />
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="- James R."
+                            android:text="@string/stub_review_2_author"
                             android:textColor="@color/bakery_text_secondary"
                             android:textSize="11sp"
                             android:layout_marginTop="2dp" />

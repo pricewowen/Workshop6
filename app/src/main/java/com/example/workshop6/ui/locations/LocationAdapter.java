@@ -97,11 +97,19 @@ public class LocationAdapter extends ListAdapter<BakeryLocation, LocationAdapter
                   @Nullable OnClickListener listener) {
 
             name.setText(loc.name);
-            address.setText(loc.address + ", " + loc.city);
+            StringBuilder addressBuilder = new StringBuilder();
+            if (loc.address != null && !loc.address.isEmpty()) addressBuilder.append(loc.address);
+            if (loc.city != null && !loc.city.isEmpty()) {
+                if (addressBuilder.length() > 0) addressBuilder.append(", ");
+                addressBuilder.append(loc.city);
+            }
+            address.setText(addressBuilder.toString());
 
             // Status chip
             boolean open = "Open".equalsIgnoreCase(loc.status);
-            chipStatus.setText(open ? "Open" : "Closed");
+            chipStatus.setText(open
+                    ? itemView.getContext().getString(R.string.label_open)
+                    : itemView.getContext().getString(R.string.label_closed));
             chipStatus.setChipBackgroundColorResource(
                     open ? R.color.bakery_status_open : R.color.bakery_status_closed);
 
