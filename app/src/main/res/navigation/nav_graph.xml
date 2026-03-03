@@ -16,7 +16,11 @@
         android:id="@+id/nav_browse"
         android:name="com.example.workshop6.ui.products.ProductsFragment"
         android:label="@string/nav_browse"
-        tools:layout="@layout/fragment_products" />
+        tools:layout="@layout/fragment_products" >
+        <action
+            android:id="@+id/action_products_to_details"
+            app:destination="@id/productDetailFragment" />
+    </fragment>
 
     <fragment
         android:id="@+id/nav_map"
@@ -42,6 +46,18 @@
         tools:layout="@layout/fragment_location_detail">
         <argument
             android:name="locationId"
+            app:argType="integer"
+            android:defaultValue="-1" />
+    </fragment>
+
+    <!-- product details -->
+    <fragment
+        android:id="@+id/productDetailFragment"
+        android:name="com.example.workshop6.ui.products.ProductDetailsFragment"
+        android:label="@string/product_details"
+        tools:layout="@layout/fragment_product_details" >
+        <argument
+            android:name="productId"
             app:argType="integer"
             android:defaultValue="-1" />
     </fragment>

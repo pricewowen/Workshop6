@@ -1,5 +1,6 @@
 package com.example.workshop6.ui.products;
 
+import android.content.Intent;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -15,9 +16,15 @@ import java.util.List;
 
 public class ProductAdapter extends RecyclerView.Adapter<ProductAdapter.ProductViewHolder> {
     private List<Product> productList;
+    private OnProductListener listener;
 
-    public ProductAdapter(List<Product> productList) {
+    public interface OnProductListener {
+        void onProductClick(int productId);
+    }
+
+    public ProductAdapter(List<Product> productList, OnProductListener listener) {
         this.productList = productList;
+        this.listener = listener;
     }
 
     @NonNull
@@ -32,6 +39,9 @@ public class ProductAdapter extends RecyclerView.Adapter<ProductAdapter.ProductV
     public void onBindViewHolder(@NonNull ProductAdapter.ProductViewHolder holder, int position) {
         Product product = productList.get(position);
         holder.tvProductName.setText(product.getProductName());
+
+        holder.tvProductName.setText(product.getProductName() + " \t " + product.getProductBasePrice());
+        holder.itemView.setOnClickListener(v -> listener.onProductClick(product.getProductId()));
     }
 
     @Override
