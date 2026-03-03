@@ -4,6 +4,7 @@ import android.os.Bundle;
 
 import androidx.annotation.NonNull;
 import androidx.fragment.app.Fragment;
+import androidx.navigation.Navigation;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -109,12 +110,18 @@ public class ProductsFragment extends Fragment {
             // update component on the main thread
             requireActivity().runOnUiThread(() -> {
                 CategoriesAdapter categoriesAdapter = new CategoriesAdapter(categories);
-                ProductAdapter productAdapter = new ProductAdapter(products);
+                ProductAdapter productAdapter = new ProductAdapter(products, productId -> {
+                    // pass information to details fragment
+                    Bundle args = new Bundle();
+
+                    args.putInt("productId", productId);
+                    Navigation.findNavController(requireView()).navigate(R.id.action_products_to_details, args);
+                });
+
 
                 rvProducts.setAdapter(productAdapter);
                 rvCategories.setAdapter(categoriesAdapter);
             });
         });
-
     }
 }
