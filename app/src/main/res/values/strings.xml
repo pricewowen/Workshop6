@@ -65,6 +65,7 @@
     <string name="btn_increase">+</string>
     <string name="btn_decrease">-</string>
     <string name="product_details">Product Details</string>
+    <string name="btn_back">Back</string>
 
     <!-- getting it to run -->
     <!-- Content Descriptions -->

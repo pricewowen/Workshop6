@@ -56,6 +56,9 @@ public class ProductDetailsFragment extends Fragment {
         TextView tvProductPrice = view.findViewById(R.id.tvProductPrice);
         TextView tvProductDescription = view.findViewById(R.id.tvProductDescription);
         TextView tvQuantity = view.findViewById(R.id.tvQuantity);
+        Button btnIncrease = view.findViewById(R.id.btnIncrease);
+        Button btnDecrease = view.findViewById(R.id.btnDecrease);
+        Button btnBack = view.findViewById(R.id.btnBack);
         Button btnAddToCart = view.findViewById(R.id.btnAddToCart);
 
         // load products from the DB
@@ -67,6 +70,21 @@ public class ProductDetailsFragment extends Fragment {
                 tvProductPrice.setText(String.format("$%.2f", product.getProductBasePrice().doubleValue()));
                 tvProductDescription.setText(product.getProductDescription());
             });
+        });
+
+        // back button listener
+        btnBack.setOnClickListener(v -> {
+
+        });
+
+        // increase listener
+        btnIncrease.setOnClickListener(v -> {
+
+        });
+
+        // decrease listener
+        btnDecrease.setOnClickListener(v -> {
+
         });
     }
 }
