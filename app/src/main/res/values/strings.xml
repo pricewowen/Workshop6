@@ -1,15 +1,53 @@
 <resources>
-    <string name="app_name">Maison</string>
+    <string name="app_name">Peelin\' Good</string>
 
-    <!-- Auth -->
+    <!-- Auth — Login -->
+    <string name="app_brand">Peelin\' Good</string>
     <string name="login_title">Welcome Back</string>
+    <string name="login_heading">Welcome\nback.</string>
+    <string name="login_subtitle">Sign in to your account</string>
     <string name="hint_email">Email address</string>
     <string name="hint_password">Password</string>
     <string name="btn_login">Sign In</string>
+    <string name="btn_forgot_password">Forgot password?</string>
+    <string name="social_divider_login">or continue with</string>
+    <string name="btn_google">Google</string>
+    <string name="btn_microsoft">Microsoft</string>
+    <string name="link_no_account">No account? </string>
+    <string name="link_register_here">Register here</string>
     <string name="login_error_invalid">Invalid email or password</string>
-    <string name="error_email_required">Email is required</string>
-    <string name="error_password_required">Password is required</string>
 
+
+
+    <!-- Auth — Register -->
+    <string name="register_heading">Create\naccount.</string>
+    <string name="label_photo">PHOTO</string>
+    <string name="social_divider_register">or manually</string>
+    <string name="label_full_name">FULL NAME</string>
+    <string name="hint_full_name">Your full name</string>
+    <string name="label_phone">PHONE</string>
+    <string name="hint_phone">Your phone number</string>
+    <string name="btn_create_account">Create Account</string>
+    <string name="link_have_account">Have an account? </string>
+    <string name="link_sign_in">Sign in</string>
+    <string name="toast_coming_soon">Coming soon</string>
+    <string name="btn_logout">Log Out</string>
+
+
+    <!-- Auth - Errors    -->
+    <!--  Name Errors   -->
+    <string name="error_name_required">Name is required</string>
+    <string name="error_name_invalid">Name cannot contain Numbers</string>
+    <!-- Email Errors-->
+    <string name="error_email_required">Email is required</string>
+    <string name="register_error_email_exists">An account with this email already exists</string>
+    <string name="error_email_invalid">Must be a valid email</string>
+    <!-- Phone Errors-->
+    <string name="error_phone_required">Phone Number is Required</string>
+    <string name="error_phone_invalid">Phone Number must can only contain numbers and is 10 digits</string>
+    <!--    Password Errors-->
+    <string name="error_password_required">Password is required</string>
+    <string name="error_password_invalid">Password must be between 8 and 250 characters</string>
     <!-- Navigation -->
     <string name="nav_home">Home</string>
     <string name="nav_browse">Browse</string>
@@ -35,7 +73,7 @@
 
     <!-- Stubs -->
     <string name="coming_soon">Coming Soon</string>
-    <string name="stub_home_message">Welcome to Maison!</string>
+    <string name="stub_home_message">Welcome to Peelin\' Good!</string>
     <string name="stub_browse_message">Browse our products</string>
     <string name="stub_me_message">Your profile</string>
 
@@ -44,6 +82,21 @@
     <string name="cd_nav_products">Products</string>
     <string name="cd_nav_orders">Orders</string>
     <string name="cd_nav_profile">Profile</string>
+    <string name="cd_navigate_up">Navigate up</string>
+    <string name="cd_hero_image">Bakery storefront</string>
+    <string name="cd_location_thumbnail">Location photo</string>
+
+    <!-- Stub review data (Cantor replaces with real reviews later) -->
+    <string name="stub_review_1_rating">\u2605\u2605\u2605\u2605\u2606  4.0</string>
+    <string name="stub_review_1_text">Great croissants! Always fresh.</string>
+    <string name="stub_review_1_author">- Sophie L.</string>
+    <string name="stub_review_2_rating">\u2605\u2605\u2605\u2605\u2605  5.0</string>
+    <string name="stub_review_2_text">Love this place! Best sourdough in town.</string>
+    <string name="stub_review_2_author">- James R.</string>
+
+    <!-- Products -->
+    <string name="label_products">ALL PRODUCTS</string>
+
     <!-- TODO: Remove or change this placeholder text -->
     <string name="hello_blank_fragment">Hello blank fragment</string>
     <!-- Products -->
@@ -56,4 +109,5 @@
     <string name="btn_redeem">Redeem →</string>
     <string name="label_categories">CATEGORIES</string>
     <string name="label_category">CATEGORY</string>
+    <string name="error_password_unsafe">Unsafe pattern detected</string>
 </resources>

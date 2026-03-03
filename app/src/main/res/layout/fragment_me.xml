@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@color/bakery_background">
@@ -11,5 +12,17 @@
         android:text="@string/stub_me_message"
         android:textSize="20sp"
         android:textColor="@color/bakery_text_dark" />
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btn_logout"
+        style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center_horizontal|bottom"
+        android:layout_marginBottom="32dp"
+        android:text="@string/btn_logout"
+        android:textColor="@color/bakery_status_closed"
+        app:strokeColor="@color/bakery_status_closed"
+        app:cornerRadius="24dp" />
 
 </FrameLayout>

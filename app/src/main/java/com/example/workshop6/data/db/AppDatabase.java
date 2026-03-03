@@ -17,7 +17,7 @@ import com.example.workshop6.util.HashUtils;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-@Database(entities = { User.class, BakeryLocation.class, Category.class, Product.class }, version = 1, exportSchema = false)
+@Database(entities = { User.class, BakeryLocation.class, Category.class, Product.class }, version = 2, exportSchema = false)
 public abstract class AppDatabase extends RoomDatabase {
 
     public abstract UserDao userDao();

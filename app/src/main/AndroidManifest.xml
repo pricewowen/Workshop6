@@ -26,6 +26,12 @@
             </intent-filter>
         </activity>
 
+        <!-- Registration -->
+        <activity
+            android:name=".auth.RegisterActivity"
+            android:exported="false"
+            android:windowSoftInputMode="adjustResize" />
+
         <!-- Main app shell -->
         <activity
             android:name=".ui.MainActivity"

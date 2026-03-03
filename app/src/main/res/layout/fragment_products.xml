@@ -10,7 +10,7 @@
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="@color/bakery_cream"
+        android:background="@color/bakery_background"
         android:orientation="vertical"
         android:padding="16dp"
         app:layout_constraintEnd_toEndOf="parent"
@@ -22,7 +22,7 @@
             android:layout_width="match_parent"
             android:layout_height="200dp"
             android:layout_marginBottom="16dp"
-            app:cardBackgroundColor="@color/bakery_amber"
+            app:cardBackgroundColor="@color/bakery_primary"
             app:cardCornerRadius="24dp"
             app:cardElevation="8dp">
 
