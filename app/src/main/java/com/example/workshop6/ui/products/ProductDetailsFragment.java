@@ -4,6 +4,7 @@ import android.os.Bundle;
 
 import androidx.annotation.NonNull;
 import androidx.fragment.app.Fragment;
+import androidx.navigation.Navigation;
 
 import android.view.LayoutInflater;
 import android.view.View;
@@ -74,7 +75,7 @@ public class ProductDetailsFragment extends Fragment {
 
         // back button listener
         btnBack.setOnClickListener(v -> {
-
+            Navigation.findNavController(view).navigateUp();
         });
 
         // increase listener
