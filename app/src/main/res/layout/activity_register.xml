@@ -6,21 +6,22 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:fillViewport="true"
-    android:background="@color/bakery_gold_bright">
+    android:background="@color/bakery_card_white">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical">
 
-        <!-- ===== Gold Header ===== -->
+        <!-- Header -->
         <FrameLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:background="@color/bakery_primary"
             android:paddingStart="28dp"
             android:paddingTop="56dp"
-            android:paddingBottom="60dp"
-            android:paddingEnd="28dp">
+            android:paddingEnd="28dp"
+            android:paddingBottom="40dp">
 
             <TextView
                 android:layout_width="wrap_content"
@@ -28,13 +29,11 @@
                 android:text="@string/register_heading"
                 android:textSize="34sp"
                 android:textStyle="bold"
-                android:textColor="@color/bakery_text_dark"
-                android:lineSpacingExtra="-4sp"
+                android:textColor="@color/bakery_text_light"
                 android:fontFamily="serif" />
-
         </FrameLayout>
 
-        <!-- ===== White Card Body ===== -->
+        <!-- Card body -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -44,98 +43,122 @@
             android:paddingTop="24dp"
             android:paddingBottom="32dp">
 
-            <!-- Photo placeholder -->
+            <!-- Photo -->
             <FrameLayout
-                android:layout_width="72dp"
-                android:layout_height="72dp"
+                android:layout_width="96dp"
+                android:layout_height="96dp"
                 android:layout_gravity="center_horizontal"
-                android:layout_marginBottom="16dp">
+                android:layout_marginBottom="10dp">
 
                 <View
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
                     android:background="@drawable/circle_bg_gray" />
 
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_gravity="center"
-                    android:text="@string/label_photo"
-                    android:textSize="10sp"
-                    android:textStyle="bold"
-                    android:textColor="@color/bakery_text_secondary"
-                    android:letterSpacing="0.1" />
-
+                <ImageView
+                    android:id="@+id/iv_profile_photo"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:padding="14dp"
+                    android:src="@drawable/ic_person_placeholder"
+                    android:scaleType="centerInside"
+                    android:contentDescription="@string/photo_picker_title" />
             </FrameLayout>
 
-            <!-- Social buttons -->
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_choose_photo"
+                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                android:layout_width="wrap_content"
+                android:layout_height="40dp"
+                android:layout_gravity="center_horizontal"
+                android:text="@string/btn_choose_photo"
+                android:textColor="@color/bakery_text_dark"
+                app:strokeColor="#E0E0E0"
+                app:cornerRadius="20dp" />
+
+            <TextView
+                android:id="@+id/tv_photo_error"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textColor="@color/bakery_status_closed"
+                android:textSize="12sp"
+                android:visibility="gone"
+                android:layout_marginTop="8dp"
+                android:layout_marginBottom="12dp" />
+
+            <!-- First name + Last name side by side -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="horizontal"
                 android:layout_marginBottom="16dp">
-
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/btn_google"
-                    style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                <LinearLayout
                     android:layout_width="0dp"
-                    android:layout_height="48dp"
-                    android:layout_weight="1"
-                    android:layout_marginEnd="8dp"
-                    android:text="@string/btn_google"
-                    android:textColor="@color/bakery_text_dark"
-                    app:strokeColor="#E0E0E0"
-                    app:cornerRadius="24dp" />
-
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/btn_microsoft"
-                    style="@style/Widget.MaterialComponents.Button.OutlinedButton"
-                    android:layout_width="0dp"
-                    android:layout_height="48dp"
-                    android:layout_weight="1"
-                    android:layout_marginStart="8dp"
-                    android:text="@string/btn_microsoft"
-                    android:textColor="@color/bakery_text_dark"
-                    app:strokeColor="#E0E0E0"
-                    app:cornerRadius="24dp" />
-
-            </LinearLayout>
-
-            <!-- "or manually" divider -->
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:gravity="center_vertical"
-                android:layout_marginBottom="20dp">
-
-                <View
-                    android:layout_width="0dp"
-                    android:layout_height="1dp"
-                    android:layout_weight="1"
-                    android:background="#E0E0E0" />
-
-                <TextView
-                    android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="@string/social_divider_register"
-                    android:textSize="12sp"
-                    android:textColor="@color/bakery_text_secondary"
-                    android:paddingHorizontal="12dp" />
-
-                <View
-                    android:layout_width="0dp"
-                    android:layout_height="1dp"
                     android:layout_weight="1"
-                    android:background="#E0E0E0" />
-
+                    android:orientation="vertical"
+                    android:layout_marginEnd="8dp">
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/label_first_name"
+                        android:textSize="11sp"
+                        android:textStyle="bold"
+                        android:textColor="@color/bakery_text_secondary"
+                        android:letterSpacing="0.08"
+                        android:layout_marginBottom="4dp" />
+                    <com.google.android.material.textfield.TextInputLayout
+                        android:id="@+id/til_first_name"
+                        style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        app:hintEnabled="false">
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/et_first_name"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:hint="@string/hint_first_name"
+                            android:inputType="textPersonName|textNoSuggestions"
+                            android:imeOptions="actionNext" />
+                    </com.google.android.material.textfield.TextInputLayout>
+                </LinearLayout>
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical"
+                    android:layout_marginStart="8dp">
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/label_last_name"
+                        android:textSize="11sp"
+                        android:textStyle="bold"
+                        android:textColor="@color/bakery_text_secondary"
+                        android:letterSpacing="0.08"
+                        android:layout_marginBottom="4dp" />
+                    <com.google.android.material.textfield.TextInputLayout
+                        android:id="@+id/til_last_name"
+                        style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        app:hintEnabled="false">
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/et_last_name"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:hint="@string/hint_last_name"
+                            android:inputType="textPersonName|textNoSuggestions"
+                            android:imeOptions="actionNext" />
+                    </com.google.android.material.textfield.TextInputLayout>
+                </LinearLayout>
             </LinearLayout>
 
-            <!-- Full Name -->
+            <!-- Username -->
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="@string/label_full_name"
+                android:text="@string/label_username"
                 android:textSize="11sp"
                 android:textStyle="bold"
                 android:textColor="@color/bakery_text_secondary"
@@ -143,22 +166,23 @@
                 android:layout_marginBottom="4dp" />
 
             <com.google.android.material.textfield.TextInputLayout
-                android:id="@+id/til_name"
+                android:id="@+id/til_username"
                 style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="16dp"
                 app:hintEnabled="false">
+
                 <com.google.android.material.textfield.TextInputEditText
-                    android:id="@+id/et_name"
+                    android:id="@+id/et_username"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:hint="@string/hint_full_name"
-                    android:inputType="textPersonName"
+                    android:hint="@string/hint_username"
+                    android:inputType="text|textNoSuggestions"
                     android:imeOptions="actionNext" />
             </com.google.android.material.textfield.TextInputLayout>
 
-            <!-- Email -->
+            <!-- Email label -->
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
@@ -170,6 +194,7 @@
                 android:textAllCaps="true"
                 android:layout_marginBottom="4dp" />
 
+            <!-- Email field -->
             <com.google.android.material.textfield.TextInputLayout
                 android:id="@+id/til_email"
                 style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
@@ -177,16 +202,17 @@
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="16dp"
                 app:hintEnabled="false">
+
                 <com.google.android.material.textfield.TextInputEditText
                     android:id="@+id/et_email"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:hint="@string/hint_email"
-                    android:inputType="textEmailAddress"
+                    android:inputType="textEmailAddress|textNoSuggestions"
                     android:imeOptions="actionNext" />
             </com.google.android.material.textfield.TextInputLayout>
 
-            <!-- Phone -->
+            <!-- Phone label -->
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
@@ -197,6 +223,7 @@
                 android:letterSpacing="0.08"
                 android:layout_marginBottom="4dp" />
 
+            <!-- Phone field -->
             <com.google.android.material.textfield.TextInputLayout
                 android:id="@+id/til_phone"
                 style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
@@ -204,43 +231,197 @@
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="16dp"
                 app:hintEnabled="false">
+
                 <com.google.android.material.textfield.TextInputEditText
                     android:id="@+id/et_phone"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:hint="@string/hint_phone"
-                    android:inputType="phone"
+                    android:inputType="phone|textNoSuggestions"
                     android:imeOptions="actionNext" />
             </com.google.android.material.textfield.TextInputLayout>
 
-            <!-- Password -->
+            <!-- Password + Confirm password side by side -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:layout_marginBottom="16dp">
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical"
+                    android:layout_marginEnd="8dp">
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/hint_password"
+                        android:textSize="11sp"
+                        android:textStyle="bold"
+                        android:textColor="@color/bakery_text_secondary"
+                        android:letterSpacing="0.08"
+                        android:textAllCaps="true"
+                        android:layout_marginBottom="4dp" />
+                    <com.google.android.material.textfield.TextInputLayout
+                        android:id="@+id/til_password"
+                        style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        app:hintEnabled="false"
+                        app:passwordToggleEnabled="true">
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/et_password"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:hint="@string/hint_password"
+                            android:inputType="textPassword"
+                            android:imeOptions="actionNext" />
+                    </com.google.android.material.textfield.TextInputLayout>
+                </LinearLayout>
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical"
+                    android:layout_marginStart="8dp">
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/hint_confirm_password"
+                        android:textSize="11sp"
+                        android:textStyle="bold"
+                        android:textColor="@color/bakery_text_secondary"
+                        android:letterSpacing="0.08"
+                        android:textAllCaps="true"
+                        android:layout_marginBottom="4dp" />
+                    <com.google.android.material.textfield.TextInputLayout
+                        android:id="@+id/til_confirm_password"
+                        style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        app:hintEnabled="false"
+                        app:passwordToggleEnabled="true">
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/et_confirm_password"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:hint="@string/hint_confirm_password"
+                            android:inputType="textPassword"
+                            android:imeOptions="actionDone" />
+                    </com.google.android.material.textfield.TextInputLayout>
+                </LinearLayout>
+            </LinearLayout>
+
+            <!-- Address (required) -->
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="@string/hint_password"
+                android:text="@string/label_address_header"
                 android:textSize="11sp"
                 android:textStyle="bold"
                 android:textColor="@color/bakery_text_secondary"
                 android:letterSpacing="0.08"
-                android:textAllCaps="true"
                 android:layout_marginBottom="4dp" />
 
             <com.google.android.material.textfield.TextInputLayout
-                android:id="@+id/til_password"
+                android:id="@+id/til_address1"
                 style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="24dp"
-                app:hintEnabled="false"
-                app:passwordToggleEnabled="true">
+                android:hint="@string/hint_address1"
+                android:layout_marginBottom="12dp">
                 <com.google.android.material.textfield.TextInputEditText
-                    android:id="@+id/et_password"
+                    android:id="@+id/et_address1"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:hint="@string/hint_password"
-                    android:inputType="textPassword"
-                    android:imeOptions="actionDone" />
+                    android:inputType="textPostalAddress"
+                    android:imeOptions="actionNext" />
             </com.google.android.material.textfield.TextInputLayout>
+
+            <com.google.android.material.textfield.TextInputLayout
+                android:id="@+id/til_address2"
+                style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="@string/hint_address2"
+                android:layout_marginBottom="12dp">
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/et_address2"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:inputType="textPostalAddress|textNoSuggestions"
+                    android:imeOptions="actionNext" />
+            </com.google.android.material.textfield.TextInputLayout>
+
+            <com.google.android.material.textfield.TextInputLayout
+                android:id="@+id/til_city"
+                style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="@string/hint_city"
+                android:layout_marginBottom="12dp">
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/et_city"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:inputType="textCapWords|textNoSuggestions"
+                    android:imeOptions="actionNext" />
+            </com.google.android.material.textfield.TextInputLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:layout_marginBottom="24dp">
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical"
+                    android:layout_marginEnd="8dp">
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/hint_province"
+                        android:textSize="11sp"
+                        android:textStyle="bold"
+                        android:textColor="@color/bakery_text_secondary"
+                        android:letterSpacing="0.08"
+                        android:textAllCaps="true"
+                        android:layout_marginBottom="4dp" />
+                    <Spinner
+                        android:id="@+id/spinner_province"
+                        android:layout_width="match_parent"
+                        android:layout_height="48dp"
+                        android:background="@android:drawable/btn_dropdown"
+                        android:paddingStart="12dp"
+                        android:paddingEnd="12dp" />
+                    <TextView
+                        android:id="@+id/tv_province_error"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:textColor="@color/bakery_status_closed"
+                        android:textSize="12sp"
+                        android:visibility="gone"
+                        android:layout_marginTop="4dp" />
+                </LinearLayout>
+                <com.google.android.material.textfield.TextInputLayout
+                    android:id="@+id/til_postal"
+                    style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:hint="@string/hint_postal_code">
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/et_postal"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:inputType="textCapCharacters|textNoSuggestions"
+                        android:imeOptions="actionDone"
+                        android:maxLength="7" />
+                </com.google.android.material.textfield.TextInputLayout>
+            </LinearLayout>
 
             <!-- Error message -->
             <TextView
@@ -252,7 +433,7 @@
                 android:visibility="gone"
                 android:layout_marginBottom="8dp" />
 
-            <!-- Create Account button — gold bg -->
+            <!-- Create -->
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btn_create_account"
                 android:layout_width="match_parent"
@@ -260,11 +441,11 @@
                 android:text="@string/btn_create_account"
                 android:textSize="16sp"
                 android:textStyle="bold"
-                android:textColor="@color/bakery_text_dark"
-                app:backgroundTint="@color/bakery_gold_bright"
+                android:textColor="@color/bakery_text_light"
+                app:backgroundTint="@color/bakery_primary"
                 app:cornerRadius="28dp" />
 
-            <!-- "Have an account? Sign in" -->
+            <!-- Sign in link -->
             <LinearLayout
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
@@ -279,23 +460,17 @@
                     android:textSize="14sp"
                     android:textColor="@color/bakery_text_secondary" />
 
-                <Space
-                    android:layout_width="5dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    tools:ignore="InefficientWeight" />
-
                 <TextView
                     android:id="@+id/tv_sign_in_link"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
+                    android:layout_marginStart="6dp"
                     android:clickable="true"
                     android:focusable="true"
                     android:text="@string/link_sign_in"
                     android:textColor="@color/bakery_primary"
                     android:textSize="14sp"
                     android:textStyle="bold" />
-
             </LinearLayout>
 
         </LinearLayout>

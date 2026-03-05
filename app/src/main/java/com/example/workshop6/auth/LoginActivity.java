@@ -10,6 +10,8 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import com.example.workshop6.R;
 import com.example.workshop6.data.db.AppDatabase;
+import com.example.workshop6.data.model.Customer;
+import com.example.workshop6.data.model.Employee;
 import com.example.workshop6.data.model.User;
 import com.example.workshop6.ui.MainActivity;
 import com.example.workshop6.util.HashUtils;
@@ -30,7 +32,6 @@ public class LoginActivity extends AppCompatActivity {
 
         sessionManager = new SessionManager(this);
 
-        // Already logged in — skip straight to the main screen
         if (sessionManager.isLoggedIn()) {
             goToMain();
             return;
@@ -44,16 +45,13 @@ public class LoginActivity extends AppCompatActivity {
         etPassword  = findViewById(R.id.et_password);
         tvError     = findViewById(R.id.tv_error);
 
+        // Warm up Room immediately so seed starts immediately (admin row is created)
+        AppDatabase.getInstance(getApplicationContext());
+
         findViewById(R.id.btn_login).setOnClickListener(v -> attemptLogin());
 
-        // Forgot password — stub
+        // Optional stub: forgot password
         findViewById(R.id.tv_forgot_password).setOnClickListener(v ->
-                Toast.makeText(this, R.string.toast_coming_soon, Toast.LENGTH_SHORT).show());
-
-        // Social buttons — stubs
-        findViewById(R.id.btn_google).setOnClickListener(v ->
-                Toast.makeText(this, R.string.toast_coming_soon, Toast.LENGTH_SHORT).show());
-        findViewById(R.id.btn_microsoft).setOnClickListener(v ->
                 Toast.makeText(this, R.string.toast_coming_soon, Toast.LENGTH_SHORT).show());
 
         // Register link
@@ -65,17 +63,15 @@ public class LoginActivity extends AppCompatActivity {
         String email = etEmail.getText() != null ? etEmail.getText().toString().trim() : "";
         String pass  = etPassword.getText() != null ? etPassword.getText().toString() : "";
 
-        // Input validation
         boolean valid = true;
+
         if (Validation.isEmpty(email)) {
-            tilEmail.setError(getString(R.string.error_email_required));
-            valid = false;
-        } else if (!Validation.isEmailValid(email)) {
-            tilEmail.setError(getString(R.string.error_email_invalid));
+            tilEmail.setError(getString(R.string.error_email_or_username_required));
             valid = false;
         } else {
             tilEmail.setError(null);
         }
+
         if (Validation.isEmpty(pass)) {
             tilPassword.setError(getString(R.string.error_password_required));
             valid = false;
@@ -85,21 +81,51 @@ public class LoginActivity extends AppCompatActivity {
         } else {
             tilPassword.setError(null);
         }
+
         if (!valid) return;
 
         tvError.setVisibility(View.GONE);
 
-        // DB lookup must run off the main thread
         AppDatabase.databaseWriteExecutor.execute(() -> {
-            User user = AppDatabase.getInstance(this).userDao().getUserByEmail(email);
-            boolean ok = (user != null) && HashUtils.verify(pass, user.passwordHash);
+            // Ensure seed finished so admin exists on FIRST attempt
+            AppDatabase.awaitSeed();
 
+            AppDatabase db = AppDatabase.getInstance(getApplicationContext());
+            // Login with email or username
+            User user = email.contains("@")
+                    ? db.userDao().getUserByEmail(email)
+                    : db.userDao().getUserByUsername(email);
+            boolean ok = (user != null) && HashUtils.verify(pass, user.userPasswordHash);
+
+            String displayName = user != null ? user.userEmail : "";
+            if (user != null) {
+                Customer customer = db.customerDao().getByUserId(user.userId);
+                Employee employee = db.employeeDao().getByUserId(user.userId);
+                if (customer != null) {
+                    displayName = (customer.customerFirstName != null ? customer.customerFirstName : "")
+                            + " "
+                            + (customer.customerLastName != null ? customer.customerLastName : "");
+                    displayName = displayName.trim();
+                    if (displayName.isEmpty()) displayName = user.userEmail;
+                } else if (employee != null) {
+                    displayName = (employee.employeeFirstName != null ? employee.employeeFirstName : "")
+                            + " "
+                            + (employee.employeeLastName != null ? employee.employeeLastName : "");
+                    displayName = displayName.trim();
+                    if (displayName.isEmpty()) displayName = user.userEmail;
+                } else {
+                    displayName = user.userEmail;
+                }
+            }
+
+            final String nameForSession = displayName;
+            final User userFinal = user;
             runOnUiThread(() -> {
                 if (ok) {
-                    sessionManager.createSession(user.id, user.role, user.fullName);
+                    sessionManager.createSession(userFinal.userId, userFinal.userRole, nameForSession);
                     goToMain();
                 } else {
-                    tvError.setText(R.string.login_error_invalid);
+                    tvError.setText(R.string.login_error_invalid_username_or_email);
                     tvError.setVisibility(View.VISIBLE);
                 }
             });
