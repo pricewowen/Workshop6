@@ -5,6 +5,7 @@ import com.example.workshop6.data.model.Category;
 import com.example.workshop6.data.model.Employee;
 import com.example.workshop6.data.model.Product;
 import com.example.workshop6.data.model.ProductTag;
+import com.example.workshop6.data.model.Reward;
 import com.example.workshop6.data.model.RewardTier;
 import com.example.workshop6.data.model.User;
 import com.example.workshop6.util.HashUtils;
@@ -24,6 +25,25 @@ public class DatabaseSeeder {
         seedCategories(db);
         seedProducts(db);
         seedProductTags(db);
+        seedRewards(db);
+    }
+
+    private static void seedRewards(AppDatabase db) {
+        if (!db.rewardDao().getAllRewards().isEmpty()){
+            return;
+        }
+
+        db.rewardDao().insert(new Reward(1, 1, 1, 26950,System.currentTimeMillis()));
+        db.rewardDao().insert(new Reward(2, 2, 2, 12980 ,System.currentTimeMillis()));
+        db.rewardDao().insert(new Reward(3, 3, 3, 32200,System.currentTimeMillis()));
+        db.rewardDao().insert(new Reward(4, 4, 4, 9750,System.currentTimeMillis()));
+        db.rewardDao().insert(new Reward(5, 5, 5, 37900,System.currentTimeMillis()));
+        db.rewardDao().insert(new Reward(6, 6, 6, 18200,System.currentTimeMillis()));
+        db.rewardDao().insert(new Reward(7, 7, 7, 7250,System.currentTimeMillis()));
+        db.rewardDao().insert(new Reward(8, 8, 8, 53480,System.currentTimeMillis()));
+        db.rewardDao().insert(new Reward(9, 11, 11, 27700,System.currentTimeMillis()));
+        db.rewardDao().insert(new Reward(10, 12, 12, 14500,System.currentTimeMillis()));
+        db.rewardDao().insert(new Reward(11, 13, 13, 19950,System.currentTimeMillis()));
     }
 
     private static void seedProductTags(AppDatabase db) {

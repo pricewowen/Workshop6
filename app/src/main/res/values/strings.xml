@@ -111,9 +111,6 @@
     <string name="stub_review_2_text">Love this place! Best sourdough in town.</string>
     <string name="stub_review_2_author">- James R.</string>
 
-    <!-- Products -->
-
-    <!-- TODO: Remove or change this placeholder text -->
     <string name="hello_blank_fragment">Hello blank fragment</string>
     <!-- Products -->
     <string name="label_featured_product_name">Butter Croissant</string>
@@ -135,7 +132,7 @@
     <string name="btn_decrease">-</string>
     <string name="product_details">Product Details</string>
     <string name="btn_back">Back</string>
-
+    <string name="label_default">Default</string>
     <string name="error_password_unsafe">Unsafe pattern detected</string>
 
     <!-- Profile / photos -->

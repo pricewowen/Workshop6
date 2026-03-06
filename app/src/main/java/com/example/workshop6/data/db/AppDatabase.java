@@ -13,8 +13,10 @@ import com.example.workshop6.data.model.BakeryLocation;
 import com.example.workshop6.data.model.Category;
 import com.example.workshop6.data.model.Customer;
 import com.example.workshop6.data.model.Employee;
+import com.example.workshop6.data.model.Order;
 import com.example.workshop6.data.model.Product;
 import com.example.workshop6.data.model.ProductTag;
+import com.example.workshop6.data.model.Reward;
 import com.example.workshop6.data.model.RewardTier;
 import com.example.workshop6.data.model.User;
 
@@ -33,7 +35,9 @@ import java.util.concurrent.TimeUnit;
             BakeryLocation.class,
             Category.class,
             Product.class,
-                ProductTag.class
+                ProductTag.class,
+                Reward.class,
+                Order.class
         },
         version = 10,
         exportSchema = false
@@ -49,6 +53,8 @@ public abstract class AppDatabase extends RoomDatabase {
     public abstract CategoryDao categoryDao();
     public abstract ProductDao productDao();
     public abstract ProductTagDao productTagDao();
+    public abstract RewardDao rewardDao();
+    public abstract OrderDao orderDao();
 
     private static volatile AppDatabase INSTANCE;
 

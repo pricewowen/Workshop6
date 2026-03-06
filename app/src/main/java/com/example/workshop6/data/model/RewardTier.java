@@ -16,4 +16,12 @@ public class RewardTier {
         this.rewardTierId = rewardTierId;
         this.tierName = tierName;
     }
+
+    public String getTierName() {
+        return tierName;
+    }
+
+    public void setTierName(String tierName) {
+        this.tierName = tierName;
+    }
 }
