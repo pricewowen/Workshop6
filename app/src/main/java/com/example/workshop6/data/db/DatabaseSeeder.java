@@ -4,6 +4,7 @@ import com.example.workshop6.data.model.Address;
 import com.example.workshop6.data.model.Category;
 import com.example.workshop6.data.model.Employee;
 import com.example.workshop6.data.model.Product;
+import com.example.workshop6.data.model.ProductTag;
 import com.example.workshop6.data.model.RewardTier;
 import com.example.workshop6.data.model.User;
 import com.example.workshop6.util.HashUtils;
@@ -22,6 +23,39 @@ public class DatabaseSeeder {
         seedAdminEmployee(db);
         seedCategories(db);
         seedProducts(db);
+        seedProductTags(db);
+    }
+
+    private static void seedProductTags(AppDatabase db) {
+        if (!db.productTagDao().getAllProductTags().isEmpty()) {
+            return;
+        }
+
+        db.productTagDao().insert(new ProductTag(1, 1));
+        db.productTagDao().insert(new ProductTag(2, 1));
+        db.productTagDao().insert(new ProductTag(2, 12));
+        db.productTagDao().insert(new ProductTag(3, 1));
+        db.productTagDao().insert(new ProductTag(4, 3));
+        db.productTagDao().insert(new ProductTag(4, 9));
+        db.productTagDao().insert(new ProductTag(5, 3));
+        db.productTagDao().insert(new ProductTag(5, 9));
+        db.productTagDao().insert(new ProductTag(6, 3));
+        db.productTagDao().insert(new ProductTag(6, 9));
+        db.productTagDao().insert(new ProductTag(7, 3));
+        db.productTagDao().insert(new ProductTag(7, 9));
+        db.productTagDao().insert(new ProductTag(8, 4));
+        db.productTagDao().insert(new ProductTag(8, 10));
+        db.productTagDao().insert(new ProductTag(9, 4));
+        db.productTagDao().insert(new ProductTag(9, 10));
+        db.productTagDao().insert(new ProductTag(10, 2));
+        db.productTagDao().insert(new ProductTag(10, 10));
+        db.productTagDao().insert(new ProductTag(11, 2));
+        db.productTagDao().insert(new ProductTag(11, 10));
+        db.productTagDao().insert(new ProductTag(12, 2));
+        db.productTagDao().insert(new ProductTag(12, 10));
+        db.productTagDao().insert(new ProductTag(13, 2));
+        db.productTagDao().insert(new ProductTag(13, 10));
+        db.productTagDao().insert(new ProductTag(14, 2));
     }
 
     private static void seedRewardTiers(AppDatabase db) {

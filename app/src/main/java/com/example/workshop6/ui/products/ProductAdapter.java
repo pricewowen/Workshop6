@@ -58,4 +58,13 @@ public class ProductAdapter extends RecyclerView.Adapter<ProductAdapter.ProductV
             tvProductName = itemView.findViewById(R.id.tvProductName);
         }
     }
+
+    /**
+     * Sets the products
+     * @param products products to set
+     */
+    public void setProducts(List<Product> products) {
+        this.productList = products;
+        notifyDataSetChanged();
+    }
 }

@@ -11,6 +11,8 @@ import androidx.recyclerview.widget.RecyclerView;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Button;
+import android.widget.Toast;
 
 import com.example.workshop6.R;
 import com.example.workshop6.data.db.AppDatabase;
@@ -28,7 +30,9 @@ import java.util.List;
 public class ProductsFragment extends Fragment {
 
     private RecyclerView rvCategories;
+    private ProductAdapter productAdapter;
     private RecyclerView rvProducts;
+    private Button btnAddToCard;
 
 
     // TODO: Rename parameter arguments, choose names that match
@@ -84,6 +88,8 @@ public class ProductsFragment extends Fragment {
 
         rvCategories = view.findViewById(R.id.rvCategories);
         rvProducts = view.findViewById(R.id.rvProducts);
+        btnAddToCard = view.findViewById(R.id.btnAddToCart);
+
 
 
         // set up recycler view for categories and set to horizontal
@@ -109,8 +115,17 @@ public class ProductsFragment extends Fragment {
 
             // update component on the main thread
             requireActivity().runOnUiThread(() -> {
-                CategoriesAdapter categoriesAdapter = new CategoriesAdapter(categories);
-                ProductAdapter productAdapter = new ProductAdapter(products, productId -> {
+                CategoriesAdapter categoriesAdapter = new CategoriesAdapter(categories, tagId -> {
+                    AppDatabase.databaseWriteExecutor.execute(() -> {
+                        List<Product> filteredProducts = db.productDao().getProductByCategory(tagId);
+
+                        requireActivity().runOnUiThread(() -> {
+                            productAdapter.setProducts(filteredProducts);
+                        });
+                    });
+                });
+                productAdapter = new ProductAdapter(products, productId -> {
+
                     // pass information to details fragment
                     Bundle args = new Bundle();
 
@@ -122,6 +137,11 @@ public class ProductsFragment extends Fragment {
                 rvProducts.setAdapter(productAdapter);
                 rvCategories.setAdapter(categoriesAdapter);
             });
+        });
+
+        // add to cart listener
+        btnAddToCard.setOnClickListener(v -> {
+            Toast.makeText(this.requireContext(), "Checkout under construction", Toast.LENGTH_LONG).show();
         });
     }
 }

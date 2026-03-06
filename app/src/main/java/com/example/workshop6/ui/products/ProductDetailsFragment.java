@@ -11,10 +11,12 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.example.workshop6.R;
 import com.example.workshop6.data.db.AppDatabase;
 import com.example.workshop6.data.model.Product;
+import com.example.workshop6.ui.MainActivity;
 
 /**
  * A simple {@link Fragment} subclass.
@@ -97,6 +99,11 @@ public class ProductDetailsFragment extends Fragment {
             } else if (quantCounter >= 1) {
                 tvQuantity.setEnabled(false);
             }
+        });
+
+        //add to cart listener
+        btnAddToCart.setOnClickListener(v -> {
+            Toast.makeText(this.requireContext(), "Checkout under construction", Toast.LENGTH_LONG).show();
         });
     }
 }
