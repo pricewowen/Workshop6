@@ -39,6 +39,7 @@ public class ProductsFragment extends Fragment {
     private Button btnAddToCard;
     private TextView tvPoints;
     private TextView tvLevel;
+    private Button btnRedeem;
 
     public ProductsFragment() {
         // Required empty public constructor
@@ -72,6 +73,7 @@ public class ProductsFragment extends Fragment {
         btnAddToCard = view.findViewById(R.id.btnAddToCart);
         tvPoints = view.findViewById(R.id.tvPoints);
         tvLevel = view.findViewById(R.id.tvLevel);
+        btnRedeem = view.findViewById(R.id.btnRedeem);
 
         // set up recycler view for categories and set to horizontal
         rvCategories.setLayoutManager(new LinearLayoutManager(
@@ -153,6 +155,11 @@ public class ProductsFragment extends Fragment {
                 rvProducts.setAdapter(productAdapter);
                 rvCategories.setAdapter(categoriesAdapter);
             });
+        });
+
+        // redeem on click listener
+        btnRedeem.setOnClickListener(v -> {
+            Toast.makeText(this.requireContext(), "Reward page under construction", Toast.LENGTH_LONG).show();
         });
 
         // add to cart listener
