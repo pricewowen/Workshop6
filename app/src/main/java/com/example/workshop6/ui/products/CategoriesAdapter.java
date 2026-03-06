@@ -11,6 +11,7 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.example.workshop6.R;
 import com.example.workshop6.data.model.Category;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class CategoriesAdapter extends RecyclerView.Adapter<CategoriesAdapter.CategoryViewHolder> {
@@ -25,8 +26,13 @@ public class CategoriesAdapter extends RecyclerView.Adapter<CategoriesAdapter.Ca
 
     // Constructor receives list of categories
     public CategoriesAdapter(List<Category> categoryList, onCategoryListener listener) {
-        this.categoryList = categoryList;
         this.listener = listener;
+
+        // add an "All" option to the start of the list
+        this.categoryList = new ArrayList<>();
+        Category allCategory = new Category(-1, "All");
+        this.categoryList.add(allCategory);
+        this.categoryList.addAll(categoryList);
     }
 
     @NonNull
