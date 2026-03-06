@@ -22,6 +22,7 @@ import com.example.workshop6.data.model.Product;
  * create an instance of this fragment.
  */
 public class ProductDetailsFragment extends Fragment {
+    private int quantCounter = 1;
 
     public ProductDetailsFragment() {
         // Required empty public constructor
@@ -62,6 +63,8 @@ public class ProductDetailsFragment extends Fragment {
         Button btnBack = view.findViewById(R.id.btnBack);
         Button btnAddToCart = view.findViewById(R.id.btnAddToCart);
 
+        tvQuantity.setText(quantCounter + "");
+
         // load products from the DB
         AppDatabase db = AppDatabase.getInstance(requireContext());
         AppDatabase.databaseWriteExecutor.execute(() -> {
@@ -80,12 +83,20 @@ public class ProductDetailsFragment extends Fragment {
 
         // increase listener
         btnIncrease.setOnClickListener(v -> {
-
+            if (quantCounter >= 1) {
+                quantCounter++;
+                tvQuantity.setText(quantCounter + "");
+            }
         });
 
         // decrease listener
         btnDecrease.setOnClickListener(v -> {
-
+            if (quantCounter > 1) {
+                quantCounter--;
+                tvQuantity.setText(quantCounter + "");
+            } else if (quantCounter >= 1) {
+                tvQuantity.setEnabled(false);
+            }
         });
     }
 }
