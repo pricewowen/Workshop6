@@ -1,6 +1,9 @@
 # Gradle
 .gradle/
 build/
+local.properties
+.idea/
+*.iml
 
 # Local machine config
 local.properties
