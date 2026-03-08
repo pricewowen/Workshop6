@@ -4,16 +4,19 @@ import android.os.Bundle;
 
 import androidx.annotation.NonNull;
 import androidx.fragment.app.Fragment;
+import androidx.navigation.Navigation;
 
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.example.workshop6.R;
 import com.example.workshop6.data.db.AppDatabase;
 import com.example.workshop6.data.model.Product;
+import com.example.workshop6.ui.MainActivity;
 
 /**
  * A simple {@link Fragment} subclass.
@@ -21,6 +24,15 @@ import com.example.workshop6.data.model.Product;
  * create an instance of this fragment.
  */
 public class ProductDetailsFragment extends Fragment {
+    private int quantCounter = 1;
+    private TextView tvProductName;
+    private TextView tvProductPrice;
+    private TextView tvProductDescription;
+    private TextView tvQuantity;
+    private Button btnIncrease;
+    private Button btnDecrease;
+    private Button btnBack;
+    private Button btnAddToCart;
 
     public ProductDetailsFragment() {
         // Required empty public constructor
@@ -52,14 +64,16 @@ public class ProductDetailsFragment extends Fragment {
         // retrieve productId from navigation arguments
         int productId = getArguments() != null ? getArguments().getInt("productId", -1) : -1;
 
-        TextView tvProductName = view.findViewById(R.id.tvProductName);
-        TextView tvProductPrice = view.findViewById(R.id.tvProductPrice);
-        TextView tvProductDescription = view.findViewById(R.id.tvProductDescription);
-        TextView tvQuantity = view.findViewById(R.id.tvQuantity);
-        Button btnIncrease = view.findViewById(R.id.btnIncrease);
-        Button btnDecrease = view.findViewById(R.id.btnDecrease);
-        Button btnBack = view.findViewById(R.id.btnBack);
-        Button btnAddToCart = view.findViewById(R.id.btnAddToCart);
+        tvProductName = view.findViewById(R.id.tvProductName);
+        tvProductPrice = view.findViewById(R.id.tvProductPrice);
+        tvProductDescription = view.findViewById(R.id.tvProductDescription);
+        tvQuantity = view.findViewById(R.id.tvQuantity);
+        btnIncrease = view.findViewById(R.id.btnIncrease);
+        btnDecrease = view.findViewById(R.id.btnDecrease);
+        btnBack = view.findViewById(R.id.btnBack);
+        btnAddToCart = view.findViewById(R.id.btnAddToCart);
+
+        tvQuantity.setText(quantCounter + "");
 
         // load products from the DB
         AppDatabase db = AppDatabase.getInstance(requireContext());
@@ -74,17 +88,30 @@ public class ProductDetailsFragment extends Fragment {
 
         // back button listener
         btnBack.setOnClickListener(v -> {
-
+            Navigation.findNavController(view).navigateUp();
         });
 
         // increase listener
         btnIncrease.setOnClickListener(v -> {
-
+            if (quantCounter >= 1) {
+                quantCounter++;
+                tvQuantity.setText(quantCounter + "");
+            }
         });
 
         // decrease listener
         btnDecrease.setOnClickListener(v -> {
+            if (quantCounter > 1) {
+                quantCounter--;
+                tvQuantity.setText(quantCounter + "");
+            } else if (quantCounter >= 1) {
+                tvQuantity.setEnabled(false);
+            }
+        });
 
+        //add to cart listener
+        btnAddToCart.setOnClickListener(v -> {
+            Toast.makeText(this.requireContext(), "Checkout under construction", Toast.LENGTH_LONG).show();
         });
     }
 }

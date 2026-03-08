@@ -7,6 +7,8 @@
     <string name="login_heading">Welcome\nback.</string>
     <string name="login_subtitle">Sign in to your account</string>
     <string name="hint_email">Email address</string>
+    <string name="hint_email_or_username">Email or username</string>
+    <string name="error_email_or_username_required">Email or username is required</string>
     <string name="hint_password">Password</string>
     <string name="btn_login">Sign In</string>
     <string name="btn_forgot_password">Forgot password?</string>
@@ -16,8 +18,7 @@
     <string name="link_no_account">No account? </string>
     <string name="link_register_here">Register here</string>
     <string name="login_error_invalid">Invalid email or password</string>
-
-
+    <string name="login_error_invalid_username_or_email">Invalid username/email or password</string>
 
     <!-- Auth — Register -->
     <string name="register_heading">Create\naccount.</string>
@@ -25,14 +26,25 @@
     <string name="social_divider_register">or manually</string>
     <string name="label_full_name">FULL NAME</string>
     <string name="hint_full_name">Your full name</string>
+    <string name="label_first_name">FIRST NAME</string>
+    <string name="hint_first_name">First name</string>
+    <string name="label_last_name">LAST NAME</string>
+    <string name="hint_last_name">Last name</string>
+    <string name="label_username">USERNAME</string>
+    <string name="hint_username">Choose a username</string>
     <string name="label_phone">PHONE</string>
     <string name="hint_phone">Your phone number</string>
     <string name="btn_create_account">Create Account</string>
     <string name="link_have_account">Have an account? </string>
     <string name="link_sign_in">Sign in</string>
+    <string name="already_have_account_sign_in">Have an account? Sign in</string>
     <string name="toast_coming_soon">Coming soon</string>
     <string name="btn_logout">Log Out</string>
 
+    <string name="photo_picker_title">Profile photo</string>
+    <string name="photo_take">Take a photo</string>
+    <string name="photo_choose_gallery">Choose from gallery</string>
+    <string name="photo_cancel">Cancel</string>
 
     <!-- Auth - Errors    -->
     <!--  Name Errors   -->
@@ -41,6 +53,9 @@
     <!-- Email Errors-->
     <string name="error_email_required">Email is required</string>
     <string name="register_error_email_exists">An account with this email already exists</string>
+    <string name="error_username_required">Username is required</string>
+    <string name="error_username_invalid">3–50 characters, letters, numbers, _ or - only</string>
+    <string name="register_error_username_exists">This username is already taken</string>
     <string name="error_email_invalid">Must be a valid email</string>
     <!-- Phone Errors-->
     <string name="error_phone_required">Phone Number is Required</string>
@@ -48,6 +63,8 @@
     <!--    Password Errors-->
     <string name="error_password_required">Password is required</string>
     <string name="error_password_invalid">Password must be between 8 and 250 characters</string>
+    <string name="hint_confirm_password">Confirm password</string>
+    <string name="error_password_mismatch">Passwords do not match</string>
     <!-- Navigation -->
     <string name="nav_home">Home</string>
     <string name="nav_browse">Browse</string>
@@ -94,9 +111,6 @@
     <string name="stub_review_2_text">Love this place! Best sourdough in town.</string>
     <string name="stub_review_2_author">- James R.</string>
 
-    <!-- Products -->
-
-    <!-- TODO: Remove or change this placeholder text -->
     <string name="hello_blank_fragment">Hello blank fragment</string>
     <!-- Products -->
     <string name="label_featured_product_name">Butter Croissant</string>
@@ -118,6 +132,48 @@
     <string name="btn_decrease">-</string>
     <string name="product_details">Product Details</string>
     <string name="btn_back">Back</string>
-
+    <string name="label_default">Default</string>
+    <string name="label_product_price">$0.00</string>
+    <string name="label_selected_arrow">&gt;</string>
+    <string name="label_search">Seach Products...</string>
     <string name="error_password_unsafe">Unsafe pattern detected</string>
+
+    <!-- Profile / photos -->
+    <string name="btn_choose_photo">Choose photo</string>
+    <string name="btn_change_photo">Change photo</string>
+    <string name="photo_rules">Max 2MB • Max 1024×1024</string>
+    <string name="error_photo_required">Please select a photo.</string>
+    <string name="error_photo_too_large">Photo is too large (max 2MB).</string>
+    <string name="error_photo_too_large_gallery">Photo is too large (max 16MB).</string>
+    <string name="error_photo_dimensions_too_large">Photo dimensions are too large (max 1024×1024).</string>
+    <string name="error_photo_invalid">Selected file is not a valid image.</string>
+    <string name="error_photo_format">Please use JPEG or PNG only.</string>
+    <string name="error_photo_read">Could not read the selected image.</string>
+
+    <string name="edit_profile_heading">Edit profile</string>
+    <string name="btn_edit">Edit</string>
+    <string name="btn_save">Save</string>
+    <string name="btn_cancel">Cancel</string>
+    <string name="profile_saved">Profile saved.</string>
+    <string name="error_user_not_found">User not found.</string>
+
+    <string name="label_address">Address (optional)</string>
+    <string name="label_address_header">ADDRESS</string>
+    <string name="hint_address1">Address line 1</string>
+    <string name="hint_address2">Address line 2</string>
+    <string name="hint_city">City</string>
+    <string name="hint_province">Province/State</string>
+    <string name="hint_postal_code">Postal/ZIP</string>
+
+    <string name="error_address_required">Address line 1 is required.</string>
+    <string name="error_address_invalid">Address is too long.</string>
+    <string name="error_city_required">City is required.</string>
+    <string name="error_province_required">Province/State is required.</string>
+    <string name="error_postal_invalid">Postal/ZIP code is invalid.</string>
+    <string name="error_postal_required">Postal/ZIP code is required.</string>
+
+    <string name="stub_me_name">Your name</string>
+    <string name="stub_me_email">you@example.com</string>
+    <string name="stub_me_address">Address</string>
+    <string name="no_address_on_file">No address on file. Tap Edit to add one.</string>
 </resources>

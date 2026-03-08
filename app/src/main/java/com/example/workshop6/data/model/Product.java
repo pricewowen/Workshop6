@@ -3,7 +3,7 @@ package com.example.workshop6.data.model;
 import androidx.room.Entity;
 import androidx.room.PrimaryKey;
 
-@Entity
+@Entity(tableName = "product")
 public class Product {
     @PrimaryKey
     private int productId;

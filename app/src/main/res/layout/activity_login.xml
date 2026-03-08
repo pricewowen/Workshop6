@@ -13,25 +13,24 @@
         android:layout_height="wrap_content"
         android:orientation="vertical">
 
-        <!-- ===== Navy Header ===== -->
+        <!-- ===== Navy Header with Logo (top) and Text (bottom) ===== -->
         <FrameLayout
             android:layout_width="match_parent"
             android:layout_height="300dp"
             android:background="@color/bakery_primary">
 
-            <!-- Circular logo placeholder -->
+            <!-- Full logo centered near the top -->
             <ImageView
-                android:layout_width="64dp"
-                android:layout_height="64dp"
-                android:layout_gravity="center_horizontal"
-                android:layout_marginTop="48dp"
-                android:background="@drawable/circle_bg_gold"
-                android:src="@android:drawable/ic_menu_gallery"
-                android:scaleType="centerInside"
-                android:padding="12dp"
+                android:layout_width="220dp"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center_horizontal|top"
+                android:layout_marginTop="40dp"
+                android:adjustViewBounds="true"
+                android:scaleType="fitCenter"
+                android:src="@drawable/bakery_logo"
                 android:contentDescription="@string/app_brand" />
 
-            <!-- Branding + Heading -->
+            <!-- Heading and subtitle pinned at bottom-left -->
             <LinearLayout
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
@@ -43,18 +42,8 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="@string/app_brand"
-                    android:textSize="13sp"
-                    android:textStyle="bold"
-                    android:textColor="@color/bakery_gold_bright"
-                    android:letterSpacing="0.15"
-                    android:layout_marginBottom="4dp" />
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
                     android:text="@string/login_heading"
-                    android:textSize="34sp"
+                    android:textSize="28sp"
                     android:textStyle="bold"
                     android:textColor="@color/bakery_text_light"
                     android:lineSpacingExtra="-4sp"
@@ -81,18 +70,19 @@
             android:paddingTop="28dp"
             android:paddingBottom="24dp">
 
-            <!-- Email -->
+            <!-- Email or username -->
             <com.google.android.material.textfield.TextInputLayout
                 android:id="@+id/til_email"
                 style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:hint="@string/hint_email">
+                android:hint="@string/hint_email_or_username">
+
                 <com.google.android.material.textfield.TextInputEditText
                     android:id="@+id/et_email"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:inputType="textEmailAddress"
+                    android:inputType="text|textNoSuggestions"
                     android:imeOptions="actionNext" />
             </com.google.android.material.textfield.TextInputLayout>
 
@@ -105,6 +95,7 @@
                 android:hint="@string/hint_password"
                 android:layout_marginTop="12dp"
                 app:passwordToggleEnabled="true">
+
                 <com.google.android.material.textfield.TextInputEditText
                     android:id="@+id/et_password"
                     android:layout_width="match_parent"
@@ -148,69 +139,6 @@
                 android:layout_marginTop="20dp"
                 app:backgroundTint="@color/bakery_primary"
                 app:cornerRadius="28dp" />
-
-            <!-- "or continue with" divider -->
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:gravity="center_vertical"
-                android:layout_marginTop="24dp">
-
-                <View
-                    android:layout_width="0dp"
-                    android:layout_height="1dp"
-                    android:layout_weight="1"
-                    android:background="#E0E0E0" />
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="@string/social_divider_login"
-                    android:textSize="12sp"
-                    android:textColor="@color/bakery_text_secondary"
-                    android:paddingHorizontal="12dp" />
-
-                <View
-                    android:layout_width="0dp"
-                    android:layout_height="1dp"
-                    android:layout_weight="1"
-                    android:background="#E0E0E0" />
-
-            </LinearLayout>
-
-            <!-- Social buttons -->
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:layout_marginTop="16dp">
-
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/btn_google"
-                    style="@style/Widget.MaterialComponents.Button.OutlinedButton"
-                    android:layout_width="0dp"
-                    android:layout_height="48dp"
-                    android:layout_weight="1"
-                    android:layout_marginEnd="8dp"
-                    android:text="@string/btn_google"
-                    android:textColor="@color/bakery_text_dark"
-                    app:strokeColor="#E0E0E0"
-                    app:cornerRadius="24dp" />
-
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/btn_microsoft"
-                    style="@style/Widget.MaterialComponents.Button.OutlinedButton"
-                    android:layout_width="0dp"
-                    android:layout_height="48dp"
-                    android:layout_weight="1"
-                    android:layout_marginStart="8dp"
-                    android:text="@string/btn_microsoft"
-                    android:textColor="@color/bakery_text_dark"
-                    app:strokeColor="#E0E0E0"
-                    app:cornerRadius="24dp" />
-
-            </LinearLayout>
 
             <!-- "No account? Register here" -->
             <LinearLayout
