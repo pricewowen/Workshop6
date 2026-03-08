@@ -10,6 +10,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase;
 
 import com.example.workshop6.data.model.Address;
 import com.example.workshop6.data.model.BakeryLocation;
+import com.example.workshop6.data.model.Batch;
 import com.example.workshop6.data.model.Category;
 import com.example.workshop6.data.model.Customer;
 import com.example.workshop6.data.model.Employee;
@@ -37,9 +38,10 @@ import java.util.concurrent.TimeUnit;
             Product.class,
                 ProductTag.class,
                 Reward.class,
-                Order.class
+                Order.class,
+                Batch.class
         },
-        version = 10,
+        version = 18,
         exportSchema = false
 )
 public abstract class AppDatabase extends RoomDatabase {
@@ -55,6 +57,7 @@ public abstract class AppDatabase extends RoomDatabase {
     public abstract ProductTagDao productTagDao();
     public abstract RewardDao rewardDao();
     public abstract OrderDao orderDao();
+    public abstract BatchDao batchDao();
 
     private static volatile AppDatabase INSTANCE;
 
@@ -94,7 +97,8 @@ public abstract class AppDatabase extends RoomDatabase {
         databaseWriteExecutor.execute(() -> {
             try {
                 DatabaseSeeder.seed(INSTANCE);
-            } catch (Exception ignored) {
+            } catch (Exception e) {
+                android.util.Log.d("DatabaseSeeder", "SEED FAILED", e);
             } finally {
                 seedLatch.countDown();
             }

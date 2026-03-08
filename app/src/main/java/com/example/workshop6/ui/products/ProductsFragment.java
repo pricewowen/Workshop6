@@ -8,6 +8,8 @@ import androidx.navigation.Navigation;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import android.text.Editable;
+import android.text.TextWatcher;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -22,6 +24,8 @@ import com.example.workshop6.data.model.Category;
 import com.example.workshop6.data.model.Customer;
 import com.example.workshop6.data.model.Product;
 import com.example.workshop6.data.model.RewardTier;
+import com.google.android.material.textfield.TextInputEditText;
+import com.google.android.material.textfield.TextInputLayout;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -40,6 +44,9 @@ public class ProductsFragment extends Fragment {
     private TextView tvPoints;
     private TextView tvLevel;
     private Button btnRedeem;
+    private TextInputEditText etSearch;
+    private TextView tvFeatureProductName;
+    private TextView tvFeatureProductPrice;
 
     public ProductsFragment() {
         // Required empty public constructor
@@ -74,6 +81,62 @@ public class ProductsFragment extends Fragment {
         tvPoints = view.findViewById(R.id.tvPoints);
         tvLevel = view.findViewById(R.id.tvLevel);
         btnRedeem = view.findViewById(R.id.btnRedeem);
+        etSearch = view.findViewById(R.id.etSearch);
+        tvFeatureProductName = view.findViewById(R.id.tvFeatureProductName);
+        tvFeatureProductPrice = view.findViewById(R.id.tvFeatureProductPrice);
+
+        // attaches adapter with the data from the database
+        AppDatabase db = AppDatabase.getInstance(requireContext());
+
+        // search functionality
+        etSearch.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+
+            }
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+                if (productAdapter == null) {
+                    return;
+                }
+
+                AppDatabase.databaseWriteExecutor.execute(() -> {
+                    String query = s.toString().trim();
+
+                    List<Product> filtered = query.isEmpty()
+                            ? db.productDao().getAllProducts()
+                            : db.productDao().searchProducts(query);
+
+                    requireActivity().runOnUiThread(() -> productAdapter.setProducts(filtered));
+                });
+            }
+
+            @Override
+            public void afterTextChanged(Editable s) {
+
+            }
+        });
+
+        // Get and display featured product
+        AppDatabase.databaseWriteExecutor.execute(() -> {
+            // wait for database to finish seeding
+            AppDatabase.awaitSeed();
+
+            long now = System.currentTimeMillis();
+            long twoDaysFromNow = now + (2L * 24 * 60 * 60 * 1000);
+
+            Product featured = db.batchDao().getFeaturedProduct(now, twoDaysFromNow);
+
+            requireActivity().runOnUiThread(() -> {
+                if (featured != null) {
+                    double discountedPrice = featured.getProductBasePrice() * 0.90;
+
+                    tvFeatureProductName.setText(featured.getProductName());
+                    tvFeatureProductPrice.setText(String.format("$%.2f", discountedPrice));
+                }
+            });
+        });
 
         // set up recycler view for categories and set to horizontal
         rvCategories.setLayoutManager(new LinearLayoutManager(
@@ -88,9 +151,6 @@ public class ProductsFragment extends Fragment {
                 LinearLayoutManager.VERTICAL,
                 false
         ));
-
-        // attaches adapter with the data from the database
-        AppDatabase db = AppDatabase.getInstance(requireContext());
 
         // REDEEM logic
 

@@ -18,6 +18,7 @@ public class CategoriesAdapter extends RecyclerView.Adapter<CategoriesAdapter.Ca
 
     private List<Category> categoryList;
     private onCategoryListener listener;
+    private int selectedPosition = 0;
 
     public interface onCategoryListener{
         // pass the tagId when item in recyclerview is clicked
@@ -48,9 +49,25 @@ public class CategoriesAdapter extends RecyclerView.Adapter<CategoriesAdapter.Ca
         Category category = categoryList.get(position);
         holder.tvCategoryName.setText(category.getTagName());
 
+        // swap backgrounds based on selected category
+        if (position == selectedPosition) {
+            holder.tvCategoryName.setBackgroundResource(R.drawable.bg_category_chip_selected);
+            holder.tvCategoryName.setTextColor(holder.tvCategoryName.getContext().getColor(R.color.bakery_text_light));
+        } else {
+            holder.tvCategoryName.setBackgroundResource(R.drawable.bg_category_chip);
+            holder.tvCategoryName.setTextColor(holder.tvCategoryName.getContext().getColor(R.color.bakery_text_dark));
+        }
+
         // trigger listener when item is clicked
         holder.itemView.setOnClickListener(v -> {
             if (listener != null ) {
+                // set position of selected category
+                int previous = selectedPosition;
+                selectedPosition = position;
+
+                notifyItemChanged(previous);
+                notifyItemChanged(position);
+
                 listener.onCategoryClick(category.getTagId());
             }
         });

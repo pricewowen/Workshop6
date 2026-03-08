@@ -133,6 +133,9 @@
     <string name="product_details">Product Details</string>
     <string name="btn_back">Back</string>
     <string name="label_default">Default</string>
+    <string name="label_product_price">$0.00</string>
+    <string name="label_selected_arrow">&gt;</string>
+    <string name="label_search">Seach Products...</string>
     <string name="error_password_unsafe">Unsafe pattern detected</string>
 
     <!-- Profile / photos -->
