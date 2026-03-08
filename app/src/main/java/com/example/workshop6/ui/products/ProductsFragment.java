@@ -45,6 +45,8 @@ public class ProductsFragment extends Fragment {
     private TextView tvLevel;
     private Button btnRedeem;
     private TextInputEditText etSearch;
+    private TextView tvFeatureProductName;
+    private TextView tvFeatureProductPrice;
 
     public ProductsFragment() {
         // Required empty public constructor
@@ -80,6 +82,8 @@ public class ProductsFragment extends Fragment {
         tvLevel = view.findViewById(R.id.tvLevel);
         btnRedeem = view.findViewById(R.id.btnRedeem);
         etSearch = view.findViewById(R.id.etSearch);
+        tvFeatureProductName = view.findViewById(R.id.tvFeatureProductName);
+        tvFeatureProductPrice = view.findViewById(R.id.tvFeatureProductPrice);
 
         // attaches adapter with the data from the database
         AppDatabase db = AppDatabase.getInstance(requireContext());
@@ -93,6 +97,10 @@ public class ProductsFragment extends Fragment {
 
             @Override
             public void onTextChanged(CharSequence s, int start, int before, int count) {
+                if (productAdapter == null) {
+                    return;
+                }
+
                 AppDatabase.databaseWriteExecutor.execute(() -> {
                     String query = s.toString().trim();
 
@@ -108,6 +116,26 @@ public class ProductsFragment extends Fragment {
             public void afterTextChanged(Editable s) {
 
             }
+        });
+
+        // Get and display featured product
+        AppDatabase.databaseWriteExecutor.execute(() -> {
+            // wait for database to finish seeding
+            AppDatabase.awaitSeed();
+
+            long now = System.currentTimeMillis();
+            long twoDaysFromNow = now + (2L * 24 * 60 * 60 * 1000);
+
+            Product featured = db.batchDao().getFeaturedProduct(now, twoDaysFromNow);
+
+            requireActivity().runOnUiThread(() -> {
+                if (featured != null) {
+                    double discountedPrice = featured.getProductBasePrice() * 0.90;
+
+                    tvFeatureProductName.setText(featured.getProductName());
+                    tvFeatureProductPrice.setText(String.format("$%.2f", discountedPrice));
+                }
+            });
         });
 
         // set up recycler view for categories and set to horizontal

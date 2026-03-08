@@ -39,6 +39,11 @@ public interface ProductDao {
             "WHERE pt.tagId = :tagId")
     List<Product> getProductByCategory(int tagId);
 
+    /**
+     * Searches products based on a query
+     * @param query to search
+     * @return a list of Product objects
+     */
     @Query("SELECT DISTINCT p.* FROM product p " +
             "JOIN producttag pt ON p.productId = pt.productId " +
             "JOIN tag t ON pt.tagId = t.tagId " +
