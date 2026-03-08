@@ -60,15 +60,16 @@ public class CategoriesAdapter extends RecyclerView.Adapter<CategoriesAdapter.Ca
 
         // trigger listener when item is clicked
         holder.itemView.setOnClickListener(v -> {
-            if (listener != null ) {
-                // set position of selected category
+            int pos = holder.getBindingAdapterPosition();
+
+            if (pos != RecyclerView.NO_POSITION && listener != null) {
                 int previous = selectedPosition;
-                selectedPosition = position;
+                selectedPosition = pos;
 
                 notifyItemChanged(previous);
-                notifyItemChanged(position);
+                notifyItemChanged(pos);
 
-                listener.onCategoryClick(category.getTagId());
+                listener.onCategoryClick(categoryList.get(pos).getTagId());
             }
         });
     }
