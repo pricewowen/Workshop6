@@ -10,6 +10,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
+import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -33,6 +34,7 @@ public class ProductDetailsFragment extends Fragment {
     private Button btnDecrease;
     private Button btnBack;
     private Button btnAddToCart;
+    private ImageView ivProductImage;
 
     public ProductDetailsFragment() {
         // Required empty public constructor
@@ -72,6 +74,7 @@ public class ProductDetailsFragment extends Fragment {
         btnDecrease = view.findViewById(R.id.btnDecrease);
         btnBack = view.findViewById(R.id.btnBack);
         btnAddToCart = view.findViewById(R.id.btnAddToCart);
+        ivProductImage = view.findViewById(R.id.ivProductImage);
 
         tvQuantity.setText(quantCounter + "");
 
@@ -79,7 +82,9 @@ public class ProductDetailsFragment extends Fragment {
         AppDatabase db = AppDatabase.getInstance(requireContext());
         AppDatabase.databaseWriteExecutor.execute(() -> {
             Product product = db.productDao().getProductById(productId);
+
             requireActivity().runOnUiThread(() -> {
+                ivProductImage.setImageResource(product.getImgUrl());
                 tvProductName.setText(product.getProductName());
                 tvProductPrice.setText(String.format("$%.2f", product.getProductBasePrice().doubleValue()));
                 tvProductDescription.setText(product.getProductDescription());

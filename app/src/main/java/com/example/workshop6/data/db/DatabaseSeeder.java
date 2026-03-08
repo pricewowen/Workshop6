@@ -1,5 +1,6 @@
 package com.example.workshop6.data.db;
 
+import com.example.workshop6.R;
 import com.example.workshop6.data.model.Address;
 import com.example.workshop6.data.model.BakeryLocation;
 import com.example.workshop6.data.model.Batch;
@@ -360,21 +361,21 @@ public class DatabaseSeeder {
 
     private static void seedProducts(AppDatabase db) {
         if (!db.productDao().getAllProducts().isEmpty()) return;
-        db.productDao().insert(new Product(1, "Sourdough Loaf", "Naturally leavened sourdough bread", 6.49));
-        db.productDao().insert(new Product(2, "Multigrain Sandwich Bread", "Whole grain sandwich loaf", 5.99));
-        db.productDao().insert(new Product(3, "Baguette", "Classic French-style baguette", 3.49));
-        db.productDao().insert(new Product(4, "Cinnamon Roll", "Soft roll with cinnamon filling and glaze", 4.25));
-        db.productDao().insert(new Product(5, "Butter Croissant", "Flaky butter croissant", 3.95));
-        db.productDao().insert(new Product(6, "Blueberry Muffin", "Muffin with blueberries", 3.25));
-        db.productDao().insert(new Product(7, "Banana Bread Slice", "Moist banana bread slice", 2.95));
-        db.productDao().insert(new Product(8, "Chocolate Chip Cookie", "Cookie with chocolate chips", 2.25));
-        db.productDao().insert(new Product(9, "Oatmeal Raisin Cookie", "Chewy oatmeal raisin cookie", 2.25));
-        db.productDao().insert(new Product(10, "Vanilla Cupcake", "Cupcake with vanilla frosting", 2.95));
-        db.productDao().insert(new Product(11, "Chocolate Cupcake", "Cupcake with chocolate frosting", 2.95));
-        db.productDao().insert(new Product(12, "Carrot Cake Slice", "Slice of carrot cake with cream cheese icing", 4.49));
-        db.productDao().insert(new Product(13, "Lemon Tart", "Tart with lemon custard filling", 4.25));
-        db.productDao().insert(new Product(14, "Brownie", "Fudgy chocolate brownie", 3.50));
-        db.productDao().insert(new Product(15, "Gluten-Free Banana Muffin", "Gluten-free banana muffin", 3.75));
-        db.productDao().insert(new Product(16, "Vegan Chocolate Chip Cookie", "Vegan cookie with chocolate chips", 2.50));
+        db.productDao().insert(new Product(1, "Sourdough Loaf", "Naturally leavened sourdough bread", 6.49, R.drawable.product_sourdough_loaf));
+        db.productDao().insert(new Product(2, "Multigrain Sandwich Bread", "Whole grain sandwich loaf", 5.99, R.drawable.product_multigrain_bread));
+        db.productDao().insert(new Product(3, "Baguette", "Classic French-style baguette", 3.49, R.drawable.product_baguette));
+        db.productDao().insert(new Product(4, "Cinnamon Roll", "Soft roll with cinnamon filling and glaze", 4.25, R.drawable.product_cinnamon_roll));
+        db.productDao().insert(new Product(5, "Butter Croissant", "Flaky butter croissant", 3.95, R.drawable.product_butter_croissant));
+        db.productDao().insert(new Product(6, "Blueberry Muffin", "Muffin with blueberries", 3.25, R.drawable.product_blueberry_muffin));
+        db.productDao().insert(new Product(7, "Banana Bread Slice", "Moist banana bread slice", 2.95, R.drawable.product_banana_bread));
+        db.productDao().insert(new Product(8, "Chocolate Chip Cookie", "Cookie with chocolate chips", 2.25, R.drawable.product_chocolate_chip_cookie));
+        db.productDao().insert(new Product(9, "Oatmeal Raisin Cookie", "Chewy oatmeal raisin cookie", 2.25, R.drawable.product_oatmeal_raisin_cookie));
+        db.productDao().insert(new Product(10, "Vanilla Cupcake", "Cupcake with vanilla frosting", 2.95, R.drawable.product_vanilla_cupcake));
+        db.productDao().insert(new Product(11, "Chocolate Cupcake", "Cupcake with chocolate frosting", 2.95, R.drawable.product_chocolate_cupcake));
+        db.productDao().insert(new Product(12, "Carrot Cake Slice", "Slice of carrot cake with cream cheese icing", 4.49, R.drawable.product_carrot_cake));
+        db.productDao().insert(new Product(13, "Lemon Tart", "Tart with lemon custard filling", 4.25, R.drawable.product_lemon_tart));
+        db.productDao().insert(new Product(14, "Brownie", "Fudgy chocolate brownie", 3.50, R.drawable.product_brownie));
+        db.productDao().insert(new Product(15, "Gluten-Free Banana Muffin", "Gluten-free banana muffin", 3.75, R.drawable.product_gluten_free_banana_muffin));
+        db.productDao().insert(new Product(16, "Vegan Chocolate Chip Cookie", "Vegan cookie with chocolate chips", 2.50, R.drawable.product_vegan_chocolate_chip_cookie));
     }
 }
