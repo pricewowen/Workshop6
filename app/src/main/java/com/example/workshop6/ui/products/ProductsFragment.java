@@ -8,6 +8,8 @@ import androidx.navigation.Navigation;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import android.text.Editable;
+import android.text.TextWatcher;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -22,6 +24,8 @@ import com.example.workshop6.data.model.Category;
 import com.example.workshop6.data.model.Customer;
 import com.example.workshop6.data.model.Product;
 import com.example.workshop6.data.model.RewardTier;
+import com.google.android.material.textfield.TextInputEditText;
+import com.google.android.material.textfield.TextInputLayout;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -40,6 +44,7 @@ public class ProductsFragment extends Fragment {
     private TextView tvPoints;
     private TextView tvLevel;
     private Button btnRedeem;
+    private TextInputEditText etSearch;
 
     public ProductsFragment() {
         // Required empty public constructor
@@ -74,6 +79,36 @@ public class ProductsFragment extends Fragment {
         tvPoints = view.findViewById(R.id.tvPoints);
         tvLevel = view.findViewById(R.id.tvLevel);
         btnRedeem = view.findViewById(R.id.btnRedeem);
+        etSearch = view.findViewById(R.id.etSearch);
+
+        // attaches adapter with the data from the database
+        AppDatabase db = AppDatabase.getInstance(requireContext());
+
+        // search functionality
+        etSearch.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+
+            }
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+                AppDatabase.databaseWriteExecutor.execute(() -> {
+                    String query = s.toString().trim();
+
+                    List<Product> filtered = query.isEmpty()
+                            ? db.productDao().getAllProducts()
+                            : db.productDao().searchProducts(query);
+
+                    requireActivity().runOnUiThread(() -> productAdapter.setProducts(filtered));
+                });
+            }
+
+            @Override
+            public void afterTextChanged(Editable s) {
+
+            }
+        });
 
         // set up recycler view for categories and set to horizontal
         rvCategories.setLayoutManager(new LinearLayoutManager(
@@ -88,9 +123,6 @@ public class ProductsFragment extends Fragment {
                 LinearLayoutManager.VERTICAL,
                 false
         ));
-
-        // attaches adapter with the data from the database
-        AppDatabase db = AppDatabase.getInstance(requireContext());
 
         // REDEEM logic
 
