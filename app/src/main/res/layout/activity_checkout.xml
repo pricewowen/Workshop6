@@ -78,7 +78,7 @@
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
-            <!-- Bakery Selection (for Pickup) -->
+            <!-- Bakery Selection -->
             <com.google.android.material.card.MaterialCardView
                 android:id="@+id/cardBakery"
                 android:layout_width="match_parent"

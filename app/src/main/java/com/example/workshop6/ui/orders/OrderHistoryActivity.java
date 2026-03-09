@@ -89,7 +89,7 @@ public class OrderHistoryActivity extends AppCompatActivity {
                 return;
             }
 
-            // Get all orders for this customer
+            // Get all orders
             List<Order> orders = db.orderDao().getOrdersByCustomerId(customer.customerId);
 
             // For each order, get the items and product details
@@ -123,10 +123,8 @@ public class OrderHistoryActivity extends AppCompatActivity {
             });
         });
     }
-
+// to be changed to add more details page
     private void showOrderDetails(OrderWithDetails order) {
-        // For now, just show a toast with order details
-        // You can expand this to a full order detail view later
         StringBuilder details = new StringBuilder();
         details.append("Order #").append(order.order.getOrderId()).append("\n");
         details.append("Date: ").append(dateFormat.format(new Date(order.order.getOrderPlacedDateTime()))).append("\n");
@@ -136,7 +134,7 @@ public class OrderHistoryActivity extends AppCompatActivity {
         Toast.makeText(this, details.toString(), Toast.LENGTH_LONG).show();
     }
 
-    // Helper class to hold order with its items
+    // Helper class to hold order
     public static class OrderWithDetails {
         public Order order;
         public List<OrderItemDetails> items;

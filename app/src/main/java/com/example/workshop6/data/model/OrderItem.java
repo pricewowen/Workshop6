@@ -41,7 +41,6 @@ public class OrderItem {
         this.subtotal = unitPrice * quantity;
     }
 
-    // Getters and Setters
     public int getOrderItemId() {
         return orderItemId;
     }

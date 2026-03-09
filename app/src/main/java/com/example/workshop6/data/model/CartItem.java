@@ -3,12 +3,12 @@ package com.example.workshop6.data.model;
 public class CartItem {
     private Product product;
     private int quantity;
-    private int batchId; // Track which batch this item would come from
+    private int batchId;
 
     public CartItem(Product product, int quantity) {
         this.product = product;
         this.quantity = quantity;
-        this.batchId = -1; // Will be assigned at checkout
+        this.batchId = -1;
     }
 
     public Product getProduct() {

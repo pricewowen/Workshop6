@@ -23,7 +23,7 @@ public class CartManager {
 
     public Cart getCart() {
         if (!sessionManager.isLoggedIn()) {
-            return new Cart(-1); // Temporary cart with invalid user ID
+            return new Cart(-1);
         }
         if (currentCart == null) {
             int userId = sessionManager.getUserId();

@@ -190,12 +190,11 @@ public class CheckoutActivity extends AppCompatActivity {
     private void loadUserAddress() {
         int userId = sessionManager.getUserId();
 
-        // Show loading indicator
         Toast.makeText(this, "Loading address...", Toast.LENGTH_SHORT).show();
 
         AppDatabase.databaseWriteExecutor.execute(() -> {
             try {
-                // Get customer directly from DB instead of relying on currentCustomer
+                // Get customer fro db
                 Customer customer = db.customerDao().getByUserId(userId);
 
                 if (customer != null && customer.addressId > 0) {
@@ -243,7 +242,7 @@ public class CheckoutActivity extends AppCompatActivity {
 
             runOnUiThread(() -> {
                 if (bakeryList != null && !bakeryList.isEmpty()) {
-                    // Create array of bakery names for spinner
+                    // Create array of bakeries
                     String[] bakeryNames = new String[bakeryList.size()];
                     for (int i = 0; i < bakeryList.size(); i++) {
                         bakeryNames[i] = bakeryList.get(i).name + " - " + bakeryList.get(i).city;
@@ -331,7 +330,7 @@ public class CheckoutActivity extends AppCompatActivity {
                 valid = false;
             }
         } else {
-            // Pickup - need to select a bakery
+            // Pickup select a bakery
             if (selectedBakery == null) {
                 Toast.makeText(this, "Please select a bakery", Toast.LENGTH_SHORT).show();
                 valid = false;
@@ -414,21 +413,21 @@ public class CheckoutActivity extends AppCompatActivity {
                     return;
                 }
 
-                // Use selected bakery ID for pickup, or default to 1 for delivery
+                // Use selected bakery id for pickup
                 int bakeryId = deliveryMethod.equals("pickup") ? selectedBakeryId : 1;
 
-                // Address ID: for delivery use customer's address, for pickup use null/0
+                // Address id
                 int addressId = deliveryMethod.equals("delivery") ? customer.addressId : 0;
 
-                // Create order using constructor with orderDeliveredDateTime
+                // Create order
                 Order order = new Order(
-                        0, // orderId auto-generated
+                        0,
                         customer.customerId,
                         bakeryId,
                         addressId,
                         System.currentTimeMillis(),
                         selectedDateTime.getTimeInMillis(),
-                        null, // orderDeliveredDateTime - null initially
+                        null,
                         deliveryMethod,
                         orderComment,
                         cart.getTotalPrice() * (1 + TAX_RATE),
@@ -443,8 +442,7 @@ public class CheckoutActivity extends AppCompatActivity {
                 int totalPointsEarned = 0;
 
                 for (CartItem item : cart.getItems()) {
-                    // For demo purposes, assign a batch ID (you'd need a real batch system)
-                    int batchId = 1; // Placeholder
+                    int batchId = 1;
 
                     OrderItem orderItem = new OrderItem(
                             (int) orderId,
@@ -455,7 +453,7 @@ public class CheckoutActivity extends AppCompatActivity {
                     );
                     orderItems.add(orderItem);
 
-                    // Calculate rewards (example: 10 points per dollar)
+                    // Calculate rewards
                     int pointsEarned = (int) (item.getTotalPrice() * 10);
                     totalPointsEarned += pointsEarned;
                 }

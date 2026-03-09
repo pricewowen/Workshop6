@@ -57,7 +57,6 @@ public class Order {
         this.orderStatus = orderStatus;
     }
 
-    // Getters and Setters
     public int getOrderId() {
         return orderId;
     }
