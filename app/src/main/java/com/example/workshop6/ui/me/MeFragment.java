@@ -22,6 +22,8 @@ import com.example.workshop6.data.model.Address;
 import com.example.workshop6.data.model.Customer;
 import com.example.workshop6.data.model.Employee;
 import com.example.workshop6.data.model.User;
+import com.example.workshop6.logging.LogData;
+import com.example.workshop6.models.Log;
 import com.example.workshop6.ui.profile.EditProfileActivity;
 
 /**
@@ -59,7 +61,13 @@ public class MeFragment extends Fragment {
                 startActivity(new Intent(requireContext(), EditProfileActivity.class)));
 
         view.findViewById(R.id.btn_logout).setOnClickListener(v -> {
+            String currentUserName = sessionManager.getUserName();
+            Log.setLoggedInUser(currentUserName);
+            LogData.logAction(requireContext(), "LOGOUT", "User logged out: " + currentUserName);
+
             sessionManager.logout();
+            Log.clearLoggedInUser();
+
             Intent intent = new Intent(requireContext(), LoginActivity.class);
             intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
             startActivity(intent);
@@ -86,11 +94,13 @@ public class MeFragment extends Fragment {
             Employee employee = db.employeeDao().getByUserId(userId);
             Address address = null;
             int addressId = 0;
+
             if (customer != null && customer.addressId > 0) {
                 addressId = customer.addressId;
             } else if (employee != null && employee.addressId > 0) {
                 addressId = employee.addressId;
             }
+
             if (addressId > 0) {
                 address = db.addressDao().getById(addressId);
             }
