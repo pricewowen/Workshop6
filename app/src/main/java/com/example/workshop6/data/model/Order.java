@@ -4,10 +4,8 @@ import androidx.room.Entity;
 import androidx.room.ForeignKey;
 import androidx.room.PrimaryKey;
 
-import java.time.LocalDateTime;
-
 @Entity(
-        tableName = "order",
+        tableName = "orders",
         foreignKeys = {
                 @ForeignKey(
                         entity = Customer.class,
@@ -34,19 +32,24 @@ public class Order {
     private int addressId;
     private Long orderPlacedDateTime;
     private Long orderScheduledDateTime;
+    private Long orderDeliveredDateTime;
     private String orderMethod;
     private String orderComment;
     private Double orderTotal;
     private Double orderDiscount;
     private String orderStatus;
 
-    public Order(int orderId, int customerId, int bakeryId, int addressId, Long orderPlacedDateTime, Long orderScheduledDateTime, String orderMethod, String orderComment, Double orderTotal, Double orderDiscount, String orderStatus) {
+    public Order(int orderId, int customerId, int bakeryId, int addressId,
+                 Long orderPlacedDateTime, Long orderScheduledDateTime,
+                 Long orderDeliveredDateTime, String orderMethod, String orderComment,
+                 Double orderTotal, Double orderDiscount, String orderStatus) {
         this.orderId = orderId;
         this.customerId = customerId;
         this.bakeryId = bakeryId;
         this.addressId = addressId;
         this.orderPlacedDateTime = orderPlacedDateTime;
         this.orderScheduledDateTime = orderScheduledDateTime;
+        this.orderDeliveredDateTime = orderDeliveredDateTime;
         this.orderMethod = orderMethod;
         this.orderComment = orderComment;
         this.orderTotal = orderTotal;
@@ -100,6 +103,14 @@ public class Order {
 
     public void setOrderScheduledDateTime(Long orderScheduledDateTime) {
         this.orderScheduledDateTime = orderScheduledDateTime;
+    }
+
+    public Long getOrderDeliveredDateTime() {
+        return orderDeliveredDateTime;
+    }
+
+    public void setOrderDeliveredDateTime(Long orderDeliveredDateTime) {
+        this.orderDeliveredDateTime = orderDeliveredDateTime;
     }
 
     public String getOrderMethod() {

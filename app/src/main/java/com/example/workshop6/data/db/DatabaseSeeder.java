@@ -1,9 +1,11 @@
 package com.example.workshop6.data.db;
 
 import com.example.workshop6.R;
+import android.util.Log;
+
 import com.example.workshop6.data.model.Address;
-import com.example.workshop6.data.model.BakeryLocation;
 import com.example.workshop6.data.model.Batch;
+import com.example.workshop6.data.model.BakeryLocation;
 import com.example.workshop6.data.model.Category;
 import com.example.workshop6.data.model.Customer;
 import com.example.workshop6.data.model.Employee;
@@ -26,6 +28,8 @@ public class DatabaseSeeder {
         seedDefaultAddress(db);
         seedAdminUser(db);
         seedAdminEmployee(db);
+        seedBakeryLocations(db);
+        seedTestCustomer(db);
         seedCategories(db);
         seedProducts(db);
         seedProductTags(db);
@@ -341,6 +345,50 @@ public class DatabaseSeeder {
             e.employeeEmail = "employee" + i + "@bakery.com";
             db.employeeDao().insert(e);
         }
+    }
+    private static void seedTestCustomer(AppDatabase db) {
+        // Check if test user already exists
+        User existingUser = db.userDao().getUserByEmail("customer@bakery.com");
+        if (existingUser != null) return;
+
+        // Create a test address
+        Address address = new Address();
+        address.addressLine1 = "123 Bakery Avenue";
+        address.addressLine2 = null;
+        address.addressCity = "Calgary";
+        address.addressProvince = "Alberta";
+        address.addressPostalCode = "2B2 B2B";
+        long addressId = db.addressDao().insert(address);
+
+        // Create user
+        User user = new User();
+        user.userUsername = "customer";
+        user.userEmail = "customer@bakery.com";
+        user.userPasswordHash = HashUtils.hash("customer123");
+        user.userRole = "CUSTOMER";
+        user.userCreatedAt = System.currentTimeMillis();
+        long userId = db.userDao().insert(user);
+
+        // Create customer profile
+        Customer customer = new Customer();
+        customer.userId = (int) userId;
+        customer.addressId = (int) addressId;
+        customer.rewardTierId = DEFAULT_REWARD_TIER_ID;
+        customer.customerFirstName = "Test";
+        customer.customerMiddleInitial = null;
+        customer.customerLastName = "Customer";
+        customer.customerRole = "CUSTOMER";
+        customer.customerPhone = "(416) 555-1234";
+        customer.customerBusinessPhone = null;
+        customer.customerRewardBalance = 1000; // Give them some points
+        customer.customerTierAssignedDate = System.currentTimeMillis();
+        customer.customerEmail = "customer@bakery.com";
+        customer.profilePhotoPath = null;
+        customer.photoApprovalPending = false;
+
+        db.customerDao().insert(customer);
+
+        Log.d("DatabaseSeeder", "Test customer created with address ID: " + addressId);
     }
 
     private static void seedCategories(AppDatabase db) {

@@ -75,6 +75,15 @@
             android:lineSpacingExtra="2dp"
             android:layout_marginBottom="22dp" />
 
+        <Button
+            android:id="@+id/btn_order_history"
+            android:layout_width="match_parent"
+            android:layout_height="56dp"
+            android:layout_marginTop="8dp"
+            android:backgroundTint="@color/bakery_primary"
+            android:text="Order History"
+            android:textColor="@color/bakery_text_light" />
+
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btn_logout"
             style="@style/Widget.MaterialComponents.Button.OutlinedButton"

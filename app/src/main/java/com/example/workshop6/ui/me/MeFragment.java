@@ -22,6 +22,7 @@ import com.example.workshop6.data.model.Address;
 import com.example.workshop6.data.model.Customer;
 import com.example.workshop6.data.model.Employee;
 import com.example.workshop6.data.model.User;
+import com.example.workshop6.ui.orders.OrderHistoryActivity;
 import com.example.workshop6.ui.profile.EditProfileActivity;
 
 /**
@@ -62,6 +63,11 @@ public class MeFragment extends Fragment {
             sessionManager.logout();
             Intent intent = new Intent(requireContext(), LoginActivity.class);
             intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+            startActivity(intent);
+        });
+
+        view.findViewById(R.id.btn_order_history).setOnClickListener(v -> {
+            Intent intent = new Intent(requireContext(), OrderHistoryActivity.class);
             startActivity(intent);
         });
 

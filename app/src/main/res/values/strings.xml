@@ -70,6 +70,7 @@
     <string name="nav_browse">Browse</string>
     <string name="nav_map">Map</string>
     <string name="nav_me">Me</string>
+    <string name="nav_cart">Cart</string>
 
     <!-- Map / Locations -->
     <string name="locations_title">Find a Bakery</string>
@@ -176,4 +177,48 @@
     <string name="stub_me_email">you@example.com</string>
     <string name="stub_me_address">Address</string>
     <string name="no_address_on_file">No address on file. Tap Edit to add one.</string>
+
+    <!-- Cart -->
+    <string name="title_cart">Cart</string>
+    <string name="cart_title">Your Cart</string>
+    <string name="cart_empty">Your cart is empty</string>
+    <string name="cart_subtotal">Subtotal</string>
+    <string name="cart_tax">Tax (13%)</string>
+    <string name="cart_total">Total</string>
+    <string name="checkout_button">Proceed to Checkout</string>
+    <string name="quantity_label">Qty:</string>
+    <string name="added_to_cart">Added to cart</string>
+
+    <!-- Checkout -->
+    <string name="checkout_title">Checkout</string>
+    <string name="delivery_method">Delivery Method</string>
+    <string name="pickup">Pickup</string>
+    <string name="delivery">Delivery</string>
+    <string name="order_comment">Order Comment (Optional)</string>
+    <string name="order_comment_hint">Any special instructions?</string>
+    <string name="scheduled_time">Scheduled Time</string>
+    <string name="select_time">Select</string>
+    <string name="order_summary">Order Summary</string>
+    <string name="subtotal">Subtotal:</string>
+    <string name="tax">Tax (13%):</string>
+    <string name="total">Total:</string>
+    <string name="confirm_order">Review Order</string>
+    <string name="confirm_order_title">Confirm Your Order</string>
+    <string name="confirm_order_message">Please review your order details before placing</string>
+    <string name="edit_order">Edit Order</string>
+    <string name="place_order">Place Order</string>
+    <string name="order_placed_success">Order placed successfully!</string>
+    <string name="error_placing_order">Error placing order. Please try again.</string>
+    <string name="error_complete_form">Please complete all required fields</string>
+    <string name="error_past_time">Please select a future time</string>
+    <string name="error_no_address">Please add a delivery address in your profile</string>
+
+    <!-- Confirmation Text -->
+    <string name="confirmation_order_summary">Order Summary</string>
+    <string name="confirmation_subtotal">Subtotal</string>
+    <string name="confirmation_tax">Tax</string>
+    <string name="confirmation_total">Total</string>
+    <string name="confirmation_delivery_method">Delivery Method</string>
+    <string name="confirmation_scheduled_time">Scheduled Time</string>
+    <string name="confirmation_comment">Comment</string>
 </resources>

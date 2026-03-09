@@ -36,6 +36,8 @@
         <activity android:name=".auth.RegisterActivity" android:exported="false" />
         <activity android:name=".ui.profile.EditProfileActivity" android:exported="false" />
         <activity android:name=".ui.MainActivity" android:exported="false" />
+        <activity android:name=".ui.cart.CheckoutActivity" android:exported="false" />
+        <activity android:name=".ui.orders.OrderHistoryActivity" android:exported="false" android:parentActivityName=".ui.MainActivity" />
 
     </application>
 </manifest>
