@@ -1,7 +1,11 @@
 package com.example.workshop6.data.db;
 
+import android.util.Log;
+
 import com.example.workshop6.data.model.Address;
+import com.example.workshop6.data.model.BakeryLocation;
 import com.example.workshop6.data.model.Category;
+import com.example.workshop6.data.model.Customer;
 import com.example.workshop6.data.model.Employee;
 import com.example.workshop6.data.model.Product;
 import com.example.workshop6.data.model.ProductTag;
@@ -22,6 +26,8 @@ public class DatabaseSeeder {
         seedDefaultAddress(db);
         seedAdminUser(db);
         seedAdminEmployee(db);
+        seedBakeryLocations(db);
+        seedTestCustomer(db);
         seedCategories(db);
         seedProducts(db);
         seedProductTags(db);
@@ -134,6 +140,77 @@ public class DatabaseSeeder {
         emp.employeeBusinessPhone = null;
         emp.employeeEmail = "admin@bakery.com";
         db.employeeDao().insert(emp);
+    }
+    private static void seedTestCustomer(AppDatabase db) {
+        // Check if test user already exists
+        User existingUser = db.userDao().getUserByEmail("customer@bakery.com");
+        if (existingUser != null) return;
+
+        // Create a test address
+        Address address = new Address();
+        address.addressLine1 = "123 Bakery Avenue";
+        address.addressLine2 = null;
+        address.addressCity = "Calgary";
+        address.addressProvince = "Alberta";
+        address.addressPostalCode = "2B2 B2B";
+        long addressId = db.addressDao().insert(address);
+
+        // Create user
+        User user = new User();
+        user.userUsername = "customer";
+        user.userEmail = "customer@bakery.com";
+        user.userPasswordHash = HashUtils.hash("customer123");
+        user.userRole = "CUSTOMER";
+        user.userCreatedAt = System.currentTimeMillis();
+        long userId = db.userDao().insert(user);
+
+        // Create customer profile
+        Customer customer = new Customer();
+        customer.userId = (int) userId;
+        customer.addressId = (int) addressId;
+        customer.rewardTierId = DEFAULT_REWARD_TIER_ID;
+        customer.customerFirstName = "Test";
+        customer.customerMiddleInitial = null;
+        customer.customerLastName = "Customer";
+        customer.customerRole = "CUSTOMER";
+        customer.customerPhone = "(416) 555-1234";
+        customer.customerBusinessPhone = null;
+        customer.customerRewardBalance = 1000; // Give them some points
+        customer.customerTierAssignedDate = System.currentTimeMillis();
+        customer.customerEmail = "customer@bakery.com";
+        customer.profilePhotoPath = null;
+        customer.photoApprovalPending = false;
+
+        db.customerDao().insert(customer);
+
+        Log.d("DatabaseSeeder", "Test customer created with address ID: " + addressId);
+    }
+
+    /**
+     * Seeds bakery locations across different cities
+     */
+    private static void seedBakeryLocations(AppDatabase db) {
+        // Check if bakeries already exist
+        if (!db.bakeryLocationDao().getAllLocationsSync().isEmpty()) {
+            return;
+        }
+
+        // Toronto Locations
+        BakeryLocation loc1 = new BakeryLocation();
+        loc1.name = "Peelin' Good - Downtown Toronto";
+        loc1.address = "123 King Street West";
+        loc1.city = "Toronto";
+        loc1.province = "Ontario";
+        loc1.postalCode = "M5H 1A1";
+        loc1.phone = "(416) 555-0123";
+        loc1.email = "downtown@peelingood.com";
+        loc1.status = "Open";
+        loc1.openingHours = "Mon-Fri: 7am-7pm, Sat-Sun: 8am-6pm";
+        loc1.latitude = 43.6475;
+        loc1.longitude = -79.3813;
+        db.bakeryLocationDao().insert(loc1);
+
+        System.out.println("Seeded " + db.bakeryLocationDao().getAllLocationsSync().size() + " bakery locations");
     }
 
     private static void seedCategories(AppDatabase db) {

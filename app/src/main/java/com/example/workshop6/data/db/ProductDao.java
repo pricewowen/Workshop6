@@ -28,6 +28,9 @@ public interface ProductDao {
     @Query("SELECT * FROM product WHERE productId = :id")
     Product getProductById(int id);
 
+//    @Query("SELECT * FROM product WHERE productName = :productName")
+//    int getProductIdByName(String productName);
+
     /**
      * Get a list of product by the category ID
      * @param tagId ID of the Category

@@ -125,7 +125,7 @@ public class ProductDetailsFragment extends Fragment {
                         Toast.makeText(requireContext(),
                                 R.string.added_to_cart, Toast.LENGTH_SHORT).show();
 
-                        //Navigation.findNavController(view).navigateUp();
+                        Navigation.findNavController(view).navigateUp();
                     });
                 }
             });

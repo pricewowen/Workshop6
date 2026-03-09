@@ -20,14 +20,14 @@ import android.widget.Toast;
 import com.example.workshop6.R;
 import com.example.workshop6.auth.SessionManager;
 import com.example.workshop6.data.db.AppDatabase;
+import com.example.workshop6.data.model.CartItem;
 import com.example.workshop6.data.model.Category;
 import com.example.workshop6.data.model.Customer;
 import com.example.workshop6.data.model.Product;
 import com.example.workshop6.data.model.RewardTier;
+import com.example.workshop6.ui.cart.CartManager;
 import com.google.android.material.textfield.TextInputEditText;
-import com.google.android.material.textfield.TextInputLayout;
 
-import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -40,11 +40,12 @@ public class ProductsFragment extends Fragment {
     private RecyclerView rvCategories;
     private ProductAdapter productAdapter;
     private RecyclerView rvProducts;
-    private Button btnAddToCard;
+    private Button btnAddToCart;
     private TextView tvPoints;
     private TextView tvLevel;
     private Button btnRedeem;
     private TextInputEditText etSearch;
+    private CartManager cartManager;
 
     public ProductsFragment() {
         // Required empty public constructor
@@ -75,11 +76,13 @@ public class ProductsFragment extends Fragment {
 
         rvCategories = view.findViewById(R.id.rvCategories);
         rvProducts = view.findViewById(R.id.rvProducts);
-        btnAddToCard = view.findViewById(R.id.btnAddToCart);
+        btnAddToCart = view.findViewById(R.id.btnAddToCart);
         tvPoints = view.findViewById(R.id.tvPoints);
         tvLevel = view.findViewById(R.id.tvLevel);
         btnRedeem = view.findViewById(R.id.btnRedeem);
         etSearch = view.findViewById(R.id.etSearch);
+
+        cartManager = CartManager.getInstance(requireContext());
 
         // attaches adapter with the data from the database
         AppDatabase db = AppDatabase.getInstance(requireContext());
@@ -195,8 +198,18 @@ public class ProductsFragment extends Fragment {
         });
 
         // add to cart listener
-        btnAddToCard.setOnClickListener(v -> {
-            Toast.makeText(this.requireContext(), "Checkout under construction", Toast.LENGTH_LONG).show();
+        btnAddToCart.setOnClickListener(v -> {
+            int productId = 5;//broken for now
+
+            if (productId != -1) {
+                Bundle args = new Bundle();
+                args.putInt("productId", productId);
+                args.putInt("quantity", 1);
+
+                Navigation.findNavController(view).navigate(R.id.action_products_to_details, args);
+            } else {
+                Toast.makeText(requireContext(), "Product not found", Toast.LENGTH_SHORT).show();
+            }
         });
     }
 }

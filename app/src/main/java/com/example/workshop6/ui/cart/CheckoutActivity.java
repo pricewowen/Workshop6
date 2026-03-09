@@ -4,11 +4,15 @@ import android.app.DatePickerDialog;
 import android.app.TimePickerDialog;
 import android.content.Intent;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
+import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.RadioButton;
 import android.widget.RadioGroup;
+import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -21,6 +25,7 @@ import com.example.workshop6.data.model.Cart;
 import com.example.workshop6.data.model.CartItem;
 import com.example.workshop6.data.db.AppDatabase;
 import com.example.workshop6.data.model.Address;
+import com.example.workshop6.data.model.BakeryLocation;
 import com.example.workshop6.data.model.Customer;
 import com.example.workshop6.data.model.Order;
 import com.example.workshop6.data.model.OrderItem;
@@ -50,6 +55,9 @@ public class CheckoutActivity extends AppCompatActivity {
     private View mainLayout;
     private Button btnPlaceOrder;
     private Button btnEditOrder;
+    private TextView tvConfirmationText;
+    private Spinner spinnerBakery;
+    private TextView tvSelectedBakery;
 
     private Cart cart;
     private CartManager cartManager;
@@ -63,6 +71,10 @@ public class CheckoutActivity extends AppCompatActivity {
     private String deliveryMethod = "pickup";
     private String orderComment = "";
     private Address userAddress;
+    private Customer currentCustomer;
+    private List<BakeryLocation> bakeryList;
+    private BakeryLocation selectedBakery;
+    private int selectedBakeryId = 1; // Default bakery ID
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -89,7 +101,12 @@ public class CheckoutActivity extends AppCompatActivity {
         }
         toolbar.setNavigationOnClickListener(v -> finish());
 
-        // Initialize views
+        initializeViews();
+        loadCustomerData();
+        loadBakeries();
+    }
+
+    private void initializeViews() {
         rgDeliveryMethod = findViewById(R.id.rgDeliveryMethod);
         rbDelivery = findViewById(R.id.rbDelivery);
         rbPickup = findViewById(R.id.rbPickup);
@@ -104,6 +121,9 @@ public class CheckoutActivity extends AppCompatActivity {
         mainLayout = findViewById(R.id.mainLayout);
         btnPlaceOrder = findViewById(R.id.btnPlaceOrder);
         btnEditOrder = findViewById(R.id.btnEditOrder);
+        tvConfirmationText = findViewById(R.id.tvConfirmationText);
+        spinnerBakery = findViewById(R.id.spinnerBakery);
+        tvSelectedBakery = findViewById(R.id.tvSelectedBakery);
 
         // Set up time picker
         selectedDateTime = Calendar.getInstance();
@@ -117,8 +137,12 @@ public class CheckoutActivity extends AppCompatActivity {
             if (checkedId == R.id.rbDelivery) {
                 deliveryMethod = "delivery";
                 loadUserAddress();
+                spinnerBakery.setVisibility(View.GONE);
+                tvSelectedBakery.setVisibility(View.GONE);
             } else {
                 deliveryMethod = "pickup";
+                spinnerBakery.setVisibility(View.VISIBLE);
+                tvSelectedBakery.setVisibility(View.VISIBLE);
             }
             validateForm();
         });
@@ -138,7 +162,10 @@ public class CheckoutActivity extends AppCompatActivity {
         });
 
         // Confirm order button
-        btnConfirmOrder.setOnClickListener(v -> showConfirmation());
+        btnConfirmOrder.setOnClickListener(v -> {
+            Log.d("Checkout", "Confirm button clicked");
+            showConfirmation();
+        });
 
         // Place order button
         btnPlaceOrder.setOnClickListener(v -> placeOrder());
@@ -149,18 +176,106 @@ public class CheckoutActivity extends AppCompatActivity {
             mainLayout.setVisibility(View.VISIBLE);
         });
 
-        // Load initial totals
         updateTotals();
+    }
+
+    private void loadCustomerData() {
+        int userId = sessionManager.getUserId();
+        AppDatabase.databaseWriteExecutor.execute(() -> {
+            currentCustomer = db.customerDao().getByUserId(userId);
+            runOnUiThread(() -> validateForm());
+        });
     }
 
     private void loadUserAddress() {
         int userId = sessionManager.getUserId();
+
+        // Show loading indicator
+        Toast.makeText(this, "Loading address...", Toast.LENGTH_SHORT).show();
+
         AppDatabase.databaseWriteExecutor.execute(() -> {
-            Customer customer = db.customerDao().getByUserId(userId);
-            if (customer != null && customer.addressId > 0) {
-                userAddress = db.addressDao().getById(customer.addressId);
+            try {
+                // Get customer directly from DB instead of relying on currentCustomer
+                Customer customer = db.customerDao().getByUserId(userId);
+
+                if (customer != null && customer.addressId > 0) {
+                    Address address = db.addressDao().getById(customer.addressId);
+
+                    // Update both currentCustomer and userAddress
+                    final Address loadedAddress = address;
+                    final Customer loadedCustomer = customer;
+
+                    runOnUiThread(() -> {
+                        currentCustomer = loadedCustomer;
+                        userAddress = loadedAddress;
+
+                        // Log for debugging
+                        if (userAddress != null) {
+                            Log.d("Checkout", "Address loaded: " + userAddress.addressLine1);
+                        } else {
+                            Log.d("Checkout", "No address found");
+                            rbDelivery.setError("No address on file");
+                        }
+
+                        validateForm();
+                    });
+                } else {
+                    runOnUiThread(() -> {
+                        Log.d("Checkout", "Customer has no address ID");
+                        rbDelivery.setError("Please add an address in your profile");
+                        validateForm();
+                    });
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+                runOnUiThread(() -> {
+                    Toast.makeText(CheckoutActivity.this,
+                            "Error loading address", Toast.LENGTH_SHORT).show();
+                    validateForm();
+                });
             }
-            runOnUiThread(this::validateForm);
+        });
+    }
+
+    private void loadBakeries() {
+        AppDatabase.databaseWriteExecutor.execute(() -> {
+            bakeryList = db.bakeryLocationDao().getAllLocationsSync();
+
+            runOnUiThread(() -> {
+                if (bakeryList != null && !bakeryList.isEmpty()) {
+                    // Create array of bakery names for spinner
+                    String[] bakeryNames = new String[bakeryList.size()];
+                    for (int i = 0; i < bakeryList.size(); i++) {
+                        bakeryNames[i] = bakeryList.get(i).name + " - " + bakeryList.get(i).city;
+                    }
+
+                    ArrayAdapter<String> adapter = new ArrayAdapter<>(
+                            CheckoutActivity.this,
+                            android.R.layout.simple_spinner_item,
+                            bakeryNames
+                    );
+                    adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+                    spinnerBakery.setAdapter(adapter);
+
+                    // Set default selection
+                    selectedBakery = bakeryList.get(0);
+                    selectedBakeryId = selectedBakery.id;
+                    tvSelectedBakery.setText(selectedBakery.name);
+
+                    // Spinner selection listener
+                    spinnerBakery.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+                        @Override
+                        public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                            selectedBakery = bakeryList.get(position);
+                            selectedBakeryId = selectedBakery.id;
+                            tvSelectedBakery.setText(selectedBakery.name);
+                        }
+
+                        @Override
+                        public void onNothingSelected(AdapterView<?> parent) {}
+                    });
+                }
+            });
         });
     }
 
@@ -187,7 +302,6 @@ public class CheckoutActivity extends AppCompatActivity {
                 selectedDateTime.get(Calendar.MONTH),
                 selectedDateTime.get(Calendar.DAY_OF_MONTH));
 
-        // Set min date to today
         datePickerDialog.getDatePicker().setMinDate(current.getTimeInMillis());
         datePickerDialog.show();
     }
@@ -216,6 +330,12 @@ public class CheckoutActivity extends AppCompatActivity {
                 rbDelivery.setError(getString(R.string.error_no_address));
                 valid = false;
             }
+        } else {
+            // Pickup - need to select a bakery
+            if (selectedBakery == null) {
+                Toast.makeText(this, "Please select a bakery", Toast.LENGTH_SHORT).show();
+                valid = false;
+            }
         }
 
         if (selectedDateTime.before(Calendar.getInstance())) {
@@ -237,7 +357,6 @@ public class CheckoutActivity extends AppCompatActivity {
             return;
         }
 
-        // Build confirmation text
         StringBuilder confirmationText = new StringBuilder();
         confirmationText.append(getString(R.string.confirmation_order_summary)).append("\n\n");
 
@@ -248,15 +367,26 @@ public class CheckoutActivity extends AppCompatActivity {
                     currencyFormat.format(item.getTotalPrice())));
         }
 
+        double subtotal = cart.getTotalPrice();
+        double tax = subtotal * TAX_RATE;
+        double total = subtotal + tax;
+
         confirmationText.append("\n").append(getString(R.string.confirmation_subtotal))
-                .append(": ").append(currencyFormat.format(cart.getTotalPrice())).append("\n");
+                .append(": ").append(currencyFormat.format(subtotal)).append("\n");
         confirmationText.append(getString(R.string.confirmation_tax))
-                .append(": ").append(currencyFormat.format(cart.getTotalPrice() * TAX_RATE)).append("\n");
+                .append(": ").append(currencyFormat.format(tax)).append("\n");
         confirmationText.append(getString(R.string.confirmation_total))
-                .append(": ").append(currencyFormat.format(cart.getTotalPrice() * (1 + TAX_RATE))).append("\n\n");
+                .append(": ").append(currencyFormat.format(total)).append("\n\n");
 
         confirmationText.append(getString(R.string.confirmation_delivery_method))
                 .append(": ").append(deliveryMethod).append("\n");
+
+        if (deliveryMethod.equals("pickup") && selectedBakery != null) {
+            confirmationText.append("Bakery: ").append(selectedBakery.name).append("\n");
+            confirmationText.append("Address: ").append(selectedBakery.address)
+                    .append(", ").append(selectedBakery.city).append("\n");
+        }
+
         confirmationText.append(getString(R.string.confirmation_scheduled_time))
                 .append(": ").append(dateTimeFormat.format(selectedDateTime.getTime())).append("\n");
 
@@ -265,7 +395,7 @@ public class CheckoutActivity extends AppCompatActivity {
                     .append(": ").append(orderComment);
         }
 
-        ((TextView) findViewById(R.id.tvConfirmationText)).setText(confirmationText.toString());
+        tvConfirmationText.setText(confirmationText.toString());
 
         mainLayout.setVisibility(View.GONE);
         confirmationLayout.setVisibility(View.VISIBLE);
@@ -276,7 +406,7 @@ public class CheckoutActivity extends AppCompatActivity {
 
         AppDatabase.databaseWriteExecutor.execute(() -> {
             try {
-                // Get customer ID
+                // Get customer
                 Customer customer = db.customerDao().getByUserId(userId);
                 if (customer == null) {
                     runOnUiThread(() -> Toast.makeText(this,
@@ -284,14 +414,21 @@ public class CheckoutActivity extends AppCompatActivity {
                     return;
                 }
 
-                // Create order
+                // Use selected bakery ID for pickup, or default to 1 for delivery
+                int bakeryId = deliveryMethod.equals("pickup") ? selectedBakeryId : 1;
+
+                // Address ID: for delivery use customer's address, for pickup use null/0
+                int addressId = deliveryMethod.equals("delivery") ? customer.addressId : 0;
+
+                // Create order using constructor with orderDeliveredDateTime
                 Order order = new Order(
                         0, // orderId auto-generated
                         customer.customerId,
-                        1, // Default bakery ID (you might want to let user select)
-                        deliveryMethod.equals("delivery") ? customer.addressId : 0,
+                        bakeryId,
+                        addressId,
                         System.currentTimeMillis(),
                         selectedDateTime.getTimeInMillis(),
+                        null, // orderDeliveredDateTime - null initially
                         deliveryMethod,
                         orderComment,
                         cart.getTotalPrice() * (1 + TAX_RATE),
@@ -303,6 +440,8 @@ public class CheckoutActivity extends AppCompatActivity {
 
                 // Create order items
                 List<OrderItem> orderItems = new ArrayList<>();
+                int totalPointsEarned = 0;
+
                 for (CartItem item : cart.getItems()) {
                     // For demo purposes, assign a batch ID (you'd need a real batch system)
                     int batchId = 1; // Placeholder
@@ -318,23 +457,30 @@ public class CheckoutActivity extends AppCompatActivity {
 
                     // Calculate rewards (example: 10 points per dollar)
                     int pointsEarned = (int) (item.getTotalPrice() * 10);
-                    Reward reward = new Reward(
-                            0, // rewardId auto-generated
-                            customer.customerId,
-                            (int) orderId,
-                            pointsEarned,
-                            System.currentTimeMillis()
-                    );
-                    db.rewardDao().insert(reward);
+                    totalPointsEarned += pointsEarned;
                 }
 
                 db.orderItemDao().insertAll(orderItems);
+
+                // Create single reward for the entire order
+                Reward reward = new Reward(
+                        0, // rewardId auto-generated
+                        customer.customerId,
+                        (int) orderId,
+                        totalPointsEarned,
+                        System.currentTimeMillis()
+                );
+                db.rewardDao().insert(reward);
+
+                // Update customer reward balance
+                int newBalance = customer.customerRewardBalance + totalPointsEarned;
+                customer.customerRewardBalance = newBalance;
+                db.customerDao().update(customer);
 
                 // Clear cart
                 runOnUiThread(() -> {
                     cartManager.clearCart();
 
-                    // Show success and navigate to orders
                     Toast.makeText(this, R.string.order_placed_success, Toast.LENGTH_LONG).show();
 
                     Intent intent = new Intent(this, com.example.workshop6.ui.MainActivity.class);
@@ -349,7 +495,8 @@ public class CheckoutActivity extends AppCompatActivity {
                 runOnUiThread(() -> {
                     Snackbar.make(findViewById(android.R.id.content),
                             R.string.error_placing_order, Snackbar.LENGTH_LONG).show();
-                    // Return to main layout
+                    btnPlaceOrder.setEnabled(true);
+                    btnPlaceOrder.setText(R.string.place_order);
                     confirmationLayout.setVisibility(View.GONE);
                     mainLayout.setVisibility(View.VISIBLE);
                 });
