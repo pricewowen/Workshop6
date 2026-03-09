@@ -4,6 +4,8 @@ import androidx.room.Entity;
 import androidx.room.ForeignKey;
 import androidx.room.PrimaryKey;
 
+import java.time.LocalDateTime;
+
 @Entity(
         tableName = "reward",
         foreignKeys = {

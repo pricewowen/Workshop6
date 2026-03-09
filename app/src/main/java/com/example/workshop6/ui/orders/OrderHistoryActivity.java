@@ -77,20 +77,8 @@ public class OrderHistoryActivity extends AppCompatActivity {
         tvEmptyOrders.setVisibility(View.GONE);
 
         AppDatabase.databaseWriteExecutor.execute(() -> {
-            // Get customer ID from user ID
-            com.example.workshop6.data.model.Customer customer = db.customerDao().getByUserId(userId);
-
-            if (customer == null) {
-                runOnUiThread(() -> {
-                    loadingView.setVisibility(View.GONE);
-                    tvEmptyOrders.setVisibility(View.VISIBLE);
-                    tvEmptyOrders.setText("No customer profile found");
-                });
-                return;
-            }
-
-            // Get all orders
-            List<Order> orders = db.orderDao().getOrdersByCustomerId(customer.customerId);
+            // Query orders scoped directly to authenticated user id.
+            List<Order> orders = db.orderDao().getOrdersByUserId(userId);
 
             // For each order, get the items and product details
             List<OrderWithDetails> ordersWithDetails = new ArrayList<>();

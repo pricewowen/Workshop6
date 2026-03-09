@@ -49,20 +49,24 @@
     <!-- Auth - Errors    -->
     <!--  Name Errors   -->
     <string name="error_name_required">Name is required</string>
-    <string name="error_name_invalid">Name cannot contain Numbers</string>
+    <string name="error_name_invalid">Use letters and spaces only</string>
     <!-- Email Errors-->
     <string name="error_email_required">Email is required</string>
-    <string name="register_error_email_exists">An account with this email already exists</string>
+    <string name="register_error_email_exists">Unable to create account</string>
     <string name="error_username_required">Username is required</string>
-    <string name="error_username_invalid">3–50 characters, letters, numbers, _ or - only</string>
-    <string name="register_error_username_exists">This username is already taken</string>
-    <string name="error_email_invalid">Must be a valid email</string>
+    <string name="error_username_too_short">Username is too short</string>
+    <string name="error_username_too_long">Username is too long</string>
+    <string name="error_username_invalid">Use letters, numbers, _ or - only</string>
+    <string name="register_error_username_exists">Unable to create account</string>
+    <string name="error_email_invalid">Enter a valid email address</string>
     <!-- Phone Errors-->
-    <string name="error_phone_required">Phone Number is Required</string>
-    <string name="error_phone_invalid">Phone Number must can only contain numbers and is 10 digits</string>
+    <string name="error_phone_required">Phone number is required</string>
+    <string name="error_phone_invalid">Enter a valid 10-digit phone number</string>
     <!--    Password Errors-->
     <string name="error_password_required">Password is required</string>
-    <string name="error_password_invalid">Password must be between 8 and 250 characters</string>
+    <string name="error_password_too_short">Password is too short</string>
+    <string name="error_password_too_long">Password is too long</string>
+    <string name="error_password_invalid">Enter a valid password</string>
     <string name="hint_confirm_password">Confirm password</string>
     <string name="error_password_mismatch">Passwords do not match</string>
     <!-- Navigation -->
@@ -71,6 +75,7 @@
     <string name="nav_map">Map</string>
     <string name="nav_me">Me</string>
     <string name="nav_cart">Cart</string>
+    <string name="nav_photo_approvals">Approvals</string>
 
     <!-- Map / Locations -->
     <string name="locations_title">Find a Bakery</string>
@@ -78,7 +83,7 @@
     <string name="btn_show_nearby">Nearby</string>
     <string name="btn_show_all">All</string>
     <string name="permission_location_rationale">Location permission is needed to find nearby bakeries.</string>
-    <string name="error_could_not_get_location">Could not get your location. Try again.</string>
+    <string name="error_could_not_get_location">Could not get your location, try again</string>
 
     <!-- Location Detail -->
     <string name="location_details">Location Details</string>
@@ -120,6 +125,20 @@
     <string name="btn_add_to_cart">Add to Cart</string>
     <string name="label_points_available">1,240 pts</string>
     <string name="label_points_to_next">Gold • 260 to Platinum</string>
+    <string name="label_current_points">Current Points</string>
+    <string name="label_tier_description_default">Starting tier for all customers</string>
+    <string name="label_next_tier_default">Next Tier: Silver</string>
+    <string name="label_points_needed_default">10000 points to next tier</string>
+    <string name="label_next_tier_fmt">Next Tier: %1$s</string>
+    <string name="label_points_needed_fmt">%1$d points to reach %2$s</string>
+    <string name="label_no_loyalty_account">No Loyalty Account</string>
+    <string name="label_no_loyalty_account_desc">This account does not currently participate in customer rewards</string>
+    <string name="label_next_tier_na">Next Tier: N/A</string>
+    <string name="label_points_to_next_na">Points to next tier: N/A</string>
+    <string name="label_unknown_tier">Unknown Tier</string>
+    <string name="label_unknown_tier_desc">Unable to determine current loyalty tier</string>
+    <string name="label_top_tier_reached">Top Tier Reached</string>
+    <string name="label_highest_tier_reached">You are at the highest loyalty tier</string>
     <string name="btn_redeem">Redeem →</string>
     <string name="label_categories">CATEGORIES</string>
     <string name="label_category">CATEGORY</string>
@@ -137,41 +156,54 @@
     <string name="label_product_price">$0.00</string>
     <string name="label_selected_arrow">&gt;</string>
     <string name="label_search">Seach Products...</string>
-    <string name="error_password_unsafe">Unsafe pattern detected</string>
+    <string name="error_password_unsafe">Password contains unsupported characters</string>
 
     <!-- Profile / photos -->
     <string name="btn_choose_photo">Choose photo</string>
     <string name="btn_change_photo">Change photo</string>
     <string name="photo_rules">Max 2MB • Max 1024×1024</string>
-    <string name="error_photo_required">Please select a photo.</string>
-    <string name="error_photo_too_large">Photo is too large (max 2MB).</string>
-    <string name="error_photo_too_large_gallery">Photo is too large (max 16MB).</string>
-    <string name="error_photo_dimensions_too_large">Photo dimensions are too large (max 1024×1024).</string>
-    <string name="error_photo_invalid">Selected file is not a valid image.</string>
-    <string name="error_photo_format">Please use JPEG or PNG only.</string>
-    <string name="error_photo_read">Could not read the selected image.</string>
+    <string name="error_photo_required">Please select a photo</string>
+    <string name="error_photo_too_large">Photo is too large (max 2MB)</string>
+    <string name="error_photo_too_large_gallery">Photo is too large (max 16MB)</string>
+    <string name="error_photo_dimensions_too_large">Photo dimensions are too large (max 1024×1024)</string>
+    <string name="error_photo_invalid">Selected file is not a valid image</string>
+    <string name="error_photo_format">Please use JPEG or PNG only</string>
+    <string name="error_photo_read">Could not read the selected image</string>
+    <string name="permission_camera_required">Camera permission is required to take a photo</string>
+    <string name="photo_pending_approval">Profile photo pending approval</string>
+    <string name="photo_change_locked_pending">Photo is pending approval and cannot be changed yet</string>
+    <string name="photo_approvals_title">Profile photo approvals</string>
+    <string name="photo_approvals_subtitle">Review customer photos waiting for approval</string>
+    <string name="photo_approvals_none_pending">No pending profile photos</string>
+    <string name="photo_approvals_access_denied">You do not have access to this page</string>
+    <string name="photo_approve">Approve</string>
+    <string name="photo_not_approve">Not approve</string>
+    <string name="photo_approved">Photo approved</string>
+    <string name="photo_rejected">Photo not approved</string>
 
     <string name="edit_profile_heading">Edit profile</string>
     <string name="btn_edit">Edit</string>
     <string name="btn_save">Save</string>
     <string name="btn_cancel">Cancel</string>
     <string name="profile_saved">Profile saved.</string>
-    <string name="error_user_not_found">User not found.</string>
+    <string name="error_user_not_found">User not found</string>
 
     <string name="label_address">Address (optional)</string>
     <string name="label_address_header">ADDRESS</string>
     <string name="hint_address1">Address line 1</string>
     <string name="hint_address2">Address line 2</string>
     <string name="hint_city">City</string>
-    <string name="hint_province">Province/State</string>
+    <string name="hint_province">Province/Territory</string>
     <string name="hint_postal_code">Postal/ZIP</string>
 
-    <string name="error_address_required">Address line 1 is required.</string>
-    <string name="error_address_invalid">Address is too long.</string>
-    <string name="error_city_required">City is required.</string>
-    <string name="error_province_required">Province/State is required.</string>
-    <string name="error_postal_invalid">Postal/ZIP code is invalid.</string>
-    <string name="error_postal_required">Postal/ZIP code is required.</string>
+    <string name="error_address_required">Address line 1 is required</string>
+    <string name="error_address_invalid">Address is too long</string>
+    <string name="error_city_required">City is required</string>
+    <string name="error_province_required">Province/Territory is required</string>
+    <string name="register_error_duplicate_account">An account already exists with those details</string>
+    <string name="register_error_unexpected">Unable to create account right now, please try again</string>
+    <string name="error_postal_invalid">Postal/ZIP code is invalid</string>
+    <string name="error_postal_required">Postal/ZIP code is required</string>
 
     <string name="stub_me_name">Your name</string>
     <string name="stub_me_email">you@example.com</string>
@@ -208,7 +240,7 @@
     <string name="edit_order">Edit Order</string>
     <string name="place_order">Place Order</string>
     <string name="order_placed_success">Order placed successfully!</string>
-    <string name="error_placing_order">Error placing order. Please try again.</string>
+    <string name="error_placing_order">Error placing order, please try again</string>
     <string name="error_complete_form">Please complete all required fields</string>
     <string name="error_past_time">Please select a future time</string>
     <string name="error_no_address">Please add a delivery address in your profile</string>

@@ -16,7 +16,7 @@ public interface RewardTierDao {
     @Query("SELECT * FROM reward_tier WHERE rewardTierId = :id LIMIT 1")
     RewardTier getById(int id);
 
-    @Query("SELECT * FROM reward_tier ORDER BY minPoints ASC")
+    @Query("SELECT * FROM reward_tier")
     List<RewardTier> getAll();
 
     @Query("SELECT * FROM reward_tier " +

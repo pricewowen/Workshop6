@@ -9,6 +9,7 @@ import androidx.room.RoomDatabase;
 import androidx.sqlite.db.SupportSQLiteDatabase;
 
 import com.example.workshop6.data.model.Address;
+import com.example.workshop6.data.model.BakeryHours;
 import com.example.workshop6.data.model.BakeryLocation;
 import com.example.workshop6.data.model.Batch;
 import com.example.workshop6.data.model.Batch;
@@ -37,6 +38,7 @@ import java.util.concurrent.TimeUnit;
             Employee.class,
             RewardTier.class,
             BakeryLocation.class,
+            BakeryHours.class,
             Category.class,
             Product.class,
                 ProductTag.class,
@@ -45,7 +47,7 @@ import java.util.concurrent.TimeUnit;
                 Order.class,
                 OrderItem.class
         },
-        version = 11,
+        version = 15,
         exportSchema = false
 )
 public abstract class AppDatabase extends RoomDatabase {
@@ -56,6 +58,7 @@ public abstract class AppDatabase extends RoomDatabase {
     public abstract EmployeeDao employeeDao();
     public abstract RewardTierDao rewardTierDao();
     public abstract BakeryLocationDao bakeryLocationDao();
+    public abstract BakeryHoursDao bakeryHoursDao();
     public abstract CategoryDao categoryDao();
     public abstract ProductDao productDao();
     public abstract ProductTagDao productTagDao();

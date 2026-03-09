@@ -44,6 +44,12 @@
         android:label="@string/title_cart"
         tools:layout="@layout/fragment_cart" />
 
+    <fragment
+        android:id="@+id/nav_photo_approvals"
+        android:name="com.example.workshop6.ui.approvals.PhotoApprovalsFragment"
+        android:label="@string/nav_photo_approvals"
+        tools:layout="@layout/fragment_photo_approvals" />
+
     <!-- Location detail — reached from Map tab -->
     <fragment
         android:id="@+id/locationDetailFragment"

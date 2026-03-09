@@ -1,6 +1,13 @@
 package com.example.workshop6.ui.products;
 
 import android.os.Bundle;
+
+import androidx.annotation.NonNull;
+import androidx.fragment.app.Fragment;
+import androidx.navigation.Navigation;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
+
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.view.LayoutInflater;
@@ -11,26 +18,25 @@ import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import androidx.annotation.NonNull;
-import androidx.fragment.app.Fragment;
-import androidx.navigation.Navigation;
-import androidx.recyclerview.widget.LinearLayoutManager;
-import androidx.recyclerview.widget.RecyclerView;
-
 import com.example.workshop6.R;
 import com.example.workshop6.auth.SessionManager;
 import com.example.workshop6.data.db.AppDatabase;
+import com.example.workshop6.data.model.CartItem;
 import com.example.workshop6.data.model.Category;
 import com.example.workshop6.data.model.Customer;
-import com.example.workshop6.data.model.Log;
 import com.example.workshop6.data.model.Product;
 import com.example.workshop6.data.model.RewardTier;
-import com.example.workshop6.logging.LogData;
+import com.example.workshop6.logging.ActivityLogger;
 import com.example.workshop6.ui.cart.CartManager;
 import com.google.android.material.textfield.TextInputEditText;
 
 import java.util.List;
 
+/**
+ * A simple {@link Fragment} subclass.
+ * Use the {@link ProductsFragment#newInstance} factory method to
+ * create an instance of this fragment.
+ */
 public class ProductsFragment extends Fragment {
 
     private RecyclerView rvCategories;
@@ -48,8 +54,6 @@ public class ProductsFragment extends Fragment {
     private CartManager cartManager;
     private TextView tvFeatureProductName;
     private TextView tvFeatureProductPrice;
-
-    private boolean initialLoadLogged = false;
 
     public ProductsFragment() {
         // Required empty public constructor
@@ -70,15 +74,13 @@ public class ProductsFragment extends Fragment {
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
+        // Inflate the layout for this fragment
         return inflater.inflate(R.layout.fragment_products, container, false);
     }
 
     @Override
     public void onViewCreated(@NonNull View view, Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
-
-        SessionManager sessionManager = new SessionManager(requireContext());
-        Log.setLoggedInUser(sessionManager.getUserName());
 
         rvCategories = view.findViewById(R.id.rvCategories);
         rvProducts = view.findViewById(R.id.rvProducts);
@@ -96,12 +98,14 @@ public class ProductsFragment extends Fragment {
 
         cartManager = CartManager.getInstance(requireContext());
 
+        // attaches adapter with the data from the database
         AppDatabase db = AppDatabase.getInstance(requireContext());
 
+        // search functionality
         etSearch.addTextChangedListener(new TextWatcher() {
             @Override
             public void beforeTextChanged(CharSequence s, int start, int count, int after) {
-                // no-op
+
             }
 
             @Override
@@ -117,30 +121,19 @@ public class ProductsFragment extends Fragment {
                             ? db.productDao().getAllProducts()
                             : db.productDao().searchProducts(query);
 
-                    requireActivity().runOnUiThread(() -> {
-                        if (productAdapter != null) {
-                            productAdapter.setProducts(filtered);
-                        }
-                    });
-
-                    if (!query.isEmpty()) {
-                        LogData.logAction(
-                                requireContext(),
-                                "READ",
-                                "Product search performed: " + query
-                        );
-                    }
+                    requireActivity().runOnUiThread(() -> productAdapter.setProducts(filtered));
                 });
             }
 
             @Override
             public void afterTextChanged(Editable s) {
-                // no-op
+
             }
         });
 
         // Get and display featured product
         AppDatabase.databaseWriteExecutor.execute(() -> {
+            // wait for database to finish seeding
             AppDatabase.awaitSeed();
 
             long now = System.currentTimeMillis();
@@ -158,38 +151,121 @@ public class ProductsFragment extends Fragment {
             });
         });
 
+        // set up recycler view for categories and set to horizontal
         rvCategories.setLayoutManager(new LinearLayoutManager(
                 requireContext(),
                 LinearLayoutManager.HORIZONTAL,
                 false
         ));
 
+        // set up recycler view for products
         rvProducts.setLayoutManager(new LinearLayoutManager(
                 requireContext(),
                 LinearLayoutManager.VERTICAL,
                 false
         ));
 
-        loadLoyaltyDashboard(db, sessionManager);
-        loadProductsAndCategories(db);
+        // REDEEM logic
 
-        btnRedeem.setOnClickListener(v -> {
-            LogData.logAction(
-                    requireContext(),
-                    "ADJUST_POINTS",
-                    "Redeem selected from loyalty dashboard (under construction)"
-            );
-            Toast.makeText(requireContext(), "Reward page under construction", Toast.LENGTH_LONG).show();
+        // get logged in userId
+        SessionManager sessionManager = new SessionManager(requireContext());
+        int userId = sessionManager.getUserId();
+
+        // Getting Reward Points
+        AppDatabase.databaseWriteExecutor.execute(() -> {
+            Customer customer = db.customerDao().getByUserId(userId);
+            if (customer != null) {
+                int points = customer.customerRewardBalance;
+                RewardTier currentTier = db.rewardTierDao().getTierForPoints(points);
+                RewardTier nextTier = db.rewardTierDao().getNextTierForPoints(points);
+
+                // set reward points
+                requireActivity().runOnUiThread(() -> {
+                    if (currentTier != null) {
+                        tvPoints.setText(String.valueOf(points));
+                        tvLevel.setText(currentTier.getTierName());
+                        tvTierDescription.setText(currentTier.getTierDescription());
+
+                        if (nextTier != null) {
+                            int pointsNeeded = Math.max(0, nextTier.getMinPoints() - points);
+                            tvNextTier.setText(getString(R.string.label_next_tier_fmt, nextTier.getTierName()));
+                            tvPointsNeeded.setText(getString(R.string.label_points_needed_fmt, pointsNeeded, nextTier.getTierName()));
+
+                            int rangeStart = currentTier.getMinPoints();
+                            int rangeEnd = nextTier.getMinPoints();
+                            int rangeSize = Math.max(1, rangeEnd - rangeStart);
+                            int progress = ((points - rangeStart) * 100) / rangeSize;
+                            progressLoyalty.setProgress(Math.max(0, Math.min(100, progress)));
+                        } else {
+                            tvNextTier.setText(R.string.label_top_tier_reached);
+                            tvPointsNeeded.setText(R.string.label_highest_tier_reached);
+                            progressLoyalty.setProgress(100);
+                        }
+                    } else {
+                        tvPoints.setText(String.valueOf(points));
+                        tvLevel.setText(R.string.label_unknown_tier);
+                        tvTierDescription.setText(R.string.label_unknown_tier_desc);
+                        tvNextTier.setText(R.string.label_next_tier_na);
+                        tvPointsNeeded.setText(R.string.label_points_to_next_na);
+                        progressLoyalty.setProgress(0);
+                    }
+                });
+            } else {
+                requireActivity().runOnUiThread(() -> {
+                    tvPoints.setText("0");
+                    tvLevel.setText(R.string.label_no_loyalty_account);
+                    tvTierDescription.setText(R.string.label_no_loyalty_account_desc);
+                    tvNextTier.setText(R.string.label_next_tier_na);
+                    tvPointsNeeded.setText(R.string.label_points_to_next_na);
+                    progressLoyalty.setProgress(0);
+                });
+            }
         });
 
-        btnAddToCart.setOnClickListener(v -> {
-            int productId = 5; // featured product placeholder from main branch logic
+        // listener for products
+        AppDatabase.databaseWriteExecutor.execute(() -> {
+            List<Category> categories = db.categoryDao().getAllCategories();
+            List<Product> products = db.productDao().getAllProducts();
 
-            LogData.logAction(
-                    requireContext(),
-                    "CREATE_ORDER",
-                    "Quick add-to-cart selected from featured section (product id: " + productId + ")"
-            );
+            // update component on the main thread
+            requireActivity().runOnUiThread(() -> {
+                // setup listener on categories
+                CategoriesAdapter categoriesAdapter = new CategoriesAdapter(categories, tagId -> {
+                    AppDatabase.databaseWriteExecutor.execute(() -> {
+                        List<Product> filteredProducts = tagId == -1
+                                ? db.productDao().getAllProducts()
+                                : db.productDao().getProductByCategory(tagId);
+
+                        requireActivity().runOnUiThread(() -> {
+                            productAdapter.setProducts(filteredProducts);
+                        });
+                    });
+                });
+                productAdapter = new ProductAdapter(products, productId -> {
+
+                    // pass information to details fragment
+                    Bundle args = new Bundle();
+
+                    args.putInt("productId", productId);
+                    Navigation.findNavController(requireView()).navigate(R.id.action_products_to_details, args);
+                });
+
+
+                rvProducts.setAdapter(productAdapter);
+                rvCategories.setAdapter(categoriesAdapter);
+            });
+        });
+
+        // redeem on click listener
+        btnRedeem.setOnClickListener(v -> {
+            ActivityLogger.log(requireContext(), sessionManager, "ADJUST_POINTS", "Redeem selected from loyalty dashboard");
+            Toast.makeText(this.requireContext(), "Reward page under construction", Toast.LENGTH_LONG).show();
+        });
+
+        // add to cart listener
+        btnAddToCart.setOnClickListener(v -> {
+            int productId = 5;//broken for now
+            ActivityLogger.log(requireContext(), sessionManager, "CREATE_ORDER", "Quick add-to-cart selected from featured section");
 
             if (productId != -1) {
                 Bundle args = new Bundle();
@@ -200,164 +276,6 @@ public class ProductsFragment extends Fragment {
             } else {
                 Toast.makeText(requireContext(), "Product not found", Toast.LENGTH_SHORT).show();
             }
-        });
-    }
-
-    private void loadLoyaltyDashboard(AppDatabase db, SessionManager sessionManager) {
-        int userId = sessionManager.getUserId();
-
-        AppDatabase.databaseWriteExecutor.execute(() -> {
-            Customer customer = db.customerDao().getByUserId(userId);
-
-            if (customer == null) {
-                requireActivity().runOnUiThread(() -> {
-                    tvPoints.setText("0");
-                    tvLevel.setText("No Loyalty Account");
-                    tvTierDescription.setText("This account does not currently participate in customer rewards.");
-                    tvNextTier.setText("Next Tier: N/A");
-                    tvPointsNeeded.setText("Points to next tier: N/A");
-                    progressLoyalty.setProgress(0);
-                });
-
-                LogData.logAction(
-                        requireContext(),
-                        "READ",
-                        "Loyalty dashboard loaded without customer record for user: " + sessionManager.getUserName()
-                );
-                return;
-            }
-
-            Integer pointsValue = db.rewardDao().getTotalRewardAmount(userId);
-            int points = pointsValue != null ? pointsValue : 0;
-
-            RewardTier currentTier = db.rewardTierDao().getTierForPoints(points);
-            RewardTier nextTier = db.rewardTierDao().getNextTierForPoints(points);
-
-            if (currentTier != null) {
-                boolean changed = false;
-
-                if (customer.rewardTierId != currentTier.rewardTierId) {
-                    customer.rewardTierId = currentTier.rewardTierId;
-                    changed = true;
-                }
-
-                if (customer.customerRewardBalance != points) {
-                    customer.customerRewardBalance = points;
-                    changed = true;
-                }
-
-                if (changed) {
-                    db.customerDao().update(customer);
-                }
-            }
-
-            final RewardTier finalCurrentTier = currentTier;
-            final RewardTier finalNextTier = nextTier;
-            final int finalPoints = points;
-
-            requireActivity().runOnUiThread(() -> {
-                if (finalCurrentTier == null) {
-                    tvPoints.setText(String.valueOf(finalPoints));
-                    tvLevel.setText("Unknown Tier");
-                    tvTierDescription.setText("Unable to determine current loyalty tier.");
-                    tvNextTier.setText("Next Tier: N/A");
-                    tvPointsNeeded.setText("Points to next tier: N/A");
-                    progressLoyalty.setProgress(0);
-                    return;
-                }
-
-                tvPoints.setText(String.valueOf(finalPoints));
-                tvLevel.setText(finalCurrentTier.tierName);
-                tvTierDescription.setText(finalCurrentTier.tierDescription);
-
-                if (finalNextTier != null) {
-                    int pointsNeeded = Math.max(0, finalNextTier.minPoints - finalPoints);
-                    tvNextTier.setText("Next Tier: " + finalNextTier.tierName);
-                    tvPointsNeeded.setText(pointsNeeded + " points to reach " + finalNextTier.tierName);
-
-                    int rangeStart = finalCurrentTier.minPoints;
-                    int rangeEnd = finalNextTier.minPoints;
-                    int rangeSize = Math.max(1, rangeEnd - rangeStart);
-                    int progress = ((finalPoints - rangeStart) * 100) / rangeSize;
-                    progress = Math.max(0, Math.min(100, progress));
-                    progressLoyalty.setProgress(progress);
-                } else {
-                    tvNextTier.setText("Top Tier Reached");
-                    tvPointsNeeded.setText("You are at the highest loyalty tier.");
-                    progressLoyalty.setProgress(100);
-                }
-            });
-
-            LogData.logAction(
-                    requireContext(),
-                    "READ",
-                    "Loyalty dashboard loaded for user: " + sessionManager.getUserName()
-                            + " | points=" + finalPoints
-                            + " | tier=" + (finalCurrentTier != null ? finalCurrentTier.tierName : "UNKNOWN")
-            );
-        });
-    }
-
-    private void loadProductsAndCategories(AppDatabase db) {
-        AppDatabase.databaseWriteExecutor.execute(() -> {
-            List<Category> categories = db.categoryDao().getAllCategories();
-            List<Product> products = db.productDao().getAllProducts();
-
-            requireActivity().runOnUiThread(() -> {
-                CategoriesAdapter categoriesAdapter = new CategoriesAdapter(categories, tagId -> {
-                    AppDatabase.databaseWriteExecutor.execute(() -> {
-                        List<Product> filteredProducts = tagId == -1
-                                ? db.productDao().getAllProducts()
-                                : db.productDao().getProductByCategory(tagId);
-
-                        requireActivity().runOnUiThread(() -> {
-                            if (productAdapter != null) {
-                                productAdapter.setProducts(filteredProducts);
-                            }
-                        });
-
-                        if (tagId == -1) {
-                            LogData.logAction(
-                                    requireContext(),
-                                    "READ",
-                                    "All product categories selected"
-                            );
-                        } else {
-                            LogData.logAction(
-                                    requireContext(),
-                                    "READ",
-                                    "Filtered products by category id: " + tagId
-                            );
-                        }
-                    });
-                });
-
-                productAdapter = new ProductAdapter(products, productId -> {
-                    Bundle args = new Bundle();
-                    args.putInt("productId", productId);
-
-                    LogData.logAction(
-                            requireContext(),
-                            "READ",
-                            "Opened product details for product id: " + productId
-                    );
-
-                    Navigation.findNavController(requireView())
-                            .navigate(R.id.action_products_to_details, args);
-                });
-
-                rvProducts.setAdapter(productAdapter);
-                rvCategories.setAdapter(categoriesAdapter);
-
-                if (!initialLoadLogged) {
-                    initialLoadLogged = true;
-                    LogData.logAction(
-                            requireContext(),
-                            "READ",
-                            "Products screen loaded with categories and products"
-                    );
-                }
-            });
         });
     }
 }

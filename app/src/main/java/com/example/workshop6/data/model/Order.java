@@ -14,7 +14,7 @@ import androidx.room.PrimaryKey;
                 ),
                 @ForeignKey(
                         entity = BakeryLocation.class,
-                        parentColumns = "id",
+                        parentColumns = "bakeryId",
                         childColumns = "bakeryId"
                 ),
                 @ForeignKey(

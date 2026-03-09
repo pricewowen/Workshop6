@@ -18,4 +18,10 @@ public interface OrderDao {
 
     @Query("SELECT * FROM orders WHERE customerId = :customerId ORDER BY orderPlacedDateTime DESC")
     List<Order> getOrdersByCustomerId(int customerId);
+
+    @Query("SELECT o.* FROM orders o " +
+            "INNER JOIN customer c ON c.customerId = o.customerId " +
+            "WHERE c.userId = :userId " +
+            "ORDER BY o.orderPlacedDateTime DESC")
+    List<Order> getOrdersByUserId(int userId);
 }

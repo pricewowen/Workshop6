@@ -25,11 +25,12 @@ import com.example.workshop6.data.model.Cart;
 import com.example.workshop6.data.model.CartItem;
 import com.example.workshop6.data.db.AppDatabase;
 import com.example.workshop6.data.model.Address;
-import com.example.workshop6.data.model.BakeryLocation;
+import com.example.workshop6.data.model.BakeryLocationDetails;
 import com.example.workshop6.data.model.Customer;
 import com.example.workshop6.data.model.Order;
 import com.example.workshop6.data.model.OrderItem;
 import com.example.workshop6.data.model.Reward;
+import com.example.workshop6.logging.ActivityLogger;
 import com.google.android.material.snackbar.Snackbar;
 
 import java.text.NumberFormat;
@@ -72,8 +73,8 @@ public class CheckoutActivity extends AppCompatActivity {
     private String orderComment = "";
     private Address userAddress;
     private Customer currentCustomer;
-    private List<BakeryLocation> bakeryList;
-    private BakeryLocation selectedBakery;
+    private List<BakeryLocationDetails> bakeryList;
+    private BakeryLocationDetails selectedBakery;
     private int selectedBakeryId = 1; // Default bakery ID
 
     @Override
@@ -405,79 +406,95 @@ public class CheckoutActivity extends AppCompatActivity {
 
         AppDatabase.databaseWriteExecutor.execute(() -> {
             try {
-                // Get customer
-                Customer customer = db.customerDao().getByUserId(userId);
-                if (customer == null) {
-                    runOnUiThread(() -> Toast.makeText(this,
-                            R.string.error_user_not_found, Toast.LENGTH_SHORT).show());
-                    return;
-                }
+                final long[] insertedOrderId = {-1L};
+                final int[] earnedPoints = {0};
 
-                // Use selected bakery id for pickup
-                int bakeryId = deliveryMethod.equals("pickup") ? selectedBakeryId : 1;
+                db.runInTransaction(() -> {
+                    Customer customer = db.customerDao().getByUserId(userId);
+                    if (customer == null) {
+                        throw new IllegalStateException("USER_NOT_FOUND");
+                    }
 
-                // Address id
-                int addressId = deliveryMethod.equals("delivery") ? customer.addressId : 0;
+                    // Use selected bakery id for pickup
+                    int bakeryId = deliveryMethod.equals("pickup") ? selectedBakeryId : 1;
 
-                // Create order
-                Order order = new Order(
-                        0,
-                        customer.customerId,
-                        bakeryId,
-                        addressId,
-                        System.currentTimeMillis(),
-                        selectedDateTime.getTimeInMillis(),
-                        null,
-                        deliveryMethod,
-                        orderComment,
-                        cart.getTotalPrice() * (1 + TAX_RATE),
-                        0.0, // discount
-                        "pending"
-                );
+                    // Address id
+                    int addressId = deliveryMethod.equals("delivery") ? customer.addressId : 0;
 
-                long orderId = db.orderDao().insert(order);
-
-                // Create order items
-                List<OrderItem> orderItems = new ArrayList<>();
-                int totalPointsEarned = 0;
-
-                for (CartItem item : cart.getItems()) {
-                    int batchId = 1;
-
-                    OrderItem orderItem = new OrderItem(
-                            (int) orderId,
-                            item.getProduct().getProductId(),
-                            batchId,
-                            item.getQuantity(),
-                            item.getProduct().getProductBasePrice()
+                    // Create order
+                    Order order = new Order(
+                            0,
+                            customer.customerId,
+                            bakeryId,
+                            addressId,
+                            System.currentTimeMillis(),
+                            selectedDateTime.getTimeInMillis(),
+                            null,
+                            deliveryMethod,
+                            orderComment,
+                            cart.getTotalPrice() * (1 + TAX_RATE),
+                            0.0, // discount
+                            "pending"
                     );
-                    orderItems.add(orderItem);
 
-                    // Calculate rewards
-                    int pointsEarned = (int) (item.getTotalPrice() * 10);
-                    totalPointsEarned += pointsEarned;
-                }
+                    long orderId = db.orderDao().insert(order);
+                    insertedOrderId[0] = orderId;
 
-                db.orderItemDao().insertAll(orderItems);
+                    // Create order items
+                    List<OrderItem> orderItems = new ArrayList<>();
+                    int totalPointsEarned = 0;
 
-                // Create single reward for the entire order
-                Reward reward = new Reward(
-                        0, // rewardId auto-generated
-                        customer.customerId,
-                        (int) orderId,
-                        totalPointsEarned,
-                        System.currentTimeMillis()
-                );
-                db.rewardDao().insert(reward);
+                    for (CartItem item : cart.getItems()) {
+                        int batchId = 1;
 
-                // Update customer reward balance
-                int newBalance = customer.customerRewardBalance + totalPointsEarned;
-                customer.customerRewardBalance = newBalance;
-                db.customerDao().update(customer);
+                        OrderItem orderItem = new OrderItem(
+                                (int) orderId,
+                                item.getProduct().getProductId(),
+                                batchId,
+                                item.getQuantity(),
+                                item.getProduct().getProductBasePrice()
+                        );
+                        orderItems.add(orderItem);
+
+                        // Calculate rewards
+                        int pointsEarned = (int) (item.getTotalPrice() * 10);
+                        totalPointsEarned += pointsEarned;
+                    }
+
+                    db.orderItemDao().insertAll(orderItems);
+
+                    if (totalPointsEarned > 0) {
+                        // Create single reward for the entire order
+                        Reward reward = new Reward(
+                                0, // rewardId auto-generated
+                                customer.customerId,
+                                (int) orderId,
+                                totalPointsEarned,
+                                System.currentTimeMillis()
+                        );
+                        long rewardId = db.rewardDao().insert(reward);
+                        if (rewardId <= 0) {
+                            throw new IllegalStateException("REWARD_INSERT_FAILED");
+                        }
+
+                        // Update customer reward balance
+                        customer.customerRewardBalance += totalPointsEarned;
+                        db.customerDao().update(customer);
+                    }
+
+                    earnedPoints[0] = totalPointsEarned;
+                });
 
                 // Clear cart
                 runOnUiThread(() -> {
                     cartManager.clearCart();
+                    Log.d("Checkout", "Order " + insertedOrderId[0] + " placed, points earned: " + earnedPoints[0]);
+                    ActivityLogger.log(
+                            this,
+                            sessionManager,
+                            "CREATE_ORDER",
+                            "Order placed (orderId=" + insertedOrderId[0] + ", points=" + earnedPoints[0] + ")"
+                    );
 
                     Toast.makeText(this, R.string.order_placed_success, Toast.LENGTH_LONG).show();
 
@@ -490,6 +507,11 @@ public class CheckoutActivity extends AppCompatActivity {
 
             } catch (Exception e) {
                 e.printStackTrace();
+                if (e instanceof IllegalStateException && "USER_NOT_FOUND".equals(e.getMessage())) {
+                    runOnUiThread(() -> Toast.makeText(this,
+                            R.string.error_user_not_found, Toast.LENGTH_SHORT).show());
+                    return;
+                }
                 runOnUiThread(() -> {
                     Snackbar.make(findViewById(android.R.id.content),
                             R.string.error_placing_order, Snackbar.LENGTH_LONG).show();
