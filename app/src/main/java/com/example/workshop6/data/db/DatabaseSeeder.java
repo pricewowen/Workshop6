@@ -17,6 +17,12 @@ public class DatabaseSeeder {
     public static final int DEFAULT_REWARD_TIER_ID = 1;
     public static final String DEFAULT_TIER_NAME = "Default";
 
+    public static final int SILVER_REWARD_TIER_ID = 2;
+    public static final String SILVER_TIER_NAME = "Silver";
+
+    public static final int GOLD_REWARD_TIER_ID = 3;
+    public static final String GOLD_TIER_NAME = "Gold";
+
     public static void seed(AppDatabase db) {
         seedRewardTiers(db);
         seedDefaultAddress(db);
@@ -29,21 +35,21 @@ public class DatabaseSeeder {
     }
 
     private static void seedRewards(AppDatabase db) {
-        if (!db.rewardDao().getAllRewards().isEmpty()){
+        if (!db.rewardDao().getAllRewards().isEmpty()) {
             return;
         }
 
-        db.rewardDao().insert(new Reward(1, 1, 1, 26950,System.currentTimeMillis()));
-        db.rewardDao().insert(new Reward(2, 2, 2, 12980 ,System.currentTimeMillis()));
-        db.rewardDao().insert(new Reward(3, 3, 3, 32200,System.currentTimeMillis()));
-        db.rewardDao().insert(new Reward(4, 4, 4, 9750,System.currentTimeMillis()));
-        db.rewardDao().insert(new Reward(5, 5, 5, 37900,System.currentTimeMillis()));
-        db.rewardDao().insert(new Reward(6, 6, 6, 18200,System.currentTimeMillis()));
-        db.rewardDao().insert(new Reward(7, 7, 7, 7250,System.currentTimeMillis()));
-        db.rewardDao().insert(new Reward(8, 8, 8, 53480,System.currentTimeMillis()));
-        db.rewardDao().insert(new Reward(9, 11, 11, 27700,System.currentTimeMillis()));
-        db.rewardDao().insert(new Reward(10, 12, 12, 14500,System.currentTimeMillis()));
-        db.rewardDao().insert(new Reward(11, 13, 13, 19950,System.currentTimeMillis()));
+        db.rewardDao().insert(new Reward(1, 1, 1, 26950, System.currentTimeMillis()));
+        db.rewardDao().insert(new Reward(2, 2, 2, 12980, System.currentTimeMillis()));
+        db.rewardDao().insert(new Reward(3, 3, 3, 32200, System.currentTimeMillis()));
+        db.rewardDao().insert(new Reward(4, 4, 4, 9750, System.currentTimeMillis()));
+        db.rewardDao().insert(new Reward(5, 5, 5, 37900, System.currentTimeMillis()));
+        db.rewardDao().insert(new Reward(6, 6, 6, 18200, System.currentTimeMillis()));
+        db.rewardDao().insert(new Reward(7, 7, 7, 7250, System.currentTimeMillis()));
+        db.rewardDao().insert(new Reward(8, 8, 8, 53480, System.currentTimeMillis()));
+        db.rewardDao().insert(new Reward(9, 11, 11, 27700, System.currentTimeMillis()));
+        db.rewardDao().insert(new Reward(10, 12, 12, 14500, System.currentTimeMillis()));
+        db.rewardDao().insert(new Reward(11, 13, 13, 19950, System.currentTimeMillis()));
     }
 
     private static void seedProductTags(AppDatabase db) {
@@ -80,12 +86,36 @@ public class DatabaseSeeder {
 
     private static void seedRewardTiers(AppDatabase db) {
         if (!db.rewardTierDao().getAll().isEmpty()) return;
-        db.rewardTierDao().insert(new RewardTier(DEFAULT_REWARD_TIER_ID, DEFAULT_TIER_NAME));
+
+        db.rewardTierDao().insert(new RewardTier(
+                DEFAULT_REWARD_TIER_ID,
+                DEFAULT_TIER_NAME,
+                0,
+                9999,
+                "Starting tier for all customers."
+        ));
+
+        db.rewardTierDao().insert(new RewardTier(
+                SILVER_REWARD_TIER_ID,
+                SILVER_TIER_NAME,
+                10000,
+                24999,
+                "Mid-tier loyalty status with stronger rewards progress."
+        ));
+
+        db.rewardTierDao().insert(new RewardTier(
+                GOLD_REWARD_TIER_ID,
+                GOLD_TIER_NAME,
+                25000,
+                null,
+                "Top loyalty tier for highly engaged customers."
+        ));
     }
 
     /** One default address for customers who don't provide one (required by FK). */
     private static void seedDefaultAddress(AppDatabase db) {
         if (db.addressDao().getById(1) != null) return;
+
         Address a = new Address();
         a.addressLine1 = "";
         a.addressLine2 = null;
@@ -114,7 +144,6 @@ public class DatabaseSeeder {
         if (admin == null) return;
         if (db.employeeDao().getByUserId(admin.userId) != null) return;
 
-        // Insert a dedicated test address for the admin (all NOT NULL fields set)
         Address testAddress = new Address();
         testAddress.addressLine1 = "123 Bakery Street";
         testAddress.addressLine2 = "Suite 100";
@@ -138,6 +167,7 @@ public class DatabaseSeeder {
 
     private static void seedCategories(AppDatabase db) {
         if (!db.categoryDao().getAllCategories().isEmpty()) return;
+
         db.categoryDao().insert(new Category(1, "Bread"));
         db.categoryDao().insert(new Category(2, "Cake"));
         db.categoryDao().insert(new Category(3, "Pastry"));
@@ -154,6 +184,7 @@ public class DatabaseSeeder {
 
     private static void seedProducts(AppDatabase db) {
         if (!db.productDao().getAllProducts().isEmpty()) return;
+
         db.productDao().insert(new Product(1, "Sourdough Loaf", "Naturally leavened sourdough bread", 6.49));
         db.productDao().insert(new Product(2, "Multigrain Sandwich Bread", "Whole grain sandwich loaf", 5.99));
         db.productDao().insert(new Product(3, "Baguette", "Classic French-style baguette", 3.49));
