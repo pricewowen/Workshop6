@@ -16,7 +16,8 @@ import android.widget.Toast;
 import com.example.workshop6.R;
 import com.example.workshop6.data.db.AppDatabase;
 import com.example.workshop6.data.model.Product;
-import com.example.workshop6.ui.MainActivity;
+import com.example.workshop6.data.model.CartItem;
+import com.example.workshop6.ui.cart.CartManager;
 
 /**
  * A simple {@link Fragment} subclass.
@@ -33,6 +34,7 @@ public class ProductDetailsFragment extends Fragment {
     private Button btnDecrease;
     private Button btnBack;
     private Button btnAddToCart;
+    private CartManager cartManager;
 
     public ProductDetailsFragment() {
         // Required empty public constructor
@@ -75,6 +77,8 @@ public class ProductDetailsFragment extends Fragment {
 
         tvQuantity.setText(quantCounter + "");
 
+        cartManager = CartManager.getInstance(requireContext());
+
         // load products from the DB
         AppDatabase db = AppDatabase.getInstance(requireContext());
         AppDatabase.databaseWriteExecutor.execute(() -> {
@@ -111,7 +115,20 @@ public class ProductDetailsFragment extends Fragment {
 
         //add to cart listener
         btnAddToCart.setOnClickListener(v -> {
-            Toast.makeText(this.requireContext(), "Checkout under construction", Toast.LENGTH_LONG).show();
+            AppDatabase.databaseWriteExecutor.execute(() -> {
+                Product product = db.productDao().getProductById(productId);
+                if (product != null) {
+                    CartItem cartItem = new CartItem(product, quantCounter);
+                    cartManager.getCart().addItem(cartItem);
+
+                    requireActivity().runOnUiThread(() -> {
+                        Toast.makeText(requireContext(),
+                                R.string.added_to_cart, Toast.LENGTH_SHORT).show();
+
+                        //Navigation.findNavController(view).navigateUp();
+                    });
+                }
+            });
         });
     }
 }
