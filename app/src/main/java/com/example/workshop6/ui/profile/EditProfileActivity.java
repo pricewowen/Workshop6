@@ -23,6 +23,8 @@ import com.example.workshop6.data.db.AppDatabase;
 import com.example.workshop6.data.model.Address;
 import com.example.workshop6.data.model.Customer;
 import com.example.workshop6.data.model.Employee;
+import com.example.workshop6.logging.LogData;
+import com.example.workshop6.data.model.Log;
 import com.example.workshop6.ui.MainActivity;
 import com.example.workshop6.util.ImageUtils;
 import com.example.workshop6.util.PhoneFormatTextWatcher;
@@ -65,6 +67,8 @@ public class EditProfileActivity extends AppCompatActivity {
             return;
         }
 
+        Log.setLoggedInUser(sessionManager.getUserName());
+
         setContentView(R.layout.activity_edit_profile);
 
         ivPhoto = findViewById(R.id.iv_profile_photo);
@@ -89,8 +93,11 @@ public class EditProfileActivity extends AppCompatActivity {
         spinnerProvince = findViewById(R.id.spinner_province);
         tvProvinceError = findViewById(R.id.tv_province_error);
 
-        ArrayAdapter<CharSequence> provinceAdapter = ArrayAdapter.createFromResource(this,
-                R.array.provinces, android.R.layout.simple_spinner_item);
+        ArrayAdapter<CharSequence> provinceAdapter = ArrayAdapter.createFromResource(
+                this,
+                R.array.provinces,
+                android.R.layout.simple_spinner_item
+        );
         provinceAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         spinnerProvince.setAdapter(provinceAdapter);
 
@@ -190,6 +197,7 @@ public class EditProfileActivity extends AppCompatActivity {
                 String lastName = "";
                 String phone = "";
                 String photoPath = null;
+
                 if (c != null) {
                     firstName = c.customerFirstName != null ? c.customerFirstName : "";
                     lastName = c.customerLastName != null ? c.customerLastName : "";
@@ -208,6 +216,7 @@ public class EditProfileActivity extends AppCompatActivity {
                 etAddress1.setText(addr.addressLine1 != null ? addr.addressLine1 : "");
                 etAddress2.setText(addr.addressLine2 != null ? addr.addressLine2 : "");
                 etCity.setText(addr.addressCity != null ? addr.addressCity : "");
+
                 if (addr.addressProvince != null && !addr.addressProvince.isEmpty()) {
                     String[] provinces = getResources().getStringArray(R.array.provinces);
                     for (int i = 0; i < provinces.length; i++) {
@@ -217,14 +226,23 @@ public class EditProfileActivity extends AppCompatActivity {
                         }
                     }
                 }
+
                 etPostal.setText(addr.addressPostalCode != null ? addr.addressPostalCode : "");
 
                 if (photoPath != null && !photoPath.isEmpty()) {
                     Bitmap bm = BitmapFactory.decodeFile(photoPath);
-                    if (bm != null) ivPhoto.setImageBitmap(bm);
+                    if (bm != null) {
+                        ivPhoto.setImageBitmap(bm);
+                    }
                 } else {
                     ivPhoto.setImageResource(R.drawable.ic_person_placeholder);
                 }
+
+                LogData.logAction(
+                        this,
+                        "READ",
+                        "Profile loaded for edit: " + sessionManager.getUserName()
+                );
             });
         });
     }
@@ -281,7 +299,6 @@ public class EditProfileActivity extends AppCompatActivity {
                         !Validation.isEmpty(address2);
 
         if (anyAddress) {
-            // Require address line 1 (not null/empty)
             if (Validation.isEmpty(address1)) {
                 tilAddress1.setError(getString(R.string.error_address_required));
                 valid = false;
@@ -295,18 +312,20 @@ public class EditProfileActivity extends AppCompatActivity {
             if (!Validation.isEmpty(address2) && !Validation.isAddressLineValid(address2)) {
                 tilAddress2.setError(getString(R.string.error_address_invalid));
                 valid = false;
-            } else tilAddress2.setError(null);
+            } else {
+                tilAddress2.setError(null);
+            }
 
-            // Require city (not null/empty)
             if (Validation.isEmpty(city)) {
                 tilCity.setError(getString(R.string.error_city_required));
                 valid = false;
             } else if (!Validation.isCityValid(city)) {
                 tilCity.setError(getString(R.string.error_city_required));
                 valid = false;
-            } else tilCity.setError(null);
+            } else {
+                tilCity.setError(null);
+            }
 
-            // Require province (not null/empty)
             if (Validation.isEmpty(province)) {
                 tvProvinceError.setText(getString(R.string.error_province_required));
                 tvProvinceError.setVisibility(View.VISIBLE);
@@ -319,14 +338,15 @@ public class EditProfileActivity extends AppCompatActivity {
                 tvProvinceError.setVisibility(View.GONE);
             }
 
-            // Require postal (not null/empty) and valid format
             if (Validation.isEmpty(postal)) {
                 tilPostal.setError(getString(R.string.error_postal_required));
                 valid = false;
             } else if (!Validation.isPostalCodeValid(postal)) {
                 tilPostal.setError(getString(R.string.error_postal_invalid));
                 valid = false;
-            } else tilPostal.setError(null);
+            } else {
+                tilPostal.setError(null);
+            }
         } else {
             tilAddress1.setError(null);
             tilAddress2.setError(null);
@@ -346,7 +366,14 @@ public class EditProfileActivity extends AppCompatActivity {
             }
         }
 
-        if (!valid) return;
+        if (!valid) {
+            LogData.logAction(
+                    this,
+                    "VALIDATION_FAILED",
+                    "Profile update validation failed for user: " + sessionManager.getUserName()
+            );
+            return;
+        }
 
         loadedAddress.addressLine1 = anyAddress ? address1 : "";
         loadedAddress.addressLine2 = anyAddress ? (Validation.isEmpty(address2) ? null : address2) : null;
@@ -368,6 +395,7 @@ public class EditProfileActivity extends AppCompatActivity {
         }
 
         final int userId = sessionManager.getUserId();
+
         AppDatabase.databaseWriteExecutor.execute(() -> {
             AppDatabase db = AppDatabase.getInstance(this);
 
@@ -386,6 +414,7 @@ public class EditProfileActivity extends AppCompatActivity {
 
             boolean wasDefault = (loadedAddress.addressId == 1)
                     && (loadedAddress.addressLine1 == null || loadedAddress.addressLine1.trim().isEmpty());
+
             if (anyAddress && wasDefault) {
                 Address newAddr = new Address();
                 newAddr.addressLine1 = loadedAddress.addressLine1;
@@ -395,6 +424,7 @@ public class EditProfileActivity extends AppCompatActivity {
                 newAddr.addressPostalCode = loadedAddress.addressPostalCode;
                 long newId = db.addressDao().insert(newAddr);
                 loadedAddress.addressId = (int) newId;
+
                 if (loadedCustomer != null) {
                     loadedCustomer.addressId = (int) newId;
                 } else {
@@ -403,6 +433,7 @@ public class EditProfileActivity extends AppCompatActivity {
             } else {
                 db.addressDao().update(loadedAddress);
             }
+
             if (loadedCustomer != null) {
                 db.customerDao().update(loadedCustomer);
             } else {
@@ -411,9 +442,22 @@ public class EditProfileActivity extends AppCompatActivity {
 
             runOnUiThread(() -> {
                 if (isFinishing()) return;
+
                 String displayName = (firstName + " " + lastName).trim();
                 if (displayName.isEmpty()) displayName = sessionManager.getUserName();
-                sessionManager.createSession(sessionManager.getUserId(), sessionManager.getUserRole(), displayName);
+
+                sessionManager.createSession(
+                        sessionManager.getUserId(),
+                        sessionManager.getUserRole(),
+                        displayName
+                );
+
+                Log.setLoggedInUser(displayName);
+                LogData.logAction(
+                        this,
+                        "UPDATE",
+                        "Profile updated for user: " + displayName
+                );
 
                 Toast.makeText(getApplicationContext(), R.string.profile_saved, Toast.LENGTH_SHORT).show();
 

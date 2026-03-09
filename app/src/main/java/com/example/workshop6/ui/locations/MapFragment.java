@@ -21,8 +21,11 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.workshop6.R;
+import com.example.workshop6.auth.SessionManager;
 import com.example.workshop6.data.db.AppDatabase;
 import com.example.workshop6.data.model.BakeryLocation;
+import com.example.workshop6.logging.LogData;
+import com.example.workshop6.data.model.Log;
 import com.example.workshop6.util.LocationUtils;
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationServices;
@@ -40,28 +43,34 @@ public class MapFragment extends Fragment {
     private boolean nearbyMode = false;
     private boolean hasUserLocation = false;
     private double userLat = 0, userLon = 0;
+    private boolean initialReadLogged = false;
     private FusedLocationProviderClient fusedClient;
 
     private final MutableLiveData<String> searchQuery = new MutableLiveData<>("");
 
     private final ActivityResultLauncher<String> locationPermissionLauncher =
-        registerForActivityResult(
-            new ActivityResultContracts.RequestPermission(),
-            isGranted -> {
-                if (isGranted) {
-                    fetchUserLocation();
-                } else {
-                    hasUserLocation = false;
-                    nearbyMode = false;
-                    View v = getView();
-                    if (v != null) {
-                        ((Chip) v.findViewById(R.id.chip_all)).setChecked(true);
-                        Snackbar.make(v, R.string.permission_location_rationale,
-                                Snackbar.LENGTH_LONG).show();
+            registerForActivityResult(
+                    new ActivityResultContracts.RequestPermission(),
+                    isGranted -> {
+                        if (isGranted) {
+                            LogData.logAction(
+                                    requireContext(),
+                                    "READ",
+                                    "Location permission granted for nearby bakery search"
+                            );
+                            fetchUserLocation();
+                        } else {
+                            hasUserLocation = false;
+                            nearbyMode = false;
+                            View v = getView();
+                            if (v != null) {
+                                ((Chip) v.findViewById(R.id.chip_all)).setChecked(true);
+                                Snackbar.make(v, R.string.permission_location_rationale,
+                                        Snackbar.LENGTH_LONG).show();
+                            }
+                        }
                     }
-                }
-            }
-        );
+            );
 
     @Nullable
     @Override
@@ -75,26 +84,41 @@ public class MapFragment extends Fragment {
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
 
+        SessionManager sessionManager = new SessionManager(requireContext());
+        Log.setLoggedInUser(sessionManager.getUserName());
+
         db = AppDatabase.getInstance(requireContext());
         fusedClient = LocationServices.getFusedLocationProviderClient(requireActivity());
 
-        // RecyclerView — tap navigates to detail
         RecyclerView rv = view.findViewById(R.id.rv_locations);
         rv.setLayoutManager(new LinearLayoutManager(requireContext()));
+
         adapter = new LocationAdapter(false, loc -> {
             Bundle args = new Bundle();
             args.putInt("locationId", loc.id);
+
+            LogData.logAction(
+                    requireContext(),
+                    "READ",
+                    "Opened bakery location details for location id: " + loc.id
+            );
+
             Navigation.findNavController(view)
                     .navigate(R.id.action_map_to_detail, args);
         });
+
         rv.setAdapter(adapter);
 
-        // Chip toggle: Nearby vs All
         Chip chipNearby = view.findViewById(R.id.chip_nearby);
         Chip chipAll = view.findViewById(R.id.chip_all);
 
         chipNearby.setOnClickListener(v -> {
             nearbyMode = true;
+            LogData.logAction(
+                    requireContext(),
+                    "READ",
+                    "Nearby bakery locations selected"
+            );
             requestOrFetchLocation();
         });
 
@@ -102,9 +126,14 @@ public class MapFragment extends Fragment {
             nearbyMode = false;
             adapter.setNearbyMode(false, 0, 0);
             searchQuery.setValue(searchQuery.getValue());
+
+            LogData.logAction(
+                    requireContext(),
+                    "READ",
+                    "All bakery locations selected"
+            );
         });
 
-        // Reactive search
         Transformations.switchMap(searchQuery, query -> {
             if (query == null || query.trim().isEmpty()) {
                 return db.bakeryLocationDao().getAllLocations();
@@ -113,11 +142,22 @@ public class MapFragment extends Fragment {
             }
         }).observe(getViewLifecycleOwner(), this::onLocationsUpdated);
 
-        // SearchView
         SearchView searchView = view.findViewById(R.id.search_view);
         searchView.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
-            @Override public boolean onQueryTextSubmit(String query) { return false; }
-            @Override public boolean onQueryTextChange(String newText) {
+            @Override
+            public boolean onQueryTextSubmit(String query) {
+                if (query != null && !query.trim().isEmpty()) {
+                    LogData.logAction(
+                            requireContext(),
+                            "READ",
+                            "Bakery location search submitted: " + query.trim()
+                    );
+                }
+                return false;
+            }
+
+            @Override
+            public boolean onQueryTextChange(String newText) {
                 searchQuery.setValue(newText);
                 return true;
             }
@@ -132,11 +172,22 @@ public class MapFragment extends Fragment {
             adapter.setNearbyMode(false, 0, 0);
             adapter.submitList(locs);
         }
+
+        if (!initialReadLogged) {
+            initialReadLogged = true;
+            LogData.logAction(
+                    requireContext(),
+                    "READ",
+                    "Bakery locations screen loaded"
+            );
+        }
     }
 
     private void requestOrFetchLocation() {
-        if (ContextCompat.checkSelfPermission(requireContext(),
-                Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
+        if (ContextCompat.checkSelfPermission(
+                requireContext(),
+                Manifest.permission.ACCESS_FINE_LOCATION
+        ) == PackageManager.PERMISSION_GRANTED) {
             fetchUserLocation();
         } else {
             locationPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION);
@@ -144,27 +195,37 @@ public class MapFragment extends Fragment {
     }
 
     private void fetchUserLocation() {
-        if (ContextCompat.checkSelfPermission(requireContext(),
-                Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+        if (ContextCompat.checkSelfPermission(
+                requireContext(),
+                Manifest.permission.ACCESS_FINE_LOCATION
+        ) != PackageManager.PERMISSION_GRANTED) {
             return;
         }
+
         fusedClient.getCurrentLocation(Priority.PRIORITY_HIGH_ACCURACY, null)
-            .addOnSuccessListener(requireActivity(), location -> {
-                if (location != null) {
-                    userLat = location.getLatitude();
-                    userLon = location.getLongitude();
-                    hasUserLocation = true;
-                    searchQuery.setValue(searchQuery.getValue());
-                } else {
-                    hasUserLocation = false;
-                    nearbyMode = false;
-                    View v = getView();
-                    if (v != null) {
-                        ((Chip) v.findViewById(R.id.chip_all)).setChecked(true);
-                        Snackbar.make(v, R.string.error_could_not_get_location,
-                                Snackbar.LENGTH_SHORT).show();
+                .addOnSuccessListener(requireActivity(), location -> {
+                    if (location != null) {
+                        userLat = location.getLatitude();
+                        userLon = location.getLongitude();
+                        hasUserLocation = true;
+
+                        LogData.logAction(
+                                requireContext(),
+                                "READ",
+                                "User location fetched for nearby bakery sorting"
+                        );
+
+                        searchQuery.setValue(searchQuery.getValue());
+                    } else {
+                        hasUserLocation = false;
+                        nearbyMode = false;
+                        View v = getView();
+                        if (v != null) {
+                            ((Chip) v.findViewById(R.id.chip_all)).setChecked(true);
+                            Snackbar.make(v, R.string.error_could_not_get_location,
+                                    Snackbar.LENGTH_SHORT).show();
+                        }
                     }
-                }
-            });
+                });
     }
 }

@@ -1,11 +1,6 @@
 package com.example.workshop6.ui.products;
 
 import android.os.Bundle;
-
-import androidx.annotation.NonNull;
-import androidx.fragment.app.Fragment;
-import androidx.navigation.Navigation;
-
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -14,18 +9,21 @@ import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.annotation.NonNull;
+import androidx.fragment.app.Fragment;
+import androidx.navigation.Navigation;
+
 import com.example.workshop6.R;
+import com.example.workshop6.auth.SessionManager;
 import com.example.workshop6.data.db.AppDatabase;
-import com.example.workshop6.data.model.Product;
 import com.example.workshop6.data.model.CartItem;
+import com.example.workshop6.data.model.Log;
+import com.example.workshop6.data.model.Product;
+import com.example.workshop6.logging.LogData;
 import com.example.workshop6.ui.cart.CartManager;
 
-/**
- * A simple {@link Fragment} subclass.
- * Use the {@link ProductDetailsFragment#newInstance} factory method to
- * create an instance of this fragment.
- */
 public class ProductDetailsFragment extends Fragment {
+
     private int quantCounter = 1;
     private TextView tvProductName;
     private TextView tvProductPrice;
@@ -37,6 +35,7 @@ public class ProductDetailsFragment extends Fragment {
     private Button btnAddToCart;
     private ImageView ivProductImage;
     private CartManager cartManager;
+    private Product loadedProduct;
 
     public ProductDetailsFragment() {
         // Required empty public constructor
@@ -57,7 +56,6 @@ public class ProductDetailsFragment extends Fragment {
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
-        // Inflate the layout for this fragment
         return inflater.inflate(R.layout.fragment_product_details, container, false);
     }
 
@@ -65,7 +63,9 @@ public class ProductDetailsFragment extends Fragment {
     public void onViewCreated(@NonNull View view, Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
 
-        // retrieve productId from navigation arguments
+        SessionManager sessionManager = new SessionManager(requireContext());
+        Log.setLoggedInUser(sessionManager.getUserName());
+
         int productId = getArguments() != null ? getArguments().getInt("productId", -1) : -1;
 
         tvProductName = view.findViewById(R.id.tvProductName);
@@ -78,48 +78,53 @@ public class ProductDetailsFragment extends Fragment {
         btnAddToCart = view.findViewById(R.id.btnAddToCart);
         ivProductImage = view.findViewById(R.id.ivProductImage);
 
-        tvQuantity.setText(quantCounter + "");
+        tvQuantity.setText(String.valueOf(quantCounter));
 
         cartManager = CartManager.getInstance(requireContext());
 
-        // load products from the DB
         AppDatabase db = AppDatabase.getInstance(requireContext());
         AppDatabase.databaseWriteExecutor.execute(() -> {
             Product product = db.productDao().getProductById(productId);
+            loadedProduct = product;
 
             requireActivity().runOnUiThread(() -> {
+                if (product == null) return;
+
                 ivProductImage.setImageResource(product.getImgUrl());
                 tvProductName.setText(product.getProductName());
                 tvProductPrice.setText(String.format("$%.2f", product.getProductBasePrice().doubleValue()));
                 tvProductDescription.setText(product.getProductDescription());
+
+                LogData.logAction(
+                        requireContext(),
+                        "READ",
+                        "Viewed product details: " + product.getProductName() + " (id: " + productId + ")"
+                );
             });
         });
 
-        // back button listener
-        btnBack.setOnClickListener(v -> {
-            Navigation.findNavController(view).navigateUp();
-        });
+        btnBack.setOnClickListener(v -> Navigation.findNavController(view).navigateUp());
 
-        // increase listener
         btnIncrease.setOnClickListener(v -> {
-            if (quantCounter >= 1) {
-                quantCounter++;
-                tvQuantity.setText(quantCounter + "");
-            }
+            quantCounter++;
+            tvQuantity.setText(String.valueOf(quantCounter));
         });
 
-        // decrease listener
         btnDecrease.setOnClickListener(v -> {
             if (quantCounter > 1) {
                 quantCounter--;
-                tvQuantity.setText(quantCounter + "");
-            } else if (quantCounter >= 1) {
-                tvQuantity.setEnabled(false);
+                tvQuantity.setText(String.valueOf(quantCounter));
             }
         });
 
-        //add to cart listener
         btnAddToCart.setOnClickListener(v -> {
+            String productName = loadedProduct != null ? loadedProduct.getProductName() : "UNKNOWN PRODUCT";
+            LogData.logAction(
+                    requireContext(),
+                    "CREATE_ORDER",
+                    "Add to cart selected for " + productName + " (quantity: " + quantCounter + ")"
+            );
+
             AppDatabase.databaseWriteExecutor.execute(() -> {
                 Product product = db.productDao().getProductById(productId);
                 if (product != null) {

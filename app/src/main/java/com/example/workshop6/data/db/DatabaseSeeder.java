@@ -1,8 +1,8 @@
 package com.example.workshop6.data.db;
 
-import com.example.workshop6.R;
 import android.util.Log;
 
+import com.example.workshop6.R;
 import com.example.workshop6.data.model.Address;
 import com.example.workshop6.data.model.Batch;
 import com.example.workshop6.data.model.BakeryLocation;
@@ -23,6 +23,12 @@ public class DatabaseSeeder {
     public static final int DEFAULT_REWARD_TIER_ID = 1;
     public static final String DEFAULT_TIER_NAME = "Default";
 
+    public static final int SILVER_REWARD_TIER_ID = 2;
+    public static final String SILVER_TIER_NAME = "Silver";
+
+    public static final int GOLD_REWARD_TIER_ID = 3;
+    public static final String GOLD_TIER_NAME = "Gold";
+
     public static void seed(AppDatabase db) {
         seedRewardTiers(db);
         seedDefaultAddress(db);
@@ -34,11 +40,9 @@ public class DatabaseSeeder {
         seedProducts(db);
         seedProductTags(db);
         seedCustomers(db);
-        seedBakeryLocations(db);
         seedBatches(db);
         seedRewards(db);
     }
-
 
     private static void seedCustomers(AppDatabase db) {
         // Seed default address first (required for FK)
@@ -67,19 +71,19 @@ public class DatabaseSeeder {
 
         // Create users for customers
         String[][] customerUsers = {
-                {"customer1","customer1@bakery.com"},
-                {"customer2","customer2@bakery.com"},
-                {"customer3","customer3@bakery.com"},
-                {"customer4","customer4@bakery.com"},
-                {"customer5","customer5@bakery.com"},
-                {"customer6","customer6@bakery.com"},
-                {"customer7","customer7@bakery.com"},
-                {"customer8","customer8@bakery.com"},
-                {"customer9","customer9@bakery.com"},
-                {"customer10","customer10@bakery.com"},
-                {"customer11","customer11@bakery.com"},
-                {"customer12","customer12@bakery.com"},
-                {"customer13","customer13@bakery.com"},
+                {"customer1", "customer1@bakery.com"},
+                {"customer2", "customer2@bakery.com"},
+                {"customer3", "customer3@bakery.com"},
+                {"customer4", "customer4@bakery.com"},
+                {"customer5", "customer5@bakery.com"},
+                {"customer6", "customer6@bakery.com"},
+                {"customer7", "customer7@bakery.com"},
+                {"customer8", "customer8@bakery.com"},
+                {"customer9", "customer9@bakery.com"},
+                {"customer10", "customer10@bakery.com"},
+                {"customer11", "customer11@bakery.com"},
+                {"customer12", "customer12@bakery.com"},
+                {"customer13", "customer13@bakery.com"},
         };
 
         for (String[] u : customerUsers) {
@@ -99,19 +103,21 @@ public class DatabaseSeeder {
             User u = db.userDao().getUserByEmail("customer" + i + "@bakery.com");
             if (u == null) continue;
 
+            Customer existingCustomer = db.customerDao().getByUserId(u.userId);
+            if (existingCustomer != null) continue;
+
             Customer c = new Customer();
             c.userId = u.userId;
             c.addressId = i;
             c.customerFirstName = "Customer" + i;
             c.customerMiddleInitial = null;
             c.customerLastName = "Test";
-            c.customerRole = "Customer";
+            c.customerRole = "CUSTOMER";
             c.customerPhone = "(555) 100-000" + i;
             c.customerBusinessPhone = null;
             c.customerRewardBalance = 0;
             c.customerTierAssignedDate = System.currentTimeMillis();
-            c.customerRewardBalance = 100 * i; // example balance
-            c.rewardTierId = 1; // default tier
+            c.rewardTierId = DEFAULT_REWARD_TIER_ID;
             c.customerEmail = u.userEmail;
             db.customerDao().insert(c);
         }
@@ -166,58 +172,51 @@ public class DatabaseSeeder {
     }
 
     private static void seedBatches(AppDatabase db) {
-        android.util.Log.d("DatabaseSeeder", "seedBatches called, current count: " + db.batchDao().getAllBatches().size());
+        Log.d("DatabaseSeeder", "seedBatches called, current count: " + db.batchDao().getAllBatches().size());
         if (!db.batchDao().getAllBatches().isEmpty()) {
-            android.util.Log.d("DatabaseSeeder", "Batches already seeded, skipping");
+            Log.d("DatabaseSeeder", "Batches already seeded, skipping");
             return;
         }
 
         long now = System.currentTimeMillis();
         long day = 24 * 60 * 60 * 1000L;
 
-        db.batchDao().insert(new Batch(1,  1, 1,  1, now - 3*day, now + day, 60));
-        db.batchDao().insert(new Batch(2,  1, 3,  2, now - 3*day, now + 2*day, 90));
-        db.batchDao().insert(new Batch(3,  1, 5,  3, now - 2*day, now + 4*day, 120));
-        db.batchDao().insert(new Batch(4,  1, 8,  4, now - 4*day, now + 7*day, 200));
-        db.batchDao().insert(new Batch(5,  1, 13, 3, now - 2*day, now + 2*day, 12));
-        db.batchDao().insert(new Batch(7,  2, 2,  5, now - 4*day, now + 4*day, 55));
+        db.batchDao().insert(new Batch(1, 1, 1, 1, now - 3 * day, now + day, 60));
+        db.batchDao().insert(new Batch(2, 1, 3, 2, now - 3 * day, now + 2 * day, 90));
+        db.batchDao().insert(new Batch(3, 1, 5, 3, now - 2 * day, now + 4 * day, 120));
+        db.batchDao().insert(new Batch(4, 1, 8, 4, now - 4 * day, now + 7 * day, 200));
+        db.batchDao().insert(new Batch(5, 1, 13, 3, now - 2 * day, now + 2 * day, 12));
+        db.batchDao().insert(new Batch(6, 2, 1, 4, now - 2 * day, now + 3 * day, 50));
+        db.batchDao().insert(new Batch(7, 2, 2, 5, now - 4 * day, now + 4 * day, 55));
+        db.batchDao().insert(new Batch(8, 2, 6, 6, now - 2 * day, now + 3 * day, 140));
+        db.batchDao().insert(new Batch(9, 2, 10, 7, now - 2 * day, now + 6 * day, 110));
+        db.batchDao().insert(new Batch(10, 2, 14, 8, now - 2 * day, now + 2 * day, 40));
+        db.batchDao().insert(new Batch(11, 2, 4, 6, now - 3 * day, now + 2 * day, 80));
+        db.batchDao().insert(new Batch(12, 3, 4, 6, now - 3 * day, now + 3 * day, 70));
+        db.batchDao().insert(new Batch(13, 3, 7, 7, now - 4 * day, now + day, 120));
+        db.batchDao().insert(new Batch(14, 3, 12, 8, now - 2 * day, now + 5 * day, 30));
+        db.batchDao().insert(new Batch(15, 3, 15, 9, now - 2 * day, now + 2 * day, 75));
+        db.batchDao().insert(new Batch(16, 3, 16, 5, now - day, now + 3 * day, 65));
 
-        db.batchDao().insert(new Batch(6, 2, 1, 4, now - 2*day, now + 3*day, 50));
-
-        db.batchDao().insert(new Batch(8,  2, 6,  6, now - 2*day, now + 3*day, 140));
-        db.batchDao().insert(new Batch(9,  2, 10, 7, now - 2*day, now + 6*day, 110));
-        db.batchDao().insert(new Batch(10, 2, 14, 8, now - 2*day, now + 2*day, 40));
-        db.batchDao().insert(new Batch(12, 3, 4,  6, now - 3*day, now + 3*day, 70));
-
-        db.batchDao().insert(new Batch(11, 2, 4, 6, now - 3*day, now + 2*day, 80));
-
-        db.batchDao().insert(new Batch(13, 3, 7,  7, now - 4*day, now + day, 120));
-        db.batchDao().insert(new Batch(14, 3, 12, 8, now - 2*day, now + 5*day, 30));
-        db.batchDao().insert(new Batch(15, 3, 15, 9, now - 2*day, now + 2*day, 75));
-        db.batchDao().insert(new Batch(16, 3, 16, 5, now - day, now + 3*day, 65));
-
-        android.util.Log.d("DatabaseSeeder", "Batches seeded, new count: " + db.batchDao().getAllBatches().size());
+        Log.d("DatabaseSeeder", "Batches seeded, new count: " + db.batchDao().getAllBatches().size());
     }
 
     private static void seedRewards(AppDatabase db) {
-        if (!db.rewardDao().getAllRewards().isEmpty()) return;
+        if (!db.rewardDao().getAllRewards().isEmpty()) {
+            return;
+        }
 
-        long now = System.currentTimeMillis();
-
-        // Reward(customerId, productId, rewardId, points, timestamp)
-        db.rewardDao().insert(new Reward(1, 1, 1, 1000, now));
-        db.rewardDao().insert(new Reward(2, 2, 2, 2000, now));
-        db.rewardDao().insert(new Reward(3, 3, 3, 1500, now));
-        db.rewardDao().insert(new Reward(4, 4, 4, 1200, now));
-        db.rewardDao().insert(new Reward(5, 5, 5, 1800, now));
-        db.rewardDao().insert(new Reward(6, 6, 6, 1600, now));
-        db.rewardDao().insert(new Reward(7, 7, 7, 1300, now));
-        db.rewardDao().insert(new Reward(8, 8, 8, 1400, now));
-        db.rewardDao().insert(new Reward(9, 9, 9, 1100, now));
-        db.rewardDao().insert(new Reward(10, 10, 10, 1700, now));
-        db.rewardDao().insert(new Reward(11, 11, 11, 1250, now));
-        db.rewardDao().insert(new Reward(12, 12, 12, 1350, now));
-        db.rewardDao().insert(new Reward(13, 13, 13, 1450, now));
+        db.rewardDao().insert(new Reward(1, 1, 1, 26950, System.currentTimeMillis()));
+        db.rewardDao().insert(new Reward(2, 2, 2, 12980, System.currentTimeMillis()));
+        db.rewardDao().insert(new Reward(3, 3, 3, 32200, System.currentTimeMillis()));
+        db.rewardDao().insert(new Reward(4, 4, 4, 9750, System.currentTimeMillis()));
+        db.rewardDao().insert(new Reward(5, 5, 5, 37900, System.currentTimeMillis()));
+        db.rewardDao().insert(new Reward(6, 6, 6, 18200, System.currentTimeMillis()));
+        db.rewardDao().insert(new Reward(7, 7, 7, 7250, System.currentTimeMillis()));
+        db.rewardDao().insert(new Reward(8, 8, 8, 53480, System.currentTimeMillis()));
+        db.rewardDao().insert(new Reward(9, 11, 11, 27700, System.currentTimeMillis()));
+        db.rewardDao().insert(new Reward(10, 12, 12, 14500, System.currentTimeMillis()));
+        db.rewardDao().insert(new Reward(11, 13, 13, 19950, System.currentTimeMillis()));
     }
 
     private static void seedProductTags(AppDatabase db) {
@@ -254,15 +253,36 @@ public class DatabaseSeeder {
 
     private static void seedRewardTiers(AppDatabase db) {
         if (!db.rewardTierDao().getAll().isEmpty()) return;
-//        db.rewardTierDao().insert(new RewardTier(DEFAULT_REWARD_TIER_ID, DEFAULT_TIER_NAME));
-        db.rewardTierDao().insert(new RewardTier(1, "Default"));
-        db.rewardTierDao().insert(new RewardTier(2, "Silver"));
-        db.rewardTierDao().insert(new RewardTier(3, "Gold"));
+
+        db.rewardTierDao().insert(new RewardTier(
+                DEFAULT_REWARD_TIER_ID,
+                DEFAULT_TIER_NAME,
+                0,
+                9999,
+                "Starting tier for all customers."
+        ));
+
+        db.rewardTierDao().insert(new RewardTier(
+                SILVER_REWARD_TIER_ID,
+                SILVER_TIER_NAME,
+                10000,
+                24999,
+                "Mid-tier loyalty status with stronger rewards progress."
+        ));
+
+        db.rewardTierDao().insert(new RewardTier(
+                GOLD_REWARD_TIER_ID,
+                GOLD_TIER_NAME,
+                25000,
+                null,
+                "Top loyalty tier for highly engaged customers."
+        ));
     }
 
     /** One default address for customers who don't provide one (required by FK). */
     private static void seedDefaultAddress(AppDatabase db) {
         if (db.addressDao().getById(1) != null) return;
+
         Address a = new Address();
         a.addressLine1 = "";
         a.addressLine2 = null;
@@ -291,7 +311,6 @@ public class DatabaseSeeder {
         if (admin == null) return;
         if (db.employeeDao().getByUserId(admin.userId) != null) return;
 
-        // Insert a dedicated test address for the admin (all NOT NULL fields set)
         Address testAddress = new Address();
         testAddress.addressLine1 = "123 Bakery Street";
         testAddress.addressLine2 = "Suite 100";
@@ -314,16 +333,14 @@ public class DatabaseSeeder {
 
         // adding test employees
         for (int i = 2; i <= 10; i++) {
-            // Create a dummy user for this employee
             User u = new User();
             u.userUsername = "employee" + i;
             u.userEmail = "employee" + i + "@bakery.com";
             u.userPasswordHash = HashUtils.hash("employee123");
             u.userRole = "EMPLOYEE";
             u.userCreatedAt = System.currentTimeMillis();
-            long userId = db.userDao().insert(u); // store userId
+            long userId = db.userDao().insert(u);
 
-            // Create an address for the employee
             Address a = new Address();
             a.addressLine1 = i + " Test Street";
             a.addressLine2 = null;
@@ -332,7 +349,6 @@ public class DatabaseSeeder {
             a.addressPostalCode = "M5V 1" + i;
             long addrId = db.addressDao().insert(a);
 
-            // Insert employee
             Employee e = new Employee();
             e.userId = (int) userId;
             e.addressId = (int) addrId;
@@ -346,12 +362,11 @@ public class DatabaseSeeder {
             db.employeeDao().insert(e);
         }
     }
+
     private static void seedTestCustomer(AppDatabase db) {
-        // Check if test user already exists
         User existingUser = db.userDao().getUserByEmail("customer@bakery.com");
         if (existingUser != null) return;
 
-        // Create a test address
         Address address = new Address();
         address.addressLine1 = "123 Bakery Avenue";
         address.addressLine2 = null;
@@ -360,7 +375,6 @@ public class DatabaseSeeder {
         address.addressPostalCode = "2B2 B2B";
         long addressId = db.addressDao().insert(address);
 
-        // Create user
         User user = new User();
         user.userUsername = "customer";
         user.userEmail = "customer@bakery.com";
@@ -369,7 +383,6 @@ public class DatabaseSeeder {
         user.userCreatedAt = System.currentTimeMillis();
         long userId = db.userDao().insert(user);
 
-        // Create customer profile
         Customer customer = new Customer();
         customer.userId = (int) userId;
         customer.addressId = (int) addressId;
@@ -380,7 +393,7 @@ public class DatabaseSeeder {
         customer.customerRole = "CUSTOMER";
         customer.customerPhone = "(416) 555-1234";
         customer.customerBusinessPhone = null;
-        customer.customerRewardBalance = 1000; // Give them some points
+        customer.customerRewardBalance = 1000;
         customer.customerTierAssignedDate = System.currentTimeMillis();
         customer.customerEmail = "customer@bakery.com";
         customer.profilePhotoPath = null;
@@ -393,6 +406,7 @@ public class DatabaseSeeder {
 
     private static void seedCategories(AppDatabase db) {
         if (!db.categoryDao().getAllCategories().isEmpty()) return;
+
         db.categoryDao().insert(new Category(1, "Bread"));
         db.categoryDao().insert(new Category(2, "Cake"));
         db.categoryDao().insert(new Category(3, "Pastry"));
@@ -409,6 +423,7 @@ public class DatabaseSeeder {
 
     private static void seedProducts(AppDatabase db) {
         if (!db.productDao().getAllProducts().isEmpty()) return;
+
         db.productDao().insert(new Product(1, "Sourdough Loaf", "Naturally leavened sourdough bread", 6.49, R.drawable.product_sourdough_loaf));
         db.productDao().insert(new Product(2, "Multigrain Sandwich Bread", "Whole grain sandwich loaf", 5.99, R.drawable.product_multigrain_bread));
         db.productDao().insert(new Product(3, "Baguette", "Classic French-style baguette", 3.49, R.drawable.product_baguette));

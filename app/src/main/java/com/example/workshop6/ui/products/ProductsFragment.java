@@ -1,6 +1,15 @@
 package com.example.workshop6.ui.products;
 
 import android.os.Bundle;
+import android.text.Editable;
+import android.text.TextWatcher;
+import android.view.LayoutInflater;
+import android.view.View;
+import android.view.ViewGroup;
+import android.widget.Button;
+import android.widget.ProgressBar;
+import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.fragment.app.Fragment;
@@ -8,33 +17,20 @@ import androidx.navigation.Navigation;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
-import android.text.Editable;
-import android.text.TextWatcher;
-import android.view.LayoutInflater;
-import android.view.View;
-import android.view.ViewGroup;
-import android.widget.Button;
-import android.widget.TextView;
-import android.widget.Toast;
-
 import com.example.workshop6.R;
 import com.example.workshop6.auth.SessionManager;
 import com.example.workshop6.data.db.AppDatabase;
-import com.example.workshop6.data.model.CartItem;
 import com.example.workshop6.data.model.Category;
 import com.example.workshop6.data.model.Customer;
+import com.example.workshop6.data.model.Log;
 import com.example.workshop6.data.model.Product;
 import com.example.workshop6.data.model.RewardTier;
+import com.example.workshop6.logging.LogData;
 import com.example.workshop6.ui.cart.CartManager;
 import com.google.android.material.textfield.TextInputEditText;
 
 import java.util.List;
 
-/**
- * A simple {@link Fragment} subclass.
- * Use the {@link ProductsFragment#newInstance} factory method to
- * create an instance of this fragment.
- */
 public class ProductsFragment extends Fragment {
 
     private RecyclerView rvCategories;
@@ -43,11 +39,17 @@ public class ProductsFragment extends Fragment {
     private Button btnAddToCart;
     private TextView tvPoints;
     private TextView tvLevel;
+    private TextView tvTierDescription;
+    private TextView tvNextTier;
+    private TextView tvPointsNeeded;
+    private ProgressBar progressLoyalty;
     private Button btnRedeem;
     private TextInputEditText etSearch;
     private CartManager cartManager;
     private TextView tvFeatureProductName;
     private TextView tvFeatureProductPrice;
+
+    private boolean initialLoadLogged = false;
 
     public ProductsFragment() {
         // Required empty public constructor
@@ -68,7 +70,6 @@ public class ProductsFragment extends Fragment {
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
-        // Inflate the layout for this fragment
         return inflater.inflate(R.layout.fragment_products, container, false);
     }
 
@@ -76,11 +77,18 @@ public class ProductsFragment extends Fragment {
     public void onViewCreated(@NonNull View view, Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
 
+        SessionManager sessionManager = new SessionManager(requireContext());
+        Log.setLoggedInUser(sessionManager.getUserName());
+
         rvCategories = view.findViewById(R.id.rvCategories);
         rvProducts = view.findViewById(R.id.rvProducts);
         btnAddToCart = view.findViewById(R.id.btnAddToCart);
         tvPoints = view.findViewById(R.id.tvPoints);
         tvLevel = view.findViewById(R.id.tvLevel);
+        tvTierDescription = view.findViewById(R.id.tvTierDescription);
+        tvNextTier = view.findViewById(R.id.tvNextTier);
+        tvPointsNeeded = view.findViewById(R.id.tvPointsNeeded);
+        progressLoyalty = view.findViewById(R.id.progressLoyalty);
         btnRedeem = view.findViewById(R.id.btnRedeem);
         etSearch = view.findViewById(R.id.etSearch);
         tvFeatureProductName = view.findViewById(R.id.tvFeatureProductName);
@@ -88,14 +96,12 @@ public class ProductsFragment extends Fragment {
 
         cartManager = CartManager.getInstance(requireContext());
 
-        // attaches adapter with the data from the database
         AppDatabase db = AppDatabase.getInstance(requireContext());
 
-        // search functionality
         etSearch.addTextChangedListener(new TextWatcher() {
             @Override
             public void beforeTextChanged(CharSequence s, int start, int count, int after) {
-
+                // no-op
             }
 
             @Override
@@ -111,19 +117,30 @@ public class ProductsFragment extends Fragment {
                             ? db.productDao().getAllProducts()
                             : db.productDao().searchProducts(query);
 
-                    requireActivity().runOnUiThread(() -> productAdapter.setProducts(filtered));
+                    requireActivity().runOnUiThread(() -> {
+                        if (productAdapter != null) {
+                            productAdapter.setProducts(filtered);
+                        }
+                    });
+
+                    if (!query.isEmpty()) {
+                        LogData.logAction(
+                                requireContext(),
+                                "READ",
+                                "Product search performed: " + query
+                        );
+                    }
                 });
             }
 
             @Override
             public void afterTextChanged(Editable s) {
-
+                // no-op
             }
         });
 
         // Get and display featured product
         AppDatabase.databaseWriteExecutor.execute(() -> {
-            // wait for database to finish seeding
             AppDatabase.awaitSeed();
 
             long now = System.currentTimeMillis();
@@ -141,93 +158,38 @@ public class ProductsFragment extends Fragment {
             });
         });
 
-        // set up recycler view for categories and set to horizontal
         rvCategories.setLayoutManager(new LinearLayoutManager(
                 requireContext(),
                 LinearLayoutManager.HORIZONTAL,
                 false
         ));
 
-        // set up recycler view for products
         rvProducts.setLayoutManager(new LinearLayoutManager(
                 requireContext(),
                 LinearLayoutManager.VERTICAL,
                 false
         ));
 
-        // REDEEM logic
+        loadLoyaltyDashboard(db, sessionManager);
+        loadProductsAndCategories(db);
 
-        // get logged in userId
-        SessionManager sessionManager = new SessionManager(requireContext());
-        int userId = sessionManager.getUserId();
-
-        // Getting Reward Points
-        AppDatabase.databaseWriteExecutor.execute(() -> {
-            Customer customer = db.customerDao().getByUserId(userId);
-            if (customer != null) {
-                Integer points = db.rewardDao().getTotalRewardAmount(customer.customerId);
-                RewardTier rewardTier = db.rewardTierDao().getById(customer.rewardTierId);
-
-                // set reward points
-                requireActivity().runOnUiThread(() -> {
-                    if (points != null) {
-                        tvPoints.setText(String.valueOf(points));
-                        tvLevel.setText(rewardTier.getTierName());
-                    } else {
-                        tvPoints.setText("0");
-                        tvLevel.setText(R.string.label_default);
-                    }
-                });
-            } else {
-                requireActivity().runOnUiThread(() -> {
-                    tvPoints.setText("0");
-                    tvLevel.setText(R.string.label_default);
-                });
-            }
-        });
-
-        // listener for products
-        AppDatabase.databaseWriteExecutor.execute(() -> {
-            List<Category> categories = db.categoryDao().getAllCategories();
-            List<Product> products = db.productDao().getAllProducts();
-
-            // update component on the main thread
-            requireActivity().runOnUiThread(() -> {
-                // setup listener on categories
-                CategoriesAdapter categoriesAdapter = new CategoriesAdapter(categories, tagId -> {
-                    AppDatabase.databaseWriteExecutor.execute(() -> {
-                        List<Product> filteredProducts = tagId == -1
-                                ? db.productDao().getAllProducts()
-                                : db.productDao().getProductByCategory(tagId);
-
-                        requireActivity().runOnUiThread(() -> {
-                            productAdapter.setProducts(filteredProducts);
-                        });
-                    });
-                });
-                productAdapter = new ProductAdapter(products, productId -> {
-
-                    // pass information to details fragment
-                    Bundle args = new Bundle();
-
-                    args.putInt("productId", productId);
-                    Navigation.findNavController(requireView()).navigate(R.id.action_products_to_details, args);
-                });
-
-
-                rvProducts.setAdapter(productAdapter);
-                rvCategories.setAdapter(categoriesAdapter);
-            });
-        });
-
-        // redeem on click listener
         btnRedeem.setOnClickListener(v -> {
-            Toast.makeText(this.requireContext(), "Reward page under construction", Toast.LENGTH_LONG).show();
+            LogData.logAction(
+                    requireContext(),
+                    "ADJUST_POINTS",
+                    "Redeem selected from loyalty dashboard (under construction)"
+            );
+            Toast.makeText(requireContext(), "Reward page under construction", Toast.LENGTH_LONG).show();
         });
 
-        // add to cart listener
         btnAddToCart.setOnClickListener(v -> {
-            int productId = 5;//broken for now
+            int productId = 5; // featured product placeholder from main branch logic
+
+            LogData.logAction(
+                    requireContext(),
+                    "CREATE_ORDER",
+                    "Quick add-to-cart selected from featured section (product id: " + productId + ")"
+            );
 
             if (productId != -1) {
                 Bundle args = new Bundle();
@@ -238,6 +200,164 @@ public class ProductsFragment extends Fragment {
             } else {
                 Toast.makeText(requireContext(), "Product not found", Toast.LENGTH_SHORT).show();
             }
+        });
+    }
+
+    private void loadLoyaltyDashboard(AppDatabase db, SessionManager sessionManager) {
+        int userId = sessionManager.getUserId();
+
+        AppDatabase.databaseWriteExecutor.execute(() -> {
+            Customer customer = db.customerDao().getByUserId(userId);
+
+            if (customer == null) {
+                requireActivity().runOnUiThread(() -> {
+                    tvPoints.setText("0");
+                    tvLevel.setText("No Loyalty Account");
+                    tvTierDescription.setText("This account does not currently participate in customer rewards.");
+                    tvNextTier.setText("Next Tier: N/A");
+                    tvPointsNeeded.setText("Points to next tier: N/A");
+                    progressLoyalty.setProgress(0);
+                });
+
+                LogData.logAction(
+                        requireContext(),
+                        "READ",
+                        "Loyalty dashboard loaded without customer record for user: " + sessionManager.getUserName()
+                );
+                return;
+            }
+
+            Integer pointsValue = db.rewardDao().getTotalRewardAmount(userId);
+            int points = pointsValue != null ? pointsValue : 0;
+
+            RewardTier currentTier = db.rewardTierDao().getTierForPoints(points);
+            RewardTier nextTier = db.rewardTierDao().getNextTierForPoints(points);
+
+            if (currentTier != null) {
+                boolean changed = false;
+
+                if (customer.rewardTierId != currentTier.rewardTierId) {
+                    customer.rewardTierId = currentTier.rewardTierId;
+                    changed = true;
+                }
+
+                if (customer.customerRewardBalance != points) {
+                    customer.customerRewardBalance = points;
+                    changed = true;
+                }
+
+                if (changed) {
+                    db.customerDao().update(customer);
+                }
+            }
+
+            final RewardTier finalCurrentTier = currentTier;
+            final RewardTier finalNextTier = nextTier;
+            final int finalPoints = points;
+
+            requireActivity().runOnUiThread(() -> {
+                if (finalCurrentTier == null) {
+                    tvPoints.setText(String.valueOf(finalPoints));
+                    tvLevel.setText("Unknown Tier");
+                    tvTierDescription.setText("Unable to determine current loyalty tier.");
+                    tvNextTier.setText("Next Tier: N/A");
+                    tvPointsNeeded.setText("Points to next tier: N/A");
+                    progressLoyalty.setProgress(0);
+                    return;
+                }
+
+                tvPoints.setText(String.valueOf(finalPoints));
+                tvLevel.setText(finalCurrentTier.tierName);
+                tvTierDescription.setText(finalCurrentTier.tierDescription);
+
+                if (finalNextTier != null) {
+                    int pointsNeeded = Math.max(0, finalNextTier.minPoints - finalPoints);
+                    tvNextTier.setText("Next Tier: " + finalNextTier.tierName);
+                    tvPointsNeeded.setText(pointsNeeded + " points to reach " + finalNextTier.tierName);
+
+                    int rangeStart = finalCurrentTier.minPoints;
+                    int rangeEnd = finalNextTier.minPoints;
+                    int rangeSize = Math.max(1, rangeEnd - rangeStart);
+                    int progress = ((finalPoints - rangeStart) * 100) / rangeSize;
+                    progress = Math.max(0, Math.min(100, progress));
+                    progressLoyalty.setProgress(progress);
+                } else {
+                    tvNextTier.setText("Top Tier Reached");
+                    tvPointsNeeded.setText("You are at the highest loyalty tier.");
+                    progressLoyalty.setProgress(100);
+                }
+            });
+
+            LogData.logAction(
+                    requireContext(),
+                    "READ",
+                    "Loyalty dashboard loaded for user: " + sessionManager.getUserName()
+                            + " | points=" + finalPoints
+                            + " | tier=" + (finalCurrentTier != null ? finalCurrentTier.tierName : "UNKNOWN")
+            );
+        });
+    }
+
+    private void loadProductsAndCategories(AppDatabase db) {
+        AppDatabase.databaseWriteExecutor.execute(() -> {
+            List<Category> categories = db.categoryDao().getAllCategories();
+            List<Product> products = db.productDao().getAllProducts();
+
+            requireActivity().runOnUiThread(() -> {
+                CategoriesAdapter categoriesAdapter = new CategoriesAdapter(categories, tagId -> {
+                    AppDatabase.databaseWriteExecutor.execute(() -> {
+                        List<Product> filteredProducts = tagId == -1
+                                ? db.productDao().getAllProducts()
+                                : db.productDao().getProductByCategory(tagId);
+
+                        requireActivity().runOnUiThread(() -> {
+                            if (productAdapter != null) {
+                                productAdapter.setProducts(filteredProducts);
+                            }
+                        });
+
+                        if (tagId == -1) {
+                            LogData.logAction(
+                                    requireContext(),
+                                    "READ",
+                                    "All product categories selected"
+                            );
+                        } else {
+                            LogData.logAction(
+                                    requireContext(),
+                                    "READ",
+                                    "Filtered products by category id: " + tagId
+                            );
+                        }
+                    });
+                });
+
+                productAdapter = new ProductAdapter(products, productId -> {
+                    Bundle args = new Bundle();
+                    args.putInt("productId", productId);
+
+                    LogData.logAction(
+                            requireContext(),
+                            "READ",
+                            "Opened product details for product id: " + productId
+                    );
+
+                    Navigation.findNavController(requireView())
+                            .navigate(R.id.action_products_to_details, args);
+                });
+
+                rvProducts.setAdapter(productAdapter);
+                rvCategories.setAdapter(categoriesAdapter);
+
+                if (!initialLoadLogged) {
+                    initialLoadLogged = true;
+                    LogData.logAction(
+                            requireContext(),
+                            "READ",
+                            "Products screen loaded with categories and products"
+                    );
+                }
+            });
         });
     }
 }

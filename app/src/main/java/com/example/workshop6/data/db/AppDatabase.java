@@ -45,7 +45,7 @@ import java.util.concurrent.TimeUnit;
                 Order.class,
                 OrderItem.class
         },
-        version = 10,
+        version = 11,
         exportSchema = false
 )
 public abstract class AppDatabase extends RoomDatabase {

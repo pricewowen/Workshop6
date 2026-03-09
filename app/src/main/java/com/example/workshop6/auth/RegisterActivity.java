@@ -19,6 +19,8 @@ import com.example.workshop6.data.db.AppDatabase;
 import com.example.workshop6.data.model.Address;
 import com.example.workshop6.data.model.Customer;
 import com.example.workshop6.data.model.User;
+import com.example.workshop6.logging.LogData;
+import com.example.workshop6.data.model.Log;
 import com.example.workshop6.ui.MainActivity;
 import com.example.workshop6.util.HashUtils;
 import com.example.workshop6.util.ImageUtils;
@@ -85,8 +87,11 @@ public class RegisterActivity extends AppCompatActivity {
         tvProvinceError = findViewById(R.id.tv_province_error);
         tvError = findViewById(R.id.tv_error);
 
-        ArrayAdapter<CharSequence> provinceAdapter = ArrayAdapter.createFromResource(this,
-                R.array.provinces, android.R.layout.simple_spinner_item);
+        ArrayAdapter<CharSequence> provinceAdapter = ArrayAdapter.createFromResource(
+                this,
+                R.array.provinces,
+                android.R.layout.simple_spinner_item
+        );
         provinceAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         spinnerProvince.setAdapter(provinceAdapter);
 
@@ -234,7 +239,6 @@ public class RegisterActivity extends AppCompatActivity {
             tilPassword.setError(null);
         }
 
-        // Confirm password: required and must match password
         if (Validation.isEmpty(confirm)) {
             tilConfirmPassword.setError(getString(R.string.error_password_required));
             valid = false;
@@ -245,7 +249,6 @@ public class RegisterActivity extends AppCompatActivity {
             tilConfirmPassword.setError(null);
         }
 
-        // Address is required (not optional) – always validate
         if (Validation.isEmpty(address1)) {
             tilAddress1.setError(getString(R.string.error_address_required));
             valid = false;
@@ -255,17 +258,24 @@ public class RegisterActivity extends AppCompatActivity {
         } else {
             tilAddress1.setError(null);
         }
+
         if (!Validation.isEmpty(address2) && !Validation.isAddressLineValid(address2)) {
             tilAddress2.setError(getString(R.string.error_address_invalid));
             valid = false;
-        } else tilAddress2.setError(null);
+        } else {
+            tilAddress2.setError(null);
+        }
+
         if (Validation.isEmpty(city)) {
             tilCity.setError(getString(R.string.error_city_required));
             valid = false;
         } else if (!Validation.isCityValid(city)) {
             tilCity.setError(getString(R.string.error_city_required));
             valid = false;
-        } else tilCity.setError(null);
+        } else {
+            tilCity.setError(null);
+        }
+
         if (Validation.isEmpty(province)) {
             tvProvinceError.setText(getString(R.string.error_province_required));
             tvProvinceError.setVisibility(View.VISIBLE);
@@ -277,13 +287,16 @@ public class RegisterActivity extends AppCompatActivity {
         } else {
             tvProvinceError.setVisibility(View.GONE);
         }
+
         if (Validation.isEmpty(postal)) {
             tilPostal.setError(getString(R.string.error_postal_required));
             valid = false;
         } else if (!Validation.isPostalCodeValid(postal)) {
             tilPostal.setError(getString(R.string.error_postal_invalid));
             valid = false;
-        } else tilPostal.setError(null);
+        } else {
+            tilPostal.setError(null);
+        }
 
         if (selectedPhotoUri != null) {
             String photoErr = ImageUtils.validateProfilePhoto(this, selectedPhotoUri);
@@ -296,7 +309,15 @@ public class RegisterActivity extends AppCompatActivity {
             }
         }
 
-        if (!valid) return;
+        if (!valid) {
+            Log.clearLoggedInUser();
+            LogData.logAction(
+                    this,
+                    "VALIDATION_FAILED",
+                    "Registration validation failed for username/email: " + username + " / " + email
+            );
+            return;
+        }
 
         tvError.setVisibility(View.GONE);
 
@@ -311,6 +332,12 @@ public class RegisterActivity extends AppCompatActivity {
                     tvError.setText(R.string.register_error_email_exists);
                     tvError.setVisibility(View.VISIBLE);
                 });
+                Log.clearLoggedInUser();
+                LogData.logAction(
+                        this,
+                        "VALIDATION_FAILED",
+                        "Registration failed: email already exists for " + email
+                );
                 return;
             }
 
@@ -320,10 +347,15 @@ public class RegisterActivity extends AppCompatActivity {
                     tilUsername.setError(getString(R.string.register_error_username_exists));
                     tvError.setVisibility(View.GONE);
                 });
+                Log.clearLoggedInUser();
+                LogData.logAction(
+                        this,
+                        "VALIDATION_FAILED",
+                        "Registration failed: username already exists for " + username
+                );
                 return;
             }
 
-            // User (auth)
             User user = new User();
             user.userUsername = username;
             user.userEmail = email;
@@ -333,7 +365,6 @@ public class RegisterActivity extends AppCompatActivity {
             long newUserId = db.userDao().insert(user);
             int userId = (int) newUserId;
 
-            // Address is required – always create from form
             Address addr = new Address();
             addr.addressLine1 = address1;
             addr.addressLine2 = Validation.isEmpty(address2) ? null : address2;
@@ -343,7 +374,6 @@ public class RegisterActivity extends AppCompatActivity {
             long addrId = db.addressDao().insert(addr);
             int addressId = (int) addrId;
 
-            // Customer (every registered user is a customer)
             Customer customer = new Customer();
             customer.userId = userId;
             customer.addressId = addressId;
@@ -374,9 +404,20 @@ public class RegisterActivity extends AppCompatActivity {
                 }
             }
 
-            String displayName = firstName + " " + lastName;
+            String displayName = (firstName + " " + lastName).trim();
+            if (displayName.isEmpty()) {
+                displayName = username;
+            }
+
+            final String finalDisplayName = displayName;
             runOnUiThread(() -> {
-                sessionManager.createSession(userId, user.userRole, displayName);
+                sessionManager.createSession(userId, user.userRole, finalDisplayName);
+                Log.setLoggedInUser(finalDisplayName);
+                LogData.logAction(
+                        this,
+                        "CREATE",
+                        "Customer account created: " + finalDisplayName + " (username: " + username + ", email: " + email + ")"
+                );
                 goToMain();
             });
         });

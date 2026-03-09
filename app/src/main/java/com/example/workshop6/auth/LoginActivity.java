@@ -13,6 +13,8 @@ import com.example.workshop6.data.db.AppDatabase;
 import com.example.workshop6.data.model.Customer;
 import com.example.workshop6.data.model.Employee;
 import com.example.workshop6.data.model.User;
+import com.example.workshop6.logging.LogData;
+import com.example.workshop6.data.model.Log;
 import com.example.workshop6.ui.MainActivity;
 import com.example.workshop6.util.HashUtils;
 import com.example.workshop6.util.Validation;
@@ -33,35 +35,34 @@ public class LoginActivity extends AppCompatActivity {
         sessionManager = new SessionManager(this);
 
         if (sessionManager.isLoggedIn()) {
+            Log.setLoggedInUser(sessionManager.getUserName());
             goToMain();
             return;
         }
 
         setContentView(R.layout.activity_login);
 
-        tilEmail    = findViewById(R.id.til_email);
+        tilEmail = findViewById(R.id.til_email);
         tilPassword = findViewById(R.id.til_password);
-        etEmail     = findViewById(R.id.et_email);
-        etPassword  = findViewById(R.id.et_password);
-        tvError     = findViewById(R.id.tv_error);
+        etEmail = findViewById(R.id.et_email);
+        etPassword = findViewById(R.id.et_password);
+        tvError = findViewById(R.id.tv_error);
 
         // Warm up Room immediately so seed starts immediately (admin row is created)
         AppDatabase.getInstance(getApplicationContext());
 
         findViewById(R.id.btn_login).setOnClickListener(v -> attemptLogin());
 
-        // Optional stub: forgot password
         findViewById(R.id.tv_forgot_password).setOnClickListener(v ->
                 Toast.makeText(this, R.string.toast_coming_soon, Toast.LENGTH_SHORT).show());
 
-        // Register link
         findViewById(R.id.tv_register_link).setOnClickListener(v ->
                 startActivity(new Intent(this, RegisterActivity.class)));
     }
 
     private void attemptLogin() {
         String email = etEmail.getText() != null ? etEmail.getText().toString().trim() : "";
-        String pass  = etPassword.getText() != null ? etPassword.getText().toString() : "";
+        String pass = etPassword.getText() != null ? etPassword.getText().toString() : "";
 
         boolean valid = true;
 
@@ -87,20 +88,22 @@ public class LoginActivity extends AppCompatActivity {
         tvError.setVisibility(View.GONE);
 
         AppDatabase.databaseWriteExecutor.execute(() -> {
-            // Ensure seed finished so admin exists on FIRST attempt
             AppDatabase.awaitSeed();
 
             AppDatabase db = AppDatabase.getInstance(getApplicationContext());
-            // Login with email or username
+
             User user = email.contains("@")
                     ? db.userDao().getUserByEmail(email)
                     : db.userDao().getUserByUsername(email);
+
             boolean ok = (user != null) && HashUtils.verify(pass, user.userPasswordHash);
 
             String displayName = user != null ? user.userEmail : "";
+
             if (user != null) {
                 Customer customer = db.customerDao().getByUserId(user.userId);
                 Employee employee = db.employeeDao().getByUserId(user.userId);
+
                 if (customer != null) {
                     displayName = (customer.customerFirstName != null ? customer.customerFirstName : "")
                             + " "
@@ -119,12 +122,26 @@ public class LoginActivity extends AppCompatActivity {
             }
 
             final String nameForSession = displayName;
+            final String loginIdentifier = email;
             final User userFinal = user;
+
             runOnUiThread(() -> {
                 if (ok) {
                     sessionManager.createSession(userFinal.userId, userFinal.userRole, nameForSession);
+                    Log.setLoggedInUser(nameForSession);
+                    LogData.logAction(
+                            this,
+                            "LOGIN",
+                            "User logged in: " + nameForSession + " (Role: " + userFinal.userRole + ")"
+                    );
                     goToMain();
                 } else {
+                    Log.clearLoggedInUser();
+                    LogData.logAction(
+                            this,
+                            "LOGIN_FAILED",
+                            "Failed login attempt for username/email: " + loginIdentifier
+                    );
                     tvError.setText(R.string.login_error_invalid_username_or_email);
                     tvError.setVisibility(View.VISIBLE);
                 }

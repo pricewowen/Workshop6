@@ -16,6 +16,16 @@ public interface RewardTierDao {
     @Query("SELECT * FROM reward_tier WHERE rewardTierId = :id LIMIT 1")
     RewardTier getById(int id);
 
-    @Query("SELECT * FROM reward_tier")
+    @Query("SELECT * FROM reward_tier ORDER BY minPoints ASC")
     List<RewardTier> getAll();
+
+    @Query("SELECT * FROM reward_tier " +
+            "WHERE minPoints <= :points AND (maxPoints IS NULL OR maxPoints >= :points) " +
+            "ORDER BY minPoints DESC LIMIT 1")
+    RewardTier getTierForPoints(int points);
+
+    @Query("SELECT * FROM reward_tier " +
+            "WHERE minPoints > :points " +
+            "ORDER BY minPoints ASC LIMIT 1")
+    RewardTier getNextTierForPoints(int points);
 }
