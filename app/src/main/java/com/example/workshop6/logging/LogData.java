@@ -1,10 +1,8 @@
-// η℩.cαηtor ↈ and his AI, ⌈𝗆𝖾𝗍𝖺𝖼𝗈𝖽𝖺⌋ ⊛
-
 package com.example.workshop6.logging;
 
 import android.content.Context;
 
-import com.example.workshop6.models.Log;
+import com.example.workshop6.data.model.Log;
 
 import java.io.BufferedWriter;
 import java.io.IOException;
@@ -14,9 +12,6 @@ import java.io.PrintWriter;
 public class LogData {
     private static final String FILE_NAME = "Log.txt";
 
-    /**
-     * Saves a log entry to Log.txt in the app's internal storage.
-     */
     public static void saveLog(Context context, Log log) {
         if (context == null || log == null) return;
 
@@ -42,9 +37,6 @@ public class LogData {
         }
     }
 
-    /**
-     * Logs an error in the same Workshop 5 style, with _FAILED appended to the action.
-     */
     public static void logError(Context context, Log log) {
         if (context == null || log == null) return;
 
@@ -74,17 +66,11 @@ public class LogData {
         }
     }
 
-    /**
-     * Log exception messages to the log file.
-     */
     public static void handleException(Context context, String action, Exception e) {
         if (e == null) return;
         logError(context, new Log(action, e.getMessage()));
     }
 
-    /**
-     * Save a normal action to the log file.
-     */
     public static void logAction(Context context, String action, String target) {
         saveLog(context, new Log(action, target));
     }

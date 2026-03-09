@@ -24,7 +24,7 @@ import com.example.workshop6.data.model.Address;
 import com.example.workshop6.data.model.Customer;
 import com.example.workshop6.data.model.Employee;
 import com.example.workshop6.logging.LogData;
-import com.example.workshop6.models.Log;
+import com.example.workshop6.data.model.Log;
 import com.example.workshop6.ui.MainActivity;
 import com.example.workshop6.util.ImageUtils;
 import com.example.workshop6.util.PhoneFormatTextWatcher;

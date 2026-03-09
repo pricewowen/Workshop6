@@ -17,7 +17,7 @@ import com.example.workshop6.auth.SessionManager;
 import com.example.workshop6.data.db.AppDatabase;
 import com.example.workshop6.data.model.Product;
 import com.example.workshop6.logging.LogData;
-import com.example.workshop6.models.Log;
+import com.example.workshop6.data.model.Log;
 
 public class ProductDetailsFragment extends Fragment {
 

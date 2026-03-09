@@ -1,11 +1,9 @@
-// η℩.cαηtor ↈ and his AI, ⌈𝗆𝖾𝗍𝖺𝖼𝗈𝖽𝖺⌋ ⊛
+package com.example.workshop6.data.model;
 
-package com.example.workshop6.models;
-
-import java.time.Instant;
-import java.time.ZoneId;
-import java.time.ZonedDateTime;
-import java.time.format.DateTimeFormatter;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.Locale;
+import java.util.TimeZone;
 
 public class Log {
     private String user;
@@ -16,35 +14,28 @@ public class Log {
     private static final String DEFAULT_USER = "SYSTEM";
     private static String loggedInUser = null;
 
-    /**
-     * Sets the username of the logged-in user.
-     */
     public static void setLoggedInUser(String username) {
         loggedInUser = username;
     }
 
-    /**
-     * Clears the logged-in user.
-     */
     public static void clearLoggedInUser() {
         loggedInUser = null;
     }
 
     public Log(String action, String description) {
-        String user = DEFAULT_USER;
+        String resolvedUser = DEFAULT_USER;
 
         if (loggedInUser != null && !loggedInUser.trim().isEmpty()) {
-            user = loggedInUser;
+            resolvedUser = loggedInUser;
         }
 
-        Instant now = Instant.now();
-        ZonedDateTime localTime = now.atZone(ZoneId.systemDefault());
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss z");
+        SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss z", Locale.getDefault());
+        formatter.setTimeZone(TimeZone.getDefault());
 
-        this.user = user.toUpperCase();
+        this.user = resolvedUser.toUpperCase();
         this.action = action.toUpperCase();
         this.target = description.toUpperCase();
-        this.currentDate = localTime.format(formatter);
+        this.currentDate = formatter.format(new Date());
     }
 
     public String getCurrentDate() {
