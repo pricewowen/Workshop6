@@ -116,7 +116,7 @@ public final class ImageUtils {
             return null;
         }
 
-        // Resize to max 1024 so camera photos don't store at full resolution
+        // Keep source framing and resize for storage.
         bitmap = scaleDownToMaxSize(bitmap, MAX_DIMENSION_PX);
 
         File dir = new File(context.getFilesDir(), "profile_photos");
@@ -153,7 +153,9 @@ public final class ImageUtils {
         if (uri == null) return null;
         try (InputStream is = context.getContentResolver().openInputStream(uri)) {
             if (is == null) return null;
-            return BitmapFactory.decodeStream(is);
+            Bitmap bitmap = BitmapFactory.decodeStream(is);
+            if (bitmap == null) return null;
+            return scaleDownToMaxSize(bitmap, 512);
         } catch (Exception e) {
             return null;
         }

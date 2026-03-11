@@ -9,12 +9,16 @@ import androidx.room.RoomDatabase;
 import androidx.sqlite.db.SupportSQLiteDatabase;
 
 import com.example.workshop6.data.model.Address;
+import com.example.workshop6.data.model.BakeryHours;
 import com.example.workshop6.data.model.BakeryLocation;
+import com.example.workshop6.data.model.Batch;
 import com.example.workshop6.data.model.Batch;
 import com.example.workshop6.data.model.Category;
 import com.example.workshop6.data.model.Customer;
 import com.example.workshop6.data.model.Employee;
 import com.example.workshop6.data.model.Order;
+import com.example.workshop6.data.model.OrderItem;
+import com.example.workshop6.data.model.OrderItem;
 import com.example.workshop6.data.model.Product;
 import com.example.workshop6.data.model.ProductTag;
 import com.example.workshop6.data.model.Reward;
@@ -34,14 +38,16 @@ import java.util.concurrent.TimeUnit;
             Employee.class,
             RewardTier.class,
             BakeryLocation.class,
+            BakeryHours.class,
             Category.class,
             Product.class,
                 ProductTag.class,
                 Reward.class,
+                Batch.class,
                 Order.class,
-                Batch.class
+                OrderItem.class
         },
-        version = 18,
+        version = 15,
         exportSchema = false
 )
 public abstract class AppDatabase extends RoomDatabase {
@@ -52,12 +58,14 @@ public abstract class AppDatabase extends RoomDatabase {
     public abstract EmployeeDao employeeDao();
     public abstract RewardTierDao rewardTierDao();
     public abstract BakeryLocationDao bakeryLocationDao();
+    public abstract BakeryHoursDao bakeryHoursDao();
     public abstract CategoryDao categoryDao();
     public abstract ProductDao productDao();
     public abstract ProductTagDao productTagDao();
     public abstract RewardDao rewardDao();
     public abstract OrderDao orderDao();
     public abstract BatchDao batchDao();
+    public abstract OrderItemDao orderItemDao();
 
     private static volatile AppDatabase INSTANCE;
 

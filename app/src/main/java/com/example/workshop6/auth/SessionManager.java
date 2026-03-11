@@ -3,6 +3,8 @@ package com.example.workshop6.auth;
 import android.content.Context;
 import android.content.SharedPreferences;
 
+import com.example.workshop6.ui.cart.CartManager;
+
 public class SessionManager {
 
     private static final String PREF_NAME = "workshop6_session";

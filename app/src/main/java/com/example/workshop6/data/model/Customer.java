@@ -15,7 +15,7 @@ import androidx.room.PrimaryKey;
         @ForeignKey(entity = Address.class, parentColumns = "addressId", childColumns = "addressId"),
         @ForeignKey(entity = RewardTier.class, parentColumns = "rewardTierId", childColumns = "rewardTierId")
     },
-    indices = { @Index("userId") }
+    indices = { @Index(value = "userId", unique = true) }
 )
 public class Customer {
     @PrimaryKey(autoGenerate = true)

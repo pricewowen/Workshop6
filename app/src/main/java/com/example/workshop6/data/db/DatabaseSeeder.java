@@ -1,9 +1,12 @@
 package com.example.workshop6.data.db;
 
 import com.example.workshop6.R;
+import android.util.Log;
+
 import com.example.workshop6.data.model.Address;
-import com.example.workshop6.data.model.BakeryLocation;
 import com.example.workshop6.data.model.Batch;
+import com.example.workshop6.data.model.BakeryHours;
+import com.example.workshop6.data.model.BakeryLocation;
 import com.example.workshop6.data.model.Category;
 import com.example.workshop6.data.model.Customer;
 import com.example.workshop6.data.model.Employee;
@@ -20,12 +23,17 @@ import com.example.workshop6.util.HashUtils;
 public class DatabaseSeeder {
     public static final int DEFAULT_REWARD_TIER_ID = 1;
     public static final String DEFAULT_TIER_NAME = "Default";
+    public static final int SILVER_REWARD_TIER_ID = 2;
+    public static final String SILVER_TIER_NAME = "Silver";
+    public static final int GOLD_REWARD_TIER_ID = 3;
+    public static final String GOLD_TIER_NAME = "Gold";
 
     public static void seed(AppDatabase db) {
         seedRewardTiers(db);
-        seedDefaultAddress(db);
         seedAdminUser(db);
         seedAdminEmployee(db);
+        seedBakeryLocations(db);
+        seedTestCustomer(db);
         seedCategories(db);
         seedProducts(db);
         seedProductTags(db);
@@ -37,30 +45,6 @@ public class DatabaseSeeder {
 
 
     private static void seedCustomers(AppDatabase db) {
-        // Seed default address first (required for FK)
-        if (db.addressDao().getById(1) == null) {
-            Address defaultAddress = new Address();
-            defaultAddress.addressLine1 = "";
-            defaultAddress.addressLine2 = null;
-            defaultAddress.addressCity = null;
-            defaultAddress.addressProvince = "";
-            defaultAddress.addressPostalCode = "";
-            db.addressDao().insert(defaultAddress);
-        }
-
-        // Manual customer addresses
-        for (int i = 1; i <= 13; i++) {
-            if (db.addressDao().getById(i) == null) {
-                Address addr = new Address();
-                addr.addressLine1 = i + " Customer St";
-                addr.addressLine2 = null;
-                addr.addressCity = "Toronto";
-                addr.addressProvince = "Ontario";
-                addr.addressPostalCode = "M5V 0" + i;
-                db.addressDao().insert(addr);
-            }
-        }
-
         // Create users for customers
         String[][] customerUsers = {
                 {"customer1","customer1@bakery.com"},
@@ -94,10 +78,20 @@ public class DatabaseSeeder {
         for (int i = 1; i <= 13; i++) {
             User u = db.userDao().getUserByEmail("customer" + i + "@bakery.com");
             if (u == null) continue;
+            if (db.customerDao().getByUserId(u.userId) != null) continue;
+
+            // Create a real, non-empty address for each seeded customer.
+            Address addr = new Address();
+            addr.addressLine1 = i + " Customer St";
+            addr.addressLine2 = null;
+            addr.addressCity = "Toronto";
+            addr.addressProvince = "Ontario";
+            addr.addressPostalCode = "M5V 0" + i;
+            int addressId = (int) db.addressDao().insert(addr);
 
             Customer c = new Customer();
             c.userId = u.userId;
-            c.addressId = i;
+            c.addressId = addressId;
             c.customerFirstName = "Customer" + i;
             c.customerMiddleInitial = null;
             c.customerLastName = "Test";
@@ -120,45 +114,61 @@ public class DatabaseSeeder {
 
         BakeryLocation loc1 = new BakeryLocation();
         loc1.name = "North Harbour Bakery - Downtown";
-        loc1.address = "123 Main St";
-        loc1.city = "Calgary";
-        loc1.province = "Alberta";
-        loc1.postalCode = "T2P 1A1";
+        Address loc1Address = new Address();
+        loc1Address.addressLine1 = "123 Main St";
+        loc1Address.addressLine2 = null;
+        loc1Address.addressCity = "Calgary";
+        loc1Address.addressProvince = "Alberta";
+        loc1Address.addressPostalCode = "T2P 1A1";
+        loc1.addressId = (int) db.addressDao().insert(loc1Address);
         loc1.phone = "(403) 555-2101";
         loc1.email = "downtown@northharbourbakery.ca";
         loc1.status = "Open";
-        loc1.openingHours = "Mon-Sat 7am-7pm";
         loc1.latitude = 51.0447;
         loc1.longitude = -114.0719;
-        db.bakeryLocationDao().insert(loc1);
+        int loc1Id = (int) db.bakeryLocationDao().insert(loc1);
+        seedDefaultBakeryHours(db, loc1Id);
 
         BakeryLocation loc2 = new BakeryLocation();
         loc2.name = "North Harbour Bakery - Edmonton Central";
-        loc2.address = "456 Jasper Ave";
-        loc2.city = "Edmonton";
-        loc2.province = "Alberta";
-        loc2.postalCode = "T5J 1S9";
+        Address loc2Address = new Address();
+        loc2Address.addressLine1 = "456 Jasper Ave";
+        loc2Address.addressLine2 = null;
+        loc2Address.addressCity = "Edmonton";
+        loc2Address.addressProvince = "Alberta";
+        loc2Address.addressPostalCode = "T5J 1S9";
+        loc2.addressId = (int) db.addressDao().insert(loc2Address);
         loc2.phone = "(780) 555-4302";
         loc2.email = "edmonton@northharbourbakery.ca";
         loc2.status = "Open";
-        loc2.openingHours = "Mon-Sat 7am-7pm";
         loc2.latitude = 53.5461;
         loc2.longitude = -113.4938;
-        db.bakeryLocationDao().insert(loc2);
+        int loc2Id = (int) db.bakeryLocationDao().insert(loc2);
+        seedDefaultBakeryHours(db, loc2Id);
 
         BakeryLocation loc3 = new BakeryLocation();
         loc3.name = "North Harbour Bakery - Toronto Financial";
-        loc3.address = "789 Bay St";
-        loc3.city = "Toronto";
-        loc3.province = "Ontario";
-        loc3.postalCode = "M5J 2T3";
+        Address loc3Address = new Address();
+        loc3Address.addressLine1 = "789 Bay St";
+        loc3Address.addressLine2 = null;
+        loc3Address.addressCity = "Toronto";
+        loc3Address.addressProvince = "Ontario";
+        loc3Address.addressPostalCode = "M5J 2T3";
+        loc3.addressId = (int) db.addressDao().insert(loc3Address);
         loc3.phone = "(416) 555-9012";
         loc3.email = "toronto@northharbourbakery.ca";
         loc3.status = "Open";
-        loc3.openingHours = "Mon-Sat 7am-7pm";
         loc3.latitude = 43.6532;
         loc3.longitude = -79.3832;
-        db.bakeryLocationDao().insert(loc3);
+        int loc3Id = (int) db.bakeryLocationDao().insert(loc3);
+        seedDefaultBakeryHours(db, loc3Id);
+    }
+
+    private static void seedDefaultBakeryHours(AppDatabase db, int bakeryId) {
+        for (int day = 1; day <= 6; day++) {
+            db.bakeryHoursDao().insert(new BakeryHours(bakeryId, day, "07:00", "19:00", false));
+        }
+        db.bakeryHoursDao().insert(new BakeryHours(bakeryId, 7, null, null, true));
     }
 
     private static void seedBatches(AppDatabase db) {
@@ -250,22 +260,27 @@ public class DatabaseSeeder {
 
     private static void seedRewardTiers(AppDatabase db) {
         if (!db.rewardTierDao().getAll().isEmpty()) return;
-//        db.rewardTierDao().insert(new RewardTier(DEFAULT_REWARD_TIER_ID, DEFAULT_TIER_NAME));
-        db.rewardTierDao().insert(new RewardTier(1, "Default"));
-        db.rewardTierDao().insert(new RewardTier(2, "Silver"));
-        db.rewardTierDao().insert(new RewardTier(3, "Gold"));
-    }
-
-    /** One default address for customers who don't provide one (required by FK). */
-    private static void seedDefaultAddress(AppDatabase db) {
-        if (db.addressDao().getById(1) != null) return;
-        Address a = new Address();
-        a.addressLine1 = "";
-        a.addressLine2 = null;
-        a.addressCity = null;
-        a.addressProvince = "";
-        a.addressPostalCode = "";
-        db.addressDao().insert(a);
+        db.rewardTierDao().insert(new RewardTier(
+                DEFAULT_REWARD_TIER_ID,
+                DEFAULT_TIER_NAME,
+                0,
+                9999,
+                "Starting tier for all customers"
+        ));
+        db.rewardTierDao().insert(new RewardTier(
+                SILVER_REWARD_TIER_ID,
+                SILVER_TIER_NAME,
+                10000,
+                24999,
+                "Mid-tier status with stronger rewards progress"
+        ));
+        db.rewardTierDao().insert(new RewardTier(
+                GOLD_REWARD_TIER_ID,
+                GOLD_TIER_NAME,
+                25000,
+                null,
+                "Top tier for highly engaged customers"
+        ));
     }
 
     private static void seedAdminUser(AppDatabase db) {
@@ -341,6 +356,50 @@ public class DatabaseSeeder {
             e.employeeEmail = "employee" + i + "@bakery.com";
             db.employeeDao().insert(e);
         }
+    }
+    private static void seedTestCustomer(AppDatabase db) {
+        // Check if test user already exists
+        User existingUser = db.userDao().getUserByEmail("customer@bakery.com");
+        if (existingUser != null) return;
+
+        // Create a test address
+        Address address = new Address();
+        address.addressLine1 = "123 Bakery Avenue";
+        address.addressLine2 = null;
+        address.addressCity = "Calgary";
+        address.addressProvince = "Alberta";
+        address.addressPostalCode = "2B2 B2B";
+        long addressId = db.addressDao().insert(address);
+
+        // Create user
+        User user = new User();
+        user.userUsername = "customer";
+        user.userEmail = "customer@bakery.com";
+        user.userPasswordHash = HashUtils.hash("customer123");
+        user.userRole = "CUSTOMER";
+        user.userCreatedAt = System.currentTimeMillis();
+        long userId = db.userDao().insert(user);
+
+        // Create customer profile
+        Customer customer = new Customer();
+        customer.userId = (int) userId;
+        customer.addressId = (int) addressId;
+        customer.rewardTierId = DEFAULT_REWARD_TIER_ID;
+        customer.customerFirstName = "Test";
+        customer.customerMiddleInitial = null;
+        customer.customerLastName = "Customer";
+        customer.customerRole = "Customer";
+        customer.customerPhone = "(416) 555-1234";
+        customer.customerBusinessPhone = null;
+        customer.customerRewardBalance = 1000; // Give them some points
+        customer.customerTierAssignedDate = System.currentTimeMillis();
+        customer.customerEmail = "customer@bakery.com";
+        customer.profilePhotoPath = null;
+        customer.photoApprovalPending = false;
+
+        db.customerDao().insert(customer);
+
+        Log.d("DatabaseSeeder", "Test customer created with address ID: " + addressId);
     }
 
     private static void seedCategories(AppDatabase db) {

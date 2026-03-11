@@ -9,7 +9,7 @@ import androidx.room.PrimaryKey;
         foreignKeys = {
                 @ForeignKey(
                         entity = BakeryLocation.class,
-                        parentColumns = "id",
+                        parentColumns = "bakeryId",
                         childColumns = "bakeryId"
                 ),
                 @ForeignKey(

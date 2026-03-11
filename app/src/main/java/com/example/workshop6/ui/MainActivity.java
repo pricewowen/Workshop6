@@ -40,6 +40,12 @@ public class MainActivity extends AppCompatActivity {
 
         BottomNavigationView bottomNav = findViewById(R.id.bottom_nav);
         NavigationUI.setupWithNavController(bottomNav, navController);
+
+        // Customer should not see moderation tools.
+        boolean canModeratePhotos = !"CUSTOMER".equalsIgnoreCase(sessionManager.getUserRole());
+        if (bottomNav.getMenu().findItem(R.id.nav_photo_approvals) != null) {
+            bottomNav.getMenu().findItem(R.id.nav_photo_approvals).setVisible(canModeratePhotos);
+        }
     }
 
     /** Expose session to fragments. */

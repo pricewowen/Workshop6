@@ -22,7 +22,7 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.workshop6.R;
 import com.example.workshop6.data.db.AppDatabase;
-import com.example.workshop6.data.model.BakeryLocation;
+import com.example.workshop6.data.model.BakeryLocationDetails;
 import com.example.workshop6.util.LocationUtils;
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationServices;
@@ -124,7 +124,7 @@ public class MapFragment extends Fragment {
         });
     }
 
-    private void onLocationsUpdated(List<BakeryLocation> locs) {
+    private void onLocationsUpdated(List<BakeryLocationDetails> locs) {
         if (nearbyMode && hasUserLocation) {
             adapter.setNearbyMode(true, userLat, userLon);
             adapter.submitList(LocationUtils.sortByDistance(locs, userLat, userLon));

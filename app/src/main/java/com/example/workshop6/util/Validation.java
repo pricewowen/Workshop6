@@ -6,7 +6,8 @@ import java.util.regex.Pattern;
 
 public class Validation {
     private static final int MIN_PASSWORD_LENGTH = 8;
-    private static final int MAX_PASSWORD_LENGTH = 250;
+    // Keep max aligned with practical credential policy used by the app.
+    private static final int MAX_PASSWORD_LENGTH = 72;
     private static final Pattern FULL_NAME_PATTERN = Pattern.compile("^[a-zA-Z ]+$");
     private static final Pattern PHONE_NUMBER_PATTERN = Pattern.compile("^[0-9]{10}$");
 
@@ -51,13 +52,21 @@ public class Validation {
     }
 
     /**
-     * Checks if the given password meets the minimum and maximum length requirement.
+     * Checks whether the password length is within allowed bounds.
      *
      * @param password the password to be validated
      * @return true if the password is long enough
      */
     public static boolean isPasswordValid(@Nullable CharSequence password) {
         return !isEmpty(password) && password.length() >= MIN_PASSWORD_LENGTH && password.length() <= MAX_PASSWORD_LENGTH;
+    }
+
+    public static boolean isPasswordTooShort(@Nullable CharSequence password) {
+        return !isEmpty(password) && password.length() < MIN_PASSWORD_LENGTH;
+    }
+
+    public static boolean isPasswordTooLong(@Nullable CharSequence password) {
+        return !isEmpty(password) && password.length() > MAX_PASSWORD_LENGTH;
     }
 
     /**
@@ -99,8 +108,27 @@ public class Validation {
     public static boolean isUsernameValid(@Nullable CharSequence username) {
         if (username == null) return false;
         String s = username.toString().trim();
-        return s.length() >= USERNAME_MIN_LENGTH && s.length() <= USERNAME_MAX_LENGTH
+        return s.length() >= USERNAME_MIN_LENGTH
+                && s.length() <= USERNAME_MAX_LENGTH
                 && USERNAME_PATTERN.matcher(s).matches();
+    }
+
+    public static boolean isUsernameTooShort(@Nullable CharSequence username) {
+        if (username == null) return false;
+        String s = username.toString().trim();
+        return !s.isEmpty() && s.length() < USERNAME_MIN_LENGTH;
+    }
+
+    public static boolean isUsernameTooLong(@Nullable CharSequence username) {
+        if (username == null) return false;
+        String s = username.toString().trim();
+        return s.length() > USERNAME_MAX_LENGTH;
+    }
+
+    public static boolean isUsernameFormatValid(@Nullable CharSequence username) {
+        if (username == null) return false;
+        String s = username.toString().trim();
+        return !s.isEmpty() && USERNAME_PATTERN.matcher(s).matches();
     }
 
     /**

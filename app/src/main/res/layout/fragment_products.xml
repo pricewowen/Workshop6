@@ -79,52 +79,108 @@
         </com.google.android.material.card.MaterialCardView>
 
 
-        <!-- REWARDS CARD -->
+        <!-- LOYALTY DASHBOARD CARD -->
         <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"
-            android:layout_height="80dp"
+            android:layout_height="wrap_content"
             android:layout_marginBottom="16dp"
-            app:cardBackgroundColor="#E9E3D8"
+            app:cardBackgroundColor="@color/bakery_card_white"
             app:cardCornerRadius="16dp"
             app:cardElevation="4dp">
 
-            <RelativeLayout
+            <LinearLayout
                 android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:background="@color/bakery_card_white"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
                 android:padding="16dp">
 
-                <TextView
-                    android:id="@+id/tvPoints"
-                    android:layout_width="wrap_content"
+                <LinearLayout
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="@string/label_points_available"
-                    android:textColor="@color/bakery_text_dark"
-                    android:textSize="16sp"
-                    android:textStyle="bold" />
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:id="@+id/tvPoints"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="0"
+                            android:textColor="@color/bakery_text_dark"
+                            android:textSize="22sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/label_current_points"
+                            android:textColor="#666666"
+                            android:textSize="12sp" />
+                    </LinearLayout>
+
+                    <Button
+                        android:id="@+id/btnRedeem"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:background="@android:color/transparent"
+                        android:text="@string/btn_redeem"
+                        android:textColor="@color/bakery_gold"
+                        android:textStyle="bold" />
+                </LinearLayout>
 
                 <TextView
                     android:id="@+id/tvLevel"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_below="@id/tvPoints"
-                    android:text="@string/label_points_to_next"
+                    android:layout_marginTop="12dp"
+                    android:text="@string/label_default"
+                    android:textColor="@color/bakery_text_dark"
+                    android:textSize="16sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/tvTierDescription"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:text="@string/label_tier_description_default"
                     android:textColor="#666666"
                     android:textSize="12sp" />
 
-                <Button
-                    android:id="@+id/btnRedeem"
+                <ProgressBar
+                    android:id="@+id/progressLoyalty"
+                    style="?android:attr/progressBarStyleHorizontal"
+                    android:layout_width="match_parent"
+                    android:layout_height="10dp"
+                    android:layout_marginTop="12dp"
+                    android:max="100"
+                    android:progress="0"
+                    android:progressTint="@color/bakery_gold" />
+
+                <TextView
+                    android:id="@+id/tvNextTier"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_alignParentEnd="true"
-                    android:layout_centerVertical="true"
-                    android:background="@android:color/transparent"
-                    android:text="@string/btn_redeem"
-                    android:textColor="@color/bakery_gold"
+                    android:layout_marginTop="12dp"
+                    android:text="@string/label_next_tier_default"
+                    android:textColor="@color/bakery_text_dark"
+                    android:textSize="14sp"
                     android:textStyle="bold" />
 
-
-            </RelativeLayout>
+                <TextView
+                    android:id="@+id/tvPointsNeeded"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:text="@string/label_points_needed_default"
+                    android:textColor="#666666"
+                    android:textSize="12sp" />
+            </LinearLayout>
 
         </com.google.android.material.card.MaterialCardView>
 

@@ -4,7 +4,6 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 
@@ -13,6 +12,7 @@ import com.example.workshop6.data.db.AppDatabase;
 import com.example.workshop6.data.model.Customer;
 import com.example.workshop6.data.model.Employee;
 import com.example.workshop6.data.model.User;
+import com.example.workshop6.logging.ActivityLogger;
 import com.example.workshop6.ui.MainActivity;
 import com.example.workshop6.util.HashUtils;
 import com.example.workshop6.util.Validation;
@@ -49,10 +49,6 @@ public class LoginActivity extends AppCompatActivity {
         AppDatabase.getInstance(getApplicationContext());
 
         findViewById(R.id.btn_login).setOnClickListener(v -> attemptLogin());
-
-        // Optional stub: forgot password
-        findViewById(R.id.tv_forgot_password).setOnClickListener(v ->
-                Toast.makeText(this, R.string.toast_coming_soon, Toast.LENGTH_SHORT).show());
 
         // Register link
         findViewById(R.id.tv_register_link).setOnClickListener(v ->
@@ -123,8 +119,20 @@ public class LoginActivity extends AppCompatActivity {
             runOnUiThread(() -> {
                 if (ok) {
                     sessionManager.createSession(userFinal.userId, userFinal.userRole, nameForSession);
+                    ActivityLogger.log(
+                            this,
+                            nameForSession,
+                            "LOGIN",
+                            "User logged in (role: " + userFinal.userRole + ")"
+                    );
                     goToMain();
                 } else {
+                    ActivityLogger.logFailure(
+                            this,
+                            null,
+                            "LOGIN",
+                            "Failed login attempt for username/email: " + email
+                    );
                     tvError.setText(R.string.login_error_invalid_username_or_email);
                     tvError.setVisibility(View.VISIBLE);
                 }
