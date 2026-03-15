@@ -10,10 +10,12 @@ import com.example.workshop6.data.model.BakeryLocation;
 import com.example.workshop6.data.model.Category;
 import com.example.workshop6.data.model.Customer;
 import com.example.workshop6.data.model.Employee;
+import com.example.workshop6.data.model.Order;
 import com.example.workshop6.data.model.Product;
 import com.example.workshop6.data.model.ProductTag;
 import com.example.workshop6.data.model.Reward;
 import com.example.workshop6.data.model.RewardTier;
+import com.example.workshop6.data.model.Review;
 import com.example.workshop6.data.model.User;
 import com.example.workshop6.util.HashUtils;
 
@@ -32,7 +34,6 @@ public class DatabaseSeeder {
         seedRewardTiers(db);
         seedAdminUser(db);
         seedAdminEmployee(db);
-        seedBakeryLocations(db);
         seedTestCustomer(db);
         seedCategories(db);
         seedProducts(db);
@@ -40,7 +41,9 @@ public class DatabaseSeeder {
         seedCustomers(db);
         seedBakeryLocations(db);
         seedBatches(db);
+        seedOrders(db);
         seedRewards(db);
+        seedReviews(db);
     }
 
 
@@ -436,5 +439,102 @@ public class DatabaseSeeder {
         db.productDao().insert(new Product(14, "Brownie", "Fudgy chocolate brownie", 3.50, R.drawable.product_brownie));
         db.productDao().insert(new Product(15, "Gluten-Free Banana Muffin", "Gluten-free banana muffin", 3.75, R.drawable.product_gluten_free_banana_muffin));
         db.productDao().insert(new Product(16, "Vegan Chocolate Chip Cookie", "Vegan cookie with chocolate chips", 2.50, R.drawable.product_vegan_chocolate_chip_cookie));
+    }
+
+    private static void seedOrders(AppDatabase db) {
+
+        if (!db.orderDao().getAllOrders().isEmpty()) return;
+
+        long now = System.currentTimeMillis();
+
+        for (int i = 1; i <= 13; i++) {
+
+            db.orderDao().insert(new Order(
+                    0,              // auto generated orderId
+                    i,              // customerId
+                    1,              // bakeryId
+                    i,              // addressId (customer addresses were seeded 1..13)
+                    now,
+                    now,
+                    null,
+                    "pickup",
+                    "Seed order for customer " + i,
+                    10.0 + (i * 2),
+                    0.0,
+                    "completed"
+            ));
+        }
+    }
+
+    private static void seedReviews(AppDatabase db) {
+
+        if (db.customerDao().getAllCustomers().isEmpty()) return;
+        if (db.productDao().getAllProducts().isEmpty()) return;
+
+        if (!db.reviewDao().getReviewsForProduct(1).isEmpty()) return;
+
+        long now = System.currentTimeMillis();
+
+        // PRODUCT 1
+        insertReview(db, 1, 1, 5, "Perfect crust and buttery layers.", now);
+        insertReview(db, 1, 2, 4, "Very good croissant, nice texture.", now);
+
+        // PRODUCT 2
+        insertReview(db, 2, 1, 5, "Absolutely delicious brownie.", now);
+
+        // PRODUCT 3
+        insertReview(db, 3, 2, 4, "Soft and fresh, really enjoyed it.", now);
+
+        // PRODUCT 4
+        insertReview(db, 4, 1, 5, "Great flavor balance.", now);
+        insertReview(db, 4, 2, 4, "Would definitely buy again.", now);
+
+        // PRODUCT 5
+        insertReview(db, 5, 1, 5, "Amazing croissant!", now);
+
+        // PRODUCT 6
+        insertReview(db, 6, 2, 4, "Nice sweetness and texture.", now);
+
+        // PRODUCT 7
+        insertReview(db, 7, 1, 3, "Good but a bit too sweet.", now);
+
+        // PRODUCT 8
+        insertReview(db, 8, 2, 4, "Very tasty cookie.", now);
+        insertReview(db, 8, 1, 5, "One of my favorites!", now);
+
+        // PRODUCT 9
+        insertReview(db, 9, 1, 4, "Really good pastry.", now);
+
+        // PRODUCT 10
+        insertReview(db, 10, 2, 5, "Fresh and flavorful.", now);
+
+        // PRODUCT 11
+        insertReview(db, 11, 1, 4, "Nice bakery classic.", now);
+
+        // PRODUCT 12
+        insertReview(db, 12, 2, 5, "Fantastic texture.", now);
+
+        // PRODUCT 13
+        insertReview(db, 13, 1, 4, "Great with coffee.", now);
+    }
+
+    private static void insertReview(
+            AppDatabase db,
+            int productId,
+            int customerId,
+            int rating,
+            String comment,
+            long timestamp
+    ) {
+
+        Review review = new Review();
+
+        review.productId = productId;
+        review.customerId = customerId;
+        review.rating = rating;
+        review.comment = comment;
+        review.timestamp = timestamp;
+
+        db.reviewDao().insertReview(review);
     }
 }

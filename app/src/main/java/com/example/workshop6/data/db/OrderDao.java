@@ -10,6 +10,7 @@ import java.util.List;
 
 @Dao
 public interface OrderDao {
+
     @Insert
     long insert(Order order);
 
@@ -24,4 +25,8 @@ public interface OrderDao {
             "WHERE c.userId = :userId " +
             "ORDER BY o.orderPlacedDateTime DESC")
     List<Order> getOrdersByUserId(int userId);
+
+    // Added for DatabaseSeeder
+    @Query("SELECT * FROM orders")
+    List<Order> getAllOrders();
 }

@@ -12,17 +12,16 @@ import com.example.workshop6.data.model.Address;
 import com.example.workshop6.data.model.BakeryHours;
 import com.example.workshop6.data.model.BakeryLocation;
 import com.example.workshop6.data.model.Batch;
-import com.example.workshop6.data.model.Batch;
 import com.example.workshop6.data.model.Category;
 import com.example.workshop6.data.model.Customer;
 import com.example.workshop6.data.model.Employee;
 import com.example.workshop6.data.model.Order;
 import com.example.workshop6.data.model.OrderItem;
-import com.example.workshop6.data.model.OrderItem;
 import com.example.workshop6.data.model.Product;
 import com.example.workshop6.data.model.ProductTag;
 import com.example.workshop6.data.model.Reward;
 import com.example.workshop6.data.model.RewardTier;
+import com.example.workshop6.data.model.Review;
 import com.example.workshop6.data.model.User;
 
 import java.util.concurrent.CountDownLatch;
@@ -45,9 +44,10 @@ import java.util.concurrent.TimeUnit;
                 Reward.class,
                 Batch.class,
                 Order.class,
-                OrderItem.class
+                OrderItem.class,
+                Review.class
         },
-        version = 15,
+        version = 18,
         exportSchema = false
 )
 public abstract class AppDatabase extends RoomDatabase {
@@ -66,6 +66,7 @@ public abstract class AppDatabase extends RoomDatabase {
     public abstract OrderDao orderDao();
     public abstract BatchDao batchDao();
     public abstract OrderItemDao orderItemDao();
+    public abstract ReviewDao reviewDao();
 
     private static volatile AppDatabase INSTANCE;
 

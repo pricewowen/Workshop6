@@ -11,6 +11,7 @@ import java.util.List;
 
 @Dao
 public interface CustomerDao {
+
     @Insert
     long insert(Customer customer);
 
@@ -31,4 +32,8 @@ public interface CustomerDao {
 
     @Query("UPDATE customer SET photoApprovalPending = 0, profilePhotoPath = NULL WHERE customerId = :customerId")
     void rejectCustomerPhoto(int customerId);
+
+    // Added for DatabaseSeeder
+    @Query("SELECT * FROM customer")
+    List<Customer> getAllCustomers();
 }
