@@ -12,7 +12,8 @@
         android:layout_height="?attr/actionBarSize"
         android:background="@color/bakery_primary"
         app:title="@string/cart_title"
-        app:titleTextColor="@color/bakery_text_light" />
+        app:titleTextColor="@color/bakery_text_light"
+        app:navigationIcon="@drawable/ic_arrow_back" />
 
     <TextView
         android:id="@+id/tvEmptyCart"

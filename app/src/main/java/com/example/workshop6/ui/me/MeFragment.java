@@ -25,6 +25,7 @@ import com.example.workshop6.data.model.Customer;
 import com.example.workshop6.data.model.Employee;
 import com.example.workshop6.data.model.User;
 import com.example.workshop6.logging.ActivityLogger;
+import com.example.workshop6.ui.cart.CartManager;
 import com.example.workshop6.ui.orders.OrderHistoryActivity;
 import com.example.workshop6.ui.profile.EditProfileActivity;
 
@@ -66,6 +67,7 @@ public class MeFragment extends Fragment {
 
         view.findViewById(R.id.btn_logout).setOnClickListener(v -> {
             ActivityLogger.log(requireContext(), sessionManager, "LOGOUT", "User logged out");
+            CartManager.getInstance(requireContext()).onLogout();
             sessionManager.logout();
             Intent intent = new Intent(requireContext(), LoginActivity.class);
             intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);

@@ -128,7 +128,7 @@ public class CheckoutActivity extends AppCompatActivity {
 
         // Set up time picker
         selectedDateTime = Calendar.getInstance();
-        selectedDateTime.add(Calendar.HOUR, 1); // Default to 1 hour from now
+        selectedDateTime.add(Calendar.HOUR, 1);
         updateScheduledTimeDisplay();
 
         btnSelectTime.setOnClickListener(v -> showDateTimePicker());
@@ -286,7 +286,7 @@ public class CheckoutActivity extends AppCompatActivity {
                 (view, year, month, dayOfMonth) -> {
                     selectedDateTime.set(year, month, dayOfMonth);
 
-                    TimePickerDialog timePickerDialog = new TimePickerDialog(this,
+                    TimePickerDialog timePickerDialog = new TimePickerDialog(this, 2,
                             (view1, hourOfDay, minute) -> {
                                 selectedDateTime.set(Calendar.HOUR_OF_DAY, hourOfDay);
                                 selectedDateTime.set(Calendar.MINUTE, minute);
