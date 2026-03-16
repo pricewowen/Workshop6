@@ -196,19 +196,12 @@ public class CheckoutActivity extends AppCompatActivity {
         AppDatabase.databaseWriteExecutor.execute(() -> {
             try {
                 // Get customer fro db
-                Customer customer = db.customerDao().getByUserId(userId);
+                currentCustomer = db.customerDao().getByUserId(userId);
 
-                if (customer != null && customer.addressId > 0) {
-                    Address address = db.addressDao().getById(customer.addressId);
-
-                    // Update both currentCustomer and userAddress
-                    final Address loadedAddress = address;
-                    final Customer loadedCustomer = customer;
+                if (currentCustomer != null && currentCustomer.addressId > 0) {
+                    userAddress = db.addressDao().getById(currentCustomer.addressId);
 
                     runOnUiThread(() -> {
-                        currentCustomer = loadedCustomer;
-                        userAddress = loadedAddress;
-
                         // Log for debugging
                         if (userAddress != null) {
                             Log.d("Checkout", "Address loaded: " + userAddress.addressLine1);
@@ -327,17 +320,22 @@ public class CheckoutActivity extends AppCompatActivity {
             if (userAddress == null ||
                     userAddress.addressLine1 == null ||
                     userAddress.addressLine1.trim().isEmpty()) {
-                Toast.makeText(this, "Please add an address to your account", Toast.LENGTH_SHORT).show();
+                if (userAddress == null) {
+                    rbDelivery.setError("Loading address...");
+                } else {
+                    rbDelivery.setError(getString(R.string.error_no_address));
+                }
                 valid = false;
+            } else {
+                rbDelivery.setError(null);
             }
         } else {
-            // Pickup select a bakery
             if (selectedBakery == null) {
-                Toast.makeText(this, "Please select a bakery", Toast.LENGTH_SHORT).show();
                 valid = false;
             }
         }
 
+        // Time validation
         if (selectedDateTime.before(Calendar.getInstance())) {
             tvScheduledTime.setError(getString(R.string.error_past_time));
             valid = false;
