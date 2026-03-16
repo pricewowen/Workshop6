@@ -327,7 +327,7 @@ public class CheckoutActivity extends AppCompatActivity {
             if (userAddress == null ||
                     userAddress.addressLine1 == null ||
                     userAddress.addressLine1.trim().isEmpty()) {
-                rbDelivery.setError(getString(R.string.error_no_address));
+                Toast.makeText(this, "Please add an address to your account", Toast.LENGTH_SHORT).show();
                 valid = false;
             }
         } else {
@@ -414,13 +414,14 @@ public class CheckoutActivity extends AppCompatActivity {
                     if (customer == null) {
                         throw new IllegalStateException("USER_NOT_FOUND");
                     }
-
-                    // Use selected bakery id for pickup
                     int bakeryId = deliveryMethod.equals("pickup") ? selectedBakeryId : 1;
-
-                    // Address id
-                    int addressId = deliveryMethod.equals("delivery") ? customer.addressId : 0;
-
+                    int addressId;
+                    if(deliveryMethod.equals("delivery")){
+                        addressId = customer.addressId;
+                    }
+                    else{
+                        addressId = selectedBakery.addressId;
+                    }
                     // Create order
                     Order order = new Order(
                             0,
@@ -499,7 +500,7 @@ public class CheckoutActivity extends AppCompatActivity {
                     Toast.makeText(this, R.string.order_placed_success, Toast.LENGTH_LONG).show();
 
                     Intent intent = new Intent(this, com.example.workshop6.ui.MainActivity.class);
-                    intent.putExtra("navigate_to", "orders");
+                    intent.putExtra("navigate_to", "me");
                     intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
                     startActivity(intent);
                     finish();
