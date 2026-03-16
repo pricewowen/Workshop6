@@ -2,6 +2,7 @@ package com.example.workshop6.ui;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.view.MenuItem;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.navigation.NavController;
@@ -24,7 +25,6 @@ public class MainActivity extends AppCompatActivity {
 
         sessionManager = new SessionManager(this);
 
-        // Guard: session expired — bounce back to login
         if (!sessionManager.isLoggedIn()) {
             startActivity(new Intent(this, LoginActivity.class));
             finish();
@@ -33,22 +33,36 @@ public class MainActivity extends AppCompatActivity {
 
         setContentView(R.layout.activity_main);
 
-        // Wire Navigation Component
         NavHostFragment navHostFragment = (NavHostFragment)
                 getSupportFragmentManager().findFragmentById(R.id.nav_host_fragment);
+
+        if (navHostFragment == null) {
+            finish();
+            return;
+        }
+
         navController = navHostFragment.getNavController();
 
         BottomNavigationView bottomNav = findViewById(R.id.bottom_nav);
         NavigationUI.setupWithNavController(bottomNav, navController);
 
-        // Customer should not see moderation tools.
-        boolean canModeratePhotos = !"CUSTOMER".equalsIgnoreCase(sessionManager.getUserRole());
-        if (bottomNav.getMenu().findItem(R.id.nav_photo_approvals) != null) {
-            bottomNav.getMenu().findItem(R.id.nav_photo_approvals).setVisible(canModeratePhotos);
+        String userRole = sessionManager.getUserRole();
+
+        boolean canModeratePhotos = !"CUSTOMER".equalsIgnoreCase(userRole);
+        boolean canAccessStaffChat =
+                "ADMIN".equalsIgnoreCase(userRole) || "EMPLOYEE".equalsIgnoreCase(userRole);
+
+        MenuItem photoApprovalsItem = bottomNav.getMenu().findItem(R.id.nav_photo_approvals);
+        if (photoApprovalsItem != null) {
+            photoApprovalsItem.setVisible(canModeratePhotos);
+        }
+
+        MenuItem staffChatItem = bottomNav.getMenu().findItem(R.id.nav_staff_chat);
+        if (staffChatItem != null) {
+            staffChatItem.setVisible(canAccessStaffChat);
         }
     }
 
-    /** Expose session to fragments. */
     public SessionManager getSessionManager() {
         return sessionManager;
     }
