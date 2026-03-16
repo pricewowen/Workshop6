@@ -98,7 +98,13 @@ public class CartFragment extends Fragment implements CartAdapter.OnCartItemList
             double tax = subtotal * TAX_RATE;
             double total = subtotal + tax;
 
-            tvSubtotal.setText(currencyFormat.format(subtotal));
+            // show discount if there
+            if (cart.hasDiscount()) {
+                 String price = currencyFormat.format(subtotal);
+                tvSubtotal.setText(getString(R.string.label_discount_cart) + " " + price);
+            } else {
+                tvSubtotal.setText(currencyFormat.format(subtotal));
+            }
             tvTax.setText(currencyFormat.format(tax));
             tvTotal.setText(currencyFormat.format(total));
         }

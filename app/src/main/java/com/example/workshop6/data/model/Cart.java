@@ -6,6 +6,7 @@ import java.util.List;
 public class Cart {
     private List<CartItem> items;
     private int customerId;
+    private double discountPercent = 0.0;
 
     public Cart(int customerId) {
         this.customerId = customerId;
@@ -50,6 +51,7 @@ public class Cart {
 
     public void clear() {
         items.clear();
+        discountPercent = 0.0;
     }
 
     public int getTotalItems() {
@@ -61,10 +63,19 @@ public class Cart {
         for (CartItem item : items) {
             total += item.getTotalPrice();
         }
-        return total;
+        return total * (1.0 - discountPercent);
     }
 
     public boolean isEmpty() {
         return items.isEmpty();
+    }
+
+    // Methods for discounted prices
+    public void applyDiscount(double percent) {
+        this.discountPercent = percent;
+    }
+
+    public boolean hasDiscount() {
+        return discountPercent > 0.0;
     }
 }

@@ -156,6 +156,8 @@
     <string name="label_selected_arrow">&gt;</string>
     <string name="label_search">Seach Products...</string>
     <string name="error_password_unsafe">Password contains unsupported characters</string>
+    <string name="label_discount_cart"> (10% off!) </string>
+    <string name="label_discount_applied">Discount Applied</string>
 
     <!-- Profile / photos -->
     <string name="btn_choose_photo">Choose photo</string>

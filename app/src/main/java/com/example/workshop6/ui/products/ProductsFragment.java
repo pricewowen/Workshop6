@@ -260,7 +260,35 @@ public class ProductsFragment extends Fragment {
         // redeem on click listener
         btnRedeem.setOnClickListener(v -> {
             ActivityLogger.log(requireContext(), sessionManager, "ADJUST_POINTS", "Redeem selected from loyalty dashboard");
-            Toast.makeText(this.requireContext(), "Reward page under construction", Toast.LENGTH_LONG).show();
+
+            // fail early
+            if (cartManager.getCart().hasDiscount()) {
+                Toast.makeText(requireContext(), "Discount already applied", Toast.LENGTH_SHORT).show();
+                return;
+            }
+
+            AppDatabase.databaseWriteExecutor.execute(() -> {
+                Customer customer = db.customerDao().getByUserId(userId);
+
+                if (customer == null || customer.customerRewardBalance < 500) {
+                    requireActivity().runOnUiThread(() -> {
+                        Toast.makeText(requireContext(), "You need at least 500 points to redeem", Toast.LENGTH_SHORT).show();
+                    });
+
+                    return;
+                }
+
+                customer.customerRewardBalance -= 500;
+                db.customerDao().update(customer);
+
+                requireActivity().runOnUiThread(() -> {
+                    cartManager.getCart().applyDiscount(0.10);
+                    tvPoints.setText(String.valueOf(customer.customerRewardBalance));
+                    btnRedeem.setEnabled(false);
+                    btnRedeem.setText(R.string.label_discount_applied);
+                    Toast.makeText(this.requireContext(), "10% discount applied!", Toast.LENGTH_LONG).show();
+                });
+            });
         });
 
         // add to cart listener
