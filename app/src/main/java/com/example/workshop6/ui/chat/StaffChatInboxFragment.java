@@ -7,6 +7,8 @@ import android.os.Looper;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -25,6 +27,7 @@ import java.util.List;
 public class StaffChatInboxFragment extends Fragment {
 
     private RecyclerView recyclerThreads;
+    private TextView textEmpty;
     private StaffThreadAdapter adapter;
 
     private AppDatabase db;
@@ -54,6 +57,7 @@ public class StaffChatInboxFragment extends Fragment {
         super.onViewCreated(view, savedInstanceState);
 
         recyclerThreads = view.findViewById(R.id.recycler_staff_threads);
+        textEmpty = view.findViewById(R.id.text_staff_chat_empty);
         recyclerThreads.setLayoutManager(new LinearLayoutManager(requireContext()));
 
         db = AppDatabase.getInstance(requireContext().getApplicationContext());
@@ -66,14 +70,27 @@ public class StaffChatInboxFragment extends Fragment {
 
         AppDatabase.databaseWriteExecutor.execute(() -> {
             currentUser = db.userDao().getUserById(currentUserId);
+            boolean canAccessStaffChat = currentUser != null
+                    && currentUser.isActive
+                    && ("ADMIN".equalsIgnoreCase(currentUser.userRole) || "EMPLOYEE".equalsIgnoreCase(currentUser.userRole));
 
             if (getActivity() == null) return;
 
             requireActivity().runOnUiThread(() -> {
+                if (!canAccessStaffChat) {
+                    Toast.makeText(requireContext(), R.string.account_admin_access_denied, Toast.LENGTH_SHORT).show();
+                    recyclerThreads.setVisibility(View.GONE);
+                    textEmpty.setText(R.string.account_admin_access_denied);
+                    textEmpty.setVisibility(View.VISIBLE);
+                    return;
+                }
                 adapter = new StaffThreadAdapter(item -> {
                     AppDatabase.databaseWriteExecutor.execute(() -> {
-                        if (currentUser != null) {
+                        if (currentUser != null
+                                && ("ADMIN".equalsIgnoreCase(currentUser.userRole) || "EMPLOYEE".equalsIgnoreCase(currentUser.userRole))) {
                             db.chatDao().assignEmployeeIfUnassigned(item.threadId, currentUser.userId);
+                        } else {
+                            return;
                         }
 
                         Intent intent = new Intent(requireContext(), ChatActivity.class);
@@ -104,12 +121,21 @@ public class StaffChatInboxFragment extends Fragment {
     }
 
     private void loadThreads() {
+        if (currentUser == null
+                || (!"ADMIN".equalsIgnoreCase(currentUser.userRole) && !"EMPLOYEE".equalsIgnoreCase(currentUser.userRole))) {
+            return;
+        }
         AppDatabase.databaseWriteExecutor.execute(() -> {
             List<ChatThreadListItem> threads = db.chatDao().getOpenThreadsForInbox();
 
             if (getActivity() == null || adapter == null) return;
 
-            requireActivity().runOnUiThread(() -> adapter.setThreads(threads));
+            requireActivity().runOnUiThread(() -> {
+                adapter.setThreads(threads);
+                boolean empty = threads == null || threads.isEmpty();
+                recyclerThreads.setVisibility(empty ? View.GONE : View.VISIBLE);
+                textEmpty.setVisibility(empty ? View.VISIBLE : View.GONE);
+            });
         });
     }
 }

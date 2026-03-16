@@ -19,6 +19,7 @@ import android.widget.Toast;
 
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.ContextCompat;
 
@@ -29,11 +30,14 @@ import com.example.workshop6.data.db.AppDatabase;
 import com.example.workshop6.data.model.Address;
 import com.example.workshop6.data.model.Customer;
 import com.example.workshop6.data.model.Employee;
+import com.example.workshop6.data.model.User;
 import com.example.workshop6.logging.ActivityLogger;
 import com.example.workshop6.ui.MainActivity;
+import com.example.workshop6.util.HashUtils;
 import com.example.workshop6.util.ImageUtils;
 import com.example.workshop6.util.PhoneFormatTextWatcher;
 import com.example.workshop6.util.PostalCodeFormatTextWatcher;
+import com.example.workshop6.util.SensitiveActionAuthorizer;
 import com.example.workshop6.util.Validation;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.textfield.TextInputEditText;
@@ -71,8 +75,7 @@ public class EditProfileActivity extends AppCompatActivity {
         sessionManager = new SessionManager(this);
 
         if (!sessionManager.isLoggedIn()) {
-            startActivity(new Intent(this, LoginActivity.class));
-            finish();
+            redirectToLogin();
             return;
         }
 
@@ -145,10 +148,29 @@ public class EditProfileActivity extends AppCompatActivity {
             }
             showPhotoChooser();
         });
+        findViewById(R.id.btn_change_password).setOnClickListener(v -> showChangePasswordDialog());
         findViewById(R.id.btn_save).setOnClickListener(v -> attemptSave());
         findViewById(R.id.btn_cancel).setOnClickListener(v -> finish());
 
         loadProfile();
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        if (!sessionManager.isLoggedIn()) {
+            redirectToLogin();
+            return;
+        }
+        sessionManager.touch();
+    }
+
+    @Override
+    public void onUserInteraction() {
+        super.onUserInteraction();
+        if (sessionManager != null) {
+            sessionManager.touch();
+        }
     }
 
     private void showPhotoChooser() {
@@ -440,7 +462,26 @@ public class EditProfileActivity extends AppCompatActivity {
             loadedEmployee.employeePhone = phoneForStorage;
         }
 
+        final String saveFirstName = firstName;
+        final String saveLastName = lastName;
+        final boolean saveAnyAddress = anyAddress;
         final int userId = sessionManager.getUserId();
+
+        SensitiveActionAuthorizer.promptForPassword(
+                this,
+                sessionManager,
+                getString(R.string.reauth_title_profile),
+                getString(R.string.reauth_message_profile),
+                () -> persistProfileChanges(
+                        saveFirstName,
+                        saveLastName,
+                        saveAnyAddress,
+                        userId
+                )
+        );
+    }
+
+    private void persistProfileChanges(String firstName, String lastName, boolean anyAddress, int userId) {
         AppDatabase.databaseWriteExecutor.execute(() -> {
             AppDatabase db = AppDatabase.getInstance(this);
 
@@ -471,7 +512,6 @@ public class EditProfileActivity extends AppCompatActivity {
                 );
 
                 if (matchingAddress != null && matchingAddress.addressId != loadedAddress.addressId) {
-                    // Reuse existing matching address row to avoid duplicates.
                     loadedAddress.addressId = matchingAddress.addressId;
                     if (loadedCustomer != null) {
                         loadedCustomer.addressId = matchingAddress.addressId;
@@ -496,7 +536,6 @@ public class EditProfileActivity extends AppCompatActivity {
                     int refs = db.addressDao().countCustomerReferences(loadedAddress.addressId)
                             + db.addressDao().countEmployeeReferences(loadedAddress.addressId);
                     if (refs > 1) {
-                        // Do not mutate a shared address row; create a new row for this user instead.
                         Address newAddr = new Address();
                         newAddr.addressLine1 = loadedAddress.addressLine1;
                         newAddr.addressLine2 = loadedAddress.addressLine2;
@@ -538,6 +577,97 @@ public class EditProfileActivity extends AppCompatActivity {
                 finish();
             });
         });
+    }
+
+    private void showChangePasswordDialog() {
+        View dialogView = getLayoutInflater().inflate(R.layout.dialog_change_password, null, false);
+        TextInputLayout tilCurrent = dialogView.findViewById(R.id.til_current_password);
+        TextInputLayout tilNew = dialogView.findViewById(R.id.til_new_password);
+        TextInputLayout tilConfirm = dialogView.findViewById(R.id.til_confirm_new_password);
+        TextInputEditText etCurrent = dialogView.findViewById(R.id.et_current_password);
+        TextInputEditText etNew = dialogView.findViewById(R.id.et_new_password);
+        TextInputEditText etConfirm = dialogView.findViewById(R.id.et_confirm_new_password);
+
+        AlertDialog dialog = new MaterialAlertDialogBuilder(this)
+                .setTitle(R.string.change_password_title)
+                .setView(dialogView)
+                .setNegativeButton(R.string.btn_cancel, null)
+                .setPositiveButton(R.string.btn_save, null)
+                .create();
+
+        dialog.setOnShowListener(ignored -> dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v -> {
+            String currentPassword = etCurrent.getText() != null ? etCurrent.getText().toString() : "";
+            String newPassword = etNew.getText() != null ? etNew.getText().toString() : "";
+            String confirmPassword = etConfirm.getText() != null ? etConfirm.getText().toString() : "";
+
+            tilCurrent.setError(null);
+            tilNew.setError(null);
+            tilConfirm.setError(null);
+
+            boolean valid = true;
+            if (Validation.isEmpty(currentPassword)) {
+                tilCurrent.setError(getString(R.string.error_password_required));
+                valid = false;
+            }
+            if (Validation.isEmpty(newPassword)) {
+                tilNew.setError(getString(R.string.error_password_required));
+                valid = false;
+            } else if (!Validation.isPasswordStrong(newPassword)) {
+                tilNew.setError(getString(R.string.error_password_strength));
+                valid = false;
+            }
+            if (Validation.isEmpty(confirmPassword)) {
+                tilConfirm.setError(getString(R.string.error_password_required));
+                valid = false;
+            } else if (!newPassword.equals(confirmPassword)) {
+                tilConfirm.setError(getString(R.string.error_password_mismatch));
+                valid = false;
+            }
+            if (!valid) {
+                return;
+            }
+
+            AppDatabase.databaseWriteExecutor.execute(() -> {
+                AppDatabase db = AppDatabase.getInstance(this);
+                User user = db.userDao().getUserById(sessionManager.getUserId());
+                boolean currentMatches = user != null && user.isActive && HashUtils.verify(currentPassword, user.userPasswordHash);
+                boolean sameAsExisting = currentMatches && HashUtils.verify(newPassword, user.userPasswordHash);
+
+                runOnUiThread(() -> {
+                    if (!currentMatches) {
+                        tilCurrent.setError(getString(R.string.reauth_error_invalid));
+                        return;
+                    }
+                    if (sameAsExisting) {
+                        tilNew.setError(getString(R.string.change_password_reuse_error));
+                        return;
+                    }
+
+                    AppDatabase.databaseWriteExecutor.execute(() -> {
+                        user.userPasswordHash = HashUtils.hash(newPassword);
+                        db.userDao().update(user);
+
+                        runOnUiThread(() -> {
+                            sessionManager.touch();
+                            ActivityLogger.log(this, sessionManager, "CHANGE_PASSWORD", "Password updated");
+                            Toast.makeText(this, R.string.password_changed, Toast.LENGTH_SHORT).show();
+                            dialog.dismiss();
+                        });
+                    });
+                });
+            });
+        }));
+
+        dialog.show();
+    }
+
+    private void redirectToLogin() {
+        sessionManager.logout();
+        Intent intent = new Intent(this, LoginActivity.class);
+        intent.putExtra("session_message", getString(R.string.session_expired));
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+        startActivity(intent);
+        finish();
     }
 
     private void applyPendingPhotoStyle(ImageView imageView) {

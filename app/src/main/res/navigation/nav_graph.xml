@@ -52,6 +52,12 @@
         tools:layout="@layout/fragment_photo_approvals" />
 
     <fragment
+        android:id="@+id/nav_account_admin"
+        android:name="com.example.workshop6.ui.approvals.AccountAdminFragment"
+        android:label="@string/nav_account_admin"
+        tools:layout="@layout/fragment_account_admin" />
+
+    <fragment
         android:id="@+id/nav_staff_chat"
         android:name="com.example.workshop6.ui.chat.StaffChatInboxFragment"
         android:label="@string/staff_chat"

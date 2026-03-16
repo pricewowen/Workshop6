@@ -22,6 +22,7 @@ public class User {
     public String userEmail;
     public String userPasswordHash;
     public String userRole;
+    public boolean isActive = true;
     /** Creation time in milliseconds since epoch. */
     public long userCreatedAt;
 

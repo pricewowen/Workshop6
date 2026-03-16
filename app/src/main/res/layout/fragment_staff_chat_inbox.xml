@@ -9,4 +9,14 @@
         android:layout_height="match_parent"
         android:padding="12dp" />
 
+    <TextView
+        android:id="@+id/text_staff_chat_empty"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:text="@string/staff_chat_empty_threads"
+        android:textColor="@color/bakery_text_secondary"
+        android:textSize="16sp"
+        android:visibility="gone" />
+
 </FrameLayout>

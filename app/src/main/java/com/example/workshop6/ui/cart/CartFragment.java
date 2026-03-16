@@ -15,6 +15,7 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.workshop6.R;
+import com.example.workshop6.auth.SessionManager;
 import com.example.workshop6.data.model.Cart;
 
 import java.text.NumberFormat;
@@ -55,6 +56,17 @@ public class CartFragment extends Fragment implements CartAdapter.OnCartItemList
         tvTax = view.findViewById(R.id.tvTax);
         tvTotal = view.findViewById(R.id.tvTotal);
         btnCheckout = view.findViewById(R.id.btnCheckout);
+
+        SessionManager sessionManager = new SessionManager(requireContext());
+        boolean isCustomer = "CUSTOMER".equalsIgnoreCase(sessionManager.getUserRole());
+        if (!isCustomer) {
+            tvEmptyCart.setVisibility(View.VISIBLE);
+            tvEmptyCart.setText(R.string.staff_purchase_blocked);
+            rvCart.setVisibility(View.GONE);
+            btnCheckout.setEnabled(false);
+            btnCheckout.setAlpha(0.5f);
+            return;
+        }
 
         rvCart.setLayoutManager(new LinearLayoutManager(requireContext()));
         adapter = new CartAdapter(cart.getItems(), this);

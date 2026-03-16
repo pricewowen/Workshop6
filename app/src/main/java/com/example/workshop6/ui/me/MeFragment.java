@@ -11,6 +11,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -100,6 +101,16 @@ public class MeFragment extends Fragment {
 
         AppDatabase.databaseWriteExecutor.execute(() -> {
             AppDatabase db = AppDatabase.getInstance(appContext);
+            User user = db.userDao().getUserById(userId);
+            if (user == null || !"CUSTOMER".equalsIgnoreCase(user.userRole)) {
+                if (getActivity() == null) return;
+                requireActivity().runOnUiThread(() -> Toast.makeText(
+                        requireContext(),
+                        R.string.staff_chat_disabled_for_staff,
+                        Toast.LENGTH_SHORT
+                ).show());
+                return;
+            }
 
             ChatThread existingThread = db.chatDao().getOpenThreadForCustomer(userId);
 
@@ -187,6 +198,12 @@ public class MeFragment extends Fragment {
 
                 tvName.setText(nameText);
                 tvEmail.setText(emailText);
+                boolean isCustomer = "CUSTOMER".equalsIgnoreCase(u.userRole);
+                View rootView = getView();
+                if (rootView != null) {
+                    rootView.findViewById(R.id.btn_order_history).setVisibility(isCustomer ? View.VISIBLE : View.GONE);
+                    rootView.findViewById(R.id.btn_chat_staff).setVisibility(isCustomer ? View.VISIBLE : View.GONE);
+                }
 
                 if (c != null && c.photoApprovalPending) {
                     Bitmap bm = (photoPath != null && !photoPath.isEmpty())

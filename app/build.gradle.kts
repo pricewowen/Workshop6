@@ -54,6 +54,7 @@ dependencies {
 
     // GPS
     implementation(libs.play.services.location)
+    implementation(libs.security.crypto)
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.ext.junit)

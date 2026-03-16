@@ -273,8 +273,8 @@ public class RegisterActivity extends AppCompatActivity {
         } else if (Validation.isPasswordTooLong(pass)) {
             tilPassword.setError(getString(R.string.error_password_too_long));
             valid = false;
-        } else if (!Validation.isPasswordSafeFromSimpleSql(pass)) {
-            tilPassword.setError(getString(R.string.error_password_unsafe));
+        } else if (!Validation.isPasswordStrong(pass)) {
+            tilPassword.setError(getString(R.string.error_password_strength));
             valid = false;
         } else {
             tilPassword.setError(null);
@@ -347,7 +347,7 @@ public class RegisterActivity extends AppCompatActivity {
                     this,
                     null,
                     "REGISTER",
-                    "Registration validation failed for username/email: " + username + " / " + email
+                    "Registration validation failed"
             );
             return;
         }
@@ -364,7 +364,7 @@ public class RegisterActivity extends AppCompatActivity {
                 runOnUiThread(() -> {
                     showDuplicateAccountError();
                 });
-                ActivityLogger.logFailure(this, null, "REGISTER", "Registration blocked: duplicate email " + email);
+                ActivityLogger.logFailure(this, null, "REGISTER", "Registration blocked: duplicate email");
                 return;
             }
 
@@ -373,7 +373,7 @@ public class RegisterActivity extends AppCompatActivity {
                 runOnUiThread(() -> {
                     showDuplicateAccountError();
                 });
-                ActivityLogger.logFailure(this, null, "REGISTER", "Registration blocked: duplicate username " + username);
+                ActivityLogger.logFailure(this, null, "REGISTER", "Registration blocked: duplicate username");
                 return;
             }
 
@@ -384,6 +384,7 @@ public class RegisterActivity extends AppCompatActivity {
                 user.userEmail = email;
                 user.userPasswordHash = HashUtils.hash(pass);
                 user.userRole = "CUSTOMER";
+                user.isActive = true;
                 user.userCreatedAt = System.currentTimeMillis();
                 long newUserId = db.userDao().insert(user);
                 int userId = (int) newUserId;
@@ -447,9 +448,9 @@ public class RegisterActivity extends AppCompatActivity {
                     sessionManager.createSession(userId, user.userRole, displayName);
                     ActivityLogger.log(
                             this,
-                            displayName,
+                            "USER#" + userId,
                             "REGISTER",
-                            "Customer account created (username: " + username + ", email: " + email + ")"
+                            "Customer account created"
                     );
                     goToMain();
                 });

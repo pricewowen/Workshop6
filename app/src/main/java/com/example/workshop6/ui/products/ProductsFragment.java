@@ -29,6 +29,7 @@ import com.example.workshop6.data.model.Product;
 import com.example.workshop6.data.model.RewardTier;
 import com.example.workshop6.logging.ActivityLogger;
 import com.example.workshop6.ui.cart.CartManager;
+import com.example.workshop6.util.SearchUtils;
 import com.google.android.material.textfield.TextInputEditText;
 
 import java.util.List;
@@ -117,9 +118,10 @@ public class ProductsFragment extends Fragment {
                 }
 
                 AppDatabase.databaseWriteExecutor.execute(() -> {
-                    String query = s.toString().trim();
+                    String rawQuery = s.toString().trim();
+                    String query = SearchUtils.normalizeUserSearch(rawQuery);
 
-                    List<Product> filtered = query.isEmpty()
+                    List<Product> filtered = rawQuery.isEmpty()
                             ? db.productDao().getAllProducts()
                             : db.productDao().searchProducts(query);
 
@@ -171,6 +173,12 @@ public class ProductsFragment extends Fragment {
         // get logged in userId
         SessionManager sessionManager = new SessionManager(requireContext());
         int userId = sessionManager.getUserId();
+        boolean isCustomer = "CUSTOMER".equalsIgnoreCase(sessionManager.getUserRole());
+        if (!isCustomer) {
+            Toast.makeText(requireContext(), R.string.staff_purchase_blocked, Toast.LENGTH_SHORT).show();
+            Navigation.findNavController(view).navigate(R.id.nav_home);
+            return;
+        }
 
         // Getting Reward Points
         AppDatabase.databaseWriteExecutor.execute(() -> {

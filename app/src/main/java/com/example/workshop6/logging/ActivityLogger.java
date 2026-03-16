@@ -21,27 +21,21 @@ public final class ActivityLogger {
 
     public static void log(Context context, SessionManager sessionManager, String action, String target) {
         String userName = DEFAULT_USER;
-        if (sessionManager != null) {
-            String candidate = sessionManager.getUserName();
-            if (candidate != null && !candidate.trim().isEmpty()) {
-                userName = candidate.trim();
-            }
+        if (sessionManager != null && sessionManager.getUserId() > 0) {
+            userName = "USER#" + sessionManager.getUserId();
         }
         writeLine(context, userName, action, target, false);
     }
 
     public static void log(Context context, String userName, String action, String target) {
-        String resolved = (userName == null || userName.trim().isEmpty()) ? DEFAULT_USER : userName.trim();
+        String resolved = (userName == null || userName.trim().isEmpty()) ? DEFAULT_USER : sanitize(userName.trim());
         writeLine(context, resolved, action, target, false);
     }
 
     public static void logFailure(Context context, SessionManager sessionManager, String action, String target) {
         String userName = DEFAULT_USER;
-        if (sessionManager != null) {
-            String candidate = sessionManager.getUserName();
-            if (candidate != null && !candidate.trim().isEmpty()) {
-                userName = candidate.trim();
-            }
+        if (sessionManager != null && sessionManager.getUserId() > 0) {
+            userName = "USER#" + sessionManager.getUserId();
         }
         writeLine(context, userName, action, target, true);
     }
@@ -53,7 +47,7 @@ public final class ActivityLogger {
         if (failed) {
             safeAction = safeAction + "_FAILED";
         }
-        String safeTarget = target.trim();
+        String safeTarget = sanitize(target.trim());
         String now = timestamp();
         String line = now
                 + " | USER=" + userName.toUpperCase(Locale.ROOT)
@@ -77,5 +71,22 @@ public final class ActivityLogger {
         SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss z", Locale.getDefault());
         formatter.setTimeZone(TimeZone.getDefault());
         return formatter.format(new Date());
+    }
+
+    private static String sanitize(String raw) {
+        if (raw == null || raw.trim().isEmpty()) {
+            return "";
+        }
+
+        String sanitized = raw.trim()
+                .replaceAll("(?i)[A-Z0-9._%+-]+@([A-Z0-9.-]+\\.[A-Z]{2,})", "***@$1")
+                .replaceAll("(?i)(username|email):\\s*[^\\s|,]+", "$1:[redacted]")
+                .replaceAll("(?i)(address):\\s*[^|]+", "$1:[redacted]");
+
+        if (sanitized.length() > 140) {
+            sanitized = sanitized.substring(0, 140);
+        }
+
+        return sanitized;
     }
 }

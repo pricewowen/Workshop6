@@ -1,5 +1,6 @@
 package com.example.workshop6.ui.orders;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.TextView;
@@ -11,6 +12,7 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.workshop6.R;
+import com.example.workshop6.auth.LoginActivity;
 import com.example.workshop6.auth.SessionManager;
 import com.example.workshop6.data.db.AppDatabase;
 import com.example.workshop6.data.model.Order;
@@ -41,6 +43,10 @@ public class OrderHistoryActivity extends AppCompatActivity {
         setContentView(R.layout.activity_order_history);
 
         sessionManager = new SessionManager(this);
+        if (!sessionManager.isLoggedIn()) {
+            redirectToLogin();
+            return;
+        }
         db = AppDatabase.getInstance(this);
 
         // Set up toolbar
@@ -62,6 +68,24 @@ public class OrderHistoryActivity extends AppCompatActivity {
         rvOrders.setAdapter(adapter);
 
         loadOrders();
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        if (!sessionManager.isLoggedIn()) {
+            redirectToLogin();
+            return;
+        }
+        sessionManager.touch();
+    }
+
+    @Override
+    public void onUserInteraction() {
+        super.onUserInteraction();
+        if (sessionManager != null) {
+            sessionManager.touch();
+        }
     }
 
     private void loadOrders() {
@@ -143,5 +167,14 @@ public class OrderHistoryActivity extends AppCompatActivity {
             this.quantity = quantity;
             this.price = price;
         }
+    }
+
+    private void redirectToLogin() {
+        sessionManager.logout();
+        Intent intent = new Intent(this, LoginActivity.class);
+        intent.putExtra("session_message", getString(R.string.session_expired));
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+        startActivity(intent);
+        finish();
     }
 }

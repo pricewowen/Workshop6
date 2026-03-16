@@ -29,6 +29,12 @@ public interface UserDao {
     @Query("SELECT * FROM user")
     List<User> getAllUsers();
 
+    @Query("SELECT * FROM user WHERE userId != :currentUserId ORDER BY userRole ASC, userUsername ASC")
+    List<User> getManagedUsers(int currentUserId);
+
+    @Query("UPDATE user SET isActive = :isActive WHERE userId = :userId")
+    void setAccountActive(int userId, boolean isActive);
+
     @Query("SELECT COUNT(*) FROM user")
     int countUsers();
 }

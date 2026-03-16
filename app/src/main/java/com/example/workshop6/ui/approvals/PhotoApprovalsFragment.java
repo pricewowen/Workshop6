@@ -19,6 +19,7 @@ import com.example.workshop6.R;
 import com.example.workshop6.auth.SessionManager;
 import com.example.workshop6.data.db.AppDatabase;
 import com.example.workshop6.data.model.Customer;
+import com.example.workshop6.data.model.User;
 import com.example.workshop6.logging.ActivityLogger;
 
 import java.util.ArrayList;
@@ -46,15 +47,6 @@ public class PhotoApprovalsFragment extends Fragment {
         rvPendingPhotos = view.findViewById(R.id.rv_pending_photos);
         tvEmpty = view.findViewById(R.id.tv_pending_empty);
 
-        String role = sessionManager.getUserRole();
-        boolean canModerate = !"CUSTOMER".equalsIgnoreCase(role);
-        if (!canModerate) {
-            tvEmpty.setVisibility(View.VISIBLE);
-            tvEmpty.setText(R.string.photo_approvals_access_denied);
-            rvPendingPhotos.setVisibility(View.GONE);
-            return;
-        }
-
         adapter = new PendingPhotoAdapter(new ArrayList<>(), new PendingPhotoAdapter.Listener() {
             @Override
             public void onApprove(Customer customer) {
@@ -69,15 +61,34 @@ public class PhotoApprovalsFragment extends Fragment {
         rvPendingPhotos.setLayoutManager(new LinearLayoutManager(requireContext()));
         rvPendingPhotos.setAdapter(adapter);
 
-        loadPendingPhotos();
+        verifyAccessAndLoad();
     }
 
     @Override
     public void onResume() {
         super.onResume();
         if (adapter != null) {
-            loadPendingPhotos();
+            verifyAccessAndLoad();
         }
+    }
+
+    private void verifyAccessAndLoad() {
+        final AppDatabase db = AppDatabase.getInstance(requireContext().getApplicationContext());
+        AppDatabase.databaseWriteExecutor.execute(() -> {
+            User user = db.userDao().getUserById(sessionManager.getUserId());
+            boolean canModerate = user != null && user.isActive && !"CUSTOMER".equalsIgnoreCase(user.userRole);
+
+            requireActivity().runOnUiThread(() -> {
+                if (!isAdded()) return;
+                if (!canModerate) {
+                    tvEmpty.setVisibility(View.VISIBLE);
+                    tvEmpty.setText(R.string.photo_approvals_access_denied);
+                    rvPendingPhotos.setVisibility(View.GONE);
+                    return;
+                }
+                loadPendingPhotos();
+            });
+        });
     }
 
     private void loadPendingPhotos() {
@@ -100,6 +111,15 @@ public class PhotoApprovalsFragment extends Fragment {
     private void updateApproval(Customer customer, boolean approve) {
         final AppDatabase db = AppDatabase.getInstance(requireContext().getApplicationContext());
         AppDatabase.databaseWriteExecutor.execute(() -> {
+            User moderator = db.userDao().getUserById(sessionManager.getUserId());
+            boolean canModerate = moderator != null && moderator.isActive && !"CUSTOMER".equalsIgnoreCase(moderator.userRole);
+            if (!canModerate) {
+                requireActivity().runOnUiThread(() -> {
+                    if (!isAdded()) return;
+                    Toast.makeText(requireContext(), R.string.photo_approvals_access_denied, Toast.LENGTH_SHORT).show();
+                });
+                return;
+            }
             if (approve) {
                 db.customerDao().approveCustomerPhoto(customer.customerId);
                 ActivityLogger.log(

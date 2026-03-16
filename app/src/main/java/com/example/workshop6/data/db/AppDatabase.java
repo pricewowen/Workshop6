@@ -49,7 +49,7 @@ import java.util.concurrent.TimeUnit;
                 ChatThread.class,
                 ChatMessage.class
         },
-        version = 19,
+        version = 20,
         exportSchema = false
 )
 public abstract class AppDatabase extends RoomDatabase {

@@ -65,13 +65,16 @@ public class DatabaseSeeder {
                 {"customer13","customer13@bakery.com"},
         };
 
+        // All seeded customers share the same easy-to-type but stronger demo password:
+        // Plaintext: BakeryCust!24
         for (String[] u : customerUsers) {
             if (db.userDao().getUserByEmail(u[1]) == null) {
                 User user = new User();
                 user.userUsername = u[0];
                 user.userEmail = u[1];
-                user.userPasswordHash = HashUtils.hash("customer123");
+                user.userPasswordHash = HashUtils.hash("BakeryCust!24");
                 user.userRole = "CUSTOMER";
+                user.isActive = true;
                 user.userCreatedAt = System.currentTimeMillis();
                 db.userDao().insert(user);
             }
@@ -293,8 +296,10 @@ public class DatabaseSeeder {
         User admin = new User();
         admin.userUsername = "admin";
         admin.userEmail = "admin@bakery.com";
-        admin.userPasswordHash = HashUtils.hash("admin123");
+        // Plaintext demo password: BakeryAdmin!24
+        admin.userPasswordHash = HashUtils.hash("BakeryAdmin!24");
         admin.userRole = "ADMIN";
+        admin.isActive = true;
         admin.userCreatedAt = System.currentTimeMillis();
         db.userDao().insert(admin);
     }
@@ -328,12 +333,15 @@ public class DatabaseSeeder {
 
         // adding test employees
         for (int i = 2; i <= 10; i++) {
-            // Create a dummy user for this employee
+            // Create a dummy user for this employee.
+            // All seeded employees share the same demo password:
+            // Plaintext: BakeryEmp!24
             User u = new User();
             u.userUsername = "employee" + i;
             u.userEmail = "employee" + i + "@bakery.com";
-            u.userPasswordHash = HashUtils.hash("employee123");
+            u.userPasswordHash = HashUtils.hash("BakeryEmp!24");
             u.userRole = "EMPLOYEE";
+            u.isActive = true;
             u.userCreatedAt = System.currentTimeMillis();
             long userId = db.userDao().insert(u); // store userId
 
@@ -378,8 +386,10 @@ public class DatabaseSeeder {
         User user = new User();
         user.userUsername = "customer";
         user.userEmail = "customer@bakery.com";
-        user.userPasswordHash = HashUtils.hash("customer123");
+        // Plaintext demo password: BakeryCust!24
+        user.userPasswordHash = HashUtils.hash("BakeryCust!24");
         user.userRole = "CUSTOMER";
+        user.isActive = true;
         user.userCreatedAt = System.currentTimeMillis();
         long userId = db.userDao().insert(user);
 

@@ -31,6 +31,8 @@ import com.example.workshop6.data.model.Order;
 import com.example.workshop6.data.model.OrderItem;
 import com.example.workshop6.data.model.Reward;
 import com.example.workshop6.logging.ActivityLogger;
+import com.example.workshop6.util.SensitiveActionAuthorizer;
+import com.example.workshop6.util.Validation;
 import com.google.android.material.snackbar.Snackbar;
 
 import java.text.NumberFormat;
@@ -68,6 +70,7 @@ public class CheckoutActivity extends AppCompatActivity {
     private SimpleDateFormat dateTimeFormat = new SimpleDateFormat("MMM dd, yyyy hh:mm a", Locale.CANADA);
     private NumberFormat currencyFormat = NumberFormat.getCurrencyInstance(Locale.CANADA);
     private static final double TAX_RATE = 0.13;
+    private static final double HIGH_VALUE_ORDER_THRESHOLD = 100.0;
 
     private String deliveryMethod = "pickup";
     private String orderComment = "";
@@ -83,6 +86,15 @@ public class CheckoutActivity extends AppCompatActivity {
         setContentView(R.layout.activity_checkout);
 
         sessionManager = new SessionManager(this);
+        if (!sessionManager.isLoggedIn()) {
+            redirectToLogin();
+            return;
+        }
+        if (!"CUSTOMER".equalsIgnoreCase(sessionManager.getUserRole())) {
+            Toast.makeText(this, R.string.staff_purchase_blocked, Toast.LENGTH_SHORT).show();
+            finish();
+            return;
+        }
         cartManager = CartManager.getInstance(this);
         cart = cartManager.getCart();
         db = AppDatabase.getInstance(this);
@@ -105,6 +117,24 @@ public class CheckoutActivity extends AppCompatActivity {
         initializeViews();
         loadCustomerData();
         loadBakeries();
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        if (!sessionManager.isLoggedIn()) {
+            redirectToLogin();
+            return;
+        }
+        sessionManager.touch();
+    }
+
+    @Override
+    public void onUserInteraction() {
+        super.onUserInteraction();
+        if (sessionManager != null) {
+            sessionManager.touch();
+        }
     }
 
     private void initializeViews() {
@@ -155,7 +185,8 @@ public class CheckoutActivity extends AppCompatActivity {
 
             @Override
             public void onTextChanged(CharSequence s, int start, int before, int count) {
-                orderComment = s.toString();
+                String limited = Validation.limitLength(s, Validation.ORDER_COMMENT_MAX_LENGTH);
+                orderComment = limited != null ? limited : "";
             }
 
             @Override
@@ -169,7 +200,19 @@ public class CheckoutActivity extends AppCompatActivity {
         });
 
         // Place order button
-        btnPlaceOrder.setOnClickListener(v -> placeOrder());
+        btnPlaceOrder.setOnClickListener(v -> {
+            if (getOrderTotal() >= HIGH_VALUE_ORDER_THRESHOLD) {
+                SensitiveActionAuthorizer.promptForPassword(
+                        this,
+                        sessionManager,
+                        getString(R.string.reauth_title_checkout),
+                        getString(R.string.reauth_message_checkout, currencyFormat.format(HIGH_VALUE_ORDER_THRESHOLD)),
+                        this::placeOrder
+                );
+            } else {
+                placeOrder();
+            }
+        });
 
         // Edit order button
         btnEditOrder.setOnClickListener(v -> {
@@ -399,6 +442,12 @@ public class CheckoutActivity extends AppCompatActivity {
         confirmationLayout.setVisibility(View.VISIBLE);
     }
 
+    private double getOrderTotal() {
+        double subtotal = cart.getTotalPrice();
+        double tax = subtotal * TAX_RATE;
+        return subtotal + tax;
+    }
+
     private void placeOrder() {
         int userId = sessionManager.getUserId();
 
@@ -430,7 +479,7 @@ public class CheckoutActivity extends AppCompatActivity {
                             selectedDateTime.getTimeInMillis(),
                             null,
                             deliveryMethod,
-                            orderComment,
+                            Validation.limitLength(orderComment, Validation.ORDER_COMMENT_MAX_LENGTH),
                             cart.getTotalPrice() * (1 + TAX_RATE),
                             0.0, // discount
                             "pending"
@@ -521,5 +570,14 @@ public class CheckoutActivity extends AppCompatActivity {
                 });
             }
         });
+    }
+
+    private void redirectToLogin() {
+        sessionManager.logout();
+        Intent intent = new Intent(this, com.example.workshop6.auth.LoginActivity.class);
+        intent.putExtra("session_message", getString(R.string.session_expired));
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+        startActivity(intent);
+        finish();
     }
 }

@@ -17,6 +17,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.example.workshop6.R;
+import com.example.workshop6.auth.SessionManager;
 import com.example.workshop6.data.db.AppDatabase;
 import com.example.workshop6.data.model.Product;
 import com.example.workshop6.data.model.Review;
@@ -96,6 +97,13 @@ public class ProductDetailsFragment extends Fragment {
         tvQuantity.setText(String.valueOf(quantCounter));
 
         cartManager = CartManager.getInstance(requireContext());
+        SessionManager sessionManager = new SessionManager(requireContext());
+        boolean isCustomer = "CUSTOMER".equalsIgnoreCase(sessionManager.getUserRole());
+        if (!isCustomer) {
+            Toast.makeText(requireContext(), R.string.staff_purchase_blocked, Toast.LENGTH_SHORT).show();
+            Navigation.findNavController(view).navigateUp();
+            return;
+        }
 
         AppDatabase db = AppDatabase.getInstance(requireContext());
 

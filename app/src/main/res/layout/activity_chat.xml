@@ -31,14 +31,30 @@
             android:textStyle="bold" />
     </LinearLayout>
 
-    <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/recycler_chat_messages"
+    <FrameLayout
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:layout_weight="1"
-        android:padding="12dp" />
+        android:layout_weight="1">
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/recycler_chat_messages"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:padding="12dp" />
+
+        <TextView
+            android:id="@+id/text_chat_empty"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:text="@string/chat_empty_state"
+            android:textColor="@color/bakery_text_secondary"
+            android:textSize="16sp"
+            android:visibility="gone" />
+    </FrameLayout>
 
     <LinearLayout
+        android:id="@+id/layout_chat_input"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
@@ -49,7 +65,8 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:hint="@string/type_a_message" />
+            android:hint="@string/type_a_message"
+            android:maxLength="500" />
 
         <Button
             android:id="@+id/button_send"
