@@ -21,6 +21,7 @@ import android.widget.Toast;
 import com.example.workshop6.R;
 import com.example.workshop6.auth.SessionManager;
 import com.example.workshop6.data.db.AppDatabase;
+import com.example.workshop6.data.db.ProductDao;
 import com.example.workshop6.data.model.CartItem;
 import com.example.workshop6.data.model.Category;
 import com.example.workshop6.data.model.Customer;
@@ -38,7 +39,6 @@ import java.util.List;
  * create an instance of this fragment.
  */
 public class ProductsFragment extends Fragment {
-
     private RecyclerView rvCategories;
     private ProductAdapter productAdapter;
     private RecyclerView rvProducts;
@@ -58,6 +58,8 @@ public class ProductsFragment extends Fragment {
     public ProductsFragment() {
         // Required empty public constructor
     }
+    private int featuredProductId;
+    Product featured;
 
     public static ProductsFragment newInstance(String param1, String param2) {
         ProductsFragment fragment = new ProductsFragment();
@@ -139,14 +141,13 @@ public class ProductsFragment extends Fragment {
             long now = System.currentTimeMillis();
             long twoDaysFromNow = now + (2L * 24 * 60 * 60 * 1000);
 
-            Product featured = db.batchDao().getFeaturedProduct(now, twoDaysFromNow);
+            featured = db.batchDao().getFeaturedProduct(now, twoDaysFromNow);
 
             requireActivity().runOnUiThread(() -> {
                 if (featured != null) {
-                    double discountedPrice = featured.getProductBasePrice() * 0.90;
-
                     tvFeatureProductName.setText(featured.getProductName());
-                    tvFeatureProductPrice.setText(String.format("$%.2f", discountedPrice));
+                    tvFeatureProductPrice.setText(String.format("$%.2f", featured.getProductBasePrice()));
+                    featuredProductId = featured.getProductId();
                 }
             });
         });
@@ -264,15 +265,11 @@ public class ProductsFragment extends Fragment {
 
         // add to cart listener
         btnAddToCart.setOnClickListener(v -> {
-            int productId = 5;//broken for now
             ActivityLogger.log(requireContext(), sessionManager, "CREATE_ORDER", "Quick add-to-cart selected from featured section");
-
-            if (productId != -1) {
-                Bundle args = new Bundle();
-                args.putInt("productId", productId);
-                args.putInt("quantity", 1);
-
-                Navigation.findNavController(view).navigate(R.id.action_products_to_details, args);
+            if (featuredProductId != -1) {
+                CartItem cartItem = new CartItem(featured, 1);
+                cartManager.getCart().addItem(cartItem);
+                Toast.makeText(requireContext(), "Added to Cart", Toast.LENGTH_SHORT).show();
             } else {
                 Toast.makeText(requireContext(), "Product not found", Toast.LENGTH_SHORT).show();
             }

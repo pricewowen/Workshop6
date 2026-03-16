@@ -58,7 +58,7 @@ public class OrderHistoryActivity extends AppCompatActivity {
         loadingView = findViewById(R.id.loadingView);
 
         rvOrders.setLayoutManager(new LinearLayoutManager(this));
-        adapter = new OrderHistoryAdapter(new ArrayList<>(), this::showOrderDetails);
+        adapter = new OrderHistoryAdapter(new ArrayList<>());
         rvOrders.setAdapter(adapter);
 
         loadOrders();

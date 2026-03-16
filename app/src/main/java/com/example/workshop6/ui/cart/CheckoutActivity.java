@@ -128,7 +128,7 @@ public class CheckoutActivity extends AppCompatActivity {
 
         // Set up time picker
         selectedDateTime = Calendar.getInstance();
-        selectedDateTime.add(Calendar.HOUR, 1); // Default to 1 hour from now
+        selectedDateTime.add(Calendar.HOUR, 1);
         updateScheduledTimeDisplay();
 
         btnSelectTime.setOnClickListener(v -> showDateTimePicker());
@@ -196,19 +196,12 @@ public class CheckoutActivity extends AppCompatActivity {
         AppDatabase.databaseWriteExecutor.execute(() -> {
             try {
                 // Get customer fro db
-                Customer customer = db.customerDao().getByUserId(userId);
+                currentCustomer = db.customerDao().getByUserId(userId);
 
-                if (customer != null && customer.addressId > 0) {
-                    Address address = db.addressDao().getById(customer.addressId);
-
-                    // Update both currentCustomer and userAddress
-                    final Address loadedAddress = address;
-                    final Customer loadedCustomer = customer;
+                if (currentCustomer != null && currentCustomer.addressId > 0) {
+                    userAddress = db.addressDao().getById(currentCustomer.addressId);
 
                     runOnUiThread(() -> {
-                        currentCustomer = loadedCustomer;
-                        userAddress = loadedAddress;
-
                         // Log for debugging
                         if (userAddress != null) {
                             Log.d("Checkout", "Address loaded: " + userAddress.addressLine1);
@@ -286,7 +279,7 @@ public class CheckoutActivity extends AppCompatActivity {
                 (view, year, month, dayOfMonth) -> {
                     selectedDateTime.set(year, month, dayOfMonth);
 
-                    TimePickerDialog timePickerDialog = new TimePickerDialog(this,
+                    TimePickerDialog timePickerDialog = new TimePickerDialog(this, 2,
                             (view1, hourOfDay, minute) -> {
                                 selectedDateTime.set(Calendar.HOUR_OF_DAY, hourOfDay);
                                 selectedDateTime.set(Calendar.MINUTE, minute);
@@ -327,17 +320,22 @@ public class CheckoutActivity extends AppCompatActivity {
             if (userAddress == null ||
                     userAddress.addressLine1 == null ||
                     userAddress.addressLine1.trim().isEmpty()) {
-                rbDelivery.setError(getString(R.string.error_no_address));
+                if (userAddress == null) {
+                    rbDelivery.setError("Loading address...");
+                } else {
+                    rbDelivery.setError(getString(R.string.error_no_address));
+                }
                 valid = false;
+            } else {
+                rbDelivery.setError(null);
             }
         } else {
-            // Pickup select a bakery
             if (selectedBakery == null) {
-                Toast.makeText(this, "Please select a bakery", Toast.LENGTH_SHORT).show();
                 valid = false;
             }
         }
 
+        // Time validation
         if (selectedDateTime.before(Calendar.getInstance())) {
             tvScheduledTime.setError(getString(R.string.error_past_time));
             valid = false;
@@ -414,13 +412,14 @@ public class CheckoutActivity extends AppCompatActivity {
                     if (customer == null) {
                         throw new IllegalStateException("USER_NOT_FOUND");
                     }
-
-                    // Use selected bakery id for pickup
                     int bakeryId = deliveryMethod.equals("pickup") ? selectedBakeryId : 1;
-
-                    // Address id
-                    int addressId = deliveryMethod.equals("delivery") ? customer.addressId : 0;
-
+                    int addressId;
+                    if(deliveryMethod.equals("delivery")){
+                        addressId = customer.addressId;
+                    }
+                    else{
+                        addressId = selectedBakery.addressId;
+                    }
                     // Create order
                     Order order = new Order(
                             0,
@@ -499,7 +498,7 @@ public class CheckoutActivity extends AppCompatActivity {
                     Toast.makeText(this, R.string.order_placed_success, Toast.LENGTH_LONG).show();
 
                     Intent intent = new Intent(this, com.example.workshop6.ui.MainActivity.class);
-                    intent.putExtra("navigate_to", "orders");
+                    intent.putExtra("navigate_to", "me");
                     intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
                     startActivity(intent);
                     finish();
