@@ -104,6 +104,16 @@ public class ProductsFragment extends Fragment {
         // attaches adapter with the data from the database
         AppDatabase db = AppDatabase.getInstance(requireContext());
 
+        // get logged in userId
+        SessionManager sessionManager = new SessionManager(requireContext());
+        int userId = sessionManager.getUserId();
+        boolean isCustomer = "CUSTOMER".equalsIgnoreCase(sessionManager.getUserRole());
+        if (!isCustomer) {
+            Toast.makeText(requireContext(), R.string.staff_purchase_blocked, Toast.LENGTH_SHORT).show();
+            Navigation.findNavController(view).navigate(R.id.nav_home);
+            return;
+        }
+
         // search functionality
         etSearch.addTextChangedListener(new TextWatcher() {
             @Override
@@ -118,14 +128,19 @@ public class ProductsFragment extends Fragment {
                 }
 
                 AppDatabase.databaseWriteExecutor.execute(() -> {
-                    String rawQuery = s.toString().trim();
-                    String query = SearchUtils.normalizeUserSearch(rawQuery);
+                    try {
+                        String rawQuery = s.toString().trim();
+                        String query = SearchUtils.normalizeUserSearch(rawQuery);
 
-                    List<Product> filtered = rawQuery.isEmpty()
-                            ? db.productDao().getAllProducts()
-                            : db.productDao().searchProducts(query);
+                        List<Product> filtered = rawQuery.isEmpty()
+                                ? db.productDao().getAllProducts()
+                                : db.productDao().searchProducts(query);
 
-                    requireActivity().runOnUiThread(() -> productAdapter.setProducts(filtered));
+                        requireActivity().runOnUiThread(() -> productAdapter.setProducts(filtered));
+                    } catch (Exception e) {
+                        ActivityLogger.log(requireContext(), sessionManager, "SEARCH_PRODUCTS", "An error occurred when searching products");
+                        e.printStackTrace();
+                    }
                 });
             }
 
@@ -137,21 +152,27 @@ public class ProductsFragment extends Fragment {
 
         // Get and display featured product
         AppDatabase.databaseWriteExecutor.execute(() -> {
-            // wait for database to finish seeding
-            AppDatabase.awaitSeed();
+            try {
+                // wait for database to finish seeding
+                AppDatabase.awaitSeed();
 
-            long now = System.currentTimeMillis();
-            long twoDaysFromNow = now + (2L * 24 * 60 * 60 * 1000);
+                long now = System.currentTimeMillis();
+                long twoDaysFromNow = now + (2L * 24 * 60 * 60 * 1000);
 
-            featured = db.batchDao().getFeaturedProduct(now, twoDaysFromNow);
+                featured = db.batchDao().getFeaturedProduct(now, twoDaysFromNow);
 
-            requireActivity().runOnUiThread(() -> {
-                if (featured != null) {
-                    tvFeatureProductName.setText(featured.getProductName());
-                    tvFeatureProductPrice.setText(String.format("$%.2f", featured.getProductBasePrice()));
-                    featuredProductId = featured.getProductId();
-                }
-            });
+                requireActivity().runOnUiThread(() -> {
+                    if (featured != null) {
+                        tvFeatureProductName.setText(featured.getProductName());
+                        tvFeatureProductPrice.setText(String.format("$%.2f", featured.getProductBasePrice()));
+                        featuredProductId = featured.getProductId();
+                    }
+                });
+            } catch (Exception e) {
+                ActivityLogger.log(requireContext(), sessionManager, "FEATURED_PRODUCT"
+                        , "An error occurred when retrieving featured products");
+                e.printStackTrace();
+            }
         });
 
         // set up recycler view for categories and set to horizontal
@@ -170,99 +191,101 @@ public class ProductsFragment extends Fragment {
 
         // REDEEM logic
 
-        // get logged in userId
-        SessionManager sessionManager = new SessionManager(requireContext());
-        int userId = sessionManager.getUserId();
-        boolean isCustomer = "CUSTOMER".equalsIgnoreCase(sessionManager.getUserRole());
-        if (!isCustomer) {
-            Toast.makeText(requireContext(), R.string.staff_purchase_blocked, Toast.LENGTH_SHORT).show();
-            Navigation.findNavController(view).navigate(R.id.nav_home);
-            return;
-        }
-
         // Getting Reward Points
         AppDatabase.databaseWriteExecutor.execute(() -> {
-            Customer customer = db.customerDao().getByUserId(userId);
-            if (customer != null) {
-                int points = customer.customerRewardBalance;
-                RewardTier currentTier = db.rewardTierDao().getTierForPoints(points);
-                RewardTier nextTier = db.rewardTierDao().getNextTierForPoints(points);
+            try {
+                Customer customer = db.customerDao().getByUserId(userId);
+                if (customer != null) {
+                    int points = customer.customerRewardBalance;
+                    RewardTier currentTier = db.rewardTierDao().getTierForPoints(points);
+                    RewardTier nextTier = db.rewardTierDao().getNextTierForPoints(points);
 
-                // set reward points
-                requireActivity().runOnUiThread(() -> {
-                    if (currentTier != null) {
-                        tvPoints.setText(String.valueOf(points));
-                        tvLevel.setText(currentTier.getTierName());
-                        tvTierDescription.setText(currentTier.getTierDescription());
+                    // set reward points
+                    requireActivity().runOnUiThread(() -> {
+                        if (currentTier != null) {
+                            tvPoints.setText(String.valueOf(points));
+                            tvLevel.setText(currentTier.getTierName());
+                            tvTierDescription.setText(currentTier.getTierDescription());
 
-                        if (nextTier != null) {
-                            int pointsNeeded = Math.max(0, nextTier.getMinPoints() - points);
-                            tvNextTier.setText(getString(R.string.label_next_tier_fmt, nextTier.getTierName()));
-                            tvPointsNeeded.setText(getString(R.string.label_points_needed_fmt, pointsNeeded, nextTier.getTierName()));
+                            if (nextTier != null) {
+                                int pointsNeeded = Math.max(0, nextTier.getMinPoints() - points);
+                                tvNextTier.setText(getString(R.string.label_next_tier_fmt, nextTier.getTierName()));
+                                tvPointsNeeded.setText(getString(R.string.label_points_needed_fmt, pointsNeeded, nextTier.getTierName()));
 
-                            int rangeStart = currentTier.getMinPoints();
-                            int rangeEnd = nextTier.getMinPoints();
-                            int rangeSize = Math.max(1, rangeEnd - rangeStart);
-                            int progress = ((points - rangeStart) * 100) / rangeSize;
-                            progressLoyalty.setProgress(Math.max(0, Math.min(100, progress)));
+                                int rangeStart = currentTier.getMinPoints();
+                                int rangeEnd = nextTier.getMinPoints();
+                                int rangeSize = Math.max(1, rangeEnd - rangeStart);
+                                int progress = ((points - rangeStart) * 100) / rangeSize;
+                                progressLoyalty.setProgress(Math.max(0, Math.min(100, progress)));
+                            } else {
+                                tvNextTier.setText(R.string.label_top_tier_reached);
+                                tvPointsNeeded.setText(R.string.label_highest_tier_reached);
+                                progressLoyalty.setProgress(100);
+                            }
                         } else {
-                            tvNextTier.setText(R.string.label_top_tier_reached);
-                            tvPointsNeeded.setText(R.string.label_highest_tier_reached);
-                            progressLoyalty.setProgress(100);
+                            tvPoints.setText(String.valueOf(points));
+                            tvLevel.setText(R.string.label_unknown_tier);
+                            tvTierDescription.setText(R.string.label_unknown_tier_desc);
+                            tvNextTier.setText(R.string.label_next_tier_na);
+                            tvPointsNeeded.setText(R.string.label_points_to_next_na);
+                            progressLoyalty.setProgress(0);
                         }
-                    } else {
-                        tvPoints.setText(String.valueOf(points));
-                        tvLevel.setText(R.string.label_unknown_tier);
-                        tvTierDescription.setText(R.string.label_unknown_tier_desc);
+                    });
+                } else {
+                    requireActivity().runOnUiThread(() -> {
+                        tvPoints.setText("0");
+                        tvLevel.setText(R.string.label_no_loyalty_account);
+                        tvTierDescription.setText(R.string.label_no_loyalty_account_desc);
                         tvNextTier.setText(R.string.label_next_tier_na);
                         tvPointsNeeded.setText(R.string.label_points_to_next_na);
                         progressLoyalty.setProgress(0);
-                    }
-                });
-            } else {
-                requireActivity().runOnUiThread(() -> {
-                    tvPoints.setText("0");
-                    tvLevel.setText(R.string.label_no_loyalty_account);
-                    tvTierDescription.setText(R.string.label_no_loyalty_account_desc);
-                    tvNextTier.setText(R.string.label_next_tier_na);
-                    tvPointsNeeded.setText(R.string.label_points_to_next_na);
-                    progressLoyalty.setProgress(0);
-                });
+                    });
+                }
+            } catch (Exception e) {
+                ActivityLogger.log(requireContext(), sessionManager, "GET_REWARD_POINTS"
+                        , "An error occurred when retrieving reward points");
+                e.printStackTrace();
             }
         });
 
         // listener for products
         AppDatabase.databaseWriteExecutor.execute(() -> {
-            List<Category> categories = db.categoryDao().getAllCategories();
-            List<Product> products = db.productDao().getAllProducts();
+            try {
+                List<Category> categories = db.categoryDao().getAllCategories();
+                List<Product> products = db.productDao().getAllProducts();
 
-            // update component on the main thread
-            requireActivity().runOnUiThread(() -> {
-                // setup listener on categories
-                CategoriesAdapter categoriesAdapter = new CategoriesAdapter(categories, tagId -> {
-                    AppDatabase.databaseWriteExecutor.execute(() -> {
-                        List<Product> filteredProducts = tagId == -1
-                                ? db.productDao().getAllProducts()
-                                : db.productDao().getProductByCategory(tagId);
+                // update component on the main thread
+                requireActivity().runOnUiThread(() -> {
+                    // setup listener on categories
+                    CategoriesAdapter categoriesAdapter = new CategoriesAdapter(categories, tagId -> {
+                        AppDatabase.databaseWriteExecutor.execute(() -> {
+                            List<Product> filteredProducts = tagId == -1
+                                    ? db.productDao().getAllProducts()
+                                    : db.productDao().getProductByCategory(tagId);
 
-                        requireActivity().runOnUiThread(() -> {
-                            productAdapter.setProducts(filteredProducts);
+                            requireActivity().runOnUiThread(() -> {
+                                productAdapter.setProducts(filteredProducts);
+                            });
                         });
                     });
+                    productAdapter = new ProductAdapter(products, productId -> {
+
+                        // pass information to details fragment
+                        Bundle args = new Bundle();
+
+                        args.putInt("productId", productId);
+                        Navigation.findNavController(requireView()).navigate(R.id.action_products_to_details, args);
+                    });
+
+
+                    rvProducts.setAdapter(productAdapter);
+                    rvCategories.setAdapter(categoriesAdapter);
                 });
-                productAdapter = new ProductAdapter(products, productId -> {
-
-                    // pass information to details fragment
-                    Bundle args = new Bundle();
-
-                    args.putInt("productId", productId);
-                    Navigation.findNavController(requireView()).navigate(R.id.action_products_to_details, args);
-                });
-
-
-                rvProducts.setAdapter(productAdapter);
-                rvCategories.setAdapter(categoriesAdapter);
-            });
+            } catch (Exception e) {
+                ActivityLogger.log(requireContext(), sessionManager, "PRODUCTS"
+                        , "An error occurred when retrieving products");
+                e.printStackTrace();
+            }
         });
 
         // redeem on click listener
@@ -276,26 +299,32 @@ public class ProductsFragment extends Fragment {
             }
 
             AppDatabase.databaseWriteExecutor.execute(() -> {
-                Customer customer = db.customerDao().getByUserId(userId);
+                try {
+                    Customer customer = db.customerDao().getByUserId(userId);
 
-                if (customer == null || customer.customerRewardBalance < 500) {
+                    if (customer == null || customer.customerRewardBalance < 500) {
+                        requireActivity().runOnUiThread(() -> {
+                            Toast.makeText(requireContext(), "You need at least 500 points to redeem", Toast.LENGTH_SHORT).show();
+                        });
+
+                        return;
+                    }
+
+                    customer.customerRewardBalance -= 500;
+                    db.customerDao().update(customer);
+
                     requireActivity().runOnUiThread(() -> {
-                        Toast.makeText(requireContext(), "You need at least 500 points to redeem", Toast.LENGTH_SHORT).show();
+                        cartManager.getCart().applyDiscount(0.10);
+                        tvPoints.setText(String.valueOf(customer.customerRewardBalance));
+                        btnRedeem.setEnabled(false);
+                        btnRedeem.setText(R.string.label_discount_applied);
+                        Toast.makeText(this.requireContext(), "10% discount applied!", Toast.LENGTH_LONG).show();
                     });
-
-                    return;
+                } catch (Exception e) {
+                    ActivityLogger.log(requireContext(), sessionManager, "REDEEM_POINTS"
+                            , "An error occurred when redeeming points");
+                    e.printStackTrace();
                 }
-
-                customer.customerRewardBalance -= 500;
-                db.customerDao().update(customer);
-
-                requireActivity().runOnUiThread(() -> {
-                    cartManager.getCart().applyDiscount(0.10);
-                    tvPoints.setText(String.valueOf(customer.customerRewardBalance));
-                    btnRedeem.setEnabled(false);
-                    btnRedeem.setText(R.string.label_discount_applied);
-                    Toast.makeText(this.requireContext(), "10% discount applied!", Toast.LENGTH_LONG).show();
-                });
             });
         });
 
