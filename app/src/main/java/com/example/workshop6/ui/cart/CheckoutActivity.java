@@ -322,7 +322,8 @@ public class CheckoutActivity extends AppCompatActivity {
                 (view, year, month, dayOfMonth) -> {
                     selectedDateTime.set(year, month, dayOfMonth);
 
-                    TimePickerDialog timePickerDialog = new TimePickerDialog(this, 2,
+                    TimePickerDialog timePickerDialog = new TimePickerDialog(this, 0,
+                            //changed back to default as messing with time picker caused overlapping screen darkening bugs
                             (view1, hourOfDay, minute) -> {
                                 selectedDateTime.set(Calendar.HOUR_OF_DAY, hourOfDay);
                                 selectedDateTime.set(Calendar.MINUTE, minute);
