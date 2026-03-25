@@ -1,10 +1,13 @@
 package com.example.workshop6.auth;
 
 import android.content.Context;
+import android.content.Intent;
 import android.content.SharedPreferences;
 
 import androidx.security.crypto.EncryptedSharedPreferences;
 import androidx.security.crypto.MasterKey;
+
+import com.example.workshop6.ui.cart.CartManager;
 
 public class SessionManager {
 
@@ -21,10 +24,12 @@ public class SessionManager {
     private static final long STAFF_SESSION_TIMEOUT_MS = 30L * 60L * 1000L;
     private static final long CUSTOMER_SESSION_TIMEOUT_MS = 12L * 60L * 60L * 1000L;
 
+    private final Context appContext;
     private final SharedPreferences prefs;
 
     public SessionManager(Context context) {
-        prefs = createSecurePrefs(context.getApplicationContext());
+        this.appContext = context.getApplicationContext();
+        prefs = createSecurePrefs(appContext);
     }
 
     private SharedPreferences createSecurePrefs(Context context) {
@@ -54,6 +59,7 @@ public class SessionManager {
                 .putString(KEY_USER_NAME, fullName)
                 .putLong(KEY_LAST_ACTIVITY_AT, now)
                 .apply();
+        startTaskRemovedWatcher();
     }
 
     public boolean isLoggedIn() {
@@ -151,6 +157,8 @@ public class SessionManager {
     }
 
     private void clearSession() {
+        CartManager.getInstance(appContext).onLogout();
+        stopTaskRemovedWatcher();
         prefs.edit()
                 .remove(KEY_IS_LOGGED_IN)
                 .remove(KEY_USER_ID)
@@ -158,6 +166,14 @@ public class SessionManager {
                 .remove(KEY_USER_NAME)
                 .remove(KEY_LAST_ACTIVITY_AT)
                 .apply();
+    }
+
+    private void startTaskRemovedWatcher() {
+        appContext.startService(new Intent(appContext, TaskRemovedLogoutService.class));
+    }
+
+    private void stopTaskRemovedWatcher() {
+        appContext.stopService(new Intent(appContext, TaskRemovedLogoutService.class));
     }
 
     private boolean isSessionExpired() {

@@ -60,5 +60,10 @@
             android:name=".ui.chat.ChatActivity"
             android:exported="false" />
 
+        <service
+            android:name=".auth.TaskRemovedLogoutService"
+            android:exported="false"
+            android:stopWithTask="false" />
+
     </application>
 </manifest>
