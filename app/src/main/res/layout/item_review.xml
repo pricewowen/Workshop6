@@ -1,0 +1,23 @@
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="12dp">
+
+    <RatingBar
+    	android:id="@+id/ratingBar"
+    	style="?android:attr/ratingBarStyleSmall"
+    	android:layout_width="wrap_content"
+    	android:layout_height="wrap_content"
+    	android:numStars="5"
+    	android:stepSize="1"
+    	android:isIndicator="true"/>
+
+    <TextView
+        android:id="@+id/tvComment"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Great product!"
+        android:layout_marginTop="4dp"/>
+
+</LinearLayout>

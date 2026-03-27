@@ -12,13 +12,14 @@
         android:orientation="vertical"
         android:padding="16dp">
 
-        <!-- PRODUCT IMAGE -->
+        <!-- BACK BUTTON -->
         <Button
             android:id="@+id/btnBack"
             android:layout_width="75dp"
             android:layout_height="wrap_content"
             android:text="@string/btn_back" />
 
+        <!-- PRODUCT IMAGE -->
         <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"
             android:layout_height="240dp"
@@ -30,8 +31,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
                 android:scaleType="centerCrop"
-                android:src="@drawable/selected_product_image"
-                />
+                android:src="@drawable/selected_product_image"/>
         </com.google.android.material.card.MaterialCardView>
 
 
@@ -70,6 +70,27 @@
             android:textSize="14sp" />
 
 
+        <!-- REVIEWS TITLE -->
+        <TextView
+            android:id="@+id/tvReviewsTitle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="20dp"
+            android:text="Customer Reviews"
+            android:textColor="@color/bakery_text_dark"
+            android:textSize="18sp"
+            android:textStyle="bold" />
+
+
+        <!-- REVIEWS LIST -->
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/rvReviews"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:nestedScrollingEnabled="false"/>
+
+
         <!-- QUANTITY SELECTOR CARD -->
         <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"
@@ -95,18 +116,18 @@
                     android:textSize="16sp"
                     android:textStyle="bold" />
 
-                <!-- Minus Button -->
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/btnDecrease"
                     android:layout_width="40dp"
                     android:layout_height="40dp"
+                    android:insetTop="0dp"
+                    android:insetBottom="0dp"
                     android:text="@string/btn_decrease"
                     android:textSize="18sp"
                     app:cornerRadius="12dp"
                     android:backgroundTint="@color/bakery_gold_bright"
                     android:textColor="@android:color/black" />
 
-                <!-- Quantity Text -->
                 <TextView
                     android:id="@+id/tvQuantity"
                     android:layout_width="40dp"
@@ -117,11 +138,12 @@
                     android:textSize="18sp"
                     android:textStyle="bold" />
 
-                <!-- Plus Button -->
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/btnIncrease"
                     android:layout_width="40dp"
                     android:layout_height="40dp"
+                    android:insetTop="0dp"
+                    android:insetBottom="0dp"
                     android:text="@string/btn_increase"
                     android:textSize="18sp"
                     app:cornerRadius="12dp"

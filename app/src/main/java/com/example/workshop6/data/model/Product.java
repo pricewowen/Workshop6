@@ -10,12 +10,14 @@ public class Product {
     private String productName;
     private String productDescription;
     private Double productBasePrice;
+    private int imgUrl;
 
-    public Product(int productId, String productName, String productDescription, Double productBasePrice) {
+    public Product(int productId, String productName, String productDescription, Double productBasePrice, int imgUrl) {
         this.productId = productId;
         this.productName = productName;
         this.productDescription = productDescription;
         this.productBasePrice = productBasePrice;
+        this.imgUrl = imgUrl;
     }
 
     public int getProductId() {
@@ -48,5 +50,13 @@ public class Product {
 
     public void setProductBasePrice(Double productBasePrice) {
         this.productBasePrice = productBasePrice;
+    }
+
+    public int getImgUrl() {
+        return imgUrl;
+    }
+
+    public void setImgUrl(int imgUrl) {
+        this.imgUrl = imgUrl;
     }
 }

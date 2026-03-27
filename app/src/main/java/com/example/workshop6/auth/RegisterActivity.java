@@ -1,6 +1,8 @@
 package com.example.workshop6.auth;
 
+import android.Manifest;
 import android.content.Intent;
+import android.database.sqlite.SQLiteConstraintException;
 import android.graphics.Bitmap;
 import android.net.Uri;
 import android.os.Bundle;
@@ -9,16 +11,20 @@ import android.widget.ArrayAdapter;
 import android.widget.ImageView;
 import android.widget.Spinner;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.content.ContextCompat;
+import android.content.pm.PackageManager;
 
 import com.example.workshop6.R;
 import com.example.workshop6.data.db.AppDatabase;
 import com.example.workshop6.data.model.Address;
 import com.example.workshop6.data.model.Customer;
 import com.example.workshop6.data.model.User;
+import com.example.workshop6.logging.ActivityLogger;
 import com.example.workshop6.ui.MainActivity;
 import com.example.workshop6.util.HashUtils;
 import com.example.workshop6.util.ImageUtils;
@@ -28,6 +34,8 @@ import com.example.workshop6.util.Validation;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.textfield.TextInputEditText;
 import com.google.android.material.textfield.TextInputLayout;
+
+import java.util.Locale;
 
 public class RegisterActivity extends AppCompatActivity {
 
@@ -49,6 +57,7 @@ public class RegisterActivity extends AppCompatActivity {
 
     private ActivityResultLauncher<String> galleryPickerLauncher;
     private ActivityResultLauncher<Uri> cameraLauncher;
+    private ActivityResultLauncher<String> cameraPermissionLauncher;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -113,6 +122,17 @@ public class RegisterActivity extends AppCompatActivity {
                 }
         );
 
+        cameraPermissionLauncher = registerForActivityResult(
+                new ActivityResultContracts.RequestPermission(),
+                isGranted -> {
+                    if (isGranted) {
+                        launchCameraCapture();
+                    } else {
+                        Toast.makeText(this, R.string.permission_camera_required, Toast.LENGTH_SHORT).show();
+                    }
+                }
+        );
+
         findViewById(R.id.btn_choose_photo).setOnClickListener(v -> showPhotoChooser());
         findViewById(R.id.btn_create_account).setOnClickListener(v -> attemptRegister());
         findViewById(R.id.tv_sign_in_link).setOnClickListener(v -> finish());
@@ -126,14 +146,31 @@ public class RegisterActivity extends AppCompatActivity {
                         getString(R.string.photo_choose_gallery)
                 }, (dialog, which) -> {
                     if (which == 0) {
-                        cameraPhotoUri = ImageUtils.createCameraImageUri(this);
-                        cameraLauncher.launch(cameraPhotoUri);
+                        requestCameraAndLaunch();
                     } else {
                         galleryPickerLauncher.launch("image/*");
                     }
                 })
                 .setNegativeButton(R.string.photo_cancel, null)
                 .show();
+    }
+
+    private void requestCameraAndLaunch() {
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA)
+                == PackageManager.PERMISSION_GRANTED) {
+            launchCameraCapture();
+        } else {
+            cameraPermissionLauncher.launch(Manifest.permission.CAMERA);
+        }
+    }
+
+    private void launchCameraCapture() {
+        cameraPhotoUri = ImageUtils.createCameraImageUri(this);
+        if (cameraPhotoUri == null) {
+            Toast.makeText(this, R.string.error_photo_read, Toast.LENGTH_SHORT).show();
+            return;
+        }
+        cameraLauncher.launch(cameraPhotoUri);
     }
 
     private void handlePhotoChosen(Uri uri) {
@@ -159,7 +196,7 @@ public class RegisterActivity extends AppCompatActivity {
         String firstName = etFirstName.getText() != null ? etFirstName.getText().toString().trim() : "";
         String lastName  = etLastName.getText() != null ? etLastName.getText().toString().trim() : "";
         String username  = etUsername.getText() != null ? etUsername.getText().toString().trim() : "";
-        String email     = etEmail.getText() != null ? etEmail.getText().toString().trim() : "";
+        String email     = etEmail.getText() != null ? etEmail.getText().toString().trim().toLowerCase(Locale.ROOT) : "";
         String phone     = etPhone.getText() != null ? etPhone.getText().toString().replaceAll("\\D", "") : "";
         String pass      = etPassword.getText() != null ? etPassword.getText().toString() : "";
         String confirm   = etConfirmPassword.getText() != null ? etConfirmPassword.getText().toString() : "";
@@ -194,7 +231,13 @@ public class RegisterActivity extends AppCompatActivity {
         if (Validation.isEmpty(username)) {
             tilUsername.setError(getString(R.string.error_username_required));
             valid = false;
-        } else if (!Validation.isUsernameValid(username)) {
+        } else if (Validation.isUsernameTooShort(username)) {
+            tilUsername.setError(getString(R.string.error_username_too_short));
+            valid = false;
+        } else if (Validation.isUsernameTooLong(username)) {
+            tilUsername.setError(getString(R.string.error_username_too_long));
+            valid = false;
+        } else if (!Validation.isUsernameFormatValid(username)) {
             tilUsername.setError(getString(R.string.error_username_invalid));
             valid = false;
         } else {
@@ -224,11 +267,14 @@ public class RegisterActivity extends AppCompatActivity {
         if (Validation.isEmpty(pass)) {
             tilPassword.setError(getString(R.string.error_password_required));
             valid = false;
-        } else if (!Validation.isPasswordValid(pass)) {
-            tilPassword.setError(getString(R.string.error_password_invalid));
+        } else if (Validation.isPasswordTooShort(pass)) {
+            tilPassword.setError(getString(R.string.error_password_too_short));
             valid = false;
-        } else if (!Validation.isPasswordSafeFromSimpleSql(pass)) {
-            tilPassword.setError(getString(R.string.error_password_unsafe));
+        } else if (Validation.isPasswordTooLong(pass)) {
+            tilPassword.setError(getString(R.string.error_password_too_long));
+            valid = false;
+        } else if (!Validation.isPasswordStrong(pass)) {
+            tilPassword.setError(getString(R.string.error_password_strength));
             valid = false;
         } else {
             tilPassword.setError(null);
@@ -296,7 +342,15 @@ public class RegisterActivity extends AppCompatActivity {
             }
         }
 
-        if (!valid) return;
+        if (!valid) {
+            ActivityLogger.logFailure(
+                    this,
+                    null,
+                    "REGISTER",
+                    "Registration validation failed"
+            );
+            return;
+        }
 
         tvError.setVisibility(View.GONE);
 
@@ -308,78 +362,122 @@ public class RegisterActivity extends AppCompatActivity {
             User existingByEmail = db.userDao().getUserByEmail(email);
             if (existingByEmail != null) {
                 runOnUiThread(() -> {
-                    tvError.setText(R.string.register_error_email_exists);
-                    tvError.setVisibility(View.VISIBLE);
+                    showDuplicateAccountError();
                 });
+                ActivityLogger.logFailure(this, null, "REGISTER", "Registration blocked: duplicate email");
                 return;
             }
 
             User existingByUsername = db.userDao().getUserByUsername(username);
             if (existingByUsername != null) {
                 runOnUiThread(() -> {
-                    tilUsername.setError(getString(R.string.register_error_username_exists));
-                    tvError.setVisibility(View.GONE);
+                    showDuplicateAccountError();
                 });
+                ActivityLogger.logFailure(this, null, "REGISTER", "Registration blocked: duplicate username");
                 return;
             }
 
-            // User (auth)
-            User user = new User();
-            user.userUsername = username;
-            user.userEmail = email;
-            user.userPasswordHash = HashUtils.hash(pass);
-            user.userRole = "CUSTOMER";
-            user.userCreatedAt = System.currentTimeMillis();
-            long newUserId = db.userDao().insert(user);
-            int userId = (int) newUserId;
+            try {
+                // User (auth)
+                User user = new User();
+                user.userUsername = username;
+                user.userEmail = email;
+                user.userPasswordHash = HashUtils.hash(pass);
+                user.userRole = "CUSTOMER";
+                user.isActive = true;
+                user.userCreatedAt = System.currentTimeMillis();
+                long newUserId = db.userDao().insert(user);
+                int userId = (int) newUserId;
 
-            // Address is required – always create from form
-            Address addr = new Address();
-            addr.addressLine1 = address1;
-            addr.addressLine2 = Validation.isEmpty(address2) ? null : address2;
-            addr.addressCity = city;
-            addr.addressProvince = province;
-            addr.addressPostalCode = postal;
-            long addrId = db.addressDao().insert(addr);
-            int addressId = (int) addrId;
+                // Reuse an existing address if the same normalized address already exists
+                String address2ForMatch = Validation.isEmpty(address2) ? null : address2;
+                Address existingAddress = db.addressDao().findMatchingAddress(
+                        address1,
+                        address2ForMatch,
+                        city,
+                        province,
+                        postal
+                );
+                int addressId;
+                if (existingAddress != null) {
+                    addressId = existingAddress.addressId;
+                } else {
+                    Address addr = new Address();
+                    addr.addressLine1 = address1;
+                    addr.addressLine2 = address2ForMatch;
+                    addr.addressCity = city;
+                    addr.addressProvince = province;
+                    addr.addressPostalCode = postal;
+                    long addrId = db.addressDao().insert(addr);
+                    addressId = (int) addrId;
+                }
 
-            // Customer (every registered user is a customer)
-            Customer customer = new Customer();
-            customer.userId = userId;
-            customer.addressId = addressId;
-            customer.rewardTierId = com.example.workshop6.data.db.DatabaseSeeder.DEFAULT_REWARD_TIER_ID;
-            customer.customerFirstName = firstName;
-            customer.customerMiddleInitial = null;
-            customer.customerLastName = lastName;
-            customer.customerRole = "CUSTOMER";
-            String phoneStored = Validation.formatPhoneForStorage(phone);
-            customer.customerPhone = phoneStored != null ? phoneStored : phone;
-            customer.customerBusinessPhone = null;
-            customer.customerRewardBalance = 0;
-            customer.customerTierAssignedDate = null;
-            customer.customerEmail = email;
-            customer.profilePhotoPath = null;
-            customer.photoApprovalPending = false;
+                // Customer (every registered user is a customer)
+                Customer customer = new Customer();
+                customer.userId = userId;
+                customer.addressId = addressId;
+                customer.rewardTierId = com.example.workshop6.data.db.DatabaseSeeder.DEFAULT_REWARD_TIER_ID;
+                customer.customerFirstName = firstName;
+                customer.customerMiddleInitial = null;
+                customer.customerLastName = lastName;
+                customer.customerRole = "Customer";
+                String phoneStored = Validation.formatPhoneForStorage(phone);
+                customer.customerPhone = phoneStored != null ? phoneStored : phone;
+                customer.customerBusinessPhone = null;
+                customer.customerRewardBalance = 0;
+                customer.customerTierAssignedDate = null;
+                customer.customerEmail = email;
+                customer.profilePhotoPath = null;
+                customer.photoApprovalPending = false;
 
-            long newCustomerId = db.customerDao().insert(customer);
-            int customerId = (int) newCustomerId;
+                long newCustomerId = db.customerDao().insert(customer);
+                int customerId = (int) newCustomerId;
 
-            if (selectedPhotoUri != null && customerId > 0) {
-                String savedPath = ImageUtils.saveProfilePhoto(this, selectedPhotoUri, customerId);
-                if (savedPath != null) {
-                    customer.customerId = customerId;
-                    customer.profilePhotoPath = savedPath;
-                    customer.photoApprovalPending = true;
-                    db.customerDao().update(customer);
+                if (selectedPhotoUri != null && customerId > 0) {
+                    String savedPath = ImageUtils.saveProfilePhoto(this, selectedPhotoUri, customerId);
+                    if (savedPath != null) {
+                        customer.customerId = customerId;
+                        customer.profilePhotoPath = savedPath;
+                        customer.photoApprovalPending = true;
+                        db.customerDao().update(customer);
+                    }
+                }
+
+                String displayName = firstName + " " + lastName;
+                runOnUiThread(() -> {
+                    sessionManager.createSession(userId, user.userRole, displayName);
+                    ActivityLogger.log(
+                            this,
+                            "USER#" + userId,
+                            "REGISTER",
+                            "Customer account created"
+                    );
+                    goToMain();
+                });
+            } catch (SQLiteConstraintException e) {
+                ActivityLogger.logFailure(this, null, "REGISTER", "Constraint failure while creating account");
+                runOnUiThread(this::showDuplicateAccountError);
+            } catch (Exception e) {
+                String message = e.getMessage() != null ? e.getMessage().toLowerCase(Locale.ROOT) : "";
+                if (message.contains("unique") || message.contains("constraint")) {
+                    ActivityLogger.logFailure(this, null, "REGISTER", "Unique constraint failure while creating account");
+                    runOnUiThread(this::showDuplicateAccountError);
+                } else {
+                    ActivityLogger.logFailure(this, null, "REGISTER", "Unexpected registration failure: " + message);
+                    runOnUiThread(() -> {
+                        tvError.setText(R.string.register_error_unexpected);
+                        tvError.setVisibility(View.VISIBLE);
+                    });
                 }
             }
-
-            String displayName = firstName + " " + lastName;
-            runOnUiThread(() -> {
-                sessionManager.createSession(userId, user.userRole, displayName);
-                goToMain();
-            });
         });
+    }
+
+    private void showDuplicateAccountError() {
+        tilUsername.setError(null);
+        tilEmail.setError(null);
+        tvError.setText(R.string.register_error_duplicate_account);
+        tvError.setVisibility(View.VISIBLE);
     }
 
     private void goToMain() {

@@ -57,8 +57,9 @@
                     android:layout_height="96dp"
                     android:src="@drawable/ic_person_placeholder"
                     android:background="@drawable/circle_bg_gray"
-                    android:padding="16dp"
-                    android:scaleType="centerInside"
+                    android:clipToOutline="true"
+                    android:padding="0dp"
+                    android:scaleType="centerCrop"
                     android:contentDescription="@string/label_photo" />
 
                 <com.google.android.material.button.MaterialButton
@@ -81,6 +82,16 @@
                     android:textSize="12sp"
                     android:visibility="gone"
                     tools:text="Photo must be under 2MB and 1024x1024." />
+
+                <TextView
+                    android:id="@+id/tv_photo_status"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:textColor="@color/bakery_text_secondary"
+                    android:textSize="12sp"
+                    android:visibility="gone"
+                    tools:text="Profile photo pending approval" />
             </LinearLayout>
 
             <!-- First name -->
@@ -220,7 +231,8 @@
                         android:id="@+id/tv_province_error"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:textColor="@color/bakery_status_closed"
+                        android:layout_marginStart="16dp"
+                        android:textColor="?attr/colorError"
                         android:textSize="12sp"
                         android:visibility="gone"
                         android:layout_marginTop="4dp" />
@@ -242,6 +254,18 @@
                         android:maxLength="7" />
                 </com.google.android.material.textfield.TextInputLayout>
             </LinearLayout>
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_change_password"
+                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                android:layout_width="match_parent"
+                android:layout_height="48dp"
+                android:layout_marginTop="8dp"
+                android:layout_marginBottom="12dp"
+                android:text="@string/btn_change_password"
+                android:textColor="@color/bakery_text_dark"
+                app:strokeColor="@color/bakery_text_dark"
+                app:cornerRadius="24dp" />
 
             <!-- Actions -->
             <LinearLayout

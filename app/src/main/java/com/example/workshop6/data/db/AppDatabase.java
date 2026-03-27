@@ -2,20 +2,24 @@ package com.example.workshop6.data.db;
 
 import android.content.Context;
 
-import androidx.annotation.NonNull;
 import androidx.room.Database;
 import androidx.room.Room;
 import androidx.room.RoomDatabase;
-import androidx.sqlite.db.SupportSQLiteDatabase;
 
 import com.example.workshop6.data.model.Address;
+import com.example.workshop6.data.model.BakeryHours;
 import com.example.workshop6.data.model.BakeryLocation;
+import com.example.workshop6.data.model.Batch;
 import com.example.workshop6.data.model.Category;
+import com.example.workshop6.data.model.ChatMessage;
+import com.example.workshop6.data.model.ChatThread;
 import com.example.workshop6.data.model.Customer;
 import com.example.workshop6.data.model.Employee;
 import com.example.workshop6.data.model.Order;
+import com.example.workshop6.data.model.OrderItem;
 import com.example.workshop6.data.model.Product;
 import com.example.workshop6.data.model.ProductTag;
+import com.example.workshop6.data.model.Review;
 import com.example.workshop6.data.model.Reward;
 import com.example.workshop6.data.model.RewardTier;
 import com.example.workshop6.data.model.User;
@@ -27,19 +31,25 @@ import java.util.concurrent.TimeUnit;
 
 @Database(
         entities = {
-            User.class,
-            Address.class,
-            Customer.class,
-            Employee.class,
-            RewardTier.class,
-            BakeryLocation.class,
-            Category.class,
-            Product.class,
+                User.class,
+                Address.class,
+                Customer.class,
+                Employee.class,
+                RewardTier.class,
+                BakeryLocation.class,
+                BakeryHours.class,
+                Category.class,
+                Product.class,
                 ProductTag.class,
                 Reward.class,
-                Order.class
+                Batch.class,
+                Order.class,
+                OrderItem.class,
+                Review.class,
+                ChatThread.class,
+                ChatMessage.class
         },
-        version = 10,
+        version = 20,
         exportSchema = false
 )
 public abstract class AppDatabase extends RoomDatabase {
@@ -50,11 +60,16 @@ public abstract class AppDatabase extends RoomDatabase {
     public abstract EmployeeDao employeeDao();
     public abstract RewardTierDao rewardTierDao();
     public abstract BakeryLocationDao bakeryLocationDao();
+    public abstract BakeryHoursDao bakeryHoursDao();
     public abstract CategoryDao categoryDao();
     public abstract ProductDao productDao();
     public abstract ProductTagDao productTagDao();
     public abstract RewardDao rewardDao();
     public abstract OrderDao orderDao();
+    public abstract BatchDao batchDao();
+    public abstract OrderItemDao orderItemDao();
+    public abstract ReviewDao reviewDao();
+    public abstract ChatDao chatDao();
 
     private static volatile AppDatabase INSTANCE;
 
@@ -94,7 +109,8 @@ public abstract class AppDatabase extends RoomDatabase {
         databaseWriteExecutor.execute(() -> {
             try {
                 DatabaseSeeder.seed(INSTANCE);
-            } catch (Exception ignored) {
+            } catch (Exception e) {
+                android.util.Log.d("DatabaseSeeder", "SEED FAILED", e);
             } finally {
                 seedLatch.countDown();
             }

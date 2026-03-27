@@ -3,12 +3,15 @@ package com.example.workshop6.ui.me;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.ColorMatrix;
+import android.graphics.ColorMatrixColorFilter;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -19,9 +22,14 @@ import com.example.workshop6.auth.LoginActivity;
 import com.example.workshop6.auth.SessionManager;
 import com.example.workshop6.data.db.AppDatabase;
 import com.example.workshop6.data.model.Address;
+import com.example.workshop6.data.model.ChatThread;
 import com.example.workshop6.data.model.Customer;
 import com.example.workshop6.data.model.Employee;
 import com.example.workshop6.data.model.User;
+import com.example.workshop6.logging.ActivityLogger;
+import com.example.workshop6.ui.chat.ChatActivity;
+import com.example.workshop6.ui.cart.CartManager;
+import com.example.workshop6.ui.orders.OrderHistoryActivity;
 import com.example.workshop6.ui.profile.EditProfileActivity;
 
 /**
@@ -34,6 +42,7 @@ public class MeFragment extends Fragment {
     private ImageView ivPhoto;
     private TextView tvName;
     private TextView tvEmail;
+    private TextView tvPhotoStatus;
     private TextView tvAddress;
 
     @Nullable
@@ -53,17 +62,27 @@ public class MeFragment extends Fragment {
         ivPhoto = view.findViewById(R.id.iv_me_photo);
         tvName = view.findViewById(R.id.tv_me_name);
         tvEmail = view.findViewById(R.id.tv_me_email);
+        tvPhotoStatus = view.findViewById(R.id.tv_me_photo_status);
         tvAddress = view.findViewById(R.id.tv_me_address);
 
         view.findViewById(R.id.btn_edit_profile).setOnClickListener(v ->
                 startActivity(new Intent(requireContext(), EditProfileActivity.class)));
 
         view.findViewById(R.id.btn_logout).setOnClickListener(v -> {
+            ActivityLogger.log(requireContext(), sessionManager, "LOGOUT", "User logged out");
+            CartManager.getInstance(requireContext()).onLogout();
             sessionManager.logout();
             Intent intent = new Intent(requireContext(), LoginActivity.class);
             intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
             startActivity(intent);
         });
+
+        view.findViewById(R.id.btn_order_history).setOnClickListener(v -> {
+            Intent intent = new Intent(requireContext(), OrderHistoryActivity.class);
+            startActivity(intent);
+        });
+
+        view.findViewById(R.id.btn_chat_staff).setOnClickListener(v -> openOrCreateChat());
 
         loadMe();
     }
@@ -72,6 +91,55 @@ public class MeFragment extends Fragment {
     public void onResume() {
         super.onResume();
         loadMe();
+    }
+
+    private void openOrCreateChat() {
+        int userId = sessionManager.getUserId();
+        if (userId <= 0) return;
+
+        final android.content.Context appContext = requireContext().getApplicationContext();
+
+        AppDatabase.databaseWriteExecutor.execute(() -> {
+            AppDatabase db = AppDatabase.getInstance(appContext);
+            User user = db.userDao().getUserById(userId);
+            if (user == null || !"CUSTOMER".equalsIgnoreCase(user.userRole)) {
+                if (getActivity() == null) return;
+                requireActivity().runOnUiThread(() -> Toast.makeText(
+                        requireContext(),
+                        R.string.staff_chat_disabled_for_staff,
+                        Toast.LENGTH_SHORT
+                ).show());
+                return;
+            }
+
+            ChatThread existingThread = db.chatDao().getOpenThreadForCustomer(userId);
+
+            int threadId;
+            if (existingThread != null) {
+                threadId = existingThread.threadId;
+            } else {
+                long now = System.currentTimeMillis();
+
+                ChatThread newThread = new ChatThread();
+                newThread.customerUserId = userId;
+                newThread.employeeUserId = null;
+                newThread.status = "OPEN";
+                newThread.createdAt = now;
+                newThread.updatedAt = now;
+
+                threadId = (int) db.chatDao().insertThread(newThread);
+            }
+
+            int finalThreadId = threadId;
+
+            if (getActivity() == null) return;
+
+            requireActivity().runOnUiThread(() -> {
+                Intent intent = new Intent(requireContext(), ChatActivity.class);
+                intent.putExtra(ChatActivity.EXTRA_THREAD_ID, finalThreadId);
+                startActivity(intent);
+            });
+        });
     }
 
     private void loadMe() {
@@ -84,13 +152,16 @@ public class MeFragment extends Fragment {
             User user = db.userDao().getUserById(userId);
             Customer customer = db.customerDao().getByUserId(userId);
             Employee employee = db.employeeDao().getByUserId(userId);
+
             Address address = null;
             int addressId = 0;
+
             if (customer != null && customer.addressId > 0) {
                 addressId = customer.addressId;
             } else if (employee != null && employee.addressId > 0) {
                 addressId = employee.addressId;
             }
+
             if (addressId > 0) {
                 address = db.addressDao().getById(addressId);
             }
@@ -99,6 +170,8 @@ public class MeFragment extends Fragment {
             final Customer c = customer;
             final Employee e = employee;
             final Address a = address;
+
+            if (getActivity() == null) return;
 
             requireActivity().runOnUiThread(() -> {
                 if (u == null) return;
@@ -125,23 +198,53 @@ public class MeFragment extends Fragment {
 
                 tvName.setText(nameText);
                 tvEmail.setText(emailText);
+                boolean isCustomer = "CUSTOMER".equalsIgnoreCase(u.userRole);
+                View rootView = getView();
+                if (rootView != null) {
+                    rootView.findViewById(R.id.btn_order_history).setVisibility(isCustomer ? View.VISIBLE : View.GONE);
+                    rootView.findViewById(R.id.btn_chat_staff).setVisibility(isCustomer ? View.VISIBLE : View.GONE);
+                }
 
-                if (photoPath != null && !photoPath.isEmpty()) {
-                    Bitmap bm = BitmapFactory.decodeFile(photoPath);
+                if (c != null && c.photoApprovalPending) {
+                    Bitmap bm = (photoPath != null && !photoPath.isEmpty())
+                            ? BitmapFactory.decodeFile(photoPath)
+                            : null;
+
                     if (bm != null) {
                         ivPhoto.setImageBitmap(bm);
                     } else {
                         ivPhoto.setImageResource(R.drawable.ic_person_placeholder);
                     }
+
+                    applyPendingPhotoStyle(ivPhoto);
+                    tvPhotoStatus.setVisibility(View.VISIBLE);
+                    tvPhotoStatus.setText(R.string.photo_pending_approval);
+                } else if (photoPath != null && !photoPath.isEmpty()) {
+                    Bitmap bm = BitmapFactory.decodeFile(photoPath);
+                    if (bm != null) {
+                        ivPhoto.setImageBitmap(bm);
+                        ivPhoto.clearColorFilter();
+                        ivPhoto.setImageAlpha(255);
+                        tvPhotoStatus.setVisibility(View.GONE);
+                    } else {
+                        ivPhoto.setImageResource(R.drawable.ic_person_placeholder);
+                        ivPhoto.clearColorFilter();
+                        ivPhoto.setImageAlpha(255);
+                        tvPhotoStatus.setVisibility(View.GONE);
+                    }
                 } else {
                     ivPhoto.setImageResource(R.drawable.ic_person_placeholder);
+                    ivPhoto.clearColorFilter();
+                    ivPhoto.setImageAlpha(255);
+                    tvPhotoStatus.setVisibility(View.GONE);
                 }
 
                 String addressText;
-                if (a == null || (a.addressLine1 == null || a.addressLine1.trim().isEmpty())
+                if (a == null
+                        || ((a.addressLine1 == null || a.addressLine1.trim().isEmpty())
                         && (a.addressCity == null || a.addressCity.trim().isEmpty())
                         && (a.addressProvince == null || a.addressProvince.trim().isEmpty())
-                        && (a.addressPostalCode == null || a.addressPostalCode.trim().isEmpty())) {
+                        && (a.addressPostalCode == null || a.addressPostalCode.trim().isEmpty()))) {
                     addressText = getString(R.string.no_address_on_file);
                 } else {
                     String line1 = a.addressLine1 != null ? a.addressLine1.trim() : "";
@@ -151,13 +254,38 @@ public class MeFragment extends Fragment {
                     String city = a.addressCity != null ? a.addressCity.trim() : "";
                     String prov = a.addressProvince != null ? a.addressProvince.trim() : "";
                     String postal = a.addressPostalCode != null ? a.addressPostalCode.trim() : "";
-                    addressText = line1 + line2 + "\n" + city + (city.isEmpty() ? "" : ", ") + prov + "  " + postal;
+
+                    addressText = line1 + line2 + "\n"
+                            + city
+                            + (city.isEmpty() ? "" : ", ")
+                            + prov
+                            + "  "
+                            + postal;
+
                     addressText = addressText.trim();
-                    if (addressText.isEmpty()) addressText = getString(R.string.no_address_on_file);
+                    if (addressText.isEmpty()) {
+                        addressText = getString(R.string.no_address_on_file);
+                    }
                 }
 
                 tvAddress.setText(addressText);
             });
         });
+    }
+
+    private void applyPendingPhotoStyle(ImageView imageView) {
+        ColorMatrix matrix = new ColorMatrix();
+        matrix.setSaturation(0f);
+
+        ColorMatrix darken = new ColorMatrix(new float[]{
+                0.65f, 0, 0, 0, 0,
+                0, 0.65f, 0, 0, 0,
+                0, 0, 0.65f, 0, 0,
+                0, 0, 0, 1, 0
+        });
+
+        matrix.postConcat(darken);
+        imageView.setColorFilter(new ColorMatrixColorFilter(matrix));
+        imageView.setImageAlpha(230);
     }
 }

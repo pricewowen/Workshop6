@@ -4,7 +4,7 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.TextView;
-import android.widget.Toast;
+import android.text.format.DateUtils;
 
 import androidx.appcompat.app.AppCompatActivity;
 
@@ -13,6 +13,7 @@ import com.example.workshop6.data.db.AppDatabase;
 import com.example.workshop6.data.model.Customer;
 import com.example.workshop6.data.model.Employee;
 import com.example.workshop6.data.model.User;
+import com.example.workshop6.logging.ActivityLogger;
 import com.example.workshop6.ui.MainActivity;
 import com.example.workshop6.util.HashUtils;
 import com.example.workshop6.util.Validation;
@@ -45,14 +46,16 @@ public class LoginActivity extends AppCompatActivity {
         etPassword  = findViewById(R.id.et_password);
         tvError     = findViewById(R.id.tv_error);
 
+        String sessionMessage = getIntent().getStringExtra("session_message");
+        if (!Validation.isEmpty(sessionMessage)) {
+            tvError.setText(sessionMessage);
+            tvError.setVisibility(View.VISIBLE);
+        }
+
         // Warm up Room immediately so seed starts immediately (admin row is created)
         AppDatabase.getInstance(getApplicationContext());
 
         findViewById(R.id.btn_login).setOnClickListener(v -> attemptLogin());
-
-        // Optional stub: forgot password
-        findViewById(R.id.tv_forgot_password).setOnClickListener(v ->
-                Toast.makeText(this, R.string.toast_coming_soon, Toast.LENGTH_SHORT).show());
 
         // Register link
         findViewById(R.id.tv_register_link).setOnClickListener(v ->
@@ -62,6 +65,16 @@ public class LoginActivity extends AppCompatActivity {
     private void attemptLogin() {
         String email = etEmail.getText() != null ? etEmail.getText().toString().trim() : "";
         String pass  = etPassword.getText() != null ? etPassword.getText().toString() : "";
+        long remainingLockoutMs = sessionManager.getRemainingLockoutMs(email);
+
+        if (remainingLockoutMs > 0) {
+            tvError.setText(getString(
+                    R.string.login_error_locked_out,
+                    DateUtils.formatElapsedTime((remainingLockoutMs + 999) / 1000)
+            ));
+            tvError.setVisibility(View.VISIBLE);
+            return;
+        }
 
         boolean valid = true;
 
@@ -95,7 +108,9 @@ public class LoginActivity extends AppCompatActivity {
             User user = email.contains("@")
                     ? db.userDao().getUserByEmail(email)
                     : db.userDao().getUserByUsername(email);
-            boolean ok = (user != null) && HashUtils.verify(pass, user.userPasswordHash);
+            boolean passwordOk = (user != null) && HashUtils.verify(pass, user.userPasswordHash);
+            boolean activeOk = (user != null) && user.isActive;
+            boolean ok = passwordOk && activeOk;
 
             String displayName = user != null ? user.userEmail : "";
             if (user != null) {
@@ -122,10 +137,41 @@ public class LoginActivity extends AppCompatActivity {
             final User userFinal = user;
             runOnUiThread(() -> {
                 if (ok) {
+                    sessionManager.clearLoginFailures(email);
                     sessionManager.createSession(userFinal.userId, userFinal.userRole, nameForSession);
+                    ActivityLogger.log(
+                            this,
+                            "USER#" + userFinal.userId,
+                            "LOGIN",
+                            "Login succeeded"
+                    );
                     goToMain();
+                } else if (passwordOk && userFinal != null && !userFinal.isActive) {
+                    ActivityLogger.logFailure(
+                            this,
+                            null,
+                            "LOGIN",
+                            "Inactive account login attempt"
+                    );
+                    tvError.setText(R.string.login_error_account_inactive);
+                    tvError.setVisibility(View.VISIBLE);
                 } else {
-                    tvError.setText(R.string.login_error_invalid_username_or_email);
+                    sessionManager.recordFailedLogin(email);
+                    long nextRemainingLockoutMs = sessionManager.getRemainingLockoutMs(email);
+                    ActivityLogger.logFailure(
+                            this,
+                            null,
+                            "LOGIN",
+                            "Login failed"
+                    );
+                    if (nextRemainingLockoutMs > 0) {
+                        tvError.setText(getString(
+                                R.string.login_error_locked_out,
+                                DateUtils.formatElapsedTime((nextRemainingLockoutMs + 999) / 1000)
+                        ));
+                    } else {
+                        tvError.setText(R.string.login_error_invalid_username_or_email);
+                    }
                     tvError.setVisibility(View.VISIBLE);
                 }
             });

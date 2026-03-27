@@ -33,18 +33,23 @@ public interface ProductDao {
      * @param tagId ID of the Category
      * @return a List of Product objects
      */
-    @Query("SELECT p.productId, p.productName, p.productDescription, p.productBasePrice FROM product p " +
+    @Query("SELECT p.productId, p.productName, p.productDescription, p.productBasePrice, p.imgUrl FROM product p " +
             "JOIN producttag pt ON p.productId = pt.productId " +
             "JOIN tag t ON t.tagId = pt.tagId " +
             "WHERE pt.tagId = :tagId")
     List<Product> getProductByCategory(int tagId);
 
+    /**
+     * Searches products based on a query
+     * @param query to search
+     * @return a list of Product objects
+     */
     @Query("SELECT DISTINCT p.* FROM product p " +
             "JOIN producttag pt ON p.productId = pt.productId " +
             "JOIN tag t ON pt.tagId = t.tagId " +
-            "WHERE p.productName LIKE '%' || :query || '%' " +
-            "OR p.productDescription LIKE '%' || :query || '%' " +
-            "OR CAST(p.productBasePrice AS TEXT) LIKE '%' || :query || '%' " +
-            "OR t.tagName LIKE '%' || :query || '%'")
+            "WHERE p.productName LIKE '%' || :query || '%' ESCAPE '\\' " +
+            "OR p.productDescription LIKE '%' || :query || '%' ESCAPE '\\' " +
+            "OR CAST(p.productBasePrice AS TEXT) LIKE '%' || :query || '%' ESCAPE '\\' " +
+            "OR t.tagName LIKE '%' || :query || '%' ESCAPE '\\'")
     List<Product> searchProducts(String query);
 }

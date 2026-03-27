@@ -18,7 +18,7 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.workshop6.R;
 import com.example.workshop6.data.db.AppDatabase;
-import com.example.workshop6.data.model.BakeryLocation;
+import com.example.workshop6.data.model.BakeryLocationDetails;
 import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.chip.Chip;
@@ -56,7 +56,7 @@ public class LocationDetailFragment extends Fragment {
         // Load location from DB on background thread
         if (locationId != -1) {
             AppDatabase.databaseWriteExecutor.execute(() -> {
-                BakeryLocation loc = db.bakeryLocationDao().getLocationById(locationId);
+                BakeryLocationDetails loc = db.bakeryLocationDao().getLocationById(locationId);
                 if (loc != null && getActivity() != null) {
                     getActivity().runOnUiThread(() -> populateDetail(view, loc));
                 }
@@ -70,7 +70,7 @@ public class LocationDetailFragment extends Fragment {
         // TODO: Mason — set adapter with real product data here
     }
 
-    private void populateDetail(View view, BakeryLocation loc) {
+    private void populateDetail(View view, BakeryLocationDetails loc) {
         // Toolbar title
         MaterialToolbar toolbar = view.findViewById(R.id.toolbar_detail);
         toolbar.setTitle(loc.name);

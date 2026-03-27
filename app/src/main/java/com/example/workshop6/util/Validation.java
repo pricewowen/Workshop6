@@ -6,19 +6,25 @@ import java.util.regex.Pattern;
 
 public class Validation {
     private static final int MIN_PASSWORD_LENGTH = 8;
-    private static final int MAX_PASSWORD_LENGTH = 250;
+    // Keep max aligned with practical credential policy used by the app.
+    private static final int MAX_PASSWORD_LENGTH = 72;
+    private static final Pattern PASSWORD_UPPERCASE_PATTERN = Pattern.compile(".*[A-Z].*");
+    private static final Pattern PASSWORD_LOWERCASE_PATTERN = Pattern.compile(".*[a-z].*");
+    private static final Pattern PASSWORD_DIGIT_PATTERN = Pattern.compile(".*\\d.*");
+    private static final Pattern PASSWORD_SYMBOL_PATTERN = Pattern.compile(".*[^A-Za-z0-9].*");
     private static final Pattern FULL_NAME_PATTERN = Pattern.compile("^[a-zA-Z ]+$");
     private static final Pattern PHONE_NUMBER_PATTERN = Pattern.compile("^[0-9]{10}$");
 
     private static final int MAX_ADDRESS_LENGTH = 120;
     private static final Pattern CITY_PATTERN = Pattern.compile("^[a-zA-Z][a-zA-Z \\-']*$");
     private static final Pattern PROVINCE_PATTERN = Pattern.compile("^[a-zA-Z][a-zA-Z \\-']*$");
+    public static final int ORDER_COMMENT_MAX_LENGTH = 250;
+    public static final int CHAT_MESSAGE_MAX_LENGTH = 500;
+    public static final int SEARCH_QUERY_MAX_LENGTH = 80;
 
     // Canada postal code: A1A 1A1 (space optional). Also accept US ZIP (12345 or 12345-6789).
     private static final Pattern POSTAL_CODE_CA = Pattern.compile("(?i)^[ABCEGHJ-NPRSTVXY]\\d[ABCEGHJ-NPRSTV-Z][ -]?\\d[ABCEGHJ-NPRSTV-Z]\\d$");
     private static final Pattern POSTAL_CODE_US = Pattern.compile("^\\d{5}(-\\d{4})?$");
-
-    private static final Pattern SQL_KEYWORD_PATTERN = Pattern.compile("(?i)(SELECT|INSERT|UPDATE|DELETE|DROP|FROM|WHERE|--|;)");
 
     /** Username: 3–50 chars, letters, numbers, underscore, hyphen only. */
     private static final int USERNAME_MIN_LENGTH = 3;
@@ -51,13 +57,45 @@ public class Validation {
     }
 
     /**
-     * Checks if the given password meets the minimum and maximum length requirement.
+     * Checks whether the password length is within allowed bounds.
      *
      * @param password the password to be validated
      * @return true if the password is long enough
      */
     public static boolean isPasswordValid(@Nullable CharSequence password) {
         return !isEmpty(password) && password.length() >= MIN_PASSWORD_LENGTH && password.length() <= MAX_PASSWORD_LENGTH;
+    }
+
+    public static boolean hasUppercase(@Nullable CharSequence password) {
+        return !isEmpty(password) && PASSWORD_UPPERCASE_PATTERN.matcher(password).matches();
+    }
+
+    public static boolean hasLowercase(@Nullable CharSequence password) {
+        return !isEmpty(password) && PASSWORD_LOWERCASE_PATTERN.matcher(password).matches();
+    }
+
+    public static boolean hasDigit(@Nullable CharSequence password) {
+        return !isEmpty(password) && PASSWORD_DIGIT_PATTERN.matcher(password).matches();
+    }
+
+    public static boolean hasSymbol(@Nullable CharSequence password) {
+        return !isEmpty(password) && PASSWORD_SYMBOL_PATTERN.matcher(password).matches();
+    }
+
+    public static boolean isPasswordStrong(@Nullable CharSequence password) {
+        return isPasswordValid(password)
+                && hasUppercase(password)
+                && hasLowercase(password)
+                && hasDigit(password)
+                && hasSymbol(password);
+    }
+
+    public static boolean isPasswordTooShort(@Nullable CharSequence password) {
+        return !isEmpty(password) && password.length() < MIN_PASSWORD_LENGTH;
+    }
+
+    public static boolean isPasswordTooLong(@Nullable CharSequence password) {
+        return !isEmpty(password) && password.length() > MAX_PASSWORD_LENGTH;
     }
 
     /**
@@ -99,23 +137,27 @@ public class Validation {
     public static boolean isUsernameValid(@Nullable CharSequence username) {
         if (username == null) return false;
         String s = username.toString().trim();
-        return s.length() >= USERNAME_MIN_LENGTH && s.length() <= USERNAME_MAX_LENGTH
+        return s.length() >= USERNAME_MIN_LENGTH
+                && s.length() <= USERNAME_MAX_LENGTH
                 && USERNAME_PATTERN.matcher(s).matches();
     }
 
-    /**
-     * A basic check to see if the password contains common SQL keywords.
-     * Note: This is not a substitute for using parameterized queries to prevent SQL injection,
-     * which is the correct way to handle it. This is a simple client-side check.
-     *
-     * @param password the password to be checked
-     * @return true if the password does not appear to contain SQL.
-     */
-    public static boolean isPasswordSafeFromSimpleSql(@Nullable CharSequence password) {
-        if (isEmpty(password)) {
-            return true;
-        }
-        return !SQL_KEYWORD_PATTERN.matcher(password).find();
+    public static boolean isUsernameTooShort(@Nullable CharSequence username) {
+        if (username == null) return false;
+        String s = username.toString().trim();
+        return !s.isEmpty() && s.length() < USERNAME_MIN_LENGTH;
+    }
+
+    public static boolean isUsernameTooLong(@Nullable CharSequence username) {
+        if (username == null) return false;
+        String s = username.toString().trim();
+        return s.length() > USERNAME_MAX_LENGTH;
+    }
+
+    public static boolean isUsernameFormatValid(@Nullable CharSequence username) {
+        if (username == null) return false;
+        String s = username.toString().trim();
+        return !s.isEmpty() && USERNAME_PATTERN.matcher(s).matches();
     }
 
     public static boolean isAddressLineValid(@Nullable CharSequence addressLine) {
@@ -140,5 +182,15 @@ public class Validation {
         if (isEmpty(postalCode)) return false;
         String s = postalCode.toString().trim();
         return POSTAL_CODE_CA.matcher(s).matches() || POSTAL_CODE_US.matcher(s).matches();
+    }
+
+    @Nullable
+    public static String limitLength(@Nullable CharSequence value, int maxLength) {
+        if (value == null) return null;
+        String s = value.toString();
+        if (s.length() <= maxLength) {
+            return s;
+        }
+        return s.substring(0, maxLength);
     }
 }

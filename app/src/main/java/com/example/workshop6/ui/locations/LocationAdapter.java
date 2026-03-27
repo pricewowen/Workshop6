@@ -13,29 +13,29 @@ import androidx.recyclerview.widget.ListAdapter;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.workshop6.R;
-import com.example.workshop6.data.model.BakeryLocation;
+import com.example.workshop6.data.model.BakeryLocationDetails;
 import com.example.workshop6.util.LocationUtils;
 import com.google.android.material.chip.Chip;
 
 import java.util.Objects;
 
-public class LocationAdapter extends ListAdapter<BakeryLocation, LocationAdapter.VH> {
+public class LocationAdapter extends ListAdapter<BakeryLocationDetails, LocationAdapter.VH> {
 
     public interface OnClickListener {
-        void onClick(BakeryLocation location);
+        void onClick(BakeryLocationDetails location);
     }
 
-    private static final DiffUtil.ItemCallback<BakeryLocation> DIFF_CALLBACK =
-            new DiffUtil.ItemCallback<BakeryLocation>() {
+    private static final DiffUtil.ItemCallback<BakeryLocationDetails> DIFF_CALLBACK =
+            new DiffUtil.ItemCallback<BakeryLocationDetails>() {
                 @Override
-                public boolean areItemsTheSame(@NonNull BakeryLocation oldItem,
-                                               @NonNull BakeryLocation newItem) {
+                public boolean areItemsTheSame(@NonNull BakeryLocationDetails oldItem,
+                                               @NonNull BakeryLocationDetails newItem) {
                     return oldItem.id == newItem.id;
                 }
 
                 @Override
-                public boolean areContentsTheSame(@NonNull BakeryLocation oldItem,
-                                                  @NonNull BakeryLocation newItem) {
+                public boolean areContentsTheSame(@NonNull BakeryLocationDetails oldItem,
+                                                  @NonNull BakeryLocationDetails newItem) {
                     return oldItem.id == newItem.id
                             && Objects.equals(oldItem.name, newItem.name)
                             && Objects.equals(oldItem.address, newItem.address)
@@ -92,7 +92,7 @@ public class LocationAdapter extends ListAdapter<BakeryLocation, LocationAdapter
             chipStatus   = itemView.findViewById(R.id.chip_status);
         }
 
-        void bind(BakeryLocation loc,
+        void bind(BakeryLocationDetails loc,
                   boolean nearbyMode, double userLat, double userLon,
                   @Nullable OnClickListener listener) {
 

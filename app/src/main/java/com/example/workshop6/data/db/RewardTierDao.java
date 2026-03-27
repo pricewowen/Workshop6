@@ -18,4 +18,14 @@ public interface RewardTierDao {
 
     @Query("SELECT * FROM reward_tier")
     List<RewardTier> getAll();
+
+    @Query("SELECT * FROM reward_tier " +
+            "WHERE minPoints <= :points AND (maxPoints IS NULL OR maxPoints >= :points) " +
+            "ORDER BY minPoints DESC LIMIT 1")
+    RewardTier getTierForPoints(int points);
+
+    @Query("SELECT * FROM reward_tier " +
+            "WHERE minPoints > :points " +
+            "ORDER BY minPoints ASC LIMIT 1")
+    RewardTier getNextTierForPoints(int points);
 }
