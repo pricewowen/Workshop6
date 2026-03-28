@@ -20,6 +20,7 @@ public class SessionManager {
     private static final String KEY_FAILED_LOGIN_IDENTITY = "failedLoginIdentity";
     private static final String KEY_FAILED_LOGIN_COUNT = "failedLoginCount";
     private static final String KEY_LOCKOUT_UNTIL = "lockoutUntil";
+    private static final String KEY_JWT_TOKEN = "jwtToken";
 
     private static final long STAFF_SESSION_TIMEOUT_MS = 30L * 60L * 1000L;
     private static final long CUSTOMER_SESSION_TIMEOUT_MS = 12L * 60L * 60L * 1000L;
@@ -156,6 +157,14 @@ public class SessionManager {
         clearSession();
     }
 
+    public void saveToken(String token) {
+        prefs.edit().putString(KEY_JWT_TOKEN, token).apply();
+    }
+
+    public String getToken() {
+        return prefs.getString(KEY_JWT_TOKEN, null);
+    }
+
     private void clearSession() {
         CartManager.getInstance(appContext).onLogout();
         stopTaskRemovedWatcher();
@@ -165,6 +174,7 @@ public class SessionManager {
                 .remove(KEY_USER_ROLE)
                 .remove(KEY_USER_NAME)
                 .remove(KEY_LAST_ACTIVITY_AT)
+                .remove(KEY_JWT_TOKEN)
                 .apply();
     }
 

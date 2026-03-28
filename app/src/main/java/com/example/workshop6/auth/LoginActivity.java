@@ -9,16 +9,18 @@ import android.text.format.DateUtils;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.example.workshop6.R;
-import com.example.workshop6.data.db.AppDatabase;
-import com.example.workshop6.data.model.Customer;
-import com.example.workshop6.data.model.Employee;
-import com.example.workshop6.data.model.User;
+import com.example.workshop6.data.api.ApiClient;
+import com.example.workshop6.data.api.ApiService;
+import com.example.workshop6.data.api.dto.AuthResponse;
+import com.example.workshop6.data.api.dto.LoginRequest;
 import com.example.workshop6.logging.ActivityLogger;
 import com.example.workshop6.ui.MainActivity;
-import com.example.workshop6.util.HashUtils;
 import com.example.workshop6.util.Validation;
 import com.google.android.material.textfield.TextInputEditText;
 import com.google.android.material.textfield.TextInputLayout;
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
 
 public class LoginActivity extends AppCompatActivity {
 
@@ -51,9 +53,6 @@ public class LoginActivity extends AppCompatActivity {
             tvError.setText(sessionMessage);
             tvError.setVisibility(View.VISIBLE);
         }
-
-        // Warm up Room immediately so seed starts immediately (admin row is created)
-        AppDatabase.getInstance(getApplicationContext());
 
         findViewById(R.id.btn_login).setOnClickListener(v -> attemptLogin());
 
@@ -98,72 +97,31 @@ public class LoginActivity extends AppCompatActivity {
         if (!valid) return;
 
         tvError.setVisibility(View.GONE);
+        findViewById(R.id.btn_login).setEnabled(false);
 
-        AppDatabase.databaseWriteExecutor.execute(() -> {
-            // Ensure seed finished so admin exists on FIRST attempt
-            AppDatabase.awaitSeed();
+        ApiService api = ApiClient.getInstance().getService();
+        api.login(new LoginRequest(email, pass)).enqueue(new Callback<AuthResponse>() {
+            @Override
+            public void onResponse(Call<AuthResponse> call, Response<AuthResponse> response) {
+                findViewById(R.id.btn_login).setEnabled(true);
 
-            AppDatabase db = AppDatabase.getInstance(getApplicationContext());
-            // Login with email or username
-            User user = email.contains("@")
-                    ? db.userDao().getUserByEmail(email)
-                    : db.userDao().getUserByUsername(email);
-            boolean passwordOk = (user != null) && HashUtils.verify(pass, user.userPasswordHash);
-            boolean activeOk = (user != null) && user.isActive;
-            boolean ok = passwordOk && activeOk;
+                if (response.isSuccessful() && response.body() != null) {
+                    AuthResponse auth = response.body();
 
-            String displayName = user != null ? user.userEmail : "";
-            if (user != null) {
-                Customer customer = db.customerDao().getByUserId(user.userId);
-                Employee employee = db.employeeDao().getByUserId(user.userId);
-                if (customer != null) {
-                    displayName = (customer.customerFirstName != null ? customer.customerFirstName : "")
-                            + " "
-                            + (customer.customerLastName != null ? customer.customerLastName : "");
-                    displayName = displayName.trim();
-                    if (displayName.isEmpty()) displayName = user.userEmail;
-                } else if (employee != null) {
-                    displayName = (employee.employeeFirstName != null ? employee.employeeFirstName : "")
-                            + " "
-                            + (employee.employeeLastName != null ? employee.employeeLastName : "");
-                    displayName = displayName.trim();
-                    if (displayName.isEmpty()) displayName = user.userEmail;
-                } else {
-                    displayName = user.userEmail;
-                }
-            }
-
-            final String nameForSession = displayName;
-            final User userFinal = user;
-            runOnUiThread(() -> {
-                if (ok) {
+                    ApiClient.getInstance().setToken(auth.token);
+                    sessionManager.saveToken(auth.token);
                     sessionManager.clearLoginFailures(email);
-                    sessionManager.createSession(userFinal.userId, userFinal.userRole, nameForSession);
-                    ActivityLogger.log(
-                            this,
-                            "USER#" + userFinal.userId,
-                            "LOGIN",
-                            "Login succeeded"
-                    );
+                    // userId is not returned by the API yet; -1 is a placeholder
+                    sessionManager.createSession(-1, auth.role.toUpperCase(), auth.username);
+
+                    ActivityLogger.log(LoginActivity.this, "USER@" + auth.username, "LOGIN", "Login succeeded");
                     goToMain();
-                } else if (passwordOk && userFinal != null && !userFinal.isActive) {
-                    ActivityLogger.logFailure(
-                            this,
-                            null,
-                            "LOGIN",
-                            "Inactive account login attempt"
-                    );
-                    tvError.setText(R.string.login_error_account_inactive);
-                    tvError.setVisibility(View.VISIBLE);
-                } else {
+
+                } else if (response.code() == 401 || response.code() == 403) {
                     sessionManager.recordFailedLogin(email);
                     long nextRemainingLockoutMs = sessionManager.getRemainingLockoutMs(email);
-                    ActivityLogger.logFailure(
-                            this,
-                            null,
-                            "LOGIN",
-                            "Login failed"
-                    );
+                    ActivityLogger.logFailure(LoginActivity.this, null, "LOGIN", "Login failed");
+
                     if (nextRemainingLockoutMs > 0) {
                         tvError.setText(getString(
                                 R.string.login_error_locked_out,
@@ -173,8 +131,20 @@ public class LoginActivity extends AppCompatActivity {
                         tvError.setText(R.string.login_error_invalid_username_or_email);
                     }
                     tvError.setVisibility(View.VISIBLE);
+
+                } else {
+                    tvError.setText(getString(R.string.login_error_server, response.code()));
+                    tvError.setVisibility(View.VISIBLE);
                 }
-            });
+            }
+
+            @Override
+            public void onFailure(Call<AuthResponse> call, Throwable t) {
+                findViewById(R.id.btn_login).setEnabled(true);
+                tvError.setText(R.string.login_error_no_connection);
+                tvError.setVisibility(View.VISIBLE);
+                ActivityLogger.logFailure(LoginActivity.this, null, "LOGIN", "Network error: " + t.getMessage());
+            }
         });
     }
 
