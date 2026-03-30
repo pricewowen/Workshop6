@@ -374,6 +374,9 @@ public class RegisterActivity extends AppCompatActivity {
         api.register(registerRequest).enqueue(new Callback<AuthResponse>() {
             @Override
             public void onResponse(Call<AuthResponse> call, Response<AuthResponse> response) {
+                if (isFinishing() || isDestroyed()) {
+                    return;
+                }
                 if (response.code() == 409) {
                     showDuplicateAccountError();
                     ActivityLogger.logFailure(RegisterActivity.this, null, "REGISTER", "Conflict from API");
@@ -386,6 +389,14 @@ public class RegisterActivity extends AppCompatActivity {
                     return;
                 }
                 AuthResponse auth = response.body();
+                if (auth.token == null || auth.token.trim().isEmpty()
+                        || auth.role == null || auth.role.trim().isEmpty()
+                        || auth.username == null || auth.username.trim().isEmpty()) {
+                    tvError.setText(R.string.register_error_unexpected);
+                    tvError.setVisibility(View.VISIBLE);
+                    ActivityLogger.logFailure(RegisterActivity.this, null, "REGISTER", "Malformed auth response");
+                    return;
+                }
                 ApiClient.getInstance().setToken(auth.token);
                 sessionManager.saveToken(auth.token);
                 String uid = auth.userId != null ? auth.userId : "";
@@ -401,6 +412,9 @@ public class RegisterActivity extends AppCompatActivity {
 
             @Override
             public void onFailure(Call<AuthResponse> call, Throwable t) {
+                if (isFinishing() || isDestroyed()) {
+                    return;
+                }
                 tvError.setText(R.string.login_error_no_connection);
                 tvError.setVisibility(View.VISIBLE);
                 ActivityLogger.logFailure(RegisterActivity.this, null, "REGISTER", "Network error");

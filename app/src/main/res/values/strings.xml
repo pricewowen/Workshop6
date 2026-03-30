@@ -22,7 +22,7 @@
     <string name="login_error_account_inactive">This account has been deactivated. Please contact staff.</string>
     <string name="login_error_locked_out">Too many failed attempts. Try again in %1$s.</string>
     <string name="login_error_server">Server error (%1$d). Please try again.</string>
-    <string name="login_error_no_connection">Could not connect to the server. Is the API running?</string>
+    <string name="login_error_no_connection">Cannot connect to server.</string>
     <string name="session_expired">Your session expired. Please sign in again.</string>
 
     <!-- Auth — Register -->

@@ -4,7 +4,6 @@ import android.Manifest;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
 import android.graphics.ColorMatrix;
 import android.graphics.ColorMatrixColorFilter;
 import android.net.Uri;
@@ -346,7 +345,9 @@ public class EditProfileActivity extends AppCompatActivity {
 
     private void applyPhotoState(String photoPath, boolean pending) {
         if (pending) {
-            Bitmap bm = (photoPath != null && !photoPath.isEmpty()) ? BitmapFactory.decodeFile(photoPath) : null;
+            Bitmap bm = (photoPath != null && !photoPath.isEmpty())
+                    ? ImageUtils.decodeFileForPreview(photoPath, 512)
+                    : null;
             if (bm != null) {
                 ivPhoto.setImageBitmap(bm);
             } else {
@@ -358,7 +359,7 @@ public class EditProfileActivity extends AppCompatActivity {
             btnChoosePhoto.setEnabled(false);
             btnChoosePhoto.setAlpha(0.6f);
         } else if (photoPath != null && !photoPath.isEmpty()) {
-            Bitmap bm = BitmapFactory.decodeFile(photoPath);
+            Bitmap bm = ImageUtils.decodeFileForPreview(photoPath, 512);
             if (bm != null) {
                 ivPhoto.setImageBitmap(bm);
             }

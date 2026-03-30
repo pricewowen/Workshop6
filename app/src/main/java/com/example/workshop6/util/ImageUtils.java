@@ -165,4 +165,45 @@ public final class ImageUtils {
             return null;
         }
     }
+
+    /**
+     * Decodes a local file path with sampling to avoid OOM on large images.
+     */
+    public static Bitmap decodeFileForPreview(String path, int maxSizePx) {
+        if (path == null || path.trim().isEmpty()) {
+            return null;
+        }
+        try {
+            BitmapFactory.Options bounds = new BitmapFactory.Options();
+            bounds.inJustDecodeBounds = true;
+            BitmapFactory.decodeFile(path, bounds);
+            if (bounds.outWidth <= 0 || bounds.outHeight <= 0) {
+                return null;
+            }
+
+            BitmapFactory.Options opts = new BitmapFactory.Options();
+            opts.inSampleSize = calculateInSampleSize(bounds, maxSizePx, maxSizePx);
+            opts.inPreferredConfig = Bitmap.Config.RGB_565;
+            Bitmap sampled = BitmapFactory.decodeFile(path, opts);
+            if (sampled == null) {
+                return null;
+            }
+            return scaleDownToMaxSize(sampled, maxSizePx);
+        } catch (OutOfMemoryError oom) {
+            return null;
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    private static int calculateInSampleSize(BitmapFactory.Options options, int reqWidth, int reqHeight) {
+        int height = options.outHeight;
+        int width = options.outWidth;
+        int inSampleSize = 1;
+
+        while ((height / inSampleSize) > reqHeight || (width / inSampleSize) > reqWidth) {
+            inSampleSize *= 2;
+        }
+        return Math.max(1, inSampleSize);
+    }
 }

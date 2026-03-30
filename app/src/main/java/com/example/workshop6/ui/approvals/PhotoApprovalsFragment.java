@@ -1,7 +1,6 @@
 package com.example.workshop6.ui.approvals;
 
 import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -21,6 +20,7 @@ import com.example.workshop6.data.api.ApiClient;
 import com.example.workshop6.data.api.ApiService;
 import com.example.workshop6.data.api.dto.CustomerDto;
 import com.example.workshop6.logging.ActivityLogger;
+import com.example.workshop6.util.ImageUtils;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -150,6 +150,9 @@ public class PhotoApprovalsFragment extends Fragment {
 
             @Override
             public void onFailure(Call<Void> call, Throwable t) {
+                if (!isAdded()) {
+                    return;
+                }
                 Toast.makeText(requireContext(), R.string.login_error_no_connection, Toast.LENGTH_SHORT).show();
             }
         });
@@ -198,7 +201,7 @@ public class PhotoApprovalsFragment extends Fragment {
             holder.tvEmail.setText(c.email != null ? c.email : "");
 
             if (c.profilePhotoPath != null && !c.profilePhotoPath.trim().isEmpty()) {
-                Bitmap bm = BitmapFactory.decodeFile(c.profilePhotoPath);
+                Bitmap bm = ImageUtils.decodeFileForPreview(c.profilePhotoPath, 384);
                 if (bm != null) {
                     holder.ivPhoto.setImageBitmap(bm);
                 } else {

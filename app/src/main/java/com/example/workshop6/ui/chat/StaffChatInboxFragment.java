@@ -82,6 +82,9 @@ public class StaffChatInboxFragment extends Fragment {
         adapter = new StaffThreadAdapter(item -> api.assignChatThread(item.id).enqueue(new Callback<ChatThreadDto>() {
             @Override
             public void onResponse(Call<ChatThreadDto> call, Response<ChatThreadDto> response) {
+                if (!isAdded()) {
+                    return;
+                }
                 Intent intent = new Intent(requireContext(), ChatActivity.class);
                 intent.putExtra(ChatActivity.EXTRA_THREAD_ID, item.id);
                 startActivity(intent);
@@ -89,6 +92,9 @@ public class StaffChatInboxFragment extends Fragment {
 
             @Override
             public void onFailure(Call<ChatThreadDto> call, Throwable t) {
+                if (!isAdded()) {
+                    return;
+                }
                 Intent intent = new Intent(requireContext(), ChatActivity.class);
                 intent.putExtra(ChatActivity.EXTRA_THREAD_ID, item.id);
                 startActivity(intent);

@@ -120,7 +120,7 @@ public class ProductDetailsFragment extends Fragment {
         api.getProduct(productId).enqueue(new Callback<ProductDto>() {
             @Override
             public void onResponse(Call<ProductDto> call, Response<ProductDto> response) {
-                if (!response.isSuccessful() || response.body() == null) {
+                if (!response.isSuccessful() || response.body() == null || !isUiReady()) {
                     return;
                 }
                 loadedProduct = ProductMapper.fromDto(response.body());
@@ -136,6 +136,9 @@ public class ProductDetailsFragment extends Fragment {
 
             @Override
             public void onFailure(Call<ProductDto> call, Throwable t) {
+                if (!isAdded()) {
+                    return;
+                }
                 Toast.makeText(requireContext(), R.string.login_error_no_connection, Toast.LENGTH_SHORT).show();
             }
         });
@@ -147,7 +150,7 @@ public class ProductDetailsFragment extends Fragment {
                 api.getProductReviews(productId).enqueue(new Callback<List<ReviewDto>>() {
                     @Override
                     public void onResponse(Call<List<ReviewDto>> call2, Response<List<ReviewDto>> response2) {
-                        if (!response2.isSuccessful() || response2.body() == null) {
+                        if (!response2.isSuccessful() || response2.body() == null || !isUiReady()) {
                             return;
                         }
                         List<ReviewDto> reviews = new ArrayList<>();
@@ -203,5 +206,9 @@ public class ProductDetailsFragment extends Fragment {
                 Navigation.findNavController(view).navigateUp();
             }
         });
+    }
+
+    private boolean isUiReady() {
+        return isAdded() && getView() != null;
     }
 }

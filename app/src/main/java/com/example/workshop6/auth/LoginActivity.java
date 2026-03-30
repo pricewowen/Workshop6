@@ -28,6 +28,7 @@ public class LoginActivity extends AppCompatActivity {
     private TextInputEditText etEmail, etPassword;
     private TextView tvError;
     private SessionManager sessionManager;
+    private View btnLogin;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -47,6 +48,7 @@ public class LoginActivity extends AppCompatActivity {
         etEmail     = findViewById(R.id.et_email);
         etPassword  = findViewById(R.id.et_password);
         tvError     = findViewById(R.id.tv_error);
+        btnLogin    = findViewById(R.id.btn_login);
 
         String sessionMessage = getIntent().getStringExtra("session_message");
         if (!Validation.isEmpty(sessionMessage)) {
@@ -54,7 +56,7 @@ public class LoginActivity extends AppCompatActivity {
             tvError.setVisibility(View.VISIBLE);
         }
 
-        findViewById(R.id.btn_login).setOnClickListener(v -> attemptLogin());
+        btnLogin.setOnClickListener(v -> attemptLogin());
 
         // Register link
         findViewById(R.id.tv_register_link).setOnClickListener(v ->
@@ -97,16 +99,27 @@ public class LoginActivity extends AppCompatActivity {
         if (!valid) return;
 
         tvError.setVisibility(View.GONE);
-        findViewById(R.id.btn_login).setEnabled(false);
+        btnLogin.setEnabled(false);
 
         ApiService api = ApiClient.getInstance().getService();
         api.login(new LoginRequest(email, pass)).enqueue(new Callback<AuthResponse>() {
             @Override
             public void onResponse(Call<AuthResponse> call, Response<AuthResponse> response) {
-                findViewById(R.id.btn_login).setEnabled(true);
+                if (isFinishing() || isDestroyed()) {
+                    return;
+                }
+                btnLogin.setEnabled(true);
 
                 if (response.isSuccessful() && response.body() != null) {
                     AuthResponse auth = response.body();
+                    if (auth.token == null || auth.token.trim().isEmpty()
+                            || auth.role == null || auth.role.trim().isEmpty()
+                            || auth.username == null || auth.username.trim().isEmpty()) {
+                        tvError.setText(R.string.register_error_unexpected);
+                        tvError.setVisibility(View.VISIBLE);
+                        ActivityLogger.logFailure(LoginActivity.this, null, "LOGIN", "Malformed auth response");
+                        return;
+                    }
 
                     ApiClient.getInstance().setToken(auth.token);
                     sessionManager.saveToken(auth.token);
@@ -140,7 +153,10 @@ public class LoginActivity extends AppCompatActivity {
 
             @Override
             public void onFailure(Call<AuthResponse> call, Throwable t) {
-                findViewById(R.id.btn_login).setEnabled(true);
+                if (isFinishing() || isDestroyed()) {
+                    return;
+                }
+                btnLogin.setEnabled(true);
                 tvError.setText(R.string.login_error_no_connection);
                 tvError.setVisibility(View.VISIBLE);
                 ActivityLogger.logFailure(LoginActivity.this, null, "LOGIN", "Network error: " + t.getMessage());

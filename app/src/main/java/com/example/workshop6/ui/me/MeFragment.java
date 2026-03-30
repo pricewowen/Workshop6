@@ -2,7 +2,6 @@ package com.example.workshop6.ui.me;
 
 import android.content.Intent;
 import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
 import android.graphics.ColorMatrix;
 import android.graphics.ColorMatrixColorFilter;
 import android.os.Bundle;
@@ -31,12 +30,17 @@ import com.example.workshop6.ui.chat.ChatActivity;
 import com.example.workshop6.ui.cart.CartManager;
 import com.example.workshop6.ui.orders.OrderHistoryActivity;
 import com.example.workshop6.ui.profile.EditProfileActivity;
+import com.example.workshop6.util.ImageUtils;
 
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
 
 public class MeFragment extends Fragment {
+    private static final long ME_CACHE_TTL_MS = 30_000L;
+    private static long meCacheAtMs = 0L;
+    private static String cachedUserKey = null;
+    private static MeSnapshot cachedMeSnapshot = null;
 
     private SessionManager sessionManager;
     private ApiService api;
@@ -89,6 +93,7 @@ public class MeFragment extends Fragment {
 
         view.findViewById(R.id.btn_chat_staff).setOnClickListener(v -> openOrCreateChat());
 
+        renderCachedMeIfPresent();
         loadMe();
     }
 
@@ -120,6 +125,9 @@ public class MeFragment extends Fragment {
 
                     @Override
                     public void onFailure(Call<ChatThreadDto> call2, Throwable t) {
+                        if (!isAdded()) {
+                            return;
+                        }
                         Toast.makeText(requireContext(), R.string.login_error_no_connection, Toast.LENGTH_SHORT).show();
                     }
                 });
@@ -127,6 +135,9 @@ public class MeFragment extends Fragment {
 
             @Override
             public void onFailure(Call<ChatThreadDto> call, Throwable t) {
+                if (!isAdded()) {
+                    return;
+                }
                 Toast.makeText(requireContext(), R.string.login_error_no_connection, Toast.LENGTH_SHORT).show();
             }
         });
@@ -140,6 +151,9 @@ public class MeFragment extends Fragment {
 
     private void loadMe() {
         if (sessionManager.getUserUuid().isEmpty() && sessionManager.getUserId() <= 0) {
+            return;
+        }
+        if (isMeCacheFreshForCurrentUser()) {
             return;
         }
 
@@ -172,6 +186,13 @@ public class MeFragment extends Fragment {
                         root.findViewById(R.id.btn_order_history).setVisibility(View.VISIBLE);
                         root.findViewById(R.id.btn_chat_staff).setVisibility(View.VISIBLE);
                     }
+                    cacheMeSnapshot(new MeSnapshot(nameText,
+                            c.email != null ? c.email : sessionManager.getUserName(),
+                            photoPath,
+                            pending,
+                            formatCustomerAddress(c),
+                            true,
+                            true));
                 }
 
                 @Override
@@ -192,6 +213,13 @@ public class MeFragment extends Fragment {
                             root.findViewById(R.id.btn_order_history).setVisibility(View.GONE);
                             root.findViewById(R.id.btn_chat_staff).setVisibility(View.GONE);
                         }
+                        cacheMeSnapshot(new MeSnapshot(sessionManager.getUserName(),
+                                sessionManager.getUserName(),
+                                null,
+                                false,
+                                "",
+                                false,
+                                false));
                         return;
                     }
                     if (!response.isSuccessful() || response.body() == null) {
@@ -213,12 +241,78 @@ public class MeFragment extends Fragment {
                         root.findViewById(R.id.btn_order_history).setVisibility(View.GONE);
                         root.findViewById(R.id.btn_chat_staff).setVisibility(View.GONE);
                     }
+                    cacheMeSnapshot(new MeSnapshot(nameText,
+                            e.workEmail != null ? e.workEmail : sessionManager.getUserName(),
+                            e.profilePhotoPath,
+                            e.photoApprovalPending,
+                            addressTextForEmployee(e),
+                            false,
+                            false));
                 }
 
                 @Override
                 public void onFailure(Call<EmployeeDto> call, Throwable t) {
                 }
             });
+        }
+    }
+
+    private void renderCachedMeIfPresent() {
+        if (!isMeCacheFreshForCurrentUser() || cachedMeSnapshot == null || getView() == null) {
+            return;
+        }
+        tvName.setText(cachedMeSnapshot.name);
+        tvEmail.setText(cachedMeSnapshot.email);
+        tvAddress.setText(cachedMeSnapshot.addressText);
+        applyPhotoUI(cachedMeSnapshot.photoPath, cachedMeSnapshot.photoPending);
+        View root = getView();
+        if (root != null) {
+            root.findViewById(R.id.btn_order_history).setVisibility(cachedMeSnapshot.showOrderHistory ? View.VISIBLE : View.GONE);
+            root.findViewById(R.id.btn_chat_staff).setVisibility(cachedMeSnapshot.showChatStaff ? View.VISIBLE : View.GONE);
+        }
+    }
+
+    private boolean isMeCacheFreshForCurrentUser() {
+        String userKey = buildUserKey();
+        return cachedMeSnapshot != null
+                && userKey.equals(cachedUserKey)
+                && meCacheAtMs > 0
+                && (System.currentTimeMillis() - meCacheAtMs) <= ME_CACHE_TTL_MS;
+    }
+
+    private String buildUserKey() {
+        return sessionManager.getUserRole() + "|" + sessionManager.getUserUuid() + "|" + sessionManager.getUserId();
+    }
+
+    private void cacheMeSnapshot(MeSnapshot snapshot) {
+        cachedMeSnapshot = snapshot;
+        cachedUserKey = buildUserKey();
+        meCacheAtMs = System.currentTimeMillis();
+    }
+
+    private static final class MeSnapshot {
+        final String name;
+        final String email;
+        final String photoPath;
+        final boolean photoPending;
+        final String addressText;
+        final boolean showOrderHistory;
+        final boolean showChatStaff;
+
+        MeSnapshot(String name,
+                   String email,
+                   String photoPath,
+                   boolean photoPending,
+                   String addressText,
+                   boolean showOrderHistory,
+                   boolean showChatStaff) {
+            this.name = name;
+            this.email = email;
+            this.photoPath = photoPath;
+            this.photoPending = photoPending;
+            this.addressText = addressText;
+            this.showOrderHistory = showOrderHistory;
+            this.showChatStaff = showChatStaff;
         }
     }
 
@@ -232,7 +326,7 @@ public class MeFragment extends Fragment {
     private void applyPhotoUI(String photoPath, boolean pending) {
         if (pending) {
             Bitmap bm = (photoPath != null && !photoPath.isEmpty())
-                    ? BitmapFactory.decodeFile(photoPath)
+                    ? ImageUtils.decodeFileForPreview(photoPath, 512)
                     : null;
             if (bm != null) {
                 ivPhoto.setImageBitmap(bm);
@@ -243,7 +337,7 @@ public class MeFragment extends Fragment {
             tvPhotoStatus.setVisibility(View.VISIBLE);
             tvPhotoStatus.setText(R.string.photo_pending_approval);
         } else if (photoPath != null && !photoPath.isEmpty()) {
-            Bitmap bm = BitmapFactory.decodeFile(photoPath);
+            Bitmap bm = ImageUtils.decodeFileForPreview(photoPath, 512);
             if (bm != null) {
                 ivPhoto.setImageBitmap(bm);
                 ivPhoto.clearColorFilter();

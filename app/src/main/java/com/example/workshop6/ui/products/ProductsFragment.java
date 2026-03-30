@@ -46,7 +46,18 @@ import retrofit2.Callback;
 import retrofit2.Response;
 
 public class ProductsFragment extends Fragment {
+    private static final long CACHE_TTL_MS = 30_000L;
+    private static long productsCachedAtMs = 0L;
+    private static long rewardCachedAtMs = 0L;
+    private static long featuredCachedAtMs = 0L;
+    private static final List<Category> cachedCategories = new ArrayList<>();
+    private static final List<Product> cachedProducts = new ArrayList<>();
+    private static final List<RewardTierDto> cachedRewardTiers = new ArrayList<>();
+    private static int cachedRewardPoints = -1;
+    private static Product cachedFeaturedProduct;
+
     private RecyclerView rvCategories;
+    private CategoriesAdapter categoriesAdapter;
     private ProductAdapter productAdapter;
     private RecyclerView rvProducts;
     private Button btnAddToCart;
@@ -229,6 +240,15 @@ public class ProductsFragment extends Fragment {
     }
 
     private void loadFeaturedProduct() {
+        if (isCacheFresh(featuredCachedAtMs) && cachedFeaturedProduct != null) {
+            featured = cachedFeaturedProduct;
+            featuredProductId = featured.getProductId();
+            if (isUiReady()) {
+                tvFeatureProductName.setText(featured.getProductName());
+                tvFeatureProductPrice.setText(String.format("$%.2f", featured.getProductBasePrice()));
+            }
+            return;
+        }
         api.getBatchesByBakery(1, true).enqueue(new Callback<List<BatchDto>>() {
             @Override
             public void onResponse(Call<List<BatchDto>> call, Response<List<BatchDto>> response) {
@@ -249,6 +269,8 @@ public class ProductsFragment extends Fragment {
                         if (featured == null) {
                             return;
                         }
+                        cachedFeaturedProduct = featured;
+                        featuredCachedAtMs = System.currentTimeMillis();
                         featuredProductId = featured.getProductId();
                         tvFeatureProductName.setText(featured.getProductName());
                         tvFeatureProductPrice.setText(String.format("$%.2f", featured.getProductBasePrice()));
@@ -267,6 +289,12 @@ public class ProductsFragment extends Fragment {
     }
 
     private void loadRewardPanel() {
+        if (isCacheFresh(rewardCachedAtMs) && cachedRewardPoints >= 0 && !cachedRewardTiers.isEmpty()) {
+            rewardTiers.clear();
+            rewardTiers.addAll(cachedRewardTiers);
+            applyTierUi(cachedRewardPoints);
+            return;
+        }
         api.getCustomerMe().enqueue(new Callback<CustomerDto>() {
             @Override
             public void onResponse(Call<CustomerDto> call, Response<CustomerDto> response) {
@@ -283,6 +311,10 @@ public class ProductsFragment extends Fragment {
                         rewardTiers.clear();
                         rewardTiers.addAll(response2.body());
                         Collections.sort(rewardTiers, (a, b) -> Integer.compare(a.minPoints, b.minPoints));
+                        cachedRewardPoints = points;
+                        cachedRewardTiers.clear();
+                        cachedRewardTiers.addAll(rewardTiers);
+                        rewardCachedAtMs = System.currentTimeMillis();
                         applyTierUi(points);
                     }
 
@@ -368,6 +400,13 @@ public class ProductsFragment extends Fragment {
                 false
         ));
 
+        if (isCacheFresh(productsCachedAtMs) && !cachedProducts.isEmpty()) {
+            allProducts.clear();
+            allProducts.addAll(cachedProducts);
+            bindCatalogUi(cachedCategories, cachedProducts);
+            return;
+        }
+
         api.getTags().enqueue(new Callback<List<TagDto>>() {
             @Override
             public void onResponse(Call<List<TagDto>> call, Response<List<TagDto>> response) {
@@ -393,48 +432,15 @@ public class ProductsFragment extends Fragment {
                                 allProducts.add(p);
                             }
                         }
+                        cachedCategories.clear();
+                        cachedCategories.addAll(categories);
+                        cachedProducts.clear();
+                        cachedProducts.addAll(allProducts);
+                        productsCachedAtMs = System.currentTimeMillis();
                         if (!isUiReady()) {
                             return;
                         }
-                        CategoriesAdapter categoriesAdapter = new CategoriesAdapter(categories, tagId -> {
-                            if (!isUiReady() || productAdapter == null) {
-                                return;
-                            }
-                            if (tagId == -1) {
-                                productAdapter.setProducts(new ArrayList<>(allProducts));
-                            } else {
-                                api.getProducts(null, tagId).enqueue(new Callback<List<ProductDto>>() {
-                                    @Override
-                                    public void onResponse(Call<List<ProductDto>> call3, Response<List<ProductDto>> response3) {
-                                        if (!response3.isSuccessful() || response3.body() == null || !isUiReady() || productAdapter == null) {
-                                            return;
-                                        }
-                                        List<Product> mapped = new ArrayList<>();
-                                        for (ProductDto dto : response3.body()) {
-                                            Product p = ProductMapper.fromDto(dto);
-                                            if (p != null) {
-                                                mapped.add(p);
-                                            }
-                                        }
-                                        productAdapter.setProducts(mapped);
-                                    }
-
-                                    @Override
-                                    public void onFailure(Call<List<ProductDto>> call3, Throwable t) {
-                                    }
-                                });
-                            }
-                        });
-                        productAdapter = new ProductAdapter(new ArrayList<>(allProducts), productId -> {
-                            if (!isUiReady()) {
-                                return;
-                            }
-                            Bundle args = new Bundle();
-                            args.putInt("productId", productId);
-                            Navigation.findNavController(requireView()).navigate(R.id.action_products_to_details, args);
-                        });
-                        rvProducts.setAdapter(productAdapter);
-                        rvCategories.setAdapter(categoriesAdapter);
+                        bindCatalogUi(categories, allProducts);
                     }
 
                     @Override
@@ -453,6 +459,55 @@ public class ProductsFragment extends Fragment {
 
     private boolean isUiReady() {
         return isAdded() && getView() != null;
+    }
+
+    private boolean isCacheFresh(long cachedAtMs) {
+        return cachedAtMs > 0 && (System.currentTimeMillis() - cachedAtMs) <= CACHE_TTL_MS;
+    }
+
+    private void bindCatalogUi(List<Category> categories, List<Product> products) {
+        if (!isUiReady()) {
+            return;
+        }
+        categoriesAdapter = new CategoriesAdapter(new ArrayList<>(categories), tagId -> {
+            if (!isUiReady() || productAdapter == null) {
+                return;
+            }
+            if (tagId == -1) {
+                productAdapter.setProducts(new ArrayList<>(allProducts));
+                return;
+            }
+            api.getProducts(null, tagId).enqueue(new Callback<List<ProductDto>>() {
+                @Override
+                public void onResponse(Call<List<ProductDto>> call, Response<List<ProductDto>> response) {
+                    if (!response.isSuccessful() || response.body() == null || !isUiReady() || productAdapter == null) {
+                        return;
+                    }
+                    List<Product> mapped = new ArrayList<>();
+                    for (ProductDto dto : response.body()) {
+                        Product p = ProductMapper.fromDto(dto);
+                        if (p != null) {
+                            mapped.add(p);
+                        }
+                    }
+                    productAdapter.setProducts(mapped);
+                }
+
+                @Override
+                public void onFailure(Call<List<ProductDto>> call, Throwable t) {
+                }
+            });
+        });
+        productAdapter = new ProductAdapter(new ArrayList<>(products), productId -> {
+            if (!isUiReady()) {
+                return;
+            }
+            Bundle args = new Bundle();
+            args.putInt("productId", productId);
+            Navigation.findNavController(requireView()).navigate(R.id.action_products_to_details, args);
+        });
+        rvProducts.setAdapter(productAdapter);
+        rvCategories.setAdapter(categoriesAdapter);
     }
 
     private void showToastIfAttached(int resId, int duration) {

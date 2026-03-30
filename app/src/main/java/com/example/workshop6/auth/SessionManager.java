@@ -3,6 +3,7 @@ package com.example.workshop6.auth;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.content.pm.ApplicationInfo;
 
 import androidx.security.crypto.EncryptedSharedPreferences;
 import androidx.security.crypto.MasterKey;
@@ -36,6 +37,10 @@ public class SessionManager {
     }
 
     private SharedPreferences createSecurePrefs(Context context) {
+        // Emulator/debug keystore behavior can be unstable; prefer plain prefs in debug builds.
+        if ((context.getApplicationInfo().flags & ApplicationInfo.FLAG_DEBUGGABLE) != 0) {
+            return context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
+        }
         try {
             MasterKey masterKey = new MasterKey.Builder(context)
                     .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
@@ -48,7 +53,7 @@ public class SessionManager {
                     EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
                     EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
             );
-        } catch (Exception e) {
+        } catch (Throwable t) {
             return context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
         }
     }
@@ -197,11 +202,17 @@ public class SessionManager {
     }
 
     private void startTaskRemovedWatcher() {
-        appContext.startService(new Intent(appContext, TaskRemovedLogoutService.class));
+        try {
+            appContext.startService(new Intent(appContext, TaskRemovedLogoutService.class));
+        } catch (Throwable ignored) {
+        }
     }
 
     private void stopTaskRemovedWatcher() {
-        appContext.stopService(new Intent(appContext, TaskRemovedLogoutService.class));
+        try {
+            appContext.stopService(new Intent(appContext, TaskRemovedLogoutService.class));
+        } catch (Throwable ignored) {
+        }
     }
 
     private boolean isSessionExpired() {

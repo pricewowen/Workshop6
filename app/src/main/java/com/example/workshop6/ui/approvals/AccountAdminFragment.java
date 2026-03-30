@@ -155,6 +155,9 @@ public class AccountAdminFragment extends Fragment {
 
             @Override
             public void onFailure(Call<UserSummaryDto> call, Throwable t) {
+                if (!isAdded()) {
+                    return;
+                }
                 Toast.makeText(requireContext(), R.string.login_error_no_connection, Toast.LENGTH_SHORT).show();
             }
         });
