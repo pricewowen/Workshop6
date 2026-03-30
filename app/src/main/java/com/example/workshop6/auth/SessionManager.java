@@ -14,6 +14,8 @@ public class SessionManager {
     private static final String PREF_NAME = "workshop6_session";
     private static final String KEY_IS_LOGGED_IN = "isLoggedIn";
     private static final String KEY_USER_ID = "userId";
+    private static final String KEY_USER_UUID = "userUuid";
+    private static final String KEY_LOGIN_EMAIL = "loginEmail";
     private static final String KEY_USER_ROLE = "userRole";
     private static final String KEY_USER_NAME = "userName";
     private static final String KEY_LAST_ACTIVITY_AT = "lastActivityAt";
@@ -51,11 +53,16 @@ public class SessionManager {
         }
     }
 
-    public void createSession(int userId, String role, String fullName) {
+    /**
+     * @param loginEmail Email used at login (for re-authentication against the API).
+     */
+    public void createSession(String userUuid, String role, String fullName, String loginEmail) {
         long now = System.currentTimeMillis();
         prefs.edit()
                 .putBoolean(KEY_IS_LOGGED_IN, true)
-                .putInt(KEY_USER_ID, userId)
+                .putInt(KEY_USER_ID, -1)
+                .putString(KEY_USER_UUID, userUuid != null ? userUuid : "")
+                .putString(KEY_LOGIN_EMAIL, loginEmail != null ? loginEmail : "")
                 .putString(KEY_USER_ROLE, role)
                 .putString(KEY_USER_NAME, fullName)
                 .putLong(KEY_LAST_ACTIVITY_AT, now)
@@ -86,6 +93,15 @@ public class SessionManager {
 
     public int getUserId() {
         return prefs.getInt(KEY_USER_ID, -1);
+    }
+
+    /** Application user id (UUID) from the auth API; may be empty for legacy sessions. */
+    public String getUserUuid() {
+        return prefs.getString(KEY_USER_UUID, "");
+    }
+
+    public String getLoginEmail() {
+        return prefs.getString(KEY_LOGIN_EMAIL, "");
     }
 
     public String getUserRole() {
@@ -171,6 +187,8 @@ public class SessionManager {
         prefs.edit()
                 .remove(KEY_IS_LOGGED_IN)
                 .remove(KEY_USER_ID)
+                .remove(KEY_USER_UUID)
+                .remove(KEY_LOGIN_EMAIL)
                 .remove(KEY_USER_ROLE)
                 .remove(KEY_USER_NAME)
                 .remove(KEY_LAST_ACTIVITY_AT)

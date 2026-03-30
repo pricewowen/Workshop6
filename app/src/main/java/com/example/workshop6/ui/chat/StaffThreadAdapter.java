@@ -9,7 +9,7 @@ import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.workshop6.R;
-import com.example.workshop6.data.model.ChatThreadListItem;
+import com.example.workshop6.data.api.dto.ChatThreadDto;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -17,17 +17,17 @@ import java.util.List;
 public class StaffThreadAdapter extends RecyclerView.Adapter<StaffThreadAdapter.ThreadViewHolder> {
 
     public interface OnThreadClickListener {
-        void onThreadClick(ChatThreadListItem item);
+        void onThreadClick(ChatThreadDto item);
     }
 
     private final OnThreadClickListener listener;
-    private List<ChatThreadListItem> threads = new ArrayList<>();
+    private List<ChatThreadDto> threads = new ArrayList<>();
 
     public StaffThreadAdapter(OnThreadClickListener listener) {
         this.listener = listener;
     }
 
-    public void setThreads(List<ChatThreadListItem> threads) {
+    public void setThreads(List<ChatThreadDto> threads) {
         this.threads = threads != null ? threads : new ArrayList<>();
         notifyDataSetChanged();
     }
@@ -42,7 +42,7 @@ public class StaffThreadAdapter extends RecyclerView.Adapter<StaffThreadAdapter.
 
     @Override
     public void onBindViewHolder(@NonNull ThreadViewHolder holder, int position) {
-        ChatThreadListItem item = threads.get(position);
+        ChatThreadDto item = threads.get(position);
         holder.bind(item, listener);
     }
 
@@ -61,17 +61,12 @@ public class StaffThreadAdapter extends RecyclerView.Adapter<StaffThreadAdapter.
             textLastMessage = itemView.findViewById(R.id.text_last_message);
         }
 
-        void bind(ChatThreadListItem item, OnThreadClickListener listener) {
-            String customerName = item.customerName != null && !item.customerName.trim().isEmpty()
-                    ? item.customerName
-                    : "Customer #" + item.customerUserId;
-
-            String lastMessage = item.lastMessageText != null && !item.lastMessageText.trim().isEmpty()
-                    ? item.lastMessageText
-                    : "No messages yet";
-
-            textCustomerName.setText(customerName);
-            textLastMessage.setText(lastMessage);
+        void bind(ChatThreadDto item, OnThreadClickListener listener) {
+            String title = item.customerUserId != null
+                    ? "Customer " + item.customerUserId
+                    : "Thread #" + item.id;
+            textCustomerName.setText(title);
+            textLastMessage.setText(item.status != null ? item.status : "");
 
             itemView.setOnClickListener(v -> listener.onThreadClick(item));
         }

@@ -1,11 +1,7 @@
 package com.example.workshop6.data.model;
 
-import androidx.room.Entity;
-import androidx.room.PrimaryKey;
-
-@Entity(tableName = "tag")
+/** Product tag/category for filter chips (API-backed). */
 public class Category {
-    @PrimaryKey
     private int tagId;
     private String tagName;
 

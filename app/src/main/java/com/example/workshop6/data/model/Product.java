@@ -1,11 +1,7 @@
 package com.example.workshop6.data.model;
 
-import androidx.room.Entity;
-import androidx.room.PrimaryKey;
-
-@Entity(tableName = "product")
+/** In-memory / API-mapped product for cart and catalog UI. */
 public class Product {
-    @PrimaryKey
     private int productId;
     private String productName;
     private String productDescription;

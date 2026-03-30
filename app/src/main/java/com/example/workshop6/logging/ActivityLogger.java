@@ -21,8 +21,13 @@ public final class ActivityLogger {
 
     public static void log(Context context, SessionManager sessionManager, String action, String target) {
         String userName = DEFAULT_USER;
-        if (sessionManager != null && sessionManager.getUserId() > 0) {
-            userName = "USER#" + sessionManager.getUserId();
+        if (sessionManager != null) {
+            String uuid = sessionManager.getUserUuid();
+            if (uuid != null && !uuid.isEmpty()) {
+                userName = "USER#" + uuid;
+            } else if (sessionManager.getUserId() > 0) {
+                userName = "USER#" + sessionManager.getUserId();
+            }
         }
         writeLine(context, userName, action, target, false);
     }
@@ -34,8 +39,13 @@ public final class ActivityLogger {
 
     public static void logFailure(Context context, SessionManager sessionManager, String action, String target) {
         String userName = DEFAULT_USER;
-        if (sessionManager != null && sessionManager.getUserId() > 0) {
-            userName = "USER#" + sessionManager.getUserId();
+        if (sessionManager != null) {
+            String uuid = sessionManager.getUserUuid();
+            if (uuid != null && !uuid.isEmpty()) {
+                userName = "USER#" + uuid;
+            } else if (sessionManager.getUserId() > 0) {
+                userName = "USER#" + sessionManager.getUserId();
+            }
         }
         writeLine(context, userName, action, target, true);
     }

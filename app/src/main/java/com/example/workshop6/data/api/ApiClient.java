@@ -1,5 +1,7 @@
 package com.example.workshop6.data.api;
 
+import com.example.workshop6.BuildConfig;
+
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.logging.HttpLoggingInterceptor;
@@ -9,12 +11,11 @@ import retrofit2.converter.gson.GsonConverterFactory;
 /**
  * Singleton Retrofit client for the Spring Boot API.
  *
- * Base URL is set to localhost for local development.
- * For device testing use your machine's LAN IP (e.g. http://192.168.x.x:8080/).
+ * Base URL defaults to emulator host loopback; override with {@code api.base.url} in {@code local.properties}.
  */
 public class ApiClient {
 
-    private static final String BASE_URL = "http://10.0.2.2:8080/"; // Android emulator → host localhost
+    private static final String BASE_URL = BuildConfig.API_BASE_URL;
 
     private static ApiClient instance;
     private final ApiService service;

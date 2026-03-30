@@ -111,8 +111,8 @@ public class LoginActivity extends AppCompatActivity {
                     ApiClient.getInstance().setToken(auth.token);
                     sessionManager.saveToken(auth.token);
                     sessionManager.clearLoginFailures(email);
-                    // userId is not returned by the API yet; -1 is a placeholder
-                    sessionManager.createSession(-1, auth.role.toUpperCase(), auth.username);
+                    String uid = auth.userId != null ? auth.userId : "";
+                    sessionManager.createSession(uid, auth.role.toUpperCase(), auth.username, email);
 
                     ActivityLogger.log(LoginActivity.this, "USER@" + auth.username, "LOGIN", "Login succeeded");
                     goToMain();

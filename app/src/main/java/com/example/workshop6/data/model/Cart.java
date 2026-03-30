@@ -78,4 +78,17 @@ public class Cart {
     public boolean hasDiscount() {
         return discountPercent > 0.0;
     }
+
+    /** Sum of line totals (qty × unit price) before loyalty cart discount. */
+    public double getMerchandiseSubtotal() {
+        double total = 0;
+        for (CartItem item : items) {
+            total += item.getTotalPrice();
+        }
+        return total;
+    }
+
+    public double getDiscountFraction() {
+        return discountPercent;
+    }
 }

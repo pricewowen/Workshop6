@@ -217,6 +217,8 @@
     <string name="change_password_new">New password</string>
     <string name="change_password_confirm">Confirm new password</string>
     <string name="change_password_reuse_error">Choose a different password from your current one</string>
+    <string name="change_password_success">Password updated</string>
+    <string name="change_password_failed">Could not change password. Try again.</string>
     <string name="reauth_title_profile">Confirm profile changes</string>
     <string name="reauth_message_profile">Enter your password to save changes to your profile.</string>
     <string name="reauth_title_checkout">Confirm high-value order</string>
@@ -235,6 +237,7 @@
     <string name="error_address_required">Address line 1 is required</string>
     <string name="error_address_invalid">Address is too long</string>
     <string name="error_city_required">City is required</string>
+    <string name="error_city_invalid">Enter a valid city</string>
     <string name="error_province_required">Province/Territory is required</string>
     <string name="register_error_duplicate_account">An account already exists with those details</string>
     <string name="register_error_unexpected">Unable to create account right now, please try again</string>
