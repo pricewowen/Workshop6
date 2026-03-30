@@ -62,13 +62,29 @@ public class StaffThreadAdapter extends RecyclerView.Adapter<StaffThreadAdapter.
         }
 
         void bind(ChatThreadDto item, OnThreadClickListener listener) {
-            String title = item.customerUserId != null
-                    ? "Customer " + item.customerUserId
-                    : "Thread #" + item.id;
+            String title = firstNonBlank(
+                    item.customerDisplayName,
+                    item.customerUsername,
+                    item.customerEmail,
+                    item.customerUserId != null ? "Customer " + item.customerUserId : null,
+                    "Thread #" + item.id
+            );
             textCustomerName.setText(title);
             textLastMessage.setText(item.status != null ? item.status : "");
 
             itemView.setOnClickListener(v -> listener.onThreadClick(item));
+        }
+
+        private String firstNonBlank(String... values) {
+            if (values == null) {
+                return "";
+            }
+            for (String value : values) {
+                if (value != null && !value.trim().isEmpty()) {
+                    return value.trim();
+                }
+            }
+            return "";
         }
     }
 }
