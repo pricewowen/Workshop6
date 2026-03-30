@@ -37,55 +37,15 @@ This workshop focuses on:
 2. Run the `app` configuration.
 3. The app will launch to the **Login** screen.
 
-Ensure the **Workshop 7** API is up and seeded so the following accounts exist. The app does not create a local SQL database for business data.
+Ensure the **Workshop 7** API is up and seeded so the following role accounts exist. Business data is server-managed.
 
 ## Demo login credentials (Workshop 7 seed)
 
-Passwords are managed by the **server** (hashed).  
-The plaintext values below are for local testing and demo use only.
+Use seeded accounts from Workshop 7:
 
-### Admin
-
-| Role | Email | Username | Password |
-|------|-------|----------|----------|
-| Admin | `admin@bakery.com` | `admin` | `BakeryAdmin!24` |
-
-### Employees
-
-All seeded employees share the same password:
-
-| Role | Email | Username | Password |
-|------|-------|----------|----------|
-| Employee | `employee2@bakery.com` | `employee2` | `BakeryEmp!24` |
-| Employee | `employee3@bakery.com` | `employee3` | `BakeryEmp!24` |
-| Employee | `employee4@bakery.com` | `employee4` | `BakeryEmp!24` |
-| Employee | `employee5@bakery.com` | `employee5` | `BakeryEmp!24` |
-| Employee | `employee6@bakery.com` | `employee6` | `BakeryEmp!24` |
-| Employee | `employee7@bakery.com` | `employee7` | `BakeryEmp!24` |
-| Employee | `employee8@bakery.com` | `employee8` | `BakeryEmp!24` |
-| Employee | `employee9@bakery.com` | `employee9` | `BakeryEmp!24` |
-| Employee | `employee10@bakery.com` | `employee10` | `BakeryEmp!24` |
-
-### Customers
-
-All seeded customers share the same password:
-
-| Type | Email | Username | Password |
-|------|-------|----------|----------|
-| Demo customer | `customer@bakery.com` | `customer` | `BakeryCust!24` |
-| Seeded customer | `customer1@bakery.com` | `customer1` | `BakeryCust!24` |
-| Seeded customer | `customer2@bakery.com` | `customer2` | `BakeryCust!24` |
-| Seeded customer | `customer3@bakery.com` | `customer3` | `BakeryCust!24` |
-| Seeded customer | `customer4@bakery.com` | `customer4` | `BakeryCust!24` |
-| Seeded customer | `customer5@bakery.com` | `customer5` | `BakeryCust!24` |
-| Seeded customer | `customer6@bakery.com` | `customer6` | `BakeryCust!24` |
-| Seeded customer | `customer7@bakery.com` | `customer7` | `BakeryCust!24` |
-| Seeded customer | `customer8@bakery.com` | `customer8` | `BakeryCust!24` |
-| Seeded customer | `customer9@bakery.com` | `customer9` | `BakeryCust!24` |
-| Seeded customer | `customer10@bakery.com` | `customer10` | `BakeryCust!24` |
-| Seeded customer | `customer11@bakery.com` | `customer11` | `BakeryCust!24` |
-| Seeded customer | `customer12@bakery.com` | `customer12` | `BakeryCust!24` |
-| Seeded customer | `customer13@bakery.com` | `customer13` | `BakeryCust!24` |
+- Customer password: `Cust123!`
+- Employee password: `Emp123!`
+- Admin password: `Admin123!`
 
 You can also create new customer accounts with the **Register** link on the login screen.
 
@@ -147,12 +107,11 @@ Staff / admin tabs:
 
 The app talks to the **Workshop 7 Spring API** via **Retrofit** (`ApiClient` / `ApiService`). Catalog, locations, orders, chat, rewards, and accounts are loaded and updated over the network. Local state is limited to **encrypted session prefs**, **in-memory cart**, and **profile images** saved under app files when needed.
 
-In-app models such as `Product`, `Category`, and `BakeryLocationDetails` are plain Java objects used by the UI and mappers; they are not backed by a local SQL database.
+In-app models such as `Product`, `Category`, and `BakeryLocationDetails` are plain Java objects used by the UI and mappers.
 
 ## Security Notes
 
-- Passwords are hashed with **PBKDF2WithHmacSHA256** and a random salt.
-- Login uses hash verification instead of storing plaintext passwords.
+- Password hashing and verification are handled by the Workshop 7 backend.
 - Session state is stored using **`EncryptedSharedPreferences`**.
 - Sessions now expire after inactivity, with stricter timeout rules for staff/admin users.
 - Failed login attempts are tracked and temporarily locked out after repeated failures.
@@ -165,13 +124,13 @@ In-app models such as `Product`, `Category`, and `BakeryLocationDetails` are pla
 
 ### SQL and Input Safety
 
-- Persistence and SQL run on the **server** (Spring/JPA); the app does not ship a business-data SQLite database.
+- Persistence and queries run on the **server** (Spring/JPA); the app does not ship a local business-data store.
 - Client-side helpers such as **`SearchUtils`** still escape `LIKE` wildcards (`%`, `_`, and `\`) where search strings are normalized before use.
 - Free-text fields are length-limited to reduce abuse and oversized payloads:
   - chat messages: 500 characters
   - checkout order comments: 250 characters
   - search input: 80 characters
-- Password handling relies on strong validation and server-side hashing, not client-side “SQL keyword” filters.
+- Password handling relies on strong validation and server-side hashing, not client-side SQL filtering.
 - **Unit tests** cover search normalization, password rules, and length limits (`SearchUtilsTest`, `Validation`).
 
 ## Testing
