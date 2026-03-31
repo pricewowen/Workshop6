@@ -15,10 +15,10 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.workshop6.R;
 import com.example.workshop6.auth.SessionManager;
-import com.example.workshop6.data.db.AppDatabase;
-import com.example.workshop6.data.model.Customer;
-import com.example.workshop6.data.model.Employee;
-import com.example.workshop6.data.model.User;
+import com.example.workshop6.data.api.ApiClient;
+import com.example.workshop6.data.api.ApiService;
+import com.example.workshop6.data.api.dto.UserActivePatchRequest;
+import com.example.workshop6.data.api.dto.UserSummaryDto;
 import com.example.workshop6.logging.ActivityLogger;
 import com.google.android.material.button.MaterialButton;
 
@@ -26,9 +26,14 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
+
 public class AccountAdminFragment extends Fragment {
 
     private SessionManager sessionManager;
+    private ApiService api;
     private RecyclerView rvAccounts;
     private TextView tvEmpty;
     private AccountAdapter adapter;
@@ -45,6 +50,9 @@ public class AccountAdminFragment extends Fragment {
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
         sessionManager = new SessionManager(requireContext());
+        api = ApiClient.getInstance().getService();
+        ApiClient.getInstance().setToken(sessionManager.getToken());
+
         rvAccounts = view.findViewById(R.id.rv_accounts);
         tvEmpty = view.findViewById(R.id.tv_accounts_empty);
 
@@ -63,71 +71,41 @@ public class AccountAdminFragment extends Fragment {
         }
     }
 
-    private boolean canModerateAccounts(User actor) {
-        return actor != null && actor.isActive && !"CUSTOMER".equalsIgnoreCase(actor.userRole);
-    }
-
-    private boolean canManageTarget(User actor, User targetUser) {
-        if (actor == null) return false;
-        if (targetUser == null) return false;
-        if ("ADMIN".equalsIgnoreCase(actor.userRole)) return true;
-        return !"ADMIN".equalsIgnoreCase(targetUser.userRole);
-    }
-
     private void loadAccounts() {
-        final AppDatabase db = AppDatabase.getInstance(requireContext().getApplicationContext());
-        final int currentUserId = sessionManager.getUserId();
+        if (!sessionManager.isAdmin()) {
+            tvEmpty.setVisibility(View.VISIBLE);
+            tvEmpty.setText(R.string.account_admin_access_denied);
+            rvAccounts.setVisibility(View.GONE);
+            return;
+        }
 
-        AppDatabase.databaseWriteExecutor.execute(() -> {
-            User actor = db.userDao().getUserById(currentUserId);
-            if (!canModerateAccounts(actor)) {
-                requireActivity().runOnUiThread(() -> {
-                    if (!isAdded()) return;
+        api.getAdminUsers().enqueue(new Callback<List<UserSummaryDto>>() {
+            @Override
+            public void onResponse(Call<List<UserSummaryDto>> call, Response<List<UserSummaryDto>> response) {
+                if (!isAdded()) {
+                    return;
+                }
+                if (!response.isSuccessful() || response.body() == null) {
                     tvEmpty.setVisibility(View.VISIBLE);
                     tvEmpty.setText(R.string.account_admin_access_denied);
                     rvAccounts.setVisibility(View.GONE);
-                });
-                return;
-            }
-
-            List<User> users = db.userDao().getManagedUsers(currentUserId);
-            List<AccountRow> rows = new ArrayList<>();
-
-            for (User user : users) {
-                if (!canManageTarget(actor, user)) {
-                    continue;
+                    return;
                 }
-
-                String displayName = user.userUsername;
-                Customer customer = db.customerDao().getByUserId(user.userId);
-                Employee employee = db.employeeDao().getByUserId(user.userId);
-
-                if (customer != null) {
-                    displayName = buildName(
-                            customer.customerFirstName,
-                            customer.customerLastName,
-                            user.userUsername
-                    );
-                } else if (employee != null) {
-                    displayName = buildName(
-                            employee.employeeFirstName,
-                            employee.employeeLastName,
-                            user.userUsername
-                    );
+                String selfId = sessionManager.getUserUuid();
+                List<AccountRow> rows = new ArrayList<>();
+                for (UserSummaryDto u : response.body()) {
+                    if (u.id != null && u.id.equals(selfId)) {
+                        continue;
+                    }
+                    rows.add(new AccountRow(
+                            u.id,
+                            u.username != null ? u.username : "",
+                            u.username,
+                            u.email != null ? u.email : "",
+                            u.role != null ? u.role : "",
+                            u.active
+                    ));
                 }
-
-                rows.add(new AccountRow(
-                        user.userId,
-                        displayName,
-                        user.userUsername,
-                        user.userEmail,
-                        user.userRole,
-                        user.isActive
-                ));
-            }
-
-            requireActivity().runOnUiThread(() -> {
-                if (!isAdded()) return;
                 adapter.submitList(rows);
                 boolean empty = rows.isEmpty();
                 tvEmpty.setVisibility(empty ? View.VISIBLE : View.GONE);
@@ -135,80 +113,65 @@ public class AccountAdminFragment extends Fragment {
                 if (empty) {
                     tvEmpty.setText(R.string.account_admin_none_available);
                 }
-            });
+            }
+
+            @Override
+            public void onFailure(Call<List<UserSummaryDto>> call, Throwable t) {
+                if (isAdded()) {
+                    Toast.makeText(requireContext(), R.string.login_error_no_connection, Toast.LENGTH_SHORT).show();
+                }
+            }
         });
     }
 
-    private String buildName(String firstName, String lastName, String fallback) {
-        String first = firstName != null ? firstName.trim() : "";
-        String last = lastName != null ? lastName.trim() : "";
-        String combined = (first + " " + last).trim();
-        return combined.isEmpty() ? fallback : combined;
-    }
-
     private void toggleAccountState(AccountRow row) {
-        if (row == null) return;
-
-        final AppDatabase db = AppDatabase.getInstance(requireContext().getApplicationContext());
-        final int actorUserId = sessionManager.getUserId();
-
-        AppDatabase.databaseWriteExecutor.execute(() -> {
-            User actor = db.userDao().getUserById(actorUserId);
-            User target = db.userDao().getUserById(row.userId);
-            if (!canModerateAccounts(actor)) {
-                requireActivity().runOnUiThread(() ->
-                        Toast.makeText(requireContext(), R.string.account_admin_access_denied, Toast.LENGTH_SHORT).show());
-                return;
-            }
-            if (target == null) {
-                requireActivity().runOnUiThread(() ->
-                        Toast.makeText(requireContext(), R.string.error_user_not_found, Toast.LENGTH_SHORT).show());
-                return;
-            }
-
-            if (target.userId == actorUserId) {
-                requireActivity().runOnUiThread(() ->
-                        Toast.makeText(requireContext(), R.string.account_admin_cannot_manage_self, Toast.LENGTH_SHORT).show());
-                return;
-            }
-
-            if (!canManageTarget(actor, target)) {
-                requireActivity().runOnUiThread(() ->
-                        Toast.makeText(requireContext(), R.string.account_admin_permission_denied, Toast.LENGTH_SHORT).show());
-                return;
-            }
-
-            boolean nextState = !target.isActive;
-            db.userDao().setAccountActive(target.userId, nextState);
-
-            ActivityLogger.log(
-                    requireContext(),
-                    sessionManager,
-                    nextState ? "REACTIVATE_ACCOUNT" : "DEACTIVATE_ACCOUNT",
-                    "userId=" + target.userId + " (" + target.userRole.toUpperCase(Locale.ROOT) + ")"
-            );
-
-            requireActivity().runOnUiThread(() -> {
-                if (!isAdded()) return;
+        if (row == null || row.userId == null) {
+            return;
+        }
+        boolean nextState = !row.isActive;
+        api.patchUserActive(row.userId, new UserActivePatchRequest(nextState)).enqueue(new Callback<UserSummaryDto>() {
+            @Override
+            public void onResponse(Call<UserSummaryDto> call, Response<UserSummaryDto> response) {
+                if (!isAdded()) {
+                    return;
+                }
+                if (!response.isSuccessful()) {
+                    Toast.makeText(requireContext(), R.string.account_admin_permission_denied, Toast.LENGTH_SHORT).show();
+                    return;
+                }
+                ActivityLogger.log(
+                        requireContext(),
+                        sessionManager,
+                        nextState ? "REACTIVATE_ACCOUNT" : "DEACTIVATE_ACCOUNT",
+                        "userId=" + row.userId
+                );
                 Toast.makeText(
                         requireContext(),
                         nextState ? R.string.account_reactivated : R.string.account_deactivated,
                         Toast.LENGTH_SHORT
                 ).show();
                 loadAccounts();
-            });
+            }
+
+            @Override
+            public void onFailure(Call<UserSummaryDto> call, Throwable t) {
+                if (!isAdded()) {
+                    return;
+                }
+                Toast.makeText(requireContext(), R.string.login_error_no_connection, Toast.LENGTH_SHORT).show();
+            }
         });
     }
 
     private static class AccountRow {
-        final int userId;
+        final String userId;
         final String displayName;
         final String username;
         final String email;
         final String role;
         final boolean isActive;
 
-        AccountRow(int userId, String displayName, String username, String email, String role, boolean isActive) {
+        AccountRow(String userId, String displayName, String username, String email, String role, boolean isActive) {
             this.userId = userId;
             this.displayName = displayName;
             this.username = username;

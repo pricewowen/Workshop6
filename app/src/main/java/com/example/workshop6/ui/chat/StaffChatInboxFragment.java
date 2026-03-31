@@ -18,11 +18,15 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.workshop6.R;
 import com.example.workshop6.auth.SessionManager;
-import com.example.workshop6.data.db.AppDatabase;
-import com.example.workshop6.data.model.ChatThreadListItem;
-import com.example.workshop6.data.model.User;
+import com.example.workshop6.data.api.ApiClient;
+import com.example.workshop6.data.api.ApiService;
+import com.example.workshop6.data.api.dto.ChatThreadDto;
 
 import java.util.List;
+
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
 
 public class StaffChatInboxFragment extends Fragment {
 
@@ -30,9 +34,8 @@ public class StaffChatInboxFragment extends Fragment {
     private TextView textEmpty;
     private StaffThreadAdapter adapter;
 
-    private AppDatabase db;
     private SessionManager sessionManager;
-    private User currentUser;
+    private ApiService api;
 
     private final Handler handler = new Handler(Looper.getMainLooper());
     private final Runnable refreshRunnable = new Runnable() {
@@ -60,52 +63,46 @@ public class StaffChatInboxFragment extends Fragment {
         textEmpty = view.findViewById(R.id.text_staff_chat_empty);
         recyclerThreads.setLayoutManager(new LinearLayoutManager(requireContext()));
 
-        db = AppDatabase.getInstance(requireContext().getApplicationContext());
         sessionManager = new SessionManager(requireContext().getApplicationContext());
+        api = ApiClient.getInstance().getService();
+        ApiClient.getInstance().setToken(sessionManager.getToken());
 
-        int currentUserId = sessionManager.getUserId();
-        if (currentUserId == -1) {
+        String role = sessionManager.getUserRole();
+        boolean canAccessStaffChat =
+                "ADMIN".equalsIgnoreCase(role) || "EMPLOYEE".equalsIgnoreCase(role);
+
+        if (!canAccessStaffChat) {
+            Toast.makeText(requireContext(), R.string.account_admin_access_denied, Toast.LENGTH_SHORT).show();
+            recyclerThreads.setVisibility(View.GONE);
+            textEmpty.setText(R.string.account_admin_access_denied);
+            textEmpty.setVisibility(View.VISIBLE);
             return;
         }
 
-        AppDatabase.databaseWriteExecutor.execute(() -> {
-            currentUser = db.userDao().getUserById(currentUserId);
-            boolean canAccessStaffChat = currentUser != null
-                    && currentUser.isActive
-                    && ("ADMIN".equalsIgnoreCase(currentUser.userRole) || "EMPLOYEE".equalsIgnoreCase(currentUser.userRole));
-
-            if (getActivity() == null) return;
-
-            requireActivity().runOnUiThread(() -> {
-                if (!canAccessStaffChat) {
-                    Toast.makeText(requireContext(), R.string.account_admin_access_denied, Toast.LENGTH_SHORT).show();
-                    recyclerThreads.setVisibility(View.GONE);
-                    textEmpty.setText(R.string.account_admin_access_denied);
-                    textEmpty.setVisibility(View.VISIBLE);
+        adapter = new StaffThreadAdapter(item -> api.assignChatThread(item.id).enqueue(new Callback<ChatThreadDto>() {
+            @Override
+            public void onResponse(Call<ChatThreadDto> call, Response<ChatThreadDto> response) {
+                if (!isAdded()) {
                     return;
                 }
-                adapter = new StaffThreadAdapter(item -> {
-                    AppDatabase.databaseWriteExecutor.execute(() -> {
-                        if (currentUser != null
-                                && ("ADMIN".equalsIgnoreCase(currentUser.userRole) || "EMPLOYEE".equalsIgnoreCase(currentUser.userRole))) {
-                            db.chatDao().assignEmployeeIfUnassigned(item.threadId, currentUser.userId);
-                        } else {
-                            return;
-                        }
+                Intent intent = new Intent(requireContext(), ChatActivity.class);
+                intent.putExtra(ChatActivity.EXTRA_THREAD_ID, item.id);
+                startActivity(intent);
+            }
 
-                        Intent intent = new Intent(requireContext(), ChatActivity.class);
-                        intent.putExtra(ChatActivity.EXTRA_THREAD_ID, item.threadId);
+            @Override
+            public void onFailure(Call<ChatThreadDto> call, Throwable t) {
+                if (!isAdded()) {
+                    return;
+                }
+                Intent intent = new Intent(requireContext(), ChatActivity.class);
+                intent.putExtra(ChatActivity.EXTRA_THREAD_ID, item.id);
+                startActivity(intent);
+            }
+        }));
 
-                        if (getActivity() != null) {
-                            requireActivity().runOnUiThread(() -> startActivity(intent));
-                        }
-                    });
-                });
-
-                recyclerThreads.setAdapter(adapter);
-                loadThreads();
-            });
-        });
+        recyclerThreads.setAdapter(adapter);
+        loadThreads();
     }
 
     @Override
@@ -121,21 +118,32 @@ public class StaffChatInboxFragment extends Fragment {
     }
 
     private void loadThreads() {
-        if (currentUser == null
-                || (!"ADMIN".equalsIgnoreCase(currentUser.userRole) && !"EMPLOYEE".equalsIgnoreCase(currentUser.userRole))) {
+        String role = sessionManager.getUserRole();
+        if (!"ADMIN".equalsIgnoreCase(role) && !"EMPLOYEE".equalsIgnoreCase(role)) {
             return;
         }
-        AppDatabase.databaseWriteExecutor.execute(() -> {
-            List<ChatThreadListItem> threads = db.chatDao().getOpenThreadsForInbox();
-
-            if (getActivity() == null || adapter == null) return;
-
-            requireActivity().runOnUiThread(() -> {
+        if (adapter == null) {
+            return;
+        }
+        api.getChatThreads().enqueue(new Callback<List<ChatThreadDto>>() {
+            @Override
+            public void onResponse(Call<List<ChatThreadDto>> call, Response<List<ChatThreadDto>> response) {
+                if (getActivity() == null) {
+                    return;
+                }
+                if (!response.isSuccessful() || response.body() == null) {
+                    return;
+                }
+                List<ChatThreadDto> threads = response.body();
                 adapter.setThreads(threads);
-                boolean empty = threads == null || threads.isEmpty();
+                boolean empty = threads.isEmpty();
                 recyclerThreads.setVisibility(empty ? View.GONE : View.VISIBLE);
                 textEmpty.setVisibility(empty ? View.VISIBLE : View.GONE);
-            });
+            }
+
+            @Override
+            public void onFailure(Call<List<ChatThreadDto>> call, Throwable t) {
+            }
         });
     }
 }

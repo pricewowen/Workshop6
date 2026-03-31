@@ -10,35 +10,31 @@ import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.workshop6.R;
-import com.example.workshop6.data.model.Review;
+import com.example.workshop6.data.api.dto.ReviewDto;
 
 import java.util.List;
 
 public class ReviewAdapter extends RecyclerView.Adapter<ReviewAdapter.ReviewViewHolder> {
 
-    private final List<Review> reviews;
+    private final List<ReviewDto> reviews;
 
-    public ReviewAdapter(List<Review> reviews) {
+    public ReviewAdapter(List<ReviewDto> reviews) {
         this.reviews = reviews;
     }
 
     @NonNull
     @Override
     public ReviewViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-
         View view = LayoutInflater.from(parent.getContext())
                 .inflate(R.layout.item_review, parent, false);
-
         return new ReviewViewHolder(view);
     }
 
     @Override
     public void onBindViewHolder(@NonNull ReviewViewHolder holder, int position) {
-
-        Review review = reviews.get(position);
-
+        ReviewDto review = reviews.get(position);
         holder.ratingBar.setRating(review.rating);
-        holder.tvComment.setText(review.comment);
+        holder.tvComment.setText(review.comment != null ? review.comment : "");
     }
 
     @Override
@@ -47,13 +43,11 @@ public class ReviewAdapter extends RecyclerView.Adapter<ReviewAdapter.ReviewView
     }
 
     static class ReviewViewHolder extends RecyclerView.ViewHolder {
-
         RatingBar ratingBar;
         TextView tvComment;
 
         public ReviewViewHolder(@NonNull View itemView) {
             super(itemView);
-
             ratingBar = itemView.findViewById(R.id.ratingBar);
             tvComment = itemView.findViewById(R.id.tvComment);
         }

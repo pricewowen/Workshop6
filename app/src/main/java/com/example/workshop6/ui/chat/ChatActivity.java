@@ -5,12 +5,12 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.text.TextUtils;
+import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.LinearLayout;
 import android.widget.TextView;
-import android.view.View;
 
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
@@ -20,12 +20,17 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.example.workshop6.R;
 import com.example.workshop6.auth.LoginActivity;
 import com.example.workshop6.auth.SessionManager;
-import com.example.workshop6.data.db.AppDatabase;
-import com.example.workshop6.data.model.ChatMessage;
-import com.example.workshop6.data.model.User;
+import com.example.workshop6.data.api.ApiClient;
+import com.example.workshop6.data.api.ApiService;
+import com.example.workshop6.data.api.dto.ChatMessageDto;
+import com.example.workshop6.data.api.dto.PostChatMessageRequest;
 import com.example.workshop6.util.Validation;
 
 import java.util.List;
+
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
 
 public class ChatActivity extends AppCompatActivity {
 
@@ -38,12 +43,11 @@ public class ChatActivity extends AppCompatActivity {
     private TextView textEmpty;
     private LinearLayout layoutChatInput;
 
-    private AppDatabase db;
     private SessionManager sessionManager;
-    private User currentUser;
-
+    private ApiService api;
     private ChatMessageAdapter adapter;
     private int threadId = -1;
+    private String userUuid;
 
     private final Handler handler = new Handler(Looper.getMainLooper());
     private final Runnable refreshRunnable = new Runnable() {
@@ -68,43 +72,34 @@ public class ChatActivity extends AppCompatActivity {
 
         buttonBack.setOnClickListener(v -> finish());
 
-        db = AppDatabase.getInstance(getApplicationContext());
         sessionManager = new SessionManager(getApplicationContext());
+        api = ApiClient.getInstance().getService();
+        ApiClient.getInstance().setToken(sessionManager.getToken());
+
         if (!sessionManager.isLoggedIn()) {
             redirectToLogin();
             return;
         }
 
-        int currentUserId = sessionManager.getUserId();
-        if (currentUserId == -1) {
+        userUuid = sessionManager.getUserUuid();
+        if (userUuid == null || userUuid.isEmpty()) {
             finish();
             return;
         }
 
-        AppDatabase.databaseWriteExecutor.execute(() -> {
-            currentUser = db.userDao().getUserById(currentUserId);
+        adapter = new ChatMessageAdapter(userUuid);
+        recyclerMessages.setLayoutManager(new LinearLayoutManager(this));
+        recyclerMessages.setAdapter(adapter);
+        layoutChatInput.setVisibility(View.VISIBLE);
 
-            runOnUiThread(() -> {
-                if (currentUser == null || !currentUser.isActive) {
-                    redirectToLogin();
-                    return;
-                }
+        threadId = getIntent().getIntExtra(EXTRA_THREAD_ID, -1);
+        if (threadId == -1) {
+            finish();
+            return;
+        }
 
-                adapter = new ChatMessageAdapter(currentUser.userId);
-                recyclerMessages.setLayoutManager(new LinearLayoutManager(this));
-                recyclerMessages.setAdapter(adapter);
-                updateInputVisibility();
-
-                threadId = getIntent().getIntExtra(EXTRA_THREAD_ID, -1);
-                if (threadId == -1) {
-                    finish();
-                    return;
-                }
-
-                buttonSend.setOnClickListener(v -> sendMessage());
-                loadMessages();
-            });
-        });
+        buttonSend.setOnClickListener(v -> sendMessage());
+        loadMessages();
     }
 
     @Override
@@ -133,27 +128,44 @@ public class ChatActivity extends AppCompatActivity {
     }
 
     private void loadMessages() {
-        if (currentUser == null || threadId == -1) return;
+        if (threadId == -1) {
+            return;
+        }
+        api.markChatThreadRead(threadId).enqueue(new Callback<Void>() {
+            @Override
+            public void onResponse(Call<Void> call, Response<Void> response) {
+            }
 
-        AppDatabase.databaseWriteExecutor.execute(() -> {
-            db.chatDao().markMessagesReadForViewer(threadId, currentUser.userId);
-            List<ChatMessage> messages = db.chatDao().getMessagesForThread(threadId);
+            @Override
+            public void onFailure(Call<Void> call, Throwable t) {
+            }
+        });
 
-            runOnUiThread(() -> {
-                if (adapter != null) {
-                    adapter.setMessages(messages);
-                    boolean hasMessages = messages != null && !messages.isEmpty();
-                    textEmpty.setVisibility(hasMessages ? View.GONE : View.VISIBLE);
-                    if (messages != null && !messages.isEmpty()) {
-                        recyclerMessages.scrollToPosition(messages.size() - 1);
-                    }
+        api.getChatMessages(threadId).enqueue(new Callback<List<ChatMessageDto>>() {
+            @Override
+            public void onResponse(Call<List<ChatMessageDto>> call, Response<List<ChatMessageDto>> response) {
+                if (!response.isSuccessful() || response.body() == null) {
+                    return;
                 }
-            });
+                List<ChatMessageDto> messages = response.body();
+                adapter.setMessages(messages);
+                boolean hasMessages = messages != null && !messages.isEmpty();
+                textEmpty.setVisibility(hasMessages ? View.GONE : View.VISIBLE);
+                if (hasMessages) {
+                    recyclerMessages.scrollToPosition(messages.size() - 1);
+                }
+            }
+
+            @Override
+            public void onFailure(Call<List<ChatMessageDto>> call, Throwable t) {
+            }
         });
     }
 
     private void sendMessage() {
-        if (currentUser == null || threadId == -1) return;
+        if (threadId == -1) {
+            return;
+        }
 
         String text = editMessage.getText().toString().trim();
         String bounded = Validation.limitLength(text, Validation.CHAT_MESSAGE_MAX_LENGTH);
@@ -162,19 +174,16 @@ public class ChatActivity extends AppCompatActivity {
             return;
         }
 
-        AppDatabase.databaseWriteExecutor.execute(() -> {
-            ChatMessage message = new ChatMessage();
-            message.threadId = threadId;
-            message.senderUserId = currentUser.userId;
-            message.messageText = boundedText;
-            message.sentAt = System.currentTimeMillis();
-            message.isRead = false;
+        api.postChatMessage(threadId, new PostChatMessageRequest(boundedText)).enqueue(new Callback<ChatMessageDto>() {
+            @Override
+            public void onResponse(Call<ChatMessageDto> call, Response<ChatMessageDto> response) {
+                editMessage.setText("");
+                loadMessages();
+            }
 
-            db.chatDao().insertMessage(message);
-            db.chatDao().updateThreadTimestamp(threadId, System.currentTimeMillis());
-
-            runOnUiThread(() -> editMessage.setText(""));
-            loadMessages();
+            @Override
+            public void onFailure(Call<ChatMessageDto> call, Throwable t) {
+            }
         });
     }
 
@@ -185,10 +194,5 @@ public class ChatActivity extends AppCompatActivity {
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
         startActivity(intent);
         finish();
-    }
-
-    private void updateInputVisibility() {
-        boolean canSendMessage = currentUser != null && currentUser.isActive;
-        layoutChatInput.setVisibility(canSendMessage ? View.VISIBLE : View.GONE);
     }
 }

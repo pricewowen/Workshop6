@@ -104,8 +104,12 @@ public final class ImageUtils {
         return null;
     }
 
+    /**
+     * Saves a profile image to app storage. When {@code userId} is positive, uses {@code user_{id}.jpg};
+     * otherwise uses {@code profile_local.jpg} (API-backed sessions without a local numeric id).
+     */
     public static String saveProfilePhoto(Context context, Uri uri, int userId) {
-        if (uri == null || userId <= 0) return null;
+        if (uri == null) return null;
 
         Bitmap bitmap;
         try (InputStream is = context.getContentResolver().openInputStream(uri)) {
@@ -123,7 +127,8 @@ public final class ImageUtils {
         //noinspection ResultOfMethodCallIgnored
         dir.mkdirs();
 
-        File outFile = new File(dir, "user_" + userId + ".jpg");
+        String fileName = userId > 0 ? ("user_" + userId + ".jpg") : "profile_local.jpg";
+        File outFile = new File(dir, fileName);
 
         try (FileOutputStream fos = new FileOutputStream(outFile)) {
             boolean ok = bitmap.compress(Bitmap.CompressFormat.JPEG, 90, fos);
@@ -159,5 +164,46 @@ public final class ImageUtils {
         } catch (Exception e) {
             return null;
         }
+    }
+
+    /**
+     * Decodes a local file path with sampling to avoid OOM on large images.
+     */
+    public static Bitmap decodeFileForPreview(String path, int maxSizePx) {
+        if (path == null || path.trim().isEmpty()) {
+            return null;
+        }
+        try {
+            BitmapFactory.Options bounds = new BitmapFactory.Options();
+            bounds.inJustDecodeBounds = true;
+            BitmapFactory.decodeFile(path, bounds);
+            if (bounds.outWidth <= 0 || bounds.outHeight <= 0) {
+                return null;
+            }
+
+            BitmapFactory.Options opts = new BitmapFactory.Options();
+            opts.inSampleSize = calculateInSampleSize(bounds, maxSizePx, maxSizePx);
+            opts.inPreferredConfig = Bitmap.Config.RGB_565;
+            Bitmap sampled = BitmapFactory.decodeFile(path, opts);
+            if (sampled == null) {
+                return null;
+            }
+            return scaleDownToMaxSize(sampled, maxSizePx);
+        } catch (OutOfMemoryError oom) {
+            return null;
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    private static int calculateInSampleSize(BitmapFactory.Options options, int reqWidth, int reqHeight) {
+        int height = options.outHeight;
+        int width = options.outWidth;
+        int inSampleSize = 1;
+
+        while ((height / inSampleSize) > reqHeight || (width / inSampleSize) > reqWidth) {
+            inSampleSize *= 2;
+        }
+        return Math.max(1, inSampleSize);
     }
 }

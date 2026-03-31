@@ -20,27 +20,44 @@ import android.widget.Toast;
 
 import com.example.workshop6.R;
 import com.example.workshop6.auth.SessionManager;
-import com.example.workshop6.data.db.AppDatabase;
-import com.example.workshop6.data.db.ProductDao;
+import com.example.workshop6.data.api.ApiClient;
+import com.example.workshop6.data.api.ApiService;
+import com.example.workshop6.data.api.ProductMapper;
+import com.example.workshop6.data.api.dto.BatchDto;
+import com.example.workshop6.data.api.dto.CustomerDto;
+import com.example.workshop6.data.api.dto.CustomerPatchRequest;
+import com.example.workshop6.data.api.dto.ProductDto;
+import com.example.workshop6.data.api.dto.RewardTierDto;
+import com.example.workshop6.data.api.dto.TagDto;
 import com.example.workshop6.data.model.CartItem;
 import com.example.workshop6.data.model.Category;
-import com.example.workshop6.data.model.Customer;
 import com.example.workshop6.data.model.Product;
-import com.example.workshop6.data.model.RewardTier;
 import com.example.workshop6.logging.ActivityLogger;
 import com.example.workshop6.ui.cart.CartManager;
 import com.example.workshop6.util.SearchUtils;
 import com.google.android.material.textfield.TextInputEditText;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
-/**
- * A simple {@link Fragment} subclass.
- * Use the {@link ProductsFragment#newInstance} factory method to
- * create an instance of this fragment.
- */
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
+
 public class ProductsFragment extends Fragment {
+    private static final long CACHE_TTL_MS = 30_000L;
+    private static long productsCachedAtMs = 0L;
+    private static long rewardCachedAtMs = 0L;
+    private static long featuredCachedAtMs = 0L;
+    private static final List<Category> cachedCategories = new ArrayList<>();
+    private static final List<Product> cachedProducts = new ArrayList<>();
+    private static final List<RewardTierDto> cachedRewardTiers = new ArrayList<>();
+    private static int cachedRewardPoints = -1;
+    private static Product cachedFeaturedProduct;
+
     private RecyclerView rvCategories;
+    private CategoriesAdapter categoriesAdapter;
     private ProductAdapter productAdapter;
     private RecyclerView rvProducts;
     private Button btnAddToCart;
@@ -56,16 +73,19 @@ public class ProductsFragment extends Fragment {
     private TextView tvFeatureProductName;
     private TextView tvFeatureProductPrice;
 
+    private int featuredProductId = -1;
+    private Product featured;
+    private final List<Product> allProducts = new ArrayList<>();
+    private final List<RewardTierDto> rewardTiers = new ArrayList<>();
+    private ApiService api;
+    private SessionManager sessionManager;
+
     public ProductsFragment() {
-        // Required empty public constructor
     }
-    private int featuredProductId;
-    Product featured;
 
     public static ProductsFragment newInstance(String param1, String param2) {
         ProductsFragment fragment = new ProductsFragment();
-        Bundle args = new Bundle();
-        fragment.setArguments(args);
+        fragment.setArguments(new Bundle());
         return fragment;
     }
 
@@ -77,7 +97,6 @@ public class ProductsFragment extends Fragment {
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
-        // Inflate the layout for this fragment
         return inflater.inflate(R.layout.fragment_products, container, false);
     }
 
@@ -100,13 +119,9 @@ public class ProductsFragment extends Fragment {
         tvFeatureProductPrice = view.findViewById(R.id.tvFeatureProductPrice);
 
         cartManager = CartManager.getInstance(requireContext());
+        api = ApiClient.getInstance().getService();
+        sessionManager = new SessionManager(requireContext());
 
-        // attaches adapter with the data from the database
-        AppDatabase db = AppDatabase.getInstance(requireContext());
-
-        // get logged in userId
-        SessionManager sessionManager = new SessionManager(requireContext());
-        int userId = sessionManager.getUserId();
         boolean isCustomer = "CUSTOMER".equalsIgnoreCase(sessionManager.getUserRole());
         if (!isCustomer) {
             Toast.makeText(requireContext(), R.string.staff_purchase_blocked, Toast.LENGTH_SHORT).show();
@@ -114,11 +129,9 @@ public class ProductsFragment extends Fragment {
             return;
         }
 
-        // search functionality
         etSearch.addTextChangedListener(new TextWatcher() {
             @Override
             public void beforeTextChanged(CharSequence s, int start, int count, int after) {
-
             }
 
             @Override
@@ -126,212 +139,97 @@ public class ProductsFragment extends Fragment {
                 if (productAdapter == null) {
                     return;
                 }
+                String rawQuery = s.toString().trim();
+                String query = SearchUtils.normalizeUserSearch(rawQuery);
+                api.getProducts(rawQuery.isEmpty() ? null : query, null).enqueue(new Callback<List<ProductDto>>() {
+                    @Override
+                    public void onResponse(Call<List<ProductDto>> call, Response<List<ProductDto>> response) {
+                        if (!response.isSuccessful() || response.body() == null || productAdapter == null) {
+                            return;
+                        }
+                        List<Product> mapped = new ArrayList<>();
+                        for (ProductDto dto : response.body()) {
+                            Product p = ProductMapper.fromDto(dto);
+                            if (p != null) {
+                                mapped.add(p);
+                            }
+                        }
+                        productAdapter.setProducts(mapped);
+                    }
 
-                AppDatabase.databaseWriteExecutor.execute(() -> {
-                    try {
-                        String rawQuery = s.toString().trim();
-                        String query = SearchUtils.normalizeUserSearch(rawQuery);
-
-                        List<Product> filtered = rawQuery.isEmpty()
-                                ? db.productDao().getAllProducts()
-                                : db.productDao().searchProducts(query);
-
-                        requireActivity().runOnUiThread(() -> productAdapter.setProducts(filtered));
-                    } catch (Exception e) {
-                        ActivityLogger.log(requireContext(), sessionManager, "SEARCH_PRODUCTS", "An error occurred when searching products");
-                        e.printStackTrace();
+                    @Override
+                    public void onFailure(Call<List<ProductDto>> call, Throwable t) {
+                        logIfAttached("SEARCH_PRODUCTS", "Network error");
                     }
                 });
             }
 
             @Override
             public void afterTextChanged(Editable s) {
-
             }
         });
 
-        // Get and display featured product
-        AppDatabase.databaseWriteExecutor.execute(() -> {
-            try {
-                // wait for database to finish seeding
-                AppDatabase.awaitSeed();
+        loadFeaturedProduct();
+        loadRewardPanel();
+        loadCategoriesAndProducts();
 
-                long now = System.currentTimeMillis();
-                long twoDaysFromNow = now + (2L * 24 * 60 * 60 * 1000);
-
-                featured = db.batchDao().getFeaturedProduct(now, twoDaysFromNow);
-
-                requireActivity().runOnUiThread(() -> {
-                    if (featured != null) {
-                        tvFeatureProductName.setText(featured.getProductName());
-                        tvFeatureProductPrice.setText(String.format("$%.2f", featured.getProductBasePrice()));
-                        featuredProductId = featured.getProductId();
-                    }
-                });
-            } catch (Exception e) {
-                ActivityLogger.log(requireContext(), sessionManager, "FEATURED_PRODUCT"
-                        , "An error occurred when retrieving featured products");
-                e.printStackTrace();
-            }
-        });
-
-        // set up recycler view for categories and set to horizontal
-        rvCategories.setLayoutManager(new LinearLayoutManager(
-                requireContext(),
-                LinearLayoutManager.HORIZONTAL,
-                false
-        ));
-
-        // set up recycler view for products
-        rvProducts.setLayoutManager(new LinearLayoutManager(
-                requireContext(),
-                LinearLayoutManager.VERTICAL,
-                false
-        ));
-
-        // REDEEM logic
-
-        // Getting Reward Points
-        AppDatabase.databaseWriteExecutor.execute(() -> {
-            try {
-                Customer customer = db.customerDao().getByUserId(userId);
-                if (customer != null) {
-                    int points = customer.customerRewardBalance;
-                    RewardTier currentTier = db.rewardTierDao().getTierForPoints(points);
-                    RewardTier nextTier = db.rewardTierDao().getNextTierForPoints(points);
-
-                    // set reward points
-                    requireActivity().runOnUiThread(() -> {
-                        if (currentTier != null) {
-                            tvPoints.setText(String.valueOf(points));
-                            tvLevel.setText(currentTier.getTierName());
-                            tvTierDescription.setText(currentTier.getTierDescription());
-
-                            if (nextTier != null) {
-                                int pointsNeeded = Math.max(0, nextTier.getMinPoints() - points);
-                                tvNextTier.setText(getString(R.string.label_next_tier_fmt, nextTier.getTierName()));
-                                tvPointsNeeded.setText(getString(R.string.label_points_needed_fmt, pointsNeeded, nextTier.getTierName()));
-
-                                int rangeStart = currentTier.getMinPoints();
-                                int rangeEnd = nextTier.getMinPoints();
-                                int rangeSize = Math.max(1, rangeEnd - rangeStart);
-                                int progress = ((points - rangeStart) * 100) / rangeSize;
-                                progressLoyalty.setProgress(Math.max(0, Math.min(100, progress)));
-                            } else {
-                                tvNextTier.setText(R.string.label_top_tier_reached);
-                                tvPointsNeeded.setText(R.string.label_highest_tier_reached);
-                                progressLoyalty.setProgress(100);
-                            }
-                        } else {
-                            tvPoints.setText(String.valueOf(points));
-                            tvLevel.setText(R.string.label_unknown_tier);
-                            tvTierDescription.setText(R.string.label_unknown_tier_desc);
-                            tvNextTier.setText(R.string.label_next_tier_na);
-                            tvPointsNeeded.setText(R.string.label_points_to_next_na);
-                            progressLoyalty.setProgress(0);
-                        }
-                    });
-                } else {
-                    requireActivity().runOnUiThread(() -> {
-                        tvPoints.setText("0");
-                        tvLevel.setText(R.string.label_no_loyalty_account);
-                        tvTierDescription.setText(R.string.label_no_loyalty_account_desc);
-                        tvNextTier.setText(R.string.label_next_tier_na);
-                        tvPointsNeeded.setText(R.string.label_points_to_next_na);
-                        progressLoyalty.setProgress(0);
-                    });
-                }
-            } catch (Exception e) {
-                ActivityLogger.log(requireContext(), sessionManager, "GET_REWARD_POINTS"
-                        , "An error occurred when retrieving reward points");
-                e.printStackTrace();
-            }
-        });
-
-        // listener for products
-        AppDatabase.databaseWriteExecutor.execute(() -> {
-            try {
-                List<Category> categories = db.categoryDao().getAllCategories();
-                List<Product> products = db.productDao().getAllProducts();
-
-                // update component on the main thread
-                requireActivity().runOnUiThread(() -> {
-                    // setup listener on categories
-                    CategoriesAdapter categoriesAdapter = new CategoriesAdapter(categories, tagId -> {
-                        AppDatabase.databaseWriteExecutor.execute(() -> {
-                            List<Product> filteredProducts = tagId == -1
-                                    ? db.productDao().getAllProducts()
-                                    : db.productDao().getProductByCategory(tagId);
-
-                            requireActivity().runOnUiThread(() -> {
-                                productAdapter.setProducts(filteredProducts);
-                            });
-                        });
-                    });
-                    productAdapter = new ProductAdapter(products, productId -> {
-
-                        // pass information to details fragment
-                        Bundle args = new Bundle();
-
-                        args.putInt("productId", productId);
-                        Navigation.findNavController(requireView()).navigate(R.id.action_products_to_details, args);
-                    });
-
-
-                    rvProducts.setAdapter(productAdapter);
-                    rvCategories.setAdapter(categoriesAdapter);
-                });
-            } catch (Exception e) {
-                ActivityLogger.log(requireContext(), sessionManager, "PRODUCTS"
-                        , "An error occurred when retrieving products");
-                e.printStackTrace();
-            }
-        });
-
-        // redeem on click listener
         btnRedeem.setOnClickListener(v -> {
             ActivityLogger.log(requireContext(), sessionManager, "ADJUST_POINTS", "Redeem selected from loyalty dashboard");
-
-            // fail early
             if (cartManager.getCart().hasDiscount()) {
                 Toast.makeText(requireContext(), "Discount already applied", Toast.LENGTH_SHORT).show();
                 return;
             }
-
-            AppDatabase.databaseWriteExecutor.execute(() -> {
-                try {
-                    Customer customer = db.customerDao().getByUserId(userId);
-
-                    if (customer == null || customer.customerRewardBalance < 500) {
-                        requireActivity().runOnUiThread(() -> {
-                            Toast.makeText(requireContext(), "You need at least 500 points to redeem", Toast.LENGTH_SHORT).show();
-                        });
-
+            api.getCustomerMe().enqueue(new Callback<CustomerDto>() {
+                @Override
+                public void onResponse(Call<CustomerDto> call, Response<CustomerDto> response) {
+                    if (!isUiReady()) {
                         return;
                     }
+                    if (!response.isSuccessful() || response.body() == null) {
+                        showToastIfAttached(R.string.error_user_not_found, Toast.LENGTH_SHORT);
+                        return;
+                    }
+                    CustomerDto c = response.body();
+                    if (c.rewardBalance < 500) {
+                        showToastIfAttached("You need at least 500 points to redeem", Toast.LENGTH_SHORT);
+                        return;
+                    }
+                    CustomerPatchRequest patch = new CustomerPatchRequest();
+                    patch.rewardBalance = c.rewardBalance - 500;
+                    api.patchCustomerMe(patch).enqueue(new Callback<CustomerDto>() {
+                        @Override
+                        public void onResponse(Call<CustomerDto> call2, Response<CustomerDto> response2) {
+                            if (!isUiReady()) {
+                                return;
+                            }
+                            if (!response2.isSuccessful() || response2.body() == null) {
+                                showToastIfAttached(R.string.error_placing_order, Toast.LENGTH_SHORT);
+                                return;
+                            }
+                            cartManager.getCart().applyDiscount(0.10);
+                            tvPoints.setText(String.valueOf(response2.body().rewardBalance));
+                            btnRedeem.setEnabled(false);
+                            btnRedeem.setText(R.string.label_discount_applied);
+                            showToastIfAttached("10% discount applied!", Toast.LENGTH_LONG);
+                        }
 
-                    customer.customerRewardBalance -= 500;
-                    db.customerDao().update(customer);
-
-                    requireActivity().runOnUiThread(() -> {
-                        cartManager.getCart().applyDiscount(0.10);
-                        tvPoints.setText(String.valueOf(customer.customerRewardBalance));
-                        btnRedeem.setEnabled(false);
-                        btnRedeem.setText(R.string.label_discount_applied);
-                        Toast.makeText(this.requireContext(), "10% discount applied!", Toast.LENGTH_LONG).show();
+                        @Override
+                        public void onFailure(Call<CustomerDto> call2, Throwable t) {
+                            showToastIfAttached(R.string.login_error_no_connection, Toast.LENGTH_SHORT);
+                        }
                     });
-                } catch (Exception e) {
-                    ActivityLogger.log(requireContext(), sessionManager, "REDEEM_POINTS"
-                            , "An error occurred when redeeming points");
-                    e.printStackTrace();
+                }
+
+                @Override
+                public void onFailure(Call<CustomerDto> call, Throwable t) {
+                    showToastIfAttached(R.string.login_error_no_connection, Toast.LENGTH_SHORT);
                 }
             });
         });
 
-        // add to cart listener
         btnAddToCart.setOnClickListener(v -> {
             ActivityLogger.log(requireContext(), sessionManager, "CREATE_ORDER", "Quick add-to-cart selected from featured section");
-            if (featuredProductId != -1) {
+            if (featuredProductId != -1 && featured != null) {
                 CartItem cartItem = new CartItem(featured, 1);
                 cartManager.getCart().addItem(cartItem);
                 Toast.makeText(requireContext(), "Added to Cart", Toast.LENGTH_SHORT).show();
@@ -339,5 +237,297 @@ public class ProductsFragment extends Fragment {
                 Toast.makeText(requireContext(), "Product not found", Toast.LENGTH_SHORT).show();
             }
         });
+    }
+
+    private void loadFeaturedProduct() {
+        if (isCacheFresh(featuredCachedAtMs) && cachedFeaturedProduct != null) {
+            featured = cachedFeaturedProduct;
+            featuredProductId = featured.getProductId();
+            if (isUiReady()) {
+                tvFeatureProductName.setText(featured.getProductName());
+                tvFeatureProductPrice.setText(String.format("$%.2f", featured.getProductBasePrice()));
+            }
+            return;
+        }
+        api.getBatchesByBakery(1, true).enqueue(new Callback<List<BatchDto>>() {
+            @Override
+            public void onResponse(Call<List<BatchDto>> call, Response<List<BatchDto>> response) {
+                if (!response.isSuccessful() || response.body() == null || response.body().isEmpty()) {
+                    return;
+                }
+                Integer pid = response.body().get(0).productId;
+                if (pid == null) {
+                    return;
+                }
+                api.getProduct(pid).enqueue(new Callback<ProductDto>() {
+                    @Override
+                    public void onResponse(Call<ProductDto> call2, Response<ProductDto> response2) {
+                        if (!response2.isSuccessful() || response2.body() == null || !isUiReady()) {
+                            return;
+                        }
+                        featured = ProductMapper.fromDto(response2.body());
+                        if (featured == null) {
+                            return;
+                        }
+                        cachedFeaturedProduct = featured;
+                        featuredCachedAtMs = System.currentTimeMillis();
+                        featuredProductId = featured.getProductId();
+                        tvFeatureProductName.setText(featured.getProductName());
+                        tvFeatureProductPrice.setText(String.format("$%.2f", featured.getProductBasePrice()));
+                    }
+
+                    @Override
+                    public void onFailure(Call<ProductDto> call2, Throwable t) {
+                    }
+                });
+            }
+
+            @Override
+            public void onFailure(Call<List<BatchDto>> call, Throwable t) {
+            }
+        });
+    }
+
+    private void loadRewardPanel() {
+        if (isCacheFresh(rewardCachedAtMs) && cachedRewardPoints >= 0 && !cachedRewardTiers.isEmpty()) {
+            rewardTiers.clear();
+            rewardTiers.addAll(cachedRewardTiers);
+            applyTierUi(cachedRewardPoints);
+            return;
+        }
+        api.getCustomerMe().enqueue(new Callback<CustomerDto>() {
+            @Override
+            public void onResponse(Call<CustomerDto> call, Response<CustomerDto> response) {
+                if (!response.isSuccessful() || response.body() == null) {
+                    return;
+                }
+                int points = response.body().rewardBalance;
+                api.getRewardTiers().enqueue(new Callback<List<RewardTierDto>>() {
+                    @Override
+                    public void onResponse(Call<List<RewardTierDto>> call2, Response<List<RewardTierDto>> response2) {
+                        if (!response2.isSuccessful() || response2.body() == null) {
+                            return;
+                        }
+                        rewardTiers.clear();
+                        rewardTiers.addAll(response2.body());
+                        Collections.sort(rewardTiers, (a, b) -> Integer.compare(a.minPoints, b.minPoints));
+                        cachedRewardPoints = points;
+                        cachedRewardTiers.clear();
+                        cachedRewardTiers.addAll(rewardTiers);
+                        rewardCachedAtMs = System.currentTimeMillis();
+                        applyTierUi(points);
+                    }
+
+                    @Override
+                    public void onFailure(Call<List<RewardTierDto>> call2, Throwable t) {
+                    }
+                });
+            }
+
+            @Override
+            public void onFailure(Call<CustomerDto> call, Throwable t) {
+            }
+        });
+    }
+
+    private void applyTierUi(int points) {
+        RewardTierDto current = null;
+        RewardTierDto next = null;
+        for (RewardTierDto t : rewardTiers) {
+            int max = t.maxPoints != null ? t.maxPoints : Integer.MAX_VALUE;
+            if (points >= t.minPoints && points <= max) {
+                current = t;
+                break;
+            }
+        }
+        if (current == null && !rewardTiers.isEmpty()) {
+            current = rewardTiers.get(rewardTiers.size() - 1);
+        }
+        if (current != null) {
+            int idx = -1;
+            for (int i = 0; i < rewardTiers.size(); i++) {
+                if (rewardTiers.get(i) == current) {
+                    idx = i;
+                    break;
+                }
+            }
+            if (idx >= 0 && idx + 1 < rewardTiers.size()) {
+                next = rewardTiers.get(idx + 1);
+            }
+        }
+        RewardTierDto finalCurrent = current;
+        RewardTierDto finalNext = next;
+        if (!isUiReady()) {
+            return;
+        }
+        if (finalCurrent != null) {
+            tvPoints.setText(String.valueOf(points));
+            tvLevel.setText(finalCurrent.name);
+            tvTierDescription.setText(finalCurrent.name);
+            if (finalNext != null) {
+                int pointsNeeded = Math.max(0, finalNext.minPoints - points);
+                tvNextTier.setText(getString(R.string.label_next_tier_fmt, finalNext.name));
+                tvPointsNeeded.setText(getString(R.string.label_points_needed_fmt, pointsNeeded, finalNext.name));
+                int rangeStart = finalCurrent.minPoints;
+                int rangeEnd = finalNext.minPoints;
+                int rangeSize = Math.max(1, rangeEnd - rangeStart);
+                int progress = ((points - rangeStart) * 100) / rangeSize;
+                progressLoyalty.setProgress(Math.max(0, Math.min(100, progress)));
+            } else {
+                tvNextTier.setText(R.string.label_top_tier_reached);
+                tvPointsNeeded.setText(R.string.label_highest_tier_reached);
+                progressLoyalty.setProgress(100);
+            }
+        } else {
+            tvPoints.setText(String.valueOf(points));
+            tvLevel.setText(R.string.label_unknown_tier);
+            tvTierDescription.setText(R.string.label_unknown_tier_desc);
+            tvNextTier.setText(R.string.label_next_tier_na);
+            tvPointsNeeded.setText(R.string.label_points_to_next_na);
+            progressLoyalty.setProgress(0);
+        }
+    }
+
+    private void loadCategoriesAndProducts() {
+        rvCategories.setLayoutManager(new LinearLayoutManager(
+                requireContext(),
+                LinearLayoutManager.HORIZONTAL,
+                false
+        ));
+        rvProducts.setLayoutManager(new LinearLayoutManager(
+                requireContext(),
+                LinearLayoutManager.VERTICAL,
+                false
+        ));
+
+        if (isCacheFresh(productsCachedAtMs) && !cachedProducts.isEmpty()) {
+            allProducts.clear();
+            allProducts.addAll(cachedProducts);
+            bindCatalogUi(cachedCategories, cachedProducts);
+            return;
+        }
+
+        api.getTags().enqueue(new Callback<List<TagDto>>() {
+            @Override
+            public void onResponse(Call<List<TagDto>> call, Response<List<TagDto>> response) {
+                if (!response.isSuccessful() || response.body() == null) {
+                    return;
+                }
+                List<Category> categories = new ArrayList<>();
+                for (TagDto tag : response.body()) {
+                    if (tag.id != null && tag.name != null) {
+                        categories.add(new Category(tag.id, tag.name));
+                    }
+                }
+                api.getProducts(null, null).enqueue(new Callback<List<ProductDto>>() {
+                    @Override
+                    public void onResponse(Call<List<ProductDto>> call2, Response<List<ProductDto>> response2) {
+                        if (!response2.isSuccessful() || response2.body() == null) {
+                            return;
+                        }
+                        allProducts.clear();
+                        for (ProductDto dto : response2.body()) {
+                            Product p = ProductMapper.fromDto(dto);
+                            if (p != null) {
+                                allProducts.add(p);
+                            }
+                        }
+                        cachedCategories.clear();
+                        cachedCategories.addAll(categories);
+                        cachedProducts.clear();
+                        cachedProducts.addAll(allProducts);
+                        productsCachedAtMs = System.currentTimeMillis();
+                        if (!isUiReady()) {
+                            return;
+                        }
+                        bindCatalogUi(categories, allProducts);
+                    }
+
+                    @Override
+                    public void onFailure(Call<List<ProductDto>> call2, Throwable t) {
+                        logIfAttached("PRODUCTS", "Network error loading products");
+                    }
+                });
+            }
+
+            @Override
+            public void onFailure(Call<List<TagDto>> call, Throwable t) {
+                logIfAttached("PRODUCTS", "Network error loading tags");
+            }
+        });
+    }
+
+    private boolean isUiReady() {
+        return isAdded() && getView() != null;
+    }
+
+    private boolean isCacheFresh(long cachedAtMs) {
+        return cachedAtMs > 0 && (System.currentTimeMillis() - cachedAtMs) <= CACHE_TTL_MS;
+    }
+
+    private void bindCatalogUi(List<Category> categories, List<Product> products) {
+        if (!isUiReady()) {
+            return;
+        }
+        categoriesAdapter = new CategoriesAdapter(new ArrayList<>(categories), tagId -> {
+            if (!isUiReady() || productAdapter == null) {
+                return;
+            }
+            if (tagId == -1) {
+                productAdapter.setProducts(new ArrayList<>(allProducts));
+                return;
+            }
+            api.getProducts(null, tagId).enqueue(new Callback<List<ProductDto>>() {
+                @Override
+                public void onResponse(Call<List<ProductDto>> call, Response<List<ProductDto>> response) {
+                    if (!response.isSuccessful() || response.body() == null || !isUiReady() || productAdapter == null) {
+                        return;
+                    }
+                    List<Product> mapped = new ArrayList<>();
+                    for (ProductDto dto : response.body()) {
+                        Product p = ProductMapper.fromDto(dto);
+                        if (p != null) {
+                            mapped.add(p);
+                        }
+                    }
+                    productAdapter.setProducts(mapped);
+                }
+
+                @Override
+                public void onFailure(Call<List<ProductDto>> call, Throwable t) {
+                }
+            });
+        });
+        productAdapter = new ProductAdapter(new ArrayList<>(products), productId -> {
+            if (!isUiReady()) {
+                return;
+            }
+            Bundle args = new Bundle();
+            args.putInt("productId", productId);
+            Navigation.findNavController(requireView()).navigate(R.id.action_products_to_details, args);
+        });
+        rvProducts.setAdapter(productAdapter);
+        rvCategories.setAdapter(categoriesAdapter);
+    }
+
+    private void showToastIfAttached(int resId, int duration) {
+        if (!isAdded()) {
+            return;
+        }
+        Toast.makeText(requireContext(), resId, duration).show();
+    }
+
+    private void showToastIfAttached(String message, int duration) {
+        if (!isAdded()) {
+            return;
+        }
+        Toast.makeText(requireContext(), message, duration).show();
+    }
+
+    private void logIfAttached(String action, String details) {
+        if (!isAdded()) {
+            return;
+        }
+        ActivityLogger.log(requireContext(), sessionManager, action, details);
     }
 }

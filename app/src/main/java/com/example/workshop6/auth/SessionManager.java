@@ -3,6 +3,7 @@ package com.example.workshop6.auth;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.content.pm.ApplicationInfo;
 
 import androidx.security.crypto.EncryptedSharedPreferences;
 import androidx.security.crypto.MasterKey;
@@ -14,6 +15,8 @@ public class SessionManager {
     private static final String PREF_NAME = "workshop6_session";
     private static final String KEY_IS_LOGGED_IN = "isLoggedIn";
     private static final String KEY_USER_ID = "userId";
+    private static final String KEY_USER_UUID = "userUuid";
+    private static final String KEY_LOGIN_EMAIL = "loginEmail";
     private static final String KEY_USER_ROLE = "userRole";
     private static final String KEY_USER_NAME = "userName";
     private static final String KEY_LAST_ACTIVITY_AT = "lastActivityAt";
@@ -34,6 +37,10 @@ public class SessionManager {
     }
 
     private SharedPreferences createSecurePrefs(Context context) {
+        // Emulator/debug keystore behavior can be unstable; prefer plain prefs in debug builds.
+        if ((context.getApplicationInfo().flags & ApplicationInfo.FLAG_DEBUGGABLE) != 0) {
+            return context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
+        }
         try {
             MasterKey masterKey = new MasterKey.Builder(context)
                     .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
@@ -46,16 +53,21 @@ public class SessionManager {
                     EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
                     EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
             );
-        } catch (Exception e) {
+        } catch (Throwable t) {
             return context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
         }
     }
 
-    public void createSession(int userId, String role, String fullName) {
+    /**
+     * @param loginEmail Email used at login (for re-authentication against the API).
+     */
+    public void createSession(String userUuid, String role, String fullName, String loginEmail) {
         long now = System.currentTimeMillis();
         prefs.edit()
                 .putBoolean(KEY_IS_LOGGED_IN, true)
-                .putInt(KEY_USER_ID, userId)
+                .putInt(KEY_USER_ID, -1)
+                .putString(KEY_USER_UUID, userUuid != null ? userUuid : "")
+                .putString(KEY_LOGIN_EMAIL, loginEmail != null ? loginEmail : "")
                 .putString(KEY_USER_ROLE, role)
                 .putString(KEY_USER_NAME, fullName)
                 .putLong(KEY_LAST_ACTIVITY_AT, now)
@@ -86,6 +98,15 @@ public class SessionManager {
 
     public int getUserId() {
         return prefs.getInt(KEY_USER_ID, -1);
+    }
+
+    /** Application user id (UUID) from the auth API; may be empty for legacy sessions. */
+    public String getUserUuid() {
+        return prefs.getString(KEY_USER_UUID, "");
+    }
+
+    public String getLoginEmail() {
+        return prefs.getString(KEY_LOGIN_EMAIL, "");
     }
 
     public String getUserRole() {
@@ -171,6 +192,8 @@ public class SessionManager {
         prefs.edit()
                 .remove(KEY_IS_LOGGED_IN)
                 .remove(KEY_USER_ID)
+                .remove(KEY_USER_UUID)
+                .remove(KEY_LOGIN_EMAIL)
                 .remove(KEY_USER_ROLE)
                 .remove(KEY_USER_NAME)
                 .remove(KEY_LAST_ACTIVITY_AT)
@@ -179,11 +202,17 @@ public class SessionManager {
     }
 
     private void startTaskRemovedWatcher() {
-        appContext.startService(new Intent(appContext, TaskRemovedLogoutService.class));
+        try {
+            appContext.startService(new Intent(appContext, TaskRemovedLogoutService.class));
+        } catch (Throwable ignored) {
+        }
     }
 
     private void stopTaskRemovedWatcher() {
-        appContext.stopService(new Intent(appContext, TaskRemovedLogoutService.class));
+        try {
+            appContext.stopService(new Intent(appContext, TaskRemovedLogoutService.class));
+        } catch (Throwable ignored) {
+        }
     }
 
     private boolean isSessionExpired() {

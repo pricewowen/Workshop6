@@ -4,10 +4,10 @@ import android.app.Application;
 import android.content.pm.ApplicationInfo;
 
 import com.example.workshop6.auth.SessionManager;
-import com.example.workshop6.data.db.AppDatabase;
+import com.example.workshop6.data.api.ApiClient;
 
 /**
- * Application class used to eagerly initialize and seed the database on app start.
+ * Application class. Data is loaded from the Workshop 7 Spring API via {@link ApiClient}.
  */
 public class Workshop6App extends Application {
 
@@ -22,9 +22,11 @@ public class Workshop6App extends Application {
             new SessionManager(this).logout();
         }
 
-        // Build the Room database and ensure initial seed completes.
-        AppDatabase.getInstance(this);
-        AppDatabase.awaitSeed();
+        SessionManager sm = new SessionManager(this);
+        String token = sm.getToken();
+        if (token != null && !token.isEmpty()) {
+            ApiClient.getInstance().setToken(token);
+        }
     }
 }
 

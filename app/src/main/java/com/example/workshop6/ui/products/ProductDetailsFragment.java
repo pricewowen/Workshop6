@@ -18,13 +18,21 @@ import android.widget.Toast;
 
 import com.example.workshop6.R;
 import com.example.workshop6.auth.SessionManager;
-import com.example.workshop6.data.db.AppDatabase;
-import com.example.workshop6.data.model.Product;
-import com.example.workshop6.data.model.Review;
+import com.example.workshop6.data.api.ApiClient;
+import com.example.workshop6.data.api.ApiService;
+import com.example.workshop6.data.api.ProductMapper;
+import com.example.workshop6.data.api.dto.ProductDto;
+import com.example.workshop6.data.api.dto.ReviewDto;
 import com.example.workshop6.data.model.CartItem;
+import com.example.workshop6.data.model.Product;
 import com.example.workshop6.ui.cart.CartManager;
 
+import java.util.ArrayList;
 import java.util.List;
+
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
 
 public class ProductDetailsFragment extends Fragment {
 
@@ -46,15 +54,15 @@ public class ProductDetailsFragment extends Fragment {
     private RecyclerView rvReviews;
 
     private CartManager cartManager;
+    private ApiService api;
+    private Product loadedProduct;
 
     public ProductDetailsFragment() {
-        // Required empty constructor
     }
 
     public static ProductDetailsFragment newInstance(String param1, String param2) {
         ProductDetailsFragment fragment = new ProductDetailsFragment();
-        Bundle args = new Bundle();
-        fragment.setArguments(args);
+        fragment.setArguments(new Bundle());
         return fragment;
     }
 
@@ -66,7 +74,6 @@ public class ProductDetailsFragment extends Fragment {
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
-
         return inflater.inflate(R.layout.fragment_product_details, container, false);
     }
 
@@ -97,6 +104,7 @@ public class ProductDetailsFragment extends Fragment {
         tvQuantity.setText(String.valueOf(quantCounter));
 
         cartManager = CartManager.getInstance(requireContext());
+        api = ApiClient.getInstance().getService();
         SessionManager sessionManager = new SessionManager(requireContext());
         boolean isCustomer = "CUSTOMER".equalsIgnoreCase(sessionManager.getUserRole());
         if (!isCustomer) {
@@ -105,33 +113,69 @@ public class ProductDetailsFragment extends Fragment {
             return;
         }
 
-        AppDatabase db = AppDatabase.getInstance(requireContext());
+        if (productId <= 0) {
+            return;
+        }
 
-        AppDatabase.databaseWriteExecutor.execute(() -> {
-
-            Product product = db.productDao().getProductById(productId);
-            List<Review> reviews = db.reviewDao().getReviewsForProduct(productId);
-            float avgRating = db.reviewDao().getAverageRatingForProduct(productId);
-
-            requireActivity().runOnUiThread(() -> {
-
-                if (product == null) return;
-
-                ivProductImage.setImageResource(product.getImgUrl());
-                tvProductName.setText(product.getProductName());
-                tvProductPrice.setText(String.format("$%.2f",
-                        product.getProductBasePrice().doubleValue()));
-                tvProductDescription.setText(product.getProductDescription());
-
-                if (!reviews.isEmpty()) {
-                    tvReviewsTitle.setText(
-                            "Customer Reviews (" + String.format("%.1f", avgRating) + "★)"
-                    );
+        api.getProduct(productId).enqueue(new Callback<ProductDto>() {
+            @Override
+            public void onResponse(Call<ProductDto> call, Response<ProductDto> response) {
+                if (!response.isSuccessful() || response.body() == null || !isUiReady()) {
+                    return;
                 }
+                loadedProduct = ProductMapper.fromDto(response.body());
+                if (loadedProduct == null) {
+                    return;
+                }
+                tvProductName.setText(loadedProduct.getProductName());
+                tvProductPrice.setText(String.format("$%.2f",
+                        loadedProduct.getProductBasePrice().doubleValue()));
+                tvProductDescription.setText(loadedProduct.getProductDescription());
+                ivProductImage.setImageResource(loadedProduct.getImgUrl());
+            }
 
-                ReviewAdapter adapter = new ReviewAdapter(reviews);
-                rvReviews.setAdapter(adapter);
-            });
+            @Override
+            public void onFailure(Call<ProductDto> call, Throwable t) {
+                if (!isAdded()) {
+                    return;
+                }
+                Toast.makeText(requireContext(), R.string.login_error_no_connection, Toast.LENGTH_SHORT).show();
+            }
+        });
+
+        api.getProductReviewAverage(productId).enqueue(new Callback<Double>() {
+            @Override
+            public void onResponse(Call<Double> call, Response<Double> response) {
+                Double avg = response.isSuccessful() ? response.body() : null;
+                api.getProductReviews(productId).enqueue(new Callback<List<ReviewDto>>() {
+                    @Override
+                    public void onResponse(Call<List<ReviewDto>> call2, Response<List<ReviewDto>> response2) {
+                        if (!response2.isSuccessful() || response2.body() == null || !isUiReady()) {
+                            return;
+                        }
+                        List<ReviewDto> reviews = new ArrayList<>();
+                        for (ReviewDto r : response2.body()) {
+                            if (r != null && "approved".equalsIgnoreCase(r.status)) {
+                                reviews.add(r);
+                            }
+                        }
+                        if (!reviews.isEmpty()) {
+                            double displayAvg = avg != null ? avg : 0;
+                            tvReviewsTitle.setText(
+                                    "Customer Reviews (" + String.format("%.1f", displayAvg) + "★)");
+                        }
+                        rvReviews.setAdapter(new ReviewAdapter(reviews));
+                    }
+
+                    @Override
+                    public void onFailure(Call<List<ReviewDto>> call2, Throwable t) {
+                    }
+                });
+            }
+
+            @Override
+            public void onFailure(Call<Double> call, Throwable t) {
+            }
         });
 
         btnBack.setOnClickListener(v ->
@@ -151,28 +195,20 @@ public class ProductDetailsFragment extends Fragment {
         });
 
         btnAddToCart.setOnClickListener(v -> {
-
-            AppDatabase.databaseWriteExecutor.execute(() -> {
-
-                Product product = db.productDao().getProductById(productId);
-
-                if (product != null) {
-
-                    CartItem cartItem = new CartItem(product, quantCounter);
-                    cartManager.getCart().addItem(cartItem);
-
-                    requireActivity().runOnUiThread(() -> {
-
-                        Toast.makeText(
-                                requireContext(),
-                                R.string.added_to_cart,
-                                Toast.LENGTH_SHORT
-                        ).show();
-
-                        Navigation.findNavController(view).navigateUp();
-                    });
-                }
-            });
+            if (loadedProduct != null) {
+                CartItem cartItem = new CartItem(loadedProduct, quantCounter);
+                cartManager.getCart().addItem(cartItem);
+                Toast.makeText(
+                        requireContext(),
+                        R.string.added_to_cart,
+                        Toast.LENGTH_SHORT
+                ).show();
+                Navigation.findNavController(view).navigateUp();
+            }
         });
+    }
+
+    private boolean isUiReady() {
+        return isAdded() && getView() != null;
     }
 }

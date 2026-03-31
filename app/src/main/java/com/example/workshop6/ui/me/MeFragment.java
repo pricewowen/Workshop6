@@ -2,7 +2,6 @@ package com.example.workshop6.ui.me;
 
 import android.content.Intent;
 import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
 import android.graphics.ColorMatrix;
 import android.graphics.ColorMatrixColorFilter;
 import android.os.Bundle;
@@ -20,24 +19,31 @@ import androidx.fragment.app.Fragment;
 import com.example.workshop6.R;
 import com.example.workshop6.auth.LoginActivity;
 import com.example.workshop6.auth.SessionManager;
-import com.example.workshop6.data.db.AppDatabase;
-import com.example.workshop6.data.model.Address;
-import com.example.workshop6.data.model.ChatThread;
-import com.example.workshop6.data.model.Customer;
-import com.example.workshop6.data.model.Employee;
-import com.example.workshop6.data.model.User;
+import com.example.workshop6.data.api.ApiClient;
+import com.example.workshop6.data.api.ApiService;
+import com.example.workshop6.data.api.dto.AddressDto;
+import com.example.workshop6.data.api.dto.ChatThreadDto;
+import com.example.workshop6.data.api.dto.CustomerDto;
+import com.example.workshop6.data.api.dto.EmployeeDto;
 import com.example.workshop6.logging.ActivityLogger;
 import com.example.workshop6.ui.chat.ChatActivity;
 import com.example.workshop6.ui.cart.CartManager;
 import com.example.workshop6.ui.orders.OrderHistoryActivity;
 import com.example.workshop6.ui.profile.EditProfileActivity;
+import com.example.workshop6.util.ImageUtils;
 
-/**
- * Me tab — shows the current user (Customer + Address) and provides edit + logout.
- */
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
+
 public class MeFragment extends Fragment {
+    private static final long ME_CACHE_TTL_MS = 30_000L;
+    private static long meCacheAtMs = 0L;
+    private static String cachedUserKey = null;
+    private static MeSnapshot cachedMeSnapshot = null;
 
     private SessionManager sessionManager;
+    private ApiService api;
 
     private ImageView ivPhoto;
     private TextView tvName;
@@ -58,6 +64,8 @@ public class MeFragment extends Fragment {
         super.onViewCreated(view, savedInstanceState);
 
         sessionManager = new SessionManager(requireContext());
+        api = ApiClient.getInstance().getService();
+        ApiClient.getInstance().setToken(sessionManager.getToken());
 
         ivPhoto = view.findViewById(R.id.iv_me_photo);
         tvName = view.findViewById(R.id.tv_me_name);
@@ -72,6 +80,7 @@ public class MeFragment extends Fragment {
             ActivityLogger.log(requireContext(), sessionManager, "LOGOUT", "User logged out");
             CartManager.getInstance(requireContext()).onLogout();
             sessionManager.logout();
+            ApiClient.getInstance().clearToken();
             Intent intent = new Intent(requireContext(), LoginActivity.class);
             intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
             startActivity(intent);
@@ -84,6 +93,7 @@ public class MeFragment extends Fragment {
 
         view.findViewById(R.id.btn_chat_staff).setOnClickListener(v -> openOrCreateChat());
 
+        renderCachedMeIfPresent();
         loadMe();
     }
 
@@ -94,183 +104,276 @@ public class MeFragment extends Fragment {
     }
 
     private void openOrCreateChat() {
-        int userId = sessionManager.getUserId();
-        if (userId <= 0) return;
+        if (!"CUSTOMER".equalsIgnoreCase(sessionManager.getUserRole())) {
+            Toast.makeText(requireContext(), R.string.staff_chat_disabled_for_staff, Toast.LENGTH_SHORT).show();
+            return;
+        }
+        api.getMyOpenChatThread().enqueue(new Callback<ChatThreadDto>() {
+            @Override
+            public void onResponse(Call<ChatThreadDto> call, Response<ChatThreadDto> response) {
+                if (response.isSuccessful() && response.body() != null && response.body().id != null) {
+                    launchChat(response.body().id);
+                    return;
+                }
+                api.createChatThread().enqueue(new Callback<ChatThreadDto>() {
+                    @Override
+                    public void onResponse(Call<ChatThreadDto> call2, Response<ChatThreadDto> response2) {
+                        if (response2.isSuccessful() && response2.body() != null && response2.body().id != null) {
+                            launchChat(response2.body().id);
+                        }
+                    }
 
-        final android.content.Context appContext = requireContext().getApplicationContext();
-
-        AppDatabase.databaseWriteExecutor.execute(() -> {
-            AppDatabase db = AppDatabase.getInstance(appContext);
-            User user = db.userDao().getUserById(userId);
-            if (user == null || !"CUSTOMER".equalsIgnoreCase(user.userRole)) {
-                if (getActivity() == null) return;
-                requireActivity().runOnUiThread(() -> Toast.makeText(
-                        requireContext(),
-                        R.string.staff_chat_disabled_for_staff,
-                        Toast.LENGTH_SHORT
-                ).show());
-                return;
+                    @Override
+                    public void onFailure(Call<ChatThreadDto> call2, Throwable t) {
+                        if (!isAdded()) {
+                            return;
+                        }
+                        Toast.makeText(requireContext(), R.string.login_error_no_connection, Toast.LENGTH_SHORT).show();
+                    }
+                });
             }
 
-            ChatThread existingThread = db.chatDao().getOpenThreadForCustomer(userId);
-
-            int threadId;
-            if (existingThread != null) {
-                threadId = existingThread.threadId;
-            } else {
-                long now = System.currentTimeMillis();
-
-                ChatThread newThread = new ChatThread();
-                newThread.customerUserId = userId;
-                newThread.employeeUserId = null;
-                newThread.status = "OPEN";
-                newThread.createdAt = now;
-                newThread.updatedAt = now;
-
-                threadId = (int) db.chatDao().insertThread(newThread);
+            @Override
+            public void onFailure(Call<ChatThreadDto> call, Throwable t) {
+                if (!isAdded()) {
+                    return;
+                }
+                Toast.makeText(requireContext(), R.string.login_error_no_connection, Toast.LENGTH_SHORT).show();
             }
-
-            int finalThreadId = threadId;
-
-            if (getActivity() == null) return;
-
-            requireActivity().runOnUiThread(() -> {
-                Intent intent = new Intent(requireContext(), ChatActivity.class);
-                intent.putExtra(ChatActivity.EXTRA_THREAD_ID, finalThreadId);
-                startActivity(intent);
-            });
         });
     }
 
+    private void launchChat(int threadId) {
+        Intent intent = new Intent(requireContext(), ChatActivity.class);
+        intent.putExtra(ChatActivity.EXTRA_THREAD_ID, threadId);
+        startActivity(intent);
+    }
+
     private void loadMe() {
-        int userId = sessionManager.getUserId();
-        final android.content.Context appContext = requireContext().getApplicationContext();
-        if (userId <= 0) return;
+        if (sessionManager.getUserUuid().isEmpty() && sessionManager.getUserId() <= 0) {
+            return;
+        }
+        if (isMeCacheFreshForCurrentUser()) {
+            return;
+        }
 
-        AppDatabase.databaseWriteExecutor.execute(() -> {
-            AppDatabase db = AppDatabase.getInstance(appContext);
-            User user = db.userDao().getUserById(userId);
-            Customer customer = db.customerDao().getByUserId(userId);
-            Employee employee = db.employeeDao().getByUserId(userId);
-
-            Address address = null;
-            int addressId = 0;
-
-            if (customer != null && customer.addressId > 0) {
-                addressId = customer.addressId;
-            } else if (employee != null && employee.addressId > 0) {
-                addressId = employee.addressId;
-            }
-
-            if (addressId > 0) {
-                address = db.addressDao().getById(addressId);
-            }
-
-            final User u = user;
-            final Customer c = customer;
-            final Employee e = employee;
-            final Address a = address;
-
-            if (getActivity() == null) return;
-
-            requireActivity().runOnUiThread(() -> {
-                if (u == null) return;
-
-                String nameText = getString(R.string.stub_me_name);
-                String emailText = u.userEmail != null ? u.userEmail : getString(R.string.stub_me_email);
-                String photoPath = null;
-
-                if (c != null) {
-                    String first = c.customerFirstName != null ? c.customerFirstName : "";
-                    String last = c.customerLastName != null ? c.customerLastName : "";
-                    nameText = (first + " " + last).trim();
-                    if (nameText.isEmpty()) nameText = emailText;
-                    if (c.customerEmail != null && !c.customerEmail.isEmpty()) emailText = c.customerEmail;
-                    photoPath = c.profilePhotoPath;
-                } else if (e != null) {
-                    String first = e.employeeFirstName != null ? e.employeeFirstName : "";
-                    String last = e.employeeLastName != null ? e.employeeLastName : "";
-                    nameText = (first + " " + last).trim();
-                    if (nameText.isEmpty()) nameText = emailText;
-                    if (e.employeeEmail != null && !e.employeeEmail.isEmpty()) emailText = e.employeeEmail;
-                    photoPath = e.profilePhotoPath;
-                }
-
-                tvName.setText(nameText);
-                tvEmail.setText(emailText);
-                boolean isCustomer = "CUSTOMER".equalsIgnoreCase(u.userRole);
-                View rootView = getView();
-                if (rootView != null) {
-                    rootView.findViewById(R.id.btn_order_history).setVisibility(isCustomer ? View.VISIBLE : View.GONE);
-                    rootView.findViewById(R.id.btn_chat_staff).setVisibility(isCustomer ? View.VISIBLE : View.GONE);
-                }
-
-                if (c != null && c.photoApprovalPending) {
-                    Bitmap bm = (photoPath != null && !photoPath.isEmpty())
-                            ? BitmapFactory.decodeFile(photoPath)
-                            : null;
-
-                    if (bm != null) {
-                        ivPhoto.setImageBitmap(bm);
-                    } else {
-                        ivPhoto.setImageResource(R.drawable.ic_person_placeholder);
+        String role = sessionManager.getUserRole();
+        if ("CUSTOMER".equalsIgnoreCase(role)) {
+            api.getCustomerMe().enqueue(new Callback<CustomerDto>() {
+                @Override
+                public void onResponse(Call<CustomerDto> call, Response<CustomerDto> response) {
+                    if (!response.isSuccessful() || response.body() == null) {
+                        return;
                     }
-
-                    applyPendingPhotoStyle(ivPhoto);
-                    tvPhotoStatus.setVisibility(View.VISIBLE);
-                    tvPhotoStatus.setText(R.string.photo_pending_approval);
-                } else if (photoPath != null && !photoPath.isEmpty()) {
-                    Bitmap bm = BitmapFactory.decodeFile(photoPath);
-                    if (bm != null) {
-                        ivPhoto.setImageBitmap(bm);
-                        ivPhoto.clearColorFilter();
-                        ivPhoto.setImageAlpha(255);
-                        tvPhotoStatus.setVisibility(View.GONE);
-                    } else {
-                        ivPhoto.setImageResource(R.drawable.ic_person_placeholder);
-                        ivPhoto.clearColorFilter();
-                        ivPhoto.setImageAlpha(255);
-                        tvPhotoStatus.setVisibility(View.GONE);
+                    CustomerDto c = response.body();
+                    if (getView() == null) {
+                        return;
                     }
-                } else {
-                    ivPhoto.setImageResource(R.drawable.ic_person_placeholder);
-                    ivPhoto.clearColorFilter();
-                    ivPhoto.setImageAlpha(255);
-                    tvPhotoStatus.setVisibility(View.GONE);
+                    String first = c.firstName != null ? c.firstName : "";
+                    String last = c.lastName != null ? c.lastName : "";
+                    String nameText = (first + " " + last).trim();
+                    if (nameText.isEmpty()) {
+                        nameText = sessionManager.getUserName();
+                    }
+                    tvName.setText(nameText);
+                    tvEmail.setText(c.email != null ? c.email : sessionManager.getUserName());
+                    boolean pending = c.photoApprovalPending;
+                    String photoPath = c.profilePhotoPath;
+                    applyPhotoUI(photoPath, pending);
+                    tvAddress.setText(formatCustomerAddress(c));
+                    View root = getView();
+                    if (root != null) {
+                        root.findViewById(R.id.btn_order_history).setVisibility(View.VISIBLE);
+                        root.findViewById(R.id.btn_chat_staff).setVisibility(View.VISIBLE);
+                    }
+                    cacheMeSnapshot(new MeSnapshot(nameText,
+                            c.email != null ? c.email : sessionManager.getUserName(),
+                            photoPath,
+                            pending,
+                            formatCustomerAddress(c),
+                            true,
+                            true));
                 }
 
-                String addressText;
-                if (a == null
-                        || ((a.addressLine1 == null || a.addressLine1.trim().isEmpty())
-                        && (a.addressCity == null || a.addressCity.trim().isEmpty())
-                        && (a.addressProvince == null || a.addressProvince.trim().isEmpty())
-                        && (a.addressPostalCode == null || a.addressPostalCode.trim().isEmpty()))) {
-                    addressText = getString(R.string.no_address_on_file);
-                } else {
-                    String line1 = a.addressLine1 != null ? a.addressLine1.trim() : "";
-                    String line2 = (a.addressLine2 != null && !a.addressLine2.trim().isEmpty())
-                            ? "\n" + a.addressLine2.trim()
-                            : "";
-                    String city = a.addressCity != null ? a.addressCity.trim() : "";
-                    String prov = a.addressProvince != null ? a.addressProvince.trim() : "";
-                    String postal = a.addressPostalCode != null ? a.addressPostalCode.trim() : "";
-
-                    addressText = line1 + line2 + "\n"
-                            + city
-                            + (city.isEmpty() ? "" : ", ")
-                            + prov
-                            + "  "
-                            + postal;
-
-                    addressText = addressText.trim();
-                    if (addressText.isEmpty()) {
-                        addressText = getString(R.string.no_address_on_file);
-                    }
+                @Override
+                public void onFailure(Call<CustomerDto> call, Throwable t) {
                 }
-
-                tvAddress.setText(addressText);
             });
-        });
+        } else {
+            api.getEmployeeMe().enqueue(new Callback<EmployeeDto>() {
+                @Override
+                public void onResponse(Call<EmployeeDto> call, Response<EmployeeDto> response) {
+                    if (response.code() == 404 && "ADMIN".equalsIgnoreCase(role)) {
+                        tvName.setText(sessionManager.getUserName());
+                        tvEmail.setText(sessionManager.getUserName());
+                        tvAddress.setText("");
+                        tvPhotoStatus.setVisibility(View.GONE);
+                        View root = getView();
+                        if (root != null) {
+                            root.findViewById(R.id.btn_order_history).setVisibility(View.GONE);
+                            root.findViewById(R.id.btn_chat_staff).setVisibility(View.GONE);
+                        }
+                        cacheMeSnapshot(new MeSnapshot(sessionManager.getUserName(),
+                                sessionManager.getUserName(),
+                                null,
+                                false,
+                                "",
+                                false,
+                                false));
+                        return;
+                    }
+                    if (!response.isSuccessful() || response.body() == null) {
+                        return;
+                    }
+                    EmployeeDto e = response.body();
+                    String first = e.firstName != null ? e.firstName : "";
+                    String last = e.lastName != null ? e.lastName : "";
+                    String nameText = (first + " " + last).trim();
+                    if (nameText.isEmpty()) {
+                        nameText = sessionManager.getUserName();
+                    }
+                    tvName.setText(nameText);
+                    tvEmail.setText(e.workEmail != null ? e.workEmail : sessionManager.getUserName());
+                    applyPhotoUI(e.profilePhotoPath, e.photoApprovalPending);
+                    tvAddress.setText(addressTextForEmployee(e));
+                    View root = getView();
+                    if (root != null) {
+                        root.findViewById(R.id.btn_order_history).setVisibility(View.GONE);
+                        root.findViewById(R.id.btn_chat_staff).setVisibility(View.GONE);
+                    }
+                    cacheMeSnapshot(new MeSnapshot(nameText,
+                            e.workEmail != null ? e.workEmail : sessionManager.getUserName(),
+                            e.profilePhotoPath,
+                            e.photoApprovalPending,
+                            addressTextForEmployee(e),
+                            false,
+                            false));
+                }
+
+                @Override
+                public void onFailure(Call<EmployeeDto> call, Throwable t) {
+                }
+            });
+        }
+    }
+
+    private void renderCachedMeIfPresent() {
+        if (!isMeCacheFreshForCurrentUser() || cachedMeSnapshot == null || getView() == null) {
+            return;
+        }
+        tvName.setText(cachedMeSnapshot.name);
+        tvEmail.setText(cachedMeSnapshot.email);
+        tvAddress.setText(cachedMeSnapshot.addressText);
+        applyPhotoUI(cachedMeSnapshot.photoPath, cachedMeSnapshot.photoPending);
+        View root = getView();
+        if (root != null) {
+            root.findViewById(R.id.btn_order_history).setVisibility(cachedMeSnapshot.showOrderHistory ? View.VISIBLE : View.GONE);
+            root.findViewById(R.id.btn_chat_staff).setVisibility(cachedMeSnapshot.showChatStaff ? View.VISIBLE : View.GONE);
+        }
+    }
+
+    private boolean isMeCacheFreshForCurrentUser() {
+        String userKey = buildUserKey();
+        return cachedMeSnapshot != null
+                && userKey.equals(cachedUserKey)
+                && meCacheAtMs > 0
+                && (System.currentTimeMillis() - meCacheAtMs) <= ME_CACHE_TTL_MS;
+    }
+
+    private String buildUserKey() {
+        return sessionManager.getUserRole() + "|" + sessionManager.getUserUuid() + "|" + sessionManager.getUserId();
+    }
+
+    private void cacheMeSnapshot(MeSnapshot snapshot) {
+        cachedMeSnapshot = snapshot;
+        cachedUserKey = buildUserKey();
+        meCacheAtMs = System.currentTimeMillis();
+    }
+
+    private static final class MeSnapshot {
+        final String name;
+        final String email;
+        final String photoPath;
+        final boolean photoPending;
+        final String addressText;
+        final boolean showOrderHistory;
+        final boolean showChatStaff;
+
+        MeSnapshot(String name,
+                   String email,
+                   String photoPath,
+                   boolean photoPending,
+                   String addressText,
+                   boolean showOrderHistory,
+                   boolean showChatStaff) {
+            this.name = name;
+            this.email = email;
+            this.photoPath = photoPath;
+            this.photoPending = photoPending;
+            this.addressText = addressText;
+            this.showOrderHistory = showOrderHistory;
+            this.showChatStaff = showChatStaff;
+        }
+    }
+
+    private String addressTextForEmployee(EmployeeDto e) {
+        if (e.addressId != null && e.addressId > 0) {
+            return getString(R.string.no_address_on_file) + " (ID " + e.addressId + ")";
+        }
+        return getString(R.string.no_address_on_file);
+    }
+
+    private void applyPhotoUI(String photoPath, boolean pending) {
+        if (pending) {
+            Bitmap bm = (photoPath != null && !photoPath.isEmpty())
+                    ? ImageUtils.decodeFileForPreview(photoPath, 512)
+                    : null;
+            if (bm != null) {
+                ivPhoto.setImageBitmap(bm);
+            } else {
+                ivPhoto.setImageResource(R.drawable.ic_person_placeholder);
+            }
+            applyPendingPhotoStyle(ivPhoto);
+            tvPhotoStatus.setVisibility(View.VISIBLE);
+            tvPhotoStatus.setText(R.string.photo_pending_approval);
+        } else if (photoPath != null && !photoPath.isEmpty()) {
+            Bitmap bm = ImageUtils.decodeFileForPreview(photoPath, 512);
+            if (bm != null) {
+                ivPhoto.setImageBitmap(bm);
+                ivPhoto.clearColorFilter();
+                ivPhoto.setImageAlpha(255);
+            } else {
+                ivPhoto.setImageResource(R.drawable.ic_person_placeholder);
+            }
+            tvPhotoStatus.setVisibility(View.GONE);
+        } else {
+            ivPhoto.setImageResource(R.drawable.ic_person_placeholder);
+            ivPhoto.clearColorFilter();
+            ivPhoto.setImageAlpha(255);
+            tvPhotoStatus.setVisibility(View.GONE);
+        }
+    }
+
+    private String formatCustomerAddress(CustomerDto c) {
+        AddressDto a = c.address;
+        if (a == null || (a.line1 == null || a.line1.trim().isEmpty())) {
+            return getString(R.string.no_address_on_file);
+        }
+        StringBuilder sb = new StringBuilder();
+        sb.append(a.line1.trim());
+        if (a.line2 != null && !a.line2.trim().isEmpty()) {
+            sb.append("\n").append(a.line2.trim());
+        }
+        if (a.city != null && !a.city.trim().isEmpty()) {
+            sb.append("\n").append(a.city.trim());
+        }
+        if (a.province != null && !a.province.trim().isEmpty()) {
+            sb.append(", ").append(a.province.trim());
+        }
+        if (a.postalCode != null && !a.postalCode.trim().isEmpty()) {
+            sb.append(" ").append(a.postalCode.trim());
+        }
+        return sb.toString();
     }
 
     private void applyPendingPhotoStyle(ImageView imageView) {

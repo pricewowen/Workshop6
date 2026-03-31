@@ -2,7 +2,6 @@ package com.example.workshop6.auth;
 
 import android.Manifest;
 import android.content.Intent;
-import android.database.sqlite.SQLiteConstraintException;
 import android.graphics.Bitmap;
 import android.net.Uri;
 import android.os.Bundle;
@@ -20,13 +19,12 @@ import androidx.core.content.ContextCompat;
 import android.content.pm.PackageManager;
 
 import com.example.workshop6.R;
-import com.example.workshop6.data.db.AppDatabase;
-import com.example.workshop6.data.model.Address;
-import com.example.workshop6.data.model.Customer;
-import com.example.workshop6.data.model.User;
+import com.example.workshop6.data.api.ApiClient;
+import com.example.workshop6.data.api.ApiService;
+import com.example.workshop6.data.api.dto.AuthResponse;
+import com.example.workshop6.data.api.dto.RegisterRequest;
 import com.example.workshop6.logging.ActivityLogger;
 import com.example.workshop6.ui.MainActivity;
-import com.example.workshop6.util.HashUtils;
 import com.example.workshop6.util.ImageUtils;
 import com.example.workshop6.util.PhoneFormatTextWatcher;
 import com.example.workshop6.util.PostalCodeFormatTextWatcher;
@@ -36,6 +34,10 @@ import com.google.android.material.textfield.TextInputEditText;
 import com.google.android.material.textfield.TextInputLayout;
 
 import java.util.Locale;
+
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
 
 public class RegisterActivity extends AppCompatActivity {
 
@@ -354,121 +356,68 @@ public class RegisterActivity extends AppCompatActivity {
 
         tvError.setVisibility(View.GONE);
 
-        AppDatabase db = AppDatabase.getInstance(this);
+        String phoneStored = Validation.formatPhoneForStorage(phone);
+        if (phoneStored == null) {
+            phoneStored = phone;
+        }
 
-        AppDatabase.databaseWriteExecutor.execute(() -> {
-            AppDatabase.awaitSeed();
+        RegisterRequest registerRequest = new RegisterRequest(
+                username,
+                email,
+                pass,
+                firstName,
+                lastName,
+                phoneStored
+        );
 
-            User existingByEmail = db.userDao().getUserByEmail(email);
-            if (existingByEmail != null) {
-                runOnUiThread(() -> {
+        ApiService api = ApiClient.getInstance().getService();
+        api.register(registerRequest).enqueue(new Callback<AuthResponse>() {
+            @Override
+            public void onResponse(Call<AuthResponse> call, Response<AuthResponse> response) {
+                if (isFinishing() || isDestroyed()) {
+                    return;
+                }
+                if (response.code() == 409) {
                     showDuplicateAccountError();
-                });
-                ActivityLogger.logFailure(this, null, "REGISTER", "Registration blocked: duplicate email");
-                return;
-            }
-
-            User existingByUsername = db.userDao().getUserByUsername(username);
-            if (existingByUsername != null) {
-                runOnUiThread(() -> {
-                    showDuplicateAccountError();
-                });
-                ActivityLogger.logFailure(this, null, "REGISTER", "Registration blocked: duplicate username");
-                return;
-            }
-
-            try {
-                // User (auth)
-                User user = new User();
-                user.userUsername = username;
-                user.userEmail = email;
-                user.userPasswordHash = HashUtils.hash(pass);
-                user.userRole = "CUSTOMER";
-                user.isActive = true;
-                user.userCreatedAt = System.currentTimeMillis();
-                long newUserId = db.userDao().insert(user);
-                int userId = (int) newUserId;
-
-                // Reuse an existing address if the same normalized address already exists
-                String address2ForMatch = Validation.isEmpty(address2) ? null : address2;
-                Address existingAddress = db.addressDao().findMatchingAddress(
-                        address1,
-                        address2ForMatch,
-                        city,
-                        province,
-                        postal
+                    ActivityLogger.logFailure(RegisterActivity.this, null, "REGISTER", "Conflict from API");
+                    return;
+                }
+                if (!response.isSuccessful() || response.body() == null) {
+                    tvError.setText(R.string.register_error_unexpected);
+                    tvError.setVisibility(View.VISIBLE);
+                    ActivityLogger.logFailure(RegisterActivity.this, null, "REGISTER", "HTTP " + response.code());
+                    return;
+                }
+                AuthResponse auth = response.body();
+                if (auth.token == null || auth.token.trim().isEmpty()
+                        || auth.role == null || auth.role.trim().isEmpty()
+                        || auth.username == null || auth.username.trim().isEmpty()) {
+                    tvError.setText(R.string.register_error_unexpected);
+                    tvError.setVisibility(View.VISIBLE);
+                    ActivityLogger.logFailure(RegisterActivity.this, null, "REGISTER", "Malformed auth response");
+                    return;
+                }
+                ApiClient.getInstance().setToken(auth.token);
+                sessionManager.saveToken(auth.token);
+                String uid = auth.userId != null ? auth.userId : "";
+                sessionManager.createSession(uid, auth.role.toUpperCase(), auth.username, email);
+                ActivityLogger.log(
+                        RegisterActivity.this,
+                        "USER@" + auth.username,
+                        "REGISTER",
+                        "Customer account created via API"
                 );
-                int addressId;
-                if (existingAddress != null) {
-                    addressId = existingAddress.addressId;
-                } else {
-                    Address addr = new Address();
-                    addr.addressLine1 = address1;
-                    addr.addressLine2 = address2ForMatch;
-                    addr.addressCity = city;
-                    addr.addressProvince = province;
-                    addr.addressPostalCode = postal;
-                    long addrId = db.addressDao().insert(addr);
-                    addressId = (int) addrId;
+                goToMain();
+            }
+
+            @Override
+            public void onFailure(Call<AuthResponse> call, Throwable t) {
+                if (isFinishing() || isDestroyed()) {
+                    return;
                 }
-
-                // Customer (every registered user is a customer)
-                Customer customer = new Customer();
-                customer.userId = userId;
-                customer.addressId = addressId;
-                customer.rewardTierId = com.example.workshop6.data.db.DatabaseSeeder.DEFAULT_REWARD_TIER_ID;
-                customer.customerFirstName = firstName;
-                customer.customerMiddleInitial = null;
-                customer.customerLastName = lastName;
-                customer.customerRole = "Customer";
-                String phoneStored = Validation.formatPhoneForStorage(phone);
-                customer.customerPhone = phoneStored != null ? phoneStored : phone;
-                customer.customerBusinessPhone = null;
-                customer.customerRewardBalance = 0;
-                customer.customerTierAssignedDate = null;
-                customer.customerEmail = email;
-                customer.profilePhotoPath = null;
-                customer.photoApprovalPending = false;
-
-                long newCustomerId = db.customerDao().insert(customer);
-                int customerId = (int) newCustomerId;
-
-                if (selectedPhotoUri != null && customerId > 0) {
-                    String savedPath = ImageUtils.saveProfilePhoto(this, selectedPhotoUri, customerId);
-                    if (savedPath != null) {
-                        customer.customerId = customerId;
-                        customer.profilePhotoPath = savedPath;
-                        customer.photoApprovalPending = true;
-                        db.customerDao().update(customer);
-                    }
-                }
-
-                String displayName = firstName + " " + lastName;
-                runOnUiThread(() -> {
-                    sessionManager.createSession(userId, user.userRole, displayName);
-                    ActivityLogger.log(
-                            this,
-                            "USER#" + userId,
-                            "REGISTER",
-                            "Customer account created"
-                    );
-                    goToMain();
-                });
-            } catch (SQLiteConstraintException e) {
-                ActivityLogger.logFailure(this, null, "REGISTER", "Constraint failure while creating account");
-                runOnUiThread(this::showDuplicateAccountError);
-            } catch (Exception e) {
-                String message = e.getMessage() != null ? e.getMessage().toLowerCase(Locale.ROOT) : "";
-                if (message.contains("unique") || message.contains("constraint")) {
-                    ActivityLogger.logFailure(this, null, "REGISTER", "Unique constraint failure while creating account");
-                    runOnUiThread(this::showDuplicateAccountError);
-                } else {
-                    ActivityLogger.logFailure(this, null, "REGISTER", "Unexpected registration failure: " + message);
-                    runOnUiThread(() -> {
-                        tvError.setText(R.string.register_error_unexpected);
-                        tvError.setVisibility(View.VISIBLE);
-                    });
-                }
+                tvError.setText(R.string.login_error_no_connection);
+                tvError.setVisibility(View.VISIBLE);
+                ActivityLogger.logFailure(RegisterActivity.this, null, "REGISTER", "Network error");
             }
         });
     }

@@ -9,32 +9,36 @@ import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.workshop6.R;
-import com.example.workshop6.data.model.ChatMessage;
+import com.example.workshop6.data.api.dto.ChatMessageDto;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 public class ChatMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
 
     private static final int TYPE_SENT = 1;
     private static final int TYPE_RECEIVED = 2;
 
-    private final int currentUserId;
-    private List<ChatMessage> messages = new ArrayList<>();
+    private final String currentUserUuid;
+    private List<ChatMessageDto> messages = new ArrayList<>();
 
-    public ChatMessageAdapter(int currentUserId) {
-        this.currentUserId = currentUserId;
+    public ChatMessageAdapter(String currentUserUuid) {
+        this.currentUserUuid = currentUserUuid != null ? currentUserUuid : "";
     }
 
-    public void setMessages(List<ChatMessage> messages) {
+    public void setMessages(List<ChatMessageDto> messages) {
         this.messages = messages != null ? messages : new ArrayList<>();
         notifyDataSetChanged();
     }
 
     @Override
     public int getItemViewType(int position) {
-        ChatMessage message = messages.get(position);
-        return message.senderUserId == currentUserId ? TYPE_SENT : TYPE_RECEIVED;
+        ChatMessageDto message = messages.get(position);
+        boolean sent = currentUserUuid != null
+                && message.senderUserId != null
+                && Objects.equals(message.senderUserId, currentUserUuid);
+        return sent ? TYPE_SENT : TYPE_RECEIVED;
     }
 
     @Override
@@ -58,7 +62,7 @@ public class ChatMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHo
 
     @Override
     public void onBindViewHolder(@NonNull RecyclerView.ViewHolder holder, int position) {
-        ChatMessage message = messages.get(position);
+        ChatMessageDto message = messages.get(position);
 
         if (holder instanceof SentMessageViewHolder) {
             ((SentMessageViewHolder) holder).bind(message);
@@ -75,8 +79,8 @@ public class ChatMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHo
             textMessage = itemView.findViewById(R.id.text_message);
         }
 
-        void bind(ChatMessage message) {
-            textMessage.setText(message.messageText);
+        void bind(ChatMessageDto message) {
+            textMessage.setText(message.text != null ? message.text : "");
         }
     }
 
@@ -88,8 +92,8 @@ public class ChatMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHo
             textMessage = itemView.findViewById(R.id.text_message);
         }
 
-        void bind(ChatMessage message) {
-            textMessage.setText(message.messageText);
+        void bind(ChatMessageDto message) {
+            textMessage.setText(message.text != null ? message.text : "");
         }
     }
 }
