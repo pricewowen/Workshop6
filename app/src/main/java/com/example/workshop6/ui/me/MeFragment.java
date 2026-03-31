@@ -1,7 +1,6 @@
 package com.example.workshop6.ui.me;
 
 import android.content.Intent;
-import android.graphics.Bitmap;
 import android.graphics.ColorMatrix;
 import android.graphics.ColorMatrixColorFilter;
 import android.os.Bundle;
@@ -16,6 +15,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 
+import com.bumptech.glide.Glide;
 import com.example.workshop6.R;
 import com.example.workshop6.auth.LoginActivity;
 import com.example.workshop6.auth.SessionManager;
@@ -30,7 +30,6 @@ import com.example.workshop6.ui.chat.ChatActivity;
 import com.example.workshop6.ui.cart.CartManager;
 import com.example.workshop6.ui.orders.OrderHistoryActivity;
 import com.example.workshop6.ui.profile.EditProfileActivity;
-import com.example.workshop6.util.ImageUtils;
 
 import retrofit2.Call;
 import retrofit2.Callback;
@@ -325,26 +324,14 @@ public class MeFragment extends Fragment {
 
     private void applyPhotoUI(String photoPath, boolean pending) {
         if (pending) {
-            Bitmap bm = (photoPath != null && !photoPath.isEmpty())
-                    ? ImageUtils.decodeFileForPreview(photoPath, 512)
-                    : null;
-            if (bm != null) {
-                ivPhoto.setImageBitmap(bm);
-            } else {
-                ivPhoto.setImageResource(R.drawable.ic_person_placeholder);
-            }
+            loadRemotePhoto(photoPath);
             applyPendingPhotoStyle(ivPhoto);
             tvPhotoStatus.setVisibility(View.VISIBLE);
             tvPhotoStatus.setText(R.string.photo_pending_approval);
         } else if (photoPath != null && !photoPath.isEmpty()) {
-            Bitmap bm = ImageUtils.decodeFileForPreview(photoPath, 512);
-            if (bm != null) {
-                ivPhoto.setImageBitmap(bm);
-                ivPhoto.clearColorFilter();
-                ivPhoto.setImageAlpha(255);
-            } else {
-                ivPhoto.setImageResource(R.drawable.ic_person_placeholder);
-            }
+            loadRemotePhoto(photoPath);
+            ivPhoto.clearColorFilter();
+            ivPhoto.setImageAlpha(255);
             tvPhotoStatus.setVisibility(View.GONE);
         } else {
             ivPhoto.setImageResource(R.drawable.ic_person_placeholder);
@@ -390,5 +377,17 @@ public class MeFragment extends Fragment {
         matrix.postConcat(darken);
         imageView.setColorFilter(new ColorMatrixColorFilter(matrix));
         imageView.setImageAlpha(230);
+    }
+
+    private void loadRemotePhoto(String photoPath) {
+        if (photoPath == null || photoPath.trim().isEmpty()) {
+            ivPhoto.setImageResource(R.drawable.ic_person_placeholder);
+            return;
+        }
+        Glide.with(this)
+                .load(photoPath)
+                .placeholder(R.drawable.ic_person_placeholder)
+                .error(R.drawable.ic_person_placeholder)
+                .into(ivPhoto);
     }
 }

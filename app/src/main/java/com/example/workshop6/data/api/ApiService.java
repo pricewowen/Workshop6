@@ -29,11 +29,14 @@ import java.util.List;
 import retrofit2.Call;
 import retrofit2.http.Body;
 import retrofit2.http.GET;
+import retrofit2.http.Multipart;
 import retrofit2.http.PATCH;
 import retrofit2.http.POST;
 import retrofit2.http.PUT;
 import retrofit2.http.Path;
+import retrofit2.http.Part;
 import retrofit2.http.Query;
+import okhttp3.MultipartBody;
 
 public interface ApiService {
 
@@ -45,6 +48,10 @@ public interface ApiService {
 
     @PUT("api/v1/account/password")
     Call<Void> changePassword(@Body ChangePasswordRequest body);
+
+    @Multipart
+    @POST("api/v1/account/profile-photo")
+    Call<CustomerDto> uploadProfilePhoto(@Part MultipartBody.Part photo);
 
     @GET("api/v1/customers/me")
     Call<CustomerDto> getCustomerMe();

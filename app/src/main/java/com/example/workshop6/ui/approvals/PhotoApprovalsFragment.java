@@ -1,6 +1,5 @@
 package com.example.workshop6.ui.approvals;
 
-import android.graphics.Bitmap;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -14,13 +13,13 @@ import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.bumptech.glide.Glide;
 import com.example.workshop6.R;
 import com.example.workshop6.auth.SessionManager;
 import com.example.workshop6.data.api.ApiClient;
 import com.example.workshop6.data.api.ApiService;
 import com.example.workshop6.data.api.dto.CustomerDto;
 import com.example.workshop6.logging.ActivityLogger;
-import com.example.workshop6.util.ImageUtils;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -201,12 +200,11 @@ public class PhotoApprovalsFragment extends Fragment {
             holder.tvEmail.setText(c.email != null ? c.email : "");
 
             if (c.profilePhotoPath != null && !c.profilePhotoPath.trim().isEmpty()) {
-                Bitmap bm = ImageUtils.decodeFileForPreview(c.profilePhotoPath, 384);
-                if (bm != null) {
-                    holder.ivPhoto.setImageBitmap(bm);
-                } else {
-                    holder.ivPhoto.setImageResource(R.drawable.ic_person_placeholder);
-                }
+                Glide.with(holder.itemView)
+                        .load(c.profilePhotoPath)
+                        .placeholder(R.drawable.ic_person_placeholder)
+                        .error(R.drawable.ic_person_placeholder)
+                        .into(holder.ivPhoto);
             } else {
                 holder.ivPhoto.setImageResource(R.drawable.ic_person_placeholder);
             }

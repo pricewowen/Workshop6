@@ -23,6 +23,7 @@ import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.ContextCompat;
 
+import com.bumptech.glide.Glide;
 import com.example.workshop6.R;
 import com.example.workshop6.auth.LoginActivity;
 import com.example.workshop6.auth.SessionManager;
@@ -44,6 +45,12 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.textfield.TextInputEditText;
 import com.google.android.material.textfield.TextInputLayout;
 
+import java.io.ByteArrayOutputStream;
+import java.io.InputStream;
+
+import okhttp3.MediaType;
+import okhttp3.MultipartBody;
+import okhttp3.RequestBody;
 import okhttp3.ResponseBody;
 
 import retrofit2.Call;
@@ -345,24 +352,14 @@ public class EditProfileActivity extends AppCompatActivity {
 
     private void applyPhotoState(String photoPath, boolean pending) {
         if (pending) {
-            Bitmap bm = (photoPath != null && !photoPath.isEmpty())
-                    ? ImageUtils.decodeFileForPreview(photoPath, 512)
-                    : null;
-            if (bm != null) {
-                ivPhoto.setImageBitmap(bm);
-            } else {
-                ivPhoto.setImageResource(R.drawable.ic_person_placeholder);
-            }
+            loadRemotePhoto(photoPath);
             applyPendingPhotoStyle(ivPhoto);
             tvPhotoStatus.setText(getString(R.string.photo_pending_approval));
             tvPhotoStatus.setVisibility(View.VISIBLE);
             btnChoosePhoto.setEnabled(false);
             btnChoosePhoto.setAlpha(0.6f);
         } else if (photoPath != null && !photoPath.isEmpty()) {
-            Bitmap bm = ImageUtils.decodeFileForPreview(photoPath, 512);
-            if (bm != null) {
-                ivPhoto.setImageBitmap(bm);
-            }
+            loadRemotePhoto(photoPath);
             ivPhoto.clearColorFilter();
             ivPhoto.setImageAlpha(255);
             tvPhotoStatus.setVisibility(View.GONE);
@@ -520,6 +517,39 @@ public class EditProfileActivity extends AppCompatActivity {
     }
 
     private void persistProfileChanges(String firstName, String lastName, String phoneForStorage, AddressUpsertRequest address) {
+        if (selectedPhotoUri != null) {
+            uploadPhotoThenPatch(firstName, lastName, phoneForStorage, address);
+            return;
+        }
+        patchProfileFields(firstName, lastName, phoneForStorage, address);
+    }
+
+    private void uploadPhotoThenPatch(String firstName, String lastName, String phoneForStorage, AddressUpsertRequest address) {
+        MultipartBody.Part photoPart = buildPhotoPart(selectedPhotoUri);
+        if (photoPart == null) {
+            Toast.makeText(this, R.string.error_photo_invalid, Toast.LENGTH_SHORT).show();
+            return;
+        }
+        api.uploadProfilePhoto(photoPart).enqueue(new Callback<CustomerDto>() {
+            @Override
+            public void onResponse(Call<CustomerDto> call, Response<CustomerDto> response) {
+                if (!response.isSuccessful() || response.body() == null) {
+                    Toast.makeText(EditProfileActivity.this, R.string.error_photo_invalid, Toast.LENGTH_SHORT).show();
+                    return;
+                }
+                loadedCustomer = response.body();
+                selectedPhotoUri = null;
+                patchProfileFields(firstName, lastName, phoneForStorage, address);
+            }
+
+            @Override
+            public void onFailure(Call<CustomerDto> call, Throwable t) {
+                Toast.makeText(EditProfileActivity.this, R.string.login_error_no_connection, Toast.LENGTH_SHORT).show();
+            }
+        });
+    }
+
+    private void patchProfileFields(String firstName, String lastName, String phoneForStorage, AddressUpsertRequest address) {
         CustomerPatchRequest patch = new CustomerPatchRequest();
         patch.firstName = firstName;
         patch.lastName = lastName;
@@ -527,13 +557,6 @@ public class EditProfileActivity extends AppCompatActivity {
         patch.address = address;
         if (loadedCustomer != null && loadedCustomer.email != null) {
             patch.email = loadedCustomer.email;
-        }
-        if (selectedPhotoUri != null) {
-            String savedPath = ImageUtils.saveProfilePhoto(this, selectedPhotoUri, 0);
-            if (savedPath != null) {
-                patch.profilePhotoPath = savedPath;
-                patch.photoApprovalPending = true;
-            }
         }
         api.patchCustomerMe(patch).enqueue(new Callback<CustomerDto>() {
             @Override
@@ -566,6 +589,44 @@ public class EditProfileActivity extends AppCompatActivity {
                 Toast.makeText(EditProfileActivity.this, R.string.login_error_no_connection, Toast.LENGTH_SHORT).show();
             }
         });
+    }
+
+    private MultipartBody.Part buildPhotoPart(Uri uri) {
+        if (uri == null) {
+            return null;
+        }
+        try (InputStream in = getContentResolver().openInputStream(uri);
+             ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+            if (in == null) {
+                return null;
+            }
+            byte[] buf = new byte[8192];
+            int read;
+            while ((read = in.read(buf)) != -1) {
+                out.write(buf, 0, read);
+            }
+            String mime = getContentResolver().getType(uri);
+            if (mime == null || mime.trim().isEmpty()) {
+                mime = "image/jpeg";
+            }
+            String fileName = mime.toLowerCase().contains("png") ? "profile.png" : "profile.jpg";
+            RequestBody body = RequestBody.create(out.toByteArray(), MediaType.parse(mime));
+            return MultipartBody.Part.createFormData("photo", fileName, body);
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    private void loadRemotePhoto(String photoPath) {
+        if (photoPath == null || photoPath.trim().isEmpty()) {
+            ivPhoto.setImageResource(R.drawable.ic_person_placeholder);
+            return;
+        }
+        Glide.with(this)
+                .load(photoPath)
+                .placeholder(R.drawable.ic_person_placeholder)
+                .error(R.drawable.ic_person_placeholder)
+                .into(ivPhoto);
     }
 
     private void showChangePasswordDialog() {

@@ -1,7 +1,5 @@
 package com.example.workshop6.data.api.dto;
 
-import com.google.gson.annotations.SerializedName;
-
 public class CustomerPatchRequest {
     public Integer rewardBalance;
     public String firstName;
@@ -13,7 +11,4 @@ public class CustomerPatchRequest {
     public Integer addressId;
     public AddressUpsertRequest address;
     public Integer rewardTierId;
-    public String profilePhotoPath;
-    @SerializedName("photoApprovalPending")
-    public Boolean photoApprovalPending;
 }
