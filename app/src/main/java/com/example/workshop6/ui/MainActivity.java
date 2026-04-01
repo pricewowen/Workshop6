@@ -23,9 +23,13 @@ import retrofit2.Response;
 
 public class MainActivity extends AppCompatActivity {
 
+    private static final long STAFF_ACCESS_REFRESH_MS = 30_000L;
+
     private SessionManager sessionManager;
     private NavController navController;
     private int currentBottomNavMenuResId = 0;
+    private long lastStaffAccessCheckAt = 0L;
+    private boolean staffAccessCheckInFlight = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -53,7 +57,6 @@ public class MainActivity extends AppCompatActivity {
 
         BottomNavigationView bottomNav = findViewById(R.id.bottom_nav);
         configureBottomNav(bottomNav, sessionManager.getUserRole());
-        updateStaffAccess(bottomNav);
     }
 
     @Override
@@ -66,7 +69,7 @@ public class MainActivity extends AppCompatActivity {
         sessionManager.touch();
         BottomNavigationView bottomNav = findViewById(R.id.bottom_nav);
         if (bottomNav != null) {
-            updateStaffAccess(bottomNav);
+            updateStaffAccess(bottomNav, false);
         }
     }
 
@@ -78,12 +81,21 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    private void updateStaffAccess(BottomNavigationView bottomNav) {
+    private void updateStaffAccess(BottomNavigationView bottomNav, boolean forceRefresh) {
+        long now = System.currentTimeMillis();
+        if (!forceRefresh && (staffAccessCheckInFlight || (now - lastStaffAccessCheckAt) < STAFF_ACCESS_REFRESH_MS)) {
+            applyStaffNavigation(bottomNav, sessionManager.getUserRole());
+            return;
+        }
+
         String token = sessionManager.getToken();
         if (token == null || token.isEmpty()) {
             redirectToLogin(getString(R.string.session_expired));
             return;
         }
+
+        staffAccessCheckInFlight = true;
+        lastStaffAccessCheckAt = now;
         ApiClient.getInstance().setToken(token);
         ApiService api = ApiClient.getInstance().getService();
         String role = sessionManager.getUserRole();
@@ -92,44 +104,30 @@ public class MainActivity extends AppCompatActivity {
             api.getCustomerMe().enqueue(new Callback<CustomerDto>() {
                 @Override
                 public void onResponse(Call<CustomerDto> call, Response<CustomerDto> response) {
-                    if (response.code() == 401 || response.code() == 403) {
-                        redirectToLogin(getString(R.string.session_expired));
-                        return;
-                    }
-                    if (!response.isSuccessful() || response.body() == null) {
-                        redirectToLogin(getString(R.string.session_expired));
-                        return;
-                    }
+                    staffAccessCheckInFlight = false;
+                    // Do not force-logout from background profile checks.
+                    // This avoids session-expired loops when backend auth/data is unstable.
                     applyStaffNavigation(bottomNav, role);
                 }
 
                 @Override
                 public void onFailure(Call<CustomerDto> call, Throwable t) {
-                    redirectToLogin(getString(R.string.login_error_no_connection));
+                    staffAccessCheckInFlight = false;
+                    // Keep current screen/session when network is unavailable.
                 }
             });
         } else {
             api.getEmployeeMe().enqueue(new Callback<EmployeeDto>() {
                 @Override
                 public void onResponse(Call<EmployeeDto> call, Response<EmployeeDto> response) {
-                    if (response.code() == 401 || response.code() == 403) {
-                        redirectToLogin(getString(R.string.session_expired));
-                        return;
-                    }
-                    if (response.code() == 404 && "ADMIN".equalsIgnoreCase(role)) {
-                        applyStaffNavigation(bottomNav, role);
-                        return;
-                    }
-                    if (!response.isSuccessful() || response.body() == null) {
-                        redirectToLogin(getString(R.string.session_expired));
-                        return;
-                    }
+                    staffAccessCheckInFlight = false;
                     applyStaffNavigation(bottomNav, role);
                 }
 
                 @Override
                 public void onFailure(Call<EmployeeDto> call, Throwable t) {
-                    redirectToLogin(getString(R.string.login_error_no_connection));
+                    staffAccessCheckInFlight = false;
+                    // Keep current screen/session when network is unavailable.
                 }
             });
         }

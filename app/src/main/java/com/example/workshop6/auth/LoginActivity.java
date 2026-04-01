@@ -37,8 +37,13 @@ public class LoginActivity extends AppCompatActivity {
         sessionManager = new SessionManager(this);
 
         if (sessionManager.isLoggedIn()) {
-            goToMain();
-            return;
+            String token = sessionManager.getToken();
+            if (token != null && !token.trim().isEmpty()) {
+                ApiClient.getInstance().setToken(token);
+                goToMain();
+                return;
+            }
+            sessionManager.logout();
         }
 
         setContentView(R.layout.activity_login);
@@ -122,13 +127,18 @@ public class LoginActivity extends AppCompatActivity {
                     }
 
                     ApiClient.getInstance().setToken(auth.token);
-                    sessionManager.saveToken(auth.token);
                     sessionManager.clearLoginFailures(email);
                     String uid = auth.userId != null ? auth.userId : "";
-                    sessionManager.createSession(uid, auth.role.toUpperCase(), auth.username, email);
+                    sessionManager.persistLoginSession(
+                            auth.token,
+                            uid,
+                            auth.role.toUpperCase(),
+                            auth.username,
+                            email
+                    );
 
                     ActivityLogger.log(LoginActivity.this, "USER@" + auth.username, "LOGIN", "Login succeeded");
-                    goToMain();
+            goToMain();
 
                 } else if (response.code() == 401 || response.code() == 403) {
                     sessionManager.recordFailedLogin(email);
