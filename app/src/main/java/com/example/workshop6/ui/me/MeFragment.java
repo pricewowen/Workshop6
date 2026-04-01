@@ -348,10 +348,22 @@ public class MeFragment extends Fragment {
             ivPhoto.setImageResource(R.drawable.ic_person_placeholder);
             return;
         }
+        String originFallback = cdnToOriginUrl(photoPath);
         Glide.with(this)
                 .load(photoPath)
                 .placeholder(R.drawable.ic_person_placeholder)
-                .error(R.drawable.ic_person_placeholder)
+                .error(
+                        Glide.with(this)
+                                .load(originFallback != null ? originFallback : photoPath)
+                                .placeholder(R.drawable.ic_person_placeholder)
+                                .error(R.drawable.ic_person_placeholder)
+                )
                 .into(ivPhoto);
+    }
+
+    private String cdnToOriginUrl(String url) {
+        if (url == null) return null;
+        if (!url.contains(".cdn.digitaloceanspaces.com")) return null;
+        return url.replace(".cdn.digitaloceanspaces.com", ".digitaloceanspaces.com");
     }
 }

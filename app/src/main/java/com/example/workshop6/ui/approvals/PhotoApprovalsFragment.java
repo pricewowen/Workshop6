@@ -206,10 +206,16 @@ public class PhotoApprovalsFragment extends Fragment {
             holder.tvEmail.setText(c.email != null ? c.email : "");
 
             if (c.profilePhotoPath != null && !c.profilePhotoPath.trim().isEmpty()) {
+                String originFallback = cdnToOriginUrl(c.profilePhotoPath);
                 Glide.with(holder.itemView)
                         .load(c.profilePhotoPath)
                         .placeholder(R.drawable.ic_person_placeholder)
-                        .error(R.drawable.ic_person_placeholder)
+                        .error(
+                                Glide.with(holder.itemView)
+                                        .load(originFallback != null ? originFallback : c.profilePhotoPath)
+                                        .placeholder(R.drawable.ic_person_placeholder)
+                                        .error(R.drawable.ic_person_placeholder)
+                        )
                         .into(holder.ivPhoto);
             } else {
                 holder.ivPhoto.setImageResource(R.drawable.ic_person_placeholder);
@@ -254,6 +260,12 @@ public class PhotoApprovalsFragment extends Fragment {
             matrix.postConcat(darken);
             imageView.setColorFilter(new ColorMatrixColorFilter(matrix));
             imageView.setImageAlpha(230);
+        }
+
+        private static String cdnToOriginUrl(String url) {
+            if (url == null) return null;
+            if (!url.contains(".cdn.digitaloceanspaces.com")) return null;
+            return url.replace(".cdn.digitaloceanspaces.com", ".digitaloceanspaces.com");
         }
     }
 }
