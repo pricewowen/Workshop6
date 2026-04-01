@@ -23,6 +23,7 @@
     <string name="login_error_locked_out">Too many failed attempts. Try again in %1$s.</string>
     <string name="login_error_server">Server error (%1$d). Please try again.</string>
     <string name="login_error_no_connection">Cannot connect to server.</string>
+    <string name="lost_connection_logout">Lost connection to server. Please sign in again.</string>
     <string name="session_expired">Your session expired. Please sign in again.</string>
 
     <!-- Auth — Register -->
@@ -73,7 +74,6 @@
     <string name="error_password_mismatch">Passwords do not match</string>
 
     <!-- Navigation -->
-    <string name="nav_home">Home</string>
     <string name="nav_browse">Browse</string>
     <string name="nav_map">Map</string>
     <string name="nav_me">Me</string>
@@ -83,6 +83,8 @@
     <string name="nav_account_admin">Deactivation</string>
     <string name="staff_chat">Staff Chat</string>
     <string name="nav_chat_short">Chat</string>
+    <string name="chat_new">New chat</string>
+    <string name="customer_chat_empty_threads">No chats yet. Tap New chat to start one.</string>
 
     <!-- Map / Locations -->
     <string name="locations_title">Find a Bakery</string>
@@ -103,13 +105,10 @@
 
     <!-- Stubs -->
     <string name="coming_soon">Coming Soon</string>
-    <string name="stub_home_message">Welcome to Peelin\' Good!</string>
-    <string name="staff_home_message">Internal management dashboard</string>
     <string name="stub_browse_message">Browse our products</string>
     <string name="stub_me_message">Your profile</string>
 
     <!-- Content descriptions -->
-    <string name="cd_nav_home">Home</string>
     <string name="cd_nav_products">Products</string>
     <string name="cd_nav_orders">Orders</string>
     <string name="cd_nav_profile">Profile</string>
@@ -249,7 +248,6 @@
     <string name="stub_me_address">Address</string>
     <string name="no_address_on_file">No address on file. Tap Edit to add one.</string>
     <string name="order_history">Order History</string>
-    <string name="chat_with_staff">Chat with Staff</string>
     <string name="type_a_message">Type a message</string>
     <string name="send">Send</string>
     <string name="chat_empty_state">No messages yet</string>

@@ -15,6 +15,10 @@ public final class ProductMapper {
         }
         double price = dto.basePrice != null ? dto.basePrice.doubleValue() : 0.0;
         String desc = dto.description != null ? dto.description : "";
-        return new Product(dto.id, dto.name, desc, price, R.drawable.selected_product_image);
+        String imageUrl = dto.imageUrl != null ? dto.imageUrl.trim() : null;
+        if (imageUrl != null && imageUrl.isEmpty()) {
+            imageUrl = null;
+        }
+        return new Product(dto.id, dto.name, desc, price, R.drawable.selected_product_image, imageUrl);
     }
 }

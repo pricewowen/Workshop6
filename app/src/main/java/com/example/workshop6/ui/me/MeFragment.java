@@ -9,7 +9,6 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -22,11 +21,9 @@ import com.example.workshop6.auth.SessionManager;
 import com.example.workshop6.data.api.ApiClient;
 import com.example.workshop6.data.api.ApiService;
 import com.example.workshop6.data.api.dto.AddressDto;
-import com.example.workshop6.data.api.dto.ChatThreadDto;
 import com.example.workshop6.data.api.dto.CustomerDto;
 import com.example.workshop6.data.api.dto.EmployeeDto;
 import com.example.workshop6.logging.ActivityLogger;
-import com.example.workshop6.ui.chat.ChatActivity;
 import com.example.workshop6.ui.cart.CartManager;
 import com.example.workshop6.ui.orders.OrderHistoryActivity;
 import com.example.workshop6.ui.profile.EditProfileActivity;
@@ -90,8 +87,9 @@ public class MeFragment extends Fragment {
             startActivity(intent);
         });
 
-        view.findViewById(R.id.btn_chat_staff).setOnClickListener(v -> openOrCreateChat());
-
+        // On fresh entry (e.g., immediately after login), force a server read
+        // so pending-photo state text is accurate right away.
+        meCacheAtMs = 0L;
         renderCachedMeIfPresent();
         loadMe();
     }
@@ -99,53 +97,9 @@ public class MeFragment extends Fragment {
     @Override
     public void onResume() {
         super.onResume();
+        // Force refresh after returning from Edit Profile so pending-photo state is not stale.
+        meCacheAtMs = 0L;
         loadMe();
-    }
-
-    private void openOrCreateChat() {
-        if (!"CUSTOMER".equalsIgnoreCase(sessionManager.getUserRole())) {
-            Toast.makeText(requireContext(), R.string.staff_chat_disabled_for_staff, Toast.LENGTH_SHORT).show();
-            return;
-        }
-        api.getMyOpenChatThread().enqueue(new Callback<ChatThreadDto>() {
-            @Override
-            public void onResponse(Call<ChatThreadDto> call, Response<ChatThreadDto> response) {
-                if (response.isSuccessful() && response.body() != null && response.body().id != null) {
-                    launchChat(response.body().id);
-                    return;
-                }
-                api.createChatThread().enqueue(new Callback<ChatThreadDto>() {
-                    @Override
-                    public void onResponse(Call<ChatThreadDto> call2, Response<ChatThreadDto> response2) {
-                        if (response2.isSuccessful() && response2.body() != null && response2.body().id != null) {
-                            launchChat(response2.body().id);
-                        }
-                    }
-
-                    @Override
-                    public void onFailure(Call<ChatThreadDto> call2, Throwable t) {
-                        if (!isAdded()) {
-                            return;
-                        }
-                        Toast.makeText(requireContext(), R.string.login_error_no_connection, Toast.LENGTH_SHORT).show();
-                    }
-                });
-            }
-
-            @Override
-            public void onFailure(Call<ChatThreadDto> call, Throwable t) {
-                if (!isAdded()) {
-                    return;
-                }
-                Toast.makeText(requireContext(), R.string.login_error_no_connection, Toast.LENGTH_SHORT).show();
-            }
-        });
-    }
-
-    private void launchChat(int threadId) {
-        Intent intent = new Intent(requireContext(), ChatActivity.class);
-        intent.putExtra(ChatActivity.EXTRA_THREAD_ID, threadId);
-        startActivity(intent);
     }
 
     private void loadMe() {
@@ -183,7 +137,6 @@ public class MeFragment extends Fragment {
                     View root = getView();
                     if (root != null) {
                         root.findViewById(R.id.btn_order_history).setVisibility(View.VISIBLE);
-                        root.findViewById(R.id.btn_chat_staff).setVisibility(View.VISIBLE);
                     }
                     cacheMeSnapshot(new MeSnapshot(nameText,
                             c.email != null ? c.email : sessionManager.getUserName(),
@@ -191,7 +144,7 @@ public class MeFragment extends Fragment {
                             pending,
                             formatCustomerAddress(c),
                             true,
-                            true));
+                            false));
                 }
 
                 @Override
@@ -210,7 +163,6 @@ public class MeFragment extends Fragment {
                         View root = getView();
                         if (root != null) {
                             root.findViewById(R.id.btn_order_history).setVisibility(View.GONE);
-                            root.findViewById(R.id.btn_chat_staff).setVisibility(View.GONE);
                         }
                         cacheMeSnapshot(new MeSnapshot(sessionManager.getUserName(),
                                 sessionManager.getUserName(),
@@ -238,7 +190,6 @@ public class MeFragment extends Fragment {
                     View root = getView();
                     if (root != null) {
                         root.findViewById(R.id.btn_order_history).setVisibility(View.GONE);
-                        root.findViewById(R.id.btn_chat_staff).setVisibility(View.GONE);
                     }
                     cacheMeSnapshot(new MeSnapshot(nameText,
                             e.workEmail != null ? e.workEmail : sessionManager.getUserName(),
@@ -267,7 +218,6 @@ public class MeFragment extends Fragment {
         View root = getView();
         if (root != null) {
             root.findViewById(R.id.btn_order_history).setVisibility(cachedMeSnapshot.showOrderHistory ? View.VISIBLE : View.GONE);
-            root.findViewById(R.id.btn_chat_staff).setVisibility(cachedMeSnapshot.showChatStaff ? View.VISIBLE : View.GONE);
         }
     }
 
@@ -316,8 +266,22 @@ public class MeFragment extends Fragment {
     }
 
     private String addressTextForEmployee(EmployeeDto e) {
-        if (e.addressId != null && e.addressId > 0) {
-            return getString(R.string.no_address_on_file) + " (ID " + e.addressId + ")";
+        if (e.address != null && e.address.line1 != null && !e.address.line1.trim().isEmpty()) {
+            StringBuilder sb = new StringBuilder();
+            sb.append(e.address.line1.trim());
+            if (e.address.line2 != null && !e.address.line2.trim().isEmpty()) {
+                sb.append("\n").append(e.address.line2.trim());
+            }
+            if (e.address.city != null && !e.address.city.trim().isEmpty()) {
+                sb.append("\n").append(e.address.city.trim());
+            }
+            if (e.address.province != null && !e.address.province.trim().isEmpty()) {
+                sb.append(", ").append(e.address.province.trim());
+            }
+            if (e.address.postalCode != null && !e.address.postalCode.trim().isEmpty()) {
+                sb.append(" ").append(e.address.postalCode.trim());
+            }
+            return sb.toString();
         }
         return getString(R.string.no_address_on_file);
     }

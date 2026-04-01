@@ -34,6 +34,7 @@ import com.example.workshop6.data.api.dto.ChangePasswordRequest;
 import com.example.workshop6.data.api.dto.CustomerDto;
 import com.example.workshop6.data.api.dto.CustomerPatchRequest;
 import com.example.workshop6.data.api.dto.EmployeeDto;
+import com.example.workshop6.data.api.dto.EmployeePatchRequest;
 import com.example.workshop6.logging.ActivityLogger;
 import com.example.workshop6.ui.MainActivity;
 import com.example.workshop6.util.ImageUtils;
@@ -44,9 +45,6 @@ import com.example.workshop6.util.Validation;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.textfield.TextInputEditText;
 import com.google.android.material.textfield.TextInputLayout;
-
-import java.io.ByteArrayOutputStream;
-import java.io.InputStream;
 
 import okhttp3.MediaType;
 import okhttp3.MultipartBody;
@@ -270,8 +268,11 @@ public class EditProfileActivity extends AppCompatActivity {
                 @Override
                 public void onResponse(Call<EmployeeDto> call, Response<EmployeeDto> response) {
                     if (response.code() == 404 && "ADMIN".equalsIgnoreCase(role)) {
-                        Toast.makeText(EditProfileActivity.this, R.string.error_user_not_found, Toast.LENGTH_SHORT).show();
-                        finish();
+                        runOnUiThread(() -> {
+                            bindAdminFallbackFields();
+                            findViewById(R.id.btn_save).setEnabled(false);
+                            findViewById(R.id.btn_save).setAlpha(0.5f);
+                        });
                         return;
                     }
                     if (!response.isSuccessful() || response.body() == null) {
@@ -281,17 +282,7 @@ public class EditProfileActivity extends AppCompatActivity {
                     }
                     loadedEmployee = response.body();
                     loadedCustomer = null;
-                    runOnUiThread(() -> {
-                        EmployeeDto e = loadedEmployee;
-                        etFirstName.setText(e.firstName != null ? e.firstName : "");
-                        etLastName.setText(e.lastName != null ? e.lastName : "");
-                        etPhone.setText(e.phone != null ? e.phone : "");
-                        clearAddressFields();
-                        isCustomerPhotoPending = e.photoApprovalPending;
-                        applyPhotoState(e.profilePhotoPath, e.photoApprovalPending);
-                        findViewById(R.id.btn_save).setEnabled(false);
-                        findViewById(R.id.btn_save).setAlpha(0.5f);
-                    });
+                    runOnUiThread(() -> bindEmployeeFields(loadedEmployee));
                 }
 
                 @Override
@@ -322,6 +313,35 @@ public class EditProfileActivity extends AppCompatActivity {
         findViewById(R.id.btn_save).setAlpha(1f);
     }
 
+    private void bindEmployeeFields(EmployeeDto e) {
+        String[] sessionNameParts = splitSessionDisplayName();
+        etFirstName.setText(e.firstName != null ? e.firstName : sessionNameParts[0]);
+        etLastName.setText(e.lastName != null ? e.lastName : sessionNameParts[1]);
+        etPhone.setText(e.phone != null ? e.phone : "");
+        if (e.address != null) {
+            etAddress1.setText(emptyToBlank(e.address.line1));
+            etAddress2.setText(emptyToBlank(e.address.line2));
+            etCity.setText(emptyToBlank(e.address.city));
+            etPostal.setText(emptyToBlank(e.address.postalCode));
+            setProvinceSelection(e.address.province);
+            tvProvinceError.setVisibility(View.GONE);
+        } else {
+            clearAddressFields();
+        }
+        isCustomerPhotoPending = e.photoApprovalPending;
+        applyPhotoState(e.profilePhotoPath, e.photoApprovalPending);
+        findViewById(R.id.btn_save).setEnabled(true);
+        findViewById(R.id.btn_save).setAlpha(1f);
+    }
+
+    private void bindAdminFallbackFields() {
+        String[] sessionNameParts = splitSessionDisplayName();
+        etFirstName.setText(sessionNameParts[0]);
+        etLastName.setText(sessionNameParts[1]);
+        etPhone.setText("");
+        clearAddressFields();
+    }
+
     private static String emptyToBlank(String s) {
         return s != null ? s : "";
     }
@@ -331,15 +351,47 @@ public class EditProfileActivity extends AppCompatActivity {
             spinnerProvince.setSelection(0);
             return;
         }
+        String normalized = normalizeProvince(province);
         ArrayAdapter<?> adapter = (ArrayAdapter<?>) spinnerProvince.getAdapter();
         for (int i = 0; i < adapter.getCount(); i++) {
             CharSequence item = (CharSequence) adapter.getItem(i);
-            if (item != null && province.equalsIgnoreCase(item.toString().trim())) {
+            if (item != null && normalized.equalsIgnoreCase(item.toString().trim())) {
                 spinnerProvince.setSelection(i);
                 return;
             }
         }
         spinnerProvince.setSelection(0);
+    }
+
+    private String normalizeProvince(String province) {
+        String p = province.trim();
+        String upper = p.toUpperCase();
+        if ("AB".equals(upper)) return "Alberta";
+        if ("BC".equals(upper)) return "British Columbia";
+        if ("MB".equals(upper)) return "Manitoba";
+        if ("NB".equals(upper)) return "New Brunswick";
+        if ("NL".equals(upper) || "NF".equals(upper)) return "Newfoundland and Labrador";
+        if ("NS".equals(upper)) return "Nova Scotia";
+        if ("NT".equals(upper)) return "Northwest Territories";
+        if ("NU".equals(upper)) return "Nunavut";
+        if ("ON".equals(upper)) return "Ontario";
+        if ("PE".equals(upper) || "PEI".equals(upper)) return "Prince Edward Island";
+        if ("QC".equals(upper) || "PQ".equals(upper)) return "Quebec";
+        if ("SK".equals(upper)) return "Saskatchewan";
+        if ("YT".equals(upper) || "YK".equals(upper)) return "Yukon";
+        return p;
+    }
+
+    private String[] splitSessionDisplayName() {
+        String raw = sessionManager.getUserName() != null ? sessionManager.getUserName().trim() : "";
+        if (raw.isEmpty()) {
+            return new String[]{"", ""};
+        }
+        String[] parts = raw.split("\\s+", 2);
+        if (parts.length == 1) {
+            return new String[]{parts[0], ""};
+        }
+        return parts;
     }
 
     private void clearAddressFields() {
@@ -376,11 +428,7 @@ public class EditProfileActivity extends AppCompatActivity {
     }
 
     private void attemptSave() {
-        if (loadedEmployee != null) {
-            Toast.makeText(this, "Employee profiles are managed by an administrator.", Toast.LENGTH_SHORT).show();
-            return;
-        }
-        if (loadedCustomer == null) {
+        if (loadedCustomer == null && loadedEmployee == null) {
             return;
         }
 
@@ -506,7 +554,13 @@ public class EditProfileActivity extends AppCompatActivity {
                 sessionManager,
                 getString(R.string.reauth_title_profile),
                 getString(R.string.reauth_message_profile),
-                () -> persistProfileChanges(saveFirstName, saveLastName, savePhone, addr)
+                () -> {
+                    if (loadedCustomer != null) {
+                        persistProfileChanges(saveFirstName, saveLastName, savePhone, addr);
+                    } else {
+                        persistEmployeeProfileChanges(saveFirstName, saveLastName, savePhone, addr);
+                    }
+                }
         );
     }
 
@@ -534,7 +588,8 @@ public class EditProfileActivity extends AppCompatActivity {
             @Override
             public void onResponse(Call<CustomerDto> call, Response<CustomerDto> response) {
                 if (!response.isSuccessful() || response.body() == null) {
-                    Toast.makeText(EditProfileActivity.this, R.string.error_photo_invalid, Toast.LENGTH_SHORT).show();
+                    String message = extractUploadErrorMessage(response);
+                    Toast.makeText(EditProfileActivity.this, message, Toast.LENGTH_LONG).show();
                     return;
                 }
                 loadedCustomer = response.body();
@@ -547,6 +602,30 @@ public class EditProfileActivity extends AppCompatActivity {
                 Toast.makeText(EditProfileActivity.this, R.string.login_error_no_connection, Toast.LENGTH_SHORT).show();
             }
         });
+    }
+
+    private String extractUploadErrorMessage(Response<?> response) {
+        try {
+            if (response.errorBody() != null) {
+                String raw = response.errorBody().string();
+                if (raw != null) {
+                    if (raw.contains("Object storage is not configured")) {
+                        return "Photo storage is not configured on the server.";
+                    }
+                    if (raw.contains("Only JPG and PNG images are allowed")) {
+                        return getString(R.string.error_photo_format);
+                    }
+                    if (raw.contains("Photo exceeds 5MB limit")) {
+                        return "Photo is too large for server upload (max 5MB after compression).";
+                    }
+                }
+            }
+        } catch (Exception ignored) {
+        }
+        if (response.code() >= 500) {
+            return "Server error while uploading photo. Please try again later.";
+        }
+        return getString(R.string.error_photo_invalid);
     }
 
     private void patchProfileFields(String firstName, String lastName, String phoneForStorage, AddressUpsertRequest address) {
@@ -591,30 +670,63 @@ public class EditProfileActivity extends AppCompatActivity {
         });
     }
 
+    private void persistEmployeeProfileChanges(String firstName, String lastName, String phoneForStorage, AddressUpsertRequest address) {
+        EmployeePatchRequest patch = new EmployeePatchRequest();
+        patch.firstName = firstName;
+        patch.lastName = lastName;
+        patch.phone = phoneForStorage;
+        patch.address = address;
+        if (loadedEmployee != null && loadedEmployee.workEmail != null) {
+            patch.workEmail = loadedEmployee.workEmail;
+        }
+        api.patchEmployeeMe(patch).enqueue(new Callback<EmployeeDto>() {
+            @Override
+            public void onResponse(Call<EmployeeDto> call, Response<EmployeeDto> response) {
+                if (!response.isSuccessful() || response.body() == null) {
+                    Toast.makeText(EditProfileActivity.this, R.string.error_user_not_found, Toast.LENGTH_SHORT).show();
+                    return;
+                }
+                loadedEmployee = response.body();
+                String displayName = (firstName + " " + lastName).trim();
+                if (displayName.isEmpty()) {
+                    displayName = sessionManager.getUserName();
+                }
+                sessionManager.createSession(
+                        sessionManager.getUserUuid(),
+                        sessionManager.getUserRole(),
+                        displayName,
+                        sessionManager.getLoginEmail()
+                );
+                ActivityLogger.log(EditProfileActivity.this, sessionManager, "UPDATE_PROFILE", "Employee profile details updated");
+                Toast.makeText(getApplicationContext(), R.string.profile_saved, Toast.LENGTH_SHORT).show();
+                Intent intent = new Intent(EditProfileActivity.this, MainActivity.class);
+                intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+                startActivity(intent);
+                finish();
+            }
+
+            @Override
+            public void onFailure(Call<EmployeeDto> call, Throwable t) {
+                Toast.makeText(EditProfileActivity.this, R.string.login_error_no_connection, Toast.LENGTH_SHORT).show();
+            }
+        });
+    }
+
     private MultipartBody.Part buildPhotoPart(Uri uri) {
         if (uri == null) {
             return null;
         }
-        try (InputStream in = getContentResolver().openInputStream(uri);
-             ByteArrayOutputStream out = new ByteArrayOutputStream()) {
-            if (in == null) {
-                return null;
-            }
-            byte[] buf = new byte[8192];
-            int read;
-            while ((read = in.read(buf)) != -1) {
-                out.write(buf, 0, read);
-            }
-            String mime = getContentResolver().getType(uri);
-            if (mime == null || mime.trim().isEmpty()) {
-                mime = "image/jpeg";
-            }
-            String fileName = mime.toLowerCase().contains("png") ? "profile.png" : "profile.jpg";
-            RequestBody body = RequestBody.create(out.toByteArray(), MediaType.parse(mime));
-            return MultipartBody.Part.createFormData("photo", fileName, body);
-        } catch (Exception e) {
+        Bitmap bitmap = ImageUtils.decodeForUpload(this, uri);
+        if (bitmap == null) {
             return null;
         }
+        byte[] bytes = ImageUtils.compressBitmapJpeg(bitmap, ImageUtils.MAX_PHOTO_BYTES);
+        bitmap.recycle();
+        if (bytes == null) {
+            return null;
+        }
+        RequestBody body = RequestBody.create(bytes, MediaType.parse("image/jpeg"));
+        return MultipartBody.Part.createFormData("photo", "profile.jpg", body);
     }
 
     private void loadRemotePhoto(String photoPath) {

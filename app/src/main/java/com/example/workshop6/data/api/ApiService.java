@@ -11,6 +11,7 @@ import com.example.workshop6.data.api.dto.CheckoutRequest;
 import com.example.workshop6.data.api.dto.CustomerDto;
 import com.example.workshop6.data.api.dto.CustomerPatchRequest;
 import com.example.workshop6.data.api.dto.EmployeeDto;
+import com.example.workshop6.data.api.dto.EmployeePatchRequest;
 import com.example.workshop6.data.api.dto.LoginRequest;
 import com.example.workshop6.data.api.dto.OrderDto;
 import com.example.workshop6.data.api.dto.PostChatMessageRequest;
@@ -61,6 +62,9 @@ public interface ApiService {
 
     @GET("api/v1/employee/me")
     Call<EmployeeDto> getEmployeeMe();
+
+    @PATCH("api/v1/employee/me")
+    Call<EmployeeDto> patchEmployeeMe(@Body EmployeePatchRequest body);
 
     @GET("api/v1/products")
     Call<List<ProductDto>> getProducts(

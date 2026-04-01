@@ -17,6 +17,7 @@ public class EmployeeDto {
     public String workEmail;
     @SerializedName("addressId")
     public Integer addressId;
+    public AddressDto address;
     @SerializedName("profilePhotoPath")
     public String profilePhotoPath;
     @SerializedName("photoApprovalPending")

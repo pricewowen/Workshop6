@@ -95,15 +95,6 @@
             android:text="@string/order_history"
             android:textColor="@color/bakery_text_light" />
 
-        <Button
-            android:id="@+id/btn_chat_staff"
-            android:layout_width="match_parent"
-            android:layout_height="56dp"
-            android:layout_marginTop="12dp"
-            android:backgroundTint="@color/bakery_primary"
-            android:text="@string/chat_with_staff"
-            android:textColor="@color/bakery_text_light" />
-
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btn_logout"
             style="@style/Widget.MaterialComponents.Button.OutlinedButton"

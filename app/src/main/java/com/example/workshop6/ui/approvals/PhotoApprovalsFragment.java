@@ -1,6 +1,8 @@
 package com.example.workshop6.ui.approvals;
 
 import android.os.Bundle;
+import android.graphics.ColorMatrix;
+import android.graphics.ColorMatrixColorFilter;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -130,7 +132,11 @@ public class PhotoApprovalsFragment extends Fragment {
                     return;
                 }
                 if (!response.isSuccessful()) {
-                    Toast.makeText(requireContext(), R.string.photo_approvals_access_denied, Toast.LENGTH_SHORT).show();
+                    int code = response.code();
+                    int messageRes = (code == 401 || code == 403)
+                            ? R.string.photo_approvals_access_denied
+                            : R.string.error_photo_read;
+                    Toast.makeText(requireContext(), messageRes, Toast.LENGTH_SHORT).show();
                     return;
                 }
                 ActivityLogger.log(
@@ -208,6 +214,7 @@ public class PhotoApprovalsFragment extends Fragment {
             } else {
                 holder.ivPhoto.setImageResource(R.drawable.ic_person_placeholder);
             }
+            applyPendingPhotoStyle(holder.ivPhoto);
 
             holder.btnApprove.setOnClickListener(v -> listener.onApprove(c));
             holder.btnReject.setOnClickListener(v -> listener.onReject(c));
@@ -233,6 +240,20 @@ public class PhotoApprovalsFragment extends Fragment {
                 btnApprove = itemView.findViewById(R.id.btn_approve_photo);
                 btnReject = itemView.findViewById(R.id.btn_reject_photo);
             }
+        }
+
+        private static void applyPendingPhotoStyle(android.widget.ImageView imageView) {
+            ColorMatrix matrix = new ColorMatrix();
+            matrix.setSaturation(0f);
+            ColorMatrix darken = new ColorMatrix(new float[]{
+                    0.65f, 0, 0, 0, 0,
+                    0, 0.65f, 0, 0, 0,
+                    0, 0, 0.65f, 0, 0,
+                    0, 0, 0, 1, 0
+            });
+            matrix.postConcat(darken);
+            imageView.setColorFilter(new ColorMatrixColorFilter(matrix));
+            imageView.setImageAlpha(230);
         }
     }
 }

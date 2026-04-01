@@ -16,6 +16,7 @@ import com.example.workshop6.data.api.ApiService;
 import com.example.workshop6.data.api.dto.CustomerDto;
 import com.example.workshop6.data.api.dto.EmployeeDto;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
+import android.widget.Toast;
 
 import retrofit2.Call;
 import retrofit2.Callback;
@@ -113,7 +114,7 @@ public class MainActivity extends AppCompatActivity {
                 @Override
                 public void onFailure(Call<CustomerDto> call, Throwable t) {
                     staffAccessCheckInFlight = false;
-                    // Keep current screen/session when network is unavailable.
+                    handleConnectionLost();
                 }
             });
         } else {
@@ -127,10 +128,18 @@ public class MainActivity extends AppCompatActivity {
                 @Override
                 public void onFailure(Call<EmployeeDto> call, Throwable t) {
                     staffAccessCheckInFlight = false;
-                    // Keep current screen/session when network is unavailable.
+                    handleConnectionLost();
                 }
             });
         }
+    }
+
+    private void handleConnectionLost() {
+        if (isFinishing()) {
+            return;
+        }
+        Toast.makeText(this, R.string.lost_connection_logout, Toast.LENGTH_LONG).show();
+        redirectToLogin(getString(R.string.lost_connection_logout));
     }
 
     private void applyStaffNavigation(BottomNavigationView bottomNav, String role) {
@@ -149,7 +158,7 @@ public class MainActivity extends AppCompatActivity {
                         || destinationId == R.id.nav_map
                         || destinationId == R.id.nav_cart
                         || destinationId == R.id.productDetailFragment) {
-                    navController.navigate(R.id.nav_home);
+                    navController.navigate(R.id.nav_me);
                 }
             }
         });

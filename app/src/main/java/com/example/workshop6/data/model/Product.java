@@ -7,6 +7,7 @@ public class Product {
     private String productDescription;
     private Double productBasePrice;
     private int imgUrl;
+    private String imageUrl;
 
     public Product(int productId, String productName, String productDescription, Double productBasePrice, int imgUrl) {
         this.productId = productId;
@@ -14,6 +15,11 @@ public class Product {
         this.productDescription = productDescription;
         this.productBasePrice = productBasePrice;
         this.imgUrl = imgUrl;
+    }
+
+    public Product(int productId, String productName, String productDescription, Double productBasePrice, int imgUrl, String imageUrl) {
+        this(productId, productName, productDescription, productBasePrice, imgUrl);
+        this.imageUrl = imageUrl;
     }
 
     public int getProductId() {
@@ -54,5 +60,13 @@ public class Product {
 
     public void setImgUrl(int imgUrl) {
         this.imgUrl = imgUrl;
+    }
+
+    public String getImageUrl() {
+        return imageUrl;
+    }
+
+    public void setImageUrl(String imageUrl) {
+        this.imageUrl = imageUrl;
     }
 }

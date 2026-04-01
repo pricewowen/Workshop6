@@ -125,7 +125,7 @@ public class ProductsFragment extends Fragment {
         boolean isCustomer = "CUSTOMER".equalsIgnoreCase(sessionManager.getUserRole());
         if (!isCustomer) {
             Toast.makeText(requireContext(), R.string.staff_purchase_blocked, Toast.LENGTH_SHORT).show();
-            Navigation.findNavController(view).navigate(R.id.nav_home);
+            Navigation.findNavController(view).navigate(R.id.nav_me);
             return;
         }
 

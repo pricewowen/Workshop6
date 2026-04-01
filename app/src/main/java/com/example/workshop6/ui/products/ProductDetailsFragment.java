@@ -16,6 +16,7 @@ import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.bumptech.glide.Glide;
 import com.example.workshop6.R;
 import com.example.workshop6.auth.SessionManager;
 import com.example.workshop6.data.api.ApiClient;
@@ -131,7 +132,15 @@ public class ProductDetailsFragment extends Fragment {
                 tvProductPrice.setText(String.format("$%.2f",
                         loadedProduct.getProductBasePrice().doubleValue()));
                 tvProductDescription.setText(loadedProduct.getProductDescription());
-                ivProductImage.setImageResource(loadedProduct.getImgUrl());
+                if (loadedProduct.getImageUrl() != null && !loadedProduct.getImageUrl().isEmpty()) {
+                    Glide.with(requireContext())
+                            .load(loadedProduct.getImageUrl())
+                            .placeholder(loadedProduct.getImgUrl())
+                            .error(loadedProduct.getImgUrl())
+                            .into(ivProductImage);
+                } else {
+                    ivProductImage.setImageResource(loadedProduct.getImgUrl());
+                }
             }
 
             @Override

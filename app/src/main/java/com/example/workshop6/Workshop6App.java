@@ -14,11 +14,10 @@ public class Workshop6App extends Application {
     public void onCreate() {
         super.onCreate();
 
-        SessionManager sm = new SessionManager(this);
-        String token = sm.getToken();
-        if (token != null && !token.isEmpty()) {
-            ApiClient.getInstance().setToken(token);
-        }
+        // Enforce fresh login whenever the app process starts.
+        // This covers emulator restarts and real-device process restarts.
+        new SessionManager(this).logout();
+        ApiClient.getInstance().clearToken();
     }
 }
 

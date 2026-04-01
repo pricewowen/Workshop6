@@ -5,7 +5,7 @@ import androidx.annotation.Nullable;
 import java.util.regex.Pattern;
 
 public class Validation {
-    private static final int MIN_PASSWORD_LENGTH = 8;
+    private static final int MIN_PASSWORD_LENGTH = 7;
     // Keep max aligned with practical credential policy used by the app.
     private static final int MAX_PASSWORD_LENGTH = 72;
     private static final Pattern PASSWORD_UPPERCASE_PATTERN = Pattern.compile(".*[A-Z].*");

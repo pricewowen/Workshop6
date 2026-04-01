@@ -72,7 +72,9 @@ public class AccountAdminFragment extends Fragment {
     }
 
     private void loadAccounts() {
-        if (!sessionManager.isAdmin()) {
+        String role = sessionManager.getUserRole();
+        boolean canManageAccounts = "ADMIN".equalsIgnoreCase(role) || "EMPLOYEE".equalsIgnoreCase(role);
+        if (!canManageAccounts) {
             tvEmpty.setVisibility(View.VISIBLE);
             tvEmpty.setText(R.string.account_admin_access_denied);
             rvAccounts.setVisibility(View.GONE);
