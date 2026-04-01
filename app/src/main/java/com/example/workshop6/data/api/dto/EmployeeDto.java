@@ -8,11 +8,16 @@ public class EmployeeDto {
     public String userId;
     @SerializedName("bakeryId")
     public Integer bakeryId;
+    public String username;
     @SerializedName("firstName")
     public String firstName;
     @SerializedName("lastName")
     public String lastName;
+    @SerializedName("middleInitial")
+    public String middleInitial;
     public String phone;
+    @SerializedName("businessPhone")
+    public String businessPhone;
     @SerializedName("workEmail")
     public String workEmail;
     @SerializedName("addressId")

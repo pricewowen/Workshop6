@@ -46,7 +46,9 @@
             <ProgressBar
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_gravity="center" />
+                android:layout_gravity="center"
+                android:indeterminate="true"
+                android:indeterminateTint="@color/bakery_gold_bright" />
         </FrameLayout>
     </FrameLayout>
 </LinearLayout>

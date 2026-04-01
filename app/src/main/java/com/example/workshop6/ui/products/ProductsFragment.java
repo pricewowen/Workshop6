@@ -37,9 +37,11 @@ import com.example.workshop6.ui.cart.CartManager;
 import com.example.workshop6.util.SearchUtils;
 import com.google.android.material.textfield.TextInputEditText;
 
+import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Locale;
 
 import retrofit2.Call;
 import retrofit2.Callback;
@@ -54,7 +56,11 @@ public class ProductsFragment extends Fragment {
     private static final List<Product> cachedProducts = new ArrayList<>();
     private static final List<RewardTierDto> cachedRewardTiers = new ArrayList<>();
     private static int cachedRewardPoints = -1;
+    /** Last known tier id from {@link CustomerDto#rewardTierId} (fallback when point ranges do not match). */
+    private static Integer cachedRewardTierId;
     private static Product cachedFeaturedProduct;
+
+    private final NumberFormat pointsFormat = NumberFormat.getNumberInstance(Locale.US);
 
     private RecyclerView rvCategories;
     private CategoriesAdapter categoriesAdapter;
@@ -72,6 +78,7 @@ public class ProductsFragment extends Fragment {
     private CartManager cartManager;
     private TextView tvFeatureProductName;
     private TextView tvFeatureProductPrice;
+    private View productsLoadingOverlay;
 
     private int featuredProductId = -1;
     private Product featured;
@@ -117,6 +124,7 @@ public class ProductsFragment extends Fragment {
         etSearch = view.findViewById(R.id.etSearch);
         tvFeatureProductName = view.findViewById(R.id.tvFeatureProductName);
         tvFeatureProductPrice = view.findViewById(R.id.tvFeatureProductPrice);
+        productsLoadingOverlay = view.findViewById(R.id.products_loading_overlay);
 
         cartManager = CartManager.getInstance(requireContext());
         api = ApiClient.getInstance().getService();
@@ -124,6 +132,7 @@ public class ProductsFragment extends Fragment {
 
         boolean isCustomer = "CUSTOMER".equalsIgnoreCase(sessionManager.getUserRole());
         if (!isCustomer) {
+            setProductsPageLoading(false);
             Toast.makeText(requireContext(), R.string.staff_purchase_blocked, Toast.LENGTH_SHORT).show();
             Navigation.findNavController(view).navigate(R.id.nav_me);
             return;
@@ -207,7 +216,12 @@ public class ProductsFragment extends Fragment {
                                 return;
                             }
                             cartManager.getCart().applyDiscount(0.10);
-                            tvPoints.setText(String.valueOf(response2.body().rewardBalance));
+                            CustomerDto updated = response2.body();
+                            int newBal = updated.rewardBalance;
+                            cachedRewardPoints = newBal;
+                            cachedRewardTierId = updated.rewardTierId;
+                            tvPoints.setText(pointsFormat.format(newBal));
+                            applyTierUi(newBal, cachedRewardTierId);
                             btnRedeem.setEnabled(false);
                             btnRedeem.setText(R.string.label_discount_applied);
                             showToastIfAttached("10% discount applied!", Toast.LENGTH_LONG);
@@ -292,7 +306,7 @@ public class ProductsFragment extends Fragment {
         if (isCacheFresh(rewardCachedAtMs) && cachedRewardPoints >= 0 && !cachedRewardTiers.isEmpty()) {
             rewardTiers.clear();
             rewardTiers.addAll(cachedRewardTiers);
-            applyTierUi(cachedRewardPoints);
+            applyTierUi(cachedRewardPoints, cachedRewardTierId);
             return;
         }
         api.getCustomerMe().enqueue(new Callback<CustomerDto>() {
@@ -301,7 +315,9 @@ public class ProductsFragment extends Fragment {
                 if (!response.isSuccessful() || response.body() == null) {
                     return;
                 }
-                int points = response.body().rewardBalance;
+                CustomerDto body = response.body();
+                int points = body.rewardBalance;
+                Integer assignedTierId = body.rewardTierId;
                 api.getRewardTiers().enqueue(new Callback<List<RewardTierDto>>() {
                     @Override
                     public void onResponse(Call<List<RewardTierDto>> call2, Response<List<RewardTierDto>> response2) {
@@ -312,10 +328,11 @@ public class ProductsFragment extends Fragment {
                         rewardTiers.addAll(response2.body());
                         Collections.sort(rewardTiers, (a, b) -> Integer.compare(a.minPoints, b.minPoints));
                         cachedRewardPoints = points;
+                        cachedRewardTierId = assignedTierId;
                         cachedRewardTiers.clear();
                         cachedRewardTiers.addAll(rewardTiers);
                         rewardCachedAtMs = System.currentTimeMillis();
-                        applyTierUi(points);
+                        applyTierUi(points, assignedTierId);
                     }
 
                     @Override
@@ -330,19 +347,14 @@ public class ProductsFragment extends Fragment {
         });
     }
 
-    private void applyTierUi(int points) {
-        RewardTierDto current = null;
+    /**
+     * Uses reward tier definitions from {@code GET /api/v1/reward-tiers}: point windows and discount %.
+     * Prefer the tier whose [minPoints, maxPoints] contains the balance; otherwise fall back to
+     * {@code rewardTierId} from the customer payload, then the highest tier with {@code minPoints <= points}.
+     */
+    private void applyTierUi(int points, Integer assignedTierId) {
+        RewardTierDto current = resolveCurrentTier(points, assignedTierId);
         RewardTierDto next = null;
-        for (RewardTierDto t : rewardTiers) {
-            int max = t.maxPoints != null ? t.maxPoints : Integer.MAX_VALUE;
-            if (points >= t.minPoints && points <= max) {
-                current = t;
-                break;
-            }
-        }
-        if (current == null && !rewardTiers.isEmpty()) {
-            current = rewardTiers.get(rewardTiers.size() - 1);
-        }
         if (current != null) {
             int idx = -1;
             for (int i = 0; i < rewardTiers.size(); i++) {
@@ -361,13 +373,17 @@ public class ProductsFragment extends Fragment {
             return;
         }
         if (finalCurrent != null) {
-            tvPoints.setText(String.valueOf(points));
-            tvLevel.setText(finalCurrent.name);
-            tvTierDescription.setText(finalCurrent.name);
+            tvPoints.setText(pointsFormat.format(points));
+            tvLevel.setText(finalCurrent.name != null ? finalCurrent.name : "");
+            tvTierDescription.setText(buildTierMilestoneDescription(finalCurrent));
             if (finalNext != null) {
                 int pointsNeeded = Math.max(0, finalNext.minPoints - points);
-                tvNextTier.setText(getString(R.string.label_next_tier_fmt, finalNext.name));
-                tvPointsNeeded.setText(getString(R.string.label_points_needed_fmt, pointsNeeded, finalNext.name));
+                String milestonePts = pointsFormat.format(finalNext.minPoints);
+                tvNextTier.setText(getString(R.string.label_next_tier_fmt, finalNext.name, milestonePts));
+                tvPointsNeeded.setText(getString(
+                        R.string.label_points_needed_fmt,
+                        pointsFormat.format(pointsNeeded),
+                        finalNext.name));
                 int rangeStart = finalCurrent.minPoints;
                 int rangeEnd = finalNext.minPoints;
                 int rangeSize = Math.max(1, rangeEnd - rangeStart);
@@ -379,13 +395,52 @@ public class ProductsFragment extends Fragment {
                 progressLoyalty.setProgress(100);
             }
         } else {
-            tvPoints.setText(String.valueOf(points));
+            tvPoints.setText(pointsFormat.format(points));
             tvLevel.setText(R.string.label_unknown_tier);
             tvTierDescription.setText(R.string.label_unknown_tier_desc);
             tvNextTier.setText(R.string.label_next_tier_na);
             tvPointsNeeded.setText(R.string.label_points_to_next_na);
             progressLoyalty.setProgress(0);
         }
+    }
+
+    private RewardTierDto resolveCurrentTier(int points, Integer assignedTierId) {
+        if (rewardTiers.isEmpty()) {
+            return null;
+        }
+        for (RewardTierDto t : rewardTiers) {
+            int max = t.maxPoints != null ? t.maxPoints : Integer.MAX_VALUE;
+            if (points >= t.minPoints && points <= max) {
+                return t;
+            }
+        }
+        if (assignedTierId != null) {
+            for (RewardTierDto t : rewardTiers) {
+                if (t.id != null && t.id.equals(assignedTierId)) {
+                    return t;
+                }
+            }
+        }
+        RewardTierDto best = null;
+        for (RewardTierDto t : rewardTiers) {
+            if (points >= t.minPoints && (best == null || t.minPoints > best.minPoints)) {
+                best = t;
+            }
+        }
+        return best;
+    }
+
+    private String buildTierMilestoneDescription(RewardTierDto t) {
+        double pct = 0d;
+        if (t.discountRatePercent != null) {
+            pct = t.discountRatePercent.doubleValue();
+        }
+        String minStr = pointsFormat.format(t.minPoints);
+        if (t.maxPoints != null) {
+            String maxStr = pointsFormat.format(t.maxPoints);
+            return getString(R.string.loyalty_tier_desc_closed_range, pct, minStr, maxStr);
+        }
+        return getString(R.string.loyalty_tier_desc_open_range, pct, minStr);
     }
 
     private void loadCategoriesAndProducts() {
@@ -407,10 +462,14 @@ public class ProductsFragment extends Fragment {
             return;
         }
 
+        setProductsPageLoading(true);
         api.getTags().enqueue(new Callback<List<TagDto>>() {
             @Override
             public void onResponse(Call<List<TagDto>> call, Response<List<TagDto>> response) {
                 if (!response.isSuccessful() || response.body() == null) {
+                    if (isUiReady()) {
+                        setProductsPageLoading(false);
+                    }
                     return;
                 }
                 List<Category> categories = new ArrayList<>();
@@ -423,6 +482,9 @@ public class ProductsFragment extends Fragment {
                     @Override
                     public void onResponse(Call<List<ProductDto>> call2, Response<List<ProductDto>> response2) {
                         if (!response2.isSuccessful() || response2.body() == null) {
+                            if (isUiReady()) {
+                                setProductsPageLoading(false);
+                            }
                             return;
                         }
                         allProducts.clear();
@@ -446,6 +508,9 @@ public class ProductsFragment extends Fragment {
                     @Override
                     public void onFailure(Call<List<ProductDto>> call2, Throwable t) {
                         logIfAttached("PRODUCTS", "Network error loading products");
+                        if (isUiReady()) {
+                            setProductsPageLoading(false);
+                        }
                     }
                 });
             }
@@ -453,8 +518,17 @@ public class ProductsFragment extends Fragment {
             @Override
             public void onFailure(Call<List<TagDto>> call, Throwable t) {
                 logIfAttached("PRODUCTS", "Network error loading tags");
+                if (isUiReady()) {
+                    setProductsPageLoading(false);
+                }
             }
         });
+    }
+
+    private void setProductsPageLoading(boolean loading) {
+        if (productsLoadingOverlay != null) {
+            productsLoadingOverlay.setVisibility(loading ? View.VISIBLE : View.GONE);
+        }
     }
 
     private boolean isUiReady() {
@@ -469,6 +543,7 @@ public class ProductsFragment extends Fragment {
         if (!isUiReady()) {
             return;
         }
+        setProductsPageLoading(false);
         categoriesAdapter = new CategoriesAdapter(new ArrayList<>(categories), tagId -> {
             if (!isUiReady() || productAdapter == null) {
                 return;

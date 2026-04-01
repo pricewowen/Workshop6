@@ -53,6 +53,7 @@ public class ProductDetailsFragment extends Fragment {
     private ImageView ivProductImage;
 
     private RecyclerView rvReviews;
+    private View productDetailsLoadingOverlay;
 
     private CartManager cartManager;
     private ApiService api;
@@ -98,6 +99,7 @@ public class ProductDetailsFragment extends Fragment {
         btnAddToCart = view.findViewById(R.id.btnAddToCart);
 
         ivProductImage = view.findViewById(R.id.ivProductImage);
+        productDetailsLoadingOverlay = view.findViewById(R.id.product_details_loading_overlay);
 
         rvReviews = view.findViewById(R.id.rvReviews);
         rvReviews.setLayoutManager(new LinearLayoutManager(requireContext()));
@@ -109,23 +111,34 @@ public class ProductDetailsFragment extends Fragment {
         SessionManager sessionManager = new SessionManager(requireContext());
         boolean isCustomer = "CUSTOMER".equalsIgnoreCase(sessionManager.getUserRole());
         if (!isCustomer) {
+            setProductDetailsLoading(false);
             Toast.makeText(requireContext(), R.string.staff_purchase_blocked, Toast.LENGTH_SHORT).show();
             Navigation.findNavController(view).navigateUp();
             return;
         }
 
         if (productId <= 0) {
+            setProductDetailsLoading(false);
             return;
         }
 
         api.getProduct(productId).enqueue(new Callback<ProductDto>() {
             @Override
             public void onResponse(Call<ProductDto> call, Response<ProductDto> response) {
-                if (!response.isSuccessful() || response.body() == null || !isUiReady()) {
+                if (!isUiReady()) {
+                    return;
+                }
+                if (!response.isSuccessful() || response.body() == null) {
+                    setProductDetailsLoading(false);
+                    Toast.makeText(requireContext(), R.string.error_user_not_found, Toast.LENGTH_SHORT).show();
+                    Navigation.findNavController(requireView()).navigateUp();
                     return;
                 }
                 loadedProduct = ProductMapper.fromDto(response.body());
                 if (loadedProduct == null) {
+                    setProductDetailsLoading(false);
+                    Toast.makeText(requireContext(), R.string.error_user_not_found, Toast.LENGTH_SHORT).show();
+                    Navigation.findNavController(requireView()).navigateUp();
                     return;
                 }
                 tvProductName.setText(loadedProduct.getProductName());
@@ -141,6 +154,7 @@ public class ProductDetailsFragment extends Fragment {
                 } else {
                     ivProductImage.setImageResource(loadedProduct.getImgUrl());
                 }
+                setProductDetailsLoading(false);
             }
 
             @Override
@@ -148,7 +162,11 @@ public class ProductDetailsFragment extends Fragment {
                 if (!isAdded()) {
                     return;
                 }
+                setProductDetailsLoading(false);
                 Toast.makeText(requireContext(), R.string.login_error_no_connection, Toast.LENGTH_SHORT).show();
+                if (isUiReady()) {
+                    Navigation.findNavController(requireView()).navigateUp();
+                }
             }
         });
 
@@ -172,6 +190,8 @@ public class ProductDetailsFragment extends Fragment {
                             double displayAvg = avg != null ? avg : 0;
                             tvReviewsTitle.setText(
                                     "Customer Reviews (" + String.format("%.1f", displayAvg) + "★)");
+                        } else {
+                            tvReviewsTitle.setText("Customer Reviews");
                         }
                         rvReviews.setAdapter(new ReviewAdapter(reviews));
                     }
@@ -219,5 +239,11 @@ public class ProductDetailsFragment extends Fragment {
 
     private boolean isUiReady() {
         return isAdded() && getView() != null;
+    }
+
+    private void setProductDetailsLoading(boolean loading) {
+        if (productDetailsLoadingOverlay != null) {
+            productDetailsLoadingOverlay.setVisibility(loading ? View.VISIBLE : View.GONE);
+        }
     }
 }

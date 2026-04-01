@@ -1,10 +1,17 @@
 package com.example.workshop6.ui;
 
+import android.content.Context;
 import android.content.Intent;
+import android.net.ConnectivityManager;
+import android.net.Network;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.navigation.NavController;
+import androidx.navigation.NavDestination;
 import androidx.navigation.fragment.NavHostFragment;
 import androidx.navigation.ui.NavigationUI;
 
@@ -15,6 +22,7 @@ import com.example.workshop6.data.api.ApiClient;
 import com.example.workshop6.data.api.ApiService;
 import com.example.workshop6.data.api.dto.CustomerDto;
 import com.example.workshop6.data.api.dto.EmployeeDto;
+import com.example.workshop6.util.NetworkStatus;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 import android.widget.Toast;
 
@@ -24,13 +32,45 @@ import retrofit2.Response;
 
 public class MainActivity extends AppCompatActivity {
 
-    private static final long STAFF_ACCESS_REFRESH_MS = 30_000L;
+    /** How often we re-verify the session against the API while this screen is visible. */
+    private static final long API_SESSION_POLL_MS = 4_000L;
+    /** Minimum spacing between staff-menu refresh calls when not forced. */
+    private static final long STAFF_ACCESS_REFRESH_MS = 4_000L;
 
     private SessionManager sessionManager;
     private NavController navController;
     private int currentBottomNavMenuResId = 0;
     private long lastStaffAccessCheckAt = 0L;
     private boolean staffAccessCheckInFlight = false;
+    private final Handler connectivityHandler = new Handler(Looper.getMainLooper());
+    private final Runnable connectivityPollRunnable = new Runnable() {
+        @Override
+        public void run() {
+            if (isFinishing() || sessionManager == null || !sessionManager.isLoggedIn()) {
+                return;
+            }
+            BottomNavigationView bottomNav = findViewById(R.id.bottom_nav);
+            if (bottomNav != null) {
+                updateStaffAccess(bottomNav, true);
+            }
+            connectivityHandler.postDelayed(this, API_SESSION_POLL_MS);
+        }
+    };
+
+    /** Log out as soon as the default network drops (e.g. Wi‑Fi/cellular lost). */
+    private final ConnectivityManager.NetworkCallback networkDisconnectCallback = new ConnectivityManager.NetworkCallback() {
+        @Override
+        public void onLost(@NonNull Network network) {
+            runOnUiThread(() -> {
+                if (isFinishing() || sessionManager == null || !sessionManager.isLoggedIn()) {
+                    return;
+                }
+                if (!NetworkStatus.isOnline(MainActivity.this)) {
+                    handleConnectionLost();
+                }
+            });
+        }
+    };
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -61,6 +101,30 @@ public class MainActivity extends AppCompatActivity {
     }
 
     @Override
+    protected void onStart() {
+        super.onStart();
+        ConnectivityManager cm = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
+        if (cm != null) {
+            try {
+                cm.registerDefaultNetworkCallback(networkDisconnectCallback);
+            } catch (Exception ignored) {
+            }
+        }
+    }
+
+    @Override
+    protected void onStop() {
+        ConnectivityManager cm = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
+        if (cm != null) {
+            try {
+                cm.unregisterNetworkCallback(networkDisconnectCallback);
+            } catch (Exception ignored) {
+            }
+        }
+        super.onStop();
+    }
+
+    @Override
     protected void onResume() {
         super.onResume();
         if (!sessionManager.isLoggedIn()) {
@@ -72,6 +136,14 @@ public class MainActivity extends AppCompatActivity {
         if (bottomNav != null) {
             updateStaffAccess(bottomNav, false);
         }
+        connectivityHandler.removeCallbacks(connectivityPollRunnable);
+        connectivityHandler.post(connectivityPollRunnable);
+    }
+
+    @Override
+    protected void onPause() {
+        connectivityHandler.removeCallbacks(connectivityPollRunnable);
+        super.onPause();
     }
 
     @Override
@@ -86,6 +158,9 @@ public class MainActivity extends AppCompatActivity {
         long now = System.currentTimeMillis();
         if (!forceRefresh && (staffAccessCheckInFlight || (now - lastStaffAccessCheckAt) < STAFF_ACCESS_REFRESH_MS)) {
             applyStaffNavigation(bottomNav, sessionManager.getUserRole());
+            return;
+        }
+        if (staffAccessCheckInFlight) {
             return;
         }
 
@@ -106,9 +181,11 @@ public class MainActivity extends AppCompatActivity {
                 @Override
                 public void onResponse(Call<CustomerDto> call, Response<CustomerDto> response) {
                     staffAccessCheckInFlight = false;
-                    // Do not force-logout from background profile checks.
-                    // This avoids session-expired loops when backend auth/data is unstable.
-                    applyStaffNavigation(bottomNav, role);
+                    if (response.isSuccessful()) {
+                        applyStaffNavigation(bottomNav, role);
+                    } else {
+                        handleSessionCheckHttpFailure(response.code());
+                    }
                 }
 
                 @Override
@@ -122,7 +199,11 @@ public class MainActivity extends AppCompatActivity {
                 @Override
                 public void onResponse(Call<EmployeeDto> call, Response<EmployeeDto> response) {
                     staffAccessCheckInFlight = false;
-                    applyStaffNavigation(bottomNav, role);
+                    if (response.isSuccessful()) {
+                        applyStaffNavigation(bottomNav, role);
+                    } else {
+                        handleSessionCheckHttpFailure(response.code());
+                    }
                 }
 
                 @Override
@@ -132,6 +213,24 @@ public class MainActivity extends AppCompatActivity {
                 }
             });
         }
+    }
+
+    /**
+     * After a failed /me call, clear the session when the token is invalid or the server is unavailable.
+     */
+    private void handleSessionCheckHttpFailure(int httpCode) {
+        if (isFinishing()) {
+            return;
+        }
+        if (httpCode == 401 || httpCode == 403) {
+            redirectToLogin(getString(R.string.session_expired));
+            return;
+        }
+        if (httpCode >= 500) {
+            handleConnectionLost();
+            return;
+        }
+        redirectToLogin(getString(R.string.lost_connection_logout));
     }
 
     private void handleConnectionLost() {
@@ -173,8 +272,36 @@ public class MainActivity extends AppCompatActivity {
         }
         bottomNav.getMenu().clear();
         bottomNav.inflateMenu(menuResId);
-        NavigationUI.setupWithNavController(bottomNav, navController);
         currentBottomNavMenuResId = menuResId;
+        NavigationUI.setupWithNavController(bottomNav, navController);
+        bottomNav.setOnItemSelectedListener(item -> {
+            if (!NetworkStatus.isOnline(MainActivity.this)) {
+                Toast.makeText(MainActivity.this, R.string.login_error_no_connection, Toast.LENGTH_SHORT).show();
+                return false;
+            }
+            boolean navigated = NavigationUI.onNavDestinationSelected(item, navController);
+            if (item.getItemId() == R.id.nav_browse) {
+                // RestoreState can reopen product details; catalog should be the tab root.
+                bottomNav.post(this::popBrowseToProductListIfNeeded);
+            }
+            return navigated;
+        });
+        bottomNav.setOnItemReselectedListener(item -> {
+            if (item.getItemId() == R.id.nav_browse) {
+                popBrowseToProductListIfNeeded();
+            }
+        });
+    }
+
+    /** If the browse tab is showing product details, pop back to the catalog. */
+    private void popBrowseToProductListIfNeeded() {
+        if (navController == null || isFinishing()) {
+            return;
+        }
+        NavDestination dest = navController.getCurrentDestination();
+        if (dest != null && dest.getId() == R.id.productDetailFragment) {
+            navController.popBackStack(R.id.nav_browse, false);
+        }
     }
 
     private void redirectToLogin(String message) {

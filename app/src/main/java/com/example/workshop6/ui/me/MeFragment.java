@@ -46,6 +46,7 @@ public class MeFragment extends Fragment {
     private TextView tvEmail;
     private TextView tvPhotoStatus;
     private TextView tvAddress;
+    private View meLoadingOverlay;
 
     @Nullable
     @Override
@@ -68,6 +69,7 @@ public class MeFragment extends Fragment {
         tvEmail = view.findViewById(R.id.tv_me_email);
         tvPhotoStatus = view.findViewById(R.id.tv_me_photo_status);
         tvAddress = view.findViewById(R.id.tv_me_address);
+        meLoadingOverlay = view.findViewById(R.id.me_loading_overlay);
 
         view.findViewById(R.id.btn_edit_profile).setOnClickListener(v ->
                 startActivity(new Intent(requireContext(), EditProfileActivity.class)));
@@ -90,7 +92,10 @@ public class MeFragment extends Fragment {
         // On fresh entry (e.g., immediately after login), force a server read
         // so pending-photo state text is accurate right away.
         meCacheAtMs = 0L;
-        renderCachedMeIfPresent();
+        boolean showedCache = renderCachedMeIfPresent();
+        if (!showedCache) {
+            setMeLoadingUi(true);
+        }
         loadMe();
     }
 
@@ -99,11 +104,23 @@ public class MeFragment extends Fragment {
         super.onResume();
         // Force refresh after returning from Edit Profile so pending-photo state is not stale.
         meCacheAtMs = 0L;
+        boolean showedCache = renderCachedMeIfPresent();
+        if (!showedCache) {
+            setMeLoadingUi(true);
+        }
         loadMe();
+    }
+
+    /** Full-screen gold spinner while profile is loading (no stub text visible). */
+    private void setMeLoadingUi(boolean loading) {
+        if (meLoadingOverlay != null) {
+            meLoadingOverlay.setVisibility(loading ? View.VISIBLE : View.GONE);
+        }
     }
 
     private void loadMe() {
         if (sessionManager.getUserUuid().isEmpty() && sessionManager.getUserId() <= 0) {
+            setMeLoadingUi(false);
             return;
         }
         if (isMeCacheFreshForCurrentUser()) {
@@ -115,13 +132,14 @@ public class MeFragment extends Fragment {
             api.getCustomerMe().enqueue(new Callback<CustomerDto>() {
                 @Override
                 public void onResponse(Call<CustomerDto> call, Response<CustomerDto> response) {
-                    if (!response.isSuccessful() || response.body() == null) {
-                        return;
-                    }
-                    CustomerDto c = response.body();
                     if (getView() == null) {
                         return;
                     }
+                    if (!response.isSuccessful() || response.body() == null) {
+                        setMeLoadingUi(false);
+                        return;
+                    }
+                    CustomerDto c = response.body();
                     String first = c.firstName != null ? c.firstName : "";
                     String last = c.lastName != null ? c.lastName : "";
                     String nameText = (first + " " + last).trim();
@@ -145,16 +163,23 @@ public class MeFragment extends Fragment {
                             formatCustomerAddress(c),
                             true,
                             false));
+                    setMeLoadingUi(false);
                 }
 
                 @Override
                 public void onFailure(Call<CustomerDto> call, Throwable t) {
+                    if (getView() != null) {
+                        setMeLoadingUi(false);
+                    }
                 }
             });
         } else {
             api.getEmployeeMe().enqueue(new Callback<EmployeeDto>() {
                 @Override
                 public void onResponse(Call<EmployeeDto> call, Response<EmployeeDto> response) {
+                    if (getView() == null) {
+                        return;
+                    }
                     if (response.code() == 404 && "ADMIN".equalsIgnoreCase(role)) {
                         tvName.setText(sessionManager.getUserName());
                         tvEmail.setText(sessionManager.getUserName());
@@ -171,9 +196,11 @@ public class MeFragment extends Fragment {
                                 "",
                                 false,
                                 false));
+                        setMeLoadingUi(false);
                         return;
                     }
                     if (!response.isSuccessful() || response.body() == null) {
+                        setMeLoadingUi(false);
                         return;
                     }
                     EmployeeDto e = response.body();
@@ -198,18 +225,23 @@ public class MeFragment extends Fragment {
                             addressTextForEmployee(e),
                             false,
                             false));
+                    setMeLoadingUi(false);
                 }
 
                 @Override
                 public void onFailure(Call<EmployeeDto> call, Throwable t) {
+                    if (getView() != null) {
+                        setMeLoadingUi(false);
+                    }
                 }
             });
         }
     }
 
-    private void renderCachedMeIfPresent() {
+    /** @return true if cached profile was applied to the UI */
+    private boolean renderCachedMeIfPresent() {
         if (!isMeCacheFreshForCurrentUser() || cachedMeSnapshot == null || getView() == null) {
-            return;
+            return false;
         }
         tvName.setText(cachedMeSnapshot.name);
         tvEmail.setText(cachedMeSnapshot.email);
@@ -219,6 +251,8 @@ public class MeFragment extends Fragment {
         if (root != null) {
             root.findViewById(R.id.btn_order_history).setVisibility(cachedMeSnapshot.showOrderHistory ? View.VISIBLE : View.GONE);
         }
+        setMeLoadingUi(false);
+        return true;
     }
 
     private boolean isMeCacheFreshForCurrentUser() {

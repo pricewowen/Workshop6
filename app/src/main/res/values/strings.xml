@@ -6,7 +6,7 @@
     <string name="login_title">Welcome Back</string>
     <string name="login_heading">Welcome\nback.</string>
     <string name="login_subtitle">Sign in to your account</string>
-    <string name="hint_email">Email address</string>
+    <string name="hint_email">Email</string>
     <string name="hint_email_or_username">Email or username</string>
     <string name="error_email_or_username_required">Email or username is required</string>
     <string name="hint_password">Password</string>
@@ -31,15 +31,20 @@
     <string name="label_photo">PHOTO</string>
     <string name="social_divider_register">or manually</string>
     <string name="label_full_name">FULL NAME</string>
-    <string name="hint_full_name">Your full name</string>
+    <string name="hint_full_name">Full Name</string>
     <string name="label_first_name">FIRST NAME</string>
-    <string name="hint_first_name">First name</string>
+    <string name="hint_first_name">First Name</string>
     <string name="label_last_name">LAST NAME</string>
-    <string name="hint_last_name">Last name</string>
+    <string name="label_middle_initial">MIDDLE INITIAL</string>
+    <string name="hint_last_name">Last Name</string>
+    <string name="hint_middle_initial">Middle Initial</string>
+    <string name="error_middle_initial_invalid">Use a single letter only</string>
     <string name="label_username">USERNAME</string>
-    <string name="hint_username">Choose a username</string>
+    <string name="hint_username">Username</string>
     <string name="label_phone">PHONE</string>
-    <string name="hint_phone">Your phone number</string>
+    <string name="hint_phone">Phone</string>
+    <string name="label_business_phone">BUSINESS PHONE</string>
+    <string name="hint_business_phone">Business Phone</string>
     <string name="btn_create_account">Create Account</string>
     <string name="link_have_account">Have an account? </string>
     <string name="link_sign_in">Sign in</string>
@@ -70,7 +75,7 @@
     <string name="error_password_too_long">Password is too long</string>
     <string name="error_password_invalid">Enter a valid password</string>
     <string name="error_password_strength">Use at least 8 characters with uppercase, lowercase, a number, and a symbol</string>
-    <string name="hint_confirm_password">Confirm password</string>
+    <string name="hint_confirm_password">Confirm Password</string>
     <string name="error_password_mismatch">Passwords do not match</string>
 
     <!-- Navigation -->
@@ -137,8 +142,10 @@
     <string name="label_tier_description_default">Starting tier for all customers</string>
     <string name="label_next_tier_default">Next Tier: Silver</string>
     <string name="label_points_needed_default">10000 points to next tier</string>
-    <string name="label_next_tier_fmt">Next Tier: %1$s</string>
-    <string name="label_points_needed_fmt">%1$d points to reach %2$s</string>
+    <string name="label_next_tier_fmt">Next tier: %1$s (at %2$s pts)</string>
+    <string name="label_points_needed_fmt">%1$s pts to reach %2$s</string>
+    <string name="loyalty_tier_desc_closed_range">%1$.0f%% off qualifying checkout · %2$s–%3$s pts</string>
+    <string name="loyalty_tier_desc_open_range">%1$.0f%% off qualifying checkout · %2$s+ pts</string>
     <string name="label_no_loyalty_account">No Loyalty Account</string>
     <string name="label_no_loyalty_account_desc">This account does not currently participate in customer rewards</string>
     <string name="label_next_tier_na">Next Tier: N/A</string>
@@ -227,11 +234,16 @@
 
     <string name="label_address">Address (optional)</string>
     <string name="label_address_header">ADDRESS</string>
-    <string name="hint_address1">Address line 1</string>
-    <string name="hint_address2">Address line 2</string>
+    <string name="label_address_line_1">ADDRESS LINE 1</string>
+    <string name="label_address_line_2">ADDRESS LINE 2</string>
+    <string name="label_city">CITY</string>
+    <string name="label_postal_zip">POSTAL / ZIP</string>
+    <string name="label_province">PROVINCE / TERRITORY</string>
+    <string name="hint_address1">Address Line 1</string>
+    <string name="hint_address2">Address Line 2</string>
     <string name="hint_city">City</string>
     <string name="hint_province">Province/Territory</string>
-    <string name="hint_postal_code">Postal/ZIP</string>
+    <string name="hint_postal_code">Postal Code</string>
 
     <string name="error_address_required">Address line 1 is required</string>
     <string name="error_address_invalid">Address is too long</string>

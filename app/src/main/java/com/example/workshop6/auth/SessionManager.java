@@ -7,6 +7,7 @@ import android.content.pm.ApplicationInfo;
 import androidx.security.crypto.EncryptedSharedPreferences;
 import androidx.security.crypto.MasterKey;
 
+import com.example.workshop6.data.api.ApiClient;
 import com.example.workshop6.ui.cart.CartManager;
 
 public class SessionManager {
@@ -188,6 +189,7 @@ public class SessionManager {
     }
 
     private void clearSession() {
+        ApiClient.getInstance().clearToken();
         CartManager.getInstance(appContext).onLogout();
         prefs.edit()
                 .remove(KEY_IS_LOGGED_IN)

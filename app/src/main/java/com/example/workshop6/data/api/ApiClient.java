@@ -2,6 +2,8 @@ package com.example.workshop6.data.api;
 
 import com.example.workshop6.BuildConfig;
 
+import java.util.concurrent.TimeUnit;
+
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.logging.HttpLoggingInterceptor;
@@ -26,6 +28,10 @@ public class ApiClient {
         logging.setLevel(HttpLoggingInterceptor.Level.BODY);
 
         OkHttpClient httpClient = new OkHttpClient.Builder()
+                .connectTimeout(5, TimeUnit.SECONDS)
+                .readTimeout(8, TimeUnit.SECONDS)
+                .writeTimeout(45, TimeUnit.SECONDS)
+                .callTimeout(25, TimeUnit.SECONDS)
                 .addInterceptor(logging)
                 .addInterceptor(chain -> {
                     Request original = chain.request();
