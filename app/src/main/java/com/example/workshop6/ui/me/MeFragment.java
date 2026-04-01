@@ -25,6 +25,7 @@ import com.example.workshop6.data.api.dto.CustomerDto;
 import com.example.workshop6.data.api.dto.EmployeeDto;
 import com.example.workshop6.logging.ActivityLogger;
 import com.example.workshop6.ui.cart.CartManager;
+import com.example.workshop6.ui.loyalty.LoyaltyRewardsActivity;
 import com.example.workshop6.ui.orders.OrderHistoryActivity;
 import com.example.workshop6.ui.profile.EditProfileActivity;
 
@@ -71,6 +72,10 @@ public class MeFragment extends Fragment {
         tvAddress = view.findViewById(R.id.tv_me_address);
         meLoadingOverlay = view.findViewById(R.id.me_loading_overlay);
 
+        if (!"CUSTOMER".equalsIgnoreCase(sessionManager.getUserRole())) {
+            view.findViewById(R.id.btn_loyalty_rewards).setVisibility(View.GONE);
+        }
+
         view.findViewById(R.id.btn_edit_profile).setOnClickListener(v ->
                 startActivity(new Intent(requireContext(), EditProfileActivity.class)));
 
@@ -88,6 +93,9 @@ public class MeFragment extends Fragment {
             Intent intent = new Intent(requireContext(), OrderHistoryActivity.class);
             startActivity(intent);
         });
+
+        view.findViewById(R.id.btn_loyalty_rewards).setOnClickListener(v ->
+                startActivity(new Intent(requireContext(), LoyaltyRewardsActivity.class)));
 
         // On fresh entry (e.g., immediately after login), force a server read
         // so pending-photo state text is accurate right away.
@@ -155,6 +163,7 @@ public class MeFragment extends Fragment {
                     View root = getView();
                     if (root != null) {
                         root.findViewById(R.id.btn_order_history).setVisibility(View.VISIBLE);
+                        root.findViewById(R.id.btn_loyalty_rewards).setVisibility(View.VISIBLE);
                     }
                     cacheMeSnapshot(new MeSnapshot(nameText,
                             c.email != null ? c.email : sessionManager.getUserName(),
@@ -188,6 +197,7 @@ public class MeFragment extends Fragment {
                         View root = getView();
                         if (root != null) {
                             root.findViewById(R.id.btn_order_history).setVisibility(View.GONE);
+                            root.findViewById(R.id.btn_loyalty_rewards).setVisibility(View.GONE);
                         }
                         cacheMeSnapshot(new MeSnapshot(sessionManager.getUserName(),
                                 sessionManager.getUserName(),
@@ -217,6 +227,7 @@ public class MeFragment extends Fragment {
                     View root = getView();
                     if (root != null) {
                         root.findViewById(R.id.btn_order_history).setVisibility(View.GONE);
+                        root.findViewById(R.id.btn_loyalty_rewards).setVisibility(View.GONE);
                     }
                     cacheMeSnapshot(new MeSnapshot(nameText,
                             e.workEmail != null ? e.workEmail : sessionManager.getUserName(),
@@ -249,7 +260,9 @@ public class MeFragment extends Fragment {
         applyPhotoUI(cachedMeSnapshot.photoPath, cachedMeSnapshot.photoPending);
         View root = getView();
         if (root != null) {
-            root.findViewById(R.id.btn_order_history).setVisibility(cachedMeSnapshot.showOrderHistory ? View.VISIBLE : View.GONE);
+            int vis = cachedMeSnapshot.showOrderHistory ? View.VISIBLE : View.GONE;
+            root.findViewById(R.id.btn_order_history).setVisibility(vis);
+            root.findViewById(R.id.btn_loyalty_rewards).setVisibility(vis);
         }
         setMeLoadingUi(false);
         return true;

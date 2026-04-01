@@ -16,6 +16,7 @@ import com.example.workshop6.data.api.dto.LoginRequest;
 import com.example.workshop6.data.api.dto.OrderDto;
 import com.example.workshop6.data.api.dto.PostChatMessageRequest;
 import com.example.workshop6.data.api.dto.ProductDto;
+import com.example.workshop6.data.api.dto.ProductSpecialTodayDto;
 import com.example.workshop6.data.api.dto.RegisterRequest;
 import com.example.workshop6.data.api.dto.ReviewCreateRequest;
 import com.example.workshop6.data.api.dto.ReviewDto;
@@ -74,6 +75,12 @@ public interface ApiService {
 
     @GET("api/v1/products/{id}")
     Call<ProductDto> getProduct(@Path("id") int id);
+
+    /**
+     * @param date ISO-8601 calendar date ({@code yyyy-MM-dd}) for the user's local "today".
+     */
+    @GET("api/v1/product-specials/today")
+    Call<ProductSpecialTodayDto> getTodayProductSpecial(@Query("date") String date);
 
     @GET("api/v1/bakeries")
     Call<List<BakeryDto>> getBakeries(@Query("search") String search);

@@ -52,8 +52,18 @@
             android:textSize="22sp"
             android:textStyle="bold" />
 
+        <TextView
+            android:id="@+id/tvProductSpecialBadge"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text=""
+            android:textColor="@color/bakery_gold"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            android:visibility="gone" />
 
-        <!-- PRODUCT PRICE -->
+        <!-- PRODUCT PRICE (Spannable was/now when today’s special) -->
         <TextView
             android:id="@+id/tvProductPrice"
             android:layout_width="wrap_content"

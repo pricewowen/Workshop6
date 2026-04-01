@@ -96,6 +96,15 @@
                 android:textSize="14sp" />
 
             <Button
+                android:id="@+id/btn_loyalty_rewards"
+                android:layout_width="match_parent"
+                android:layout_height="56dp"
+                android:layout_marginTop="8dp"
+                android:backgroundTint="@color/bakery_primary"
+                android:text="@string/btn_loyalty_rewards"
+                android:textColor="@color/bakery_text_light" />
+
+            <Button
                 android:id="@+id/btn_order_history"
                 android:layout_width="match_parent"
                 android:layout_height="56dp"

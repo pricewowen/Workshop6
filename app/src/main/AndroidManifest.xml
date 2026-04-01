@@ -60,6 +60,11 @@
             android:parentActivityName=".ui.MainActivity" />
 
         <activity
+            android:name=".ui.loyalty.LoyaltyRewardsActivity"
+            android:exported="false"
+            android:parentActivityName=".ui.MainActivity" />
+
+        <activity
             android:name=".ui.chat.ChatActivity"
             android:exported="false" />
 

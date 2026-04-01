@@ -23,13 +23,19 @@ import com.example.workshop6.data.api.ApiClient;
 import com.example.workshop6.data.api.ApiService;
 import com.example.workshop6.data.api.ProductMapper;
 import com.example.workshop6.data.api.dto.ProductDto;
+import com.example.workshop6.data.api.dto.ProductSpecialTodayDto;
 import com.example.workshop6.data.api.dto.ReviewDto;
 import com.example.workshop6.data.model.CartItem;
 import com.example.workshop6.data.model.Product;
 import com.example.workshop6.ui.cart.CartManager;
+import com.example.workshop6.util.ProductSpecialState;
+import com.example.workshop6.util.SpecialPriceSpan;
+import com.example.workshop6.util.TodayDate;
 
+import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 import retrofit2.Call;
 import retrofit2.Callback;
@@ -40,6 +46,7 @@ public class ProductDetailsFragment extends Fragment {
     private int quantCounter = 1;
 
     private TextView tvProductName;
+    private TextView tvProductSpecialBadge;
     private TextView tvProductPrice;
     private TextView tvProductDescription;
     private TextView tvQuantity;
@@ -58,6 +65,7 @@ public class ProductDetailsFragment extends Fragment {
     private CartManager cartManager;
     private ApiService api;
     private Product loadedProduct;
+    private final NumberFormat currency = NumberFormat.getCurrencyInstance(Locale.CANADA);
 
     public ProductDetailsFragment() {
     }
@@ -88,6 +96,7 @@ public class ProductDetailsFragment extends Fragment {
                 : -1;
 
         tvProductName = view.findViewById(R.id.tvProductName);
+        tvProductSpecialBadge = view.findViewById(R.id.tvProductSpecialBadge);
         tvProductPrice = view.findViewById(R.id.tvProductPrice);
         tvProductDescription = view.findViewById(R.id.tvProductDescription);
         tvQuantity = view.findViewById(R.id.tvQuantity);
@@ -142,9 +151,8 @@ public class ProductDetailsFragment extends Fragment {
                     return;
                 }
                 tvProductName.setText(loadedProduct.getProductName());
-                tvProductPrice.setText(String.format("$%.2f",
-                        loadedProduct.getProductBasePrice().doubleValue()));
                 tvProductDescription.setText(loadedProduct.getProductDescription());
+                applyTodaySpecialPricing(productId);
                 if (loadedProduct.getImageUrl() != null && !loadedProduct.getImageUrl().isEmpty()) {
                     Glide.with(requireContext())
                             .load(loadedProduct.getImageUrl())
@@ -239,6 +247,49 @@ public class ProductDetailsFragment extends Fragment {
 
     private boolean isUiReady() {
         return isAdded() && getView() != null;
+    }
+
+    private void applyTodaySpecialPricing(int productId) {
+        if (loadedProduct == null) {
+            return;
+        }
+        String today = TodayDate.isoLocal();
+        api.getTodayProductSpecial(today).enqueue(new Callback<ProductSpecialTodayDto>() {
+            @Override
+            public void onResponse(Call<ProductSpecialTodayDto> call, Response<ProductSpecialTodayDto> response) {
+                if (!isUiReady() || loadedProduct == null) {
+                    return;
+                }
+                ProductSpecialTodayDto body = response.isSuccessful() ? response.body() : null;
+                if (body != null) {
+                    ProductSpecialState.updateFromDto(body, today);
+                }
+                boolean isSpecial = body != null && body.productId != null && body.productId == productId
+                        && body.discountPercent != null && body.discountPercent > 0;
+                Double baseObj = loadedProduct.getProductBasePrice();
+                double base = baseObj != null ? baseObj : 0.0;
+                if (isSpecial) {
+                    tvProductSpecialBadge.setVisibility(View.VISIBLE);
+                    tvProductSpecialBadge.setText(getString(R.string.product_special_badge, body.discountPercent));
+                    double sale = base * (1.0 - body.discountPercent / 100.0);
+                    CharSequence line = android.text.TextUtils.concat(SpecialPriceSpan.wasNow(currency, base, sale), " ");
+                    tvProductPrice.setText(line);
+                } else {
+                    tvProductSpecialBadge.setVisibility(View.GONE);
+                    tvProductPrice.setText(String.format(Locale.US, "$%.2f", base));
+                }
+            }
+
+            @Override
+            public void onFailure(Call<ProductSpecialTodayDto> call, Throwable t) {
+                if (!isUiReady()) {
+                    return;
+                }
+                tvProductSpecialBadge.setVisibility(View.GONE);
+                Double b = loadedProduct.getProductBasePrice();
+                tvProductPrice.setText(String.format(Locale.US, "$%.2f", b != null ? b : 0.0));
+            }
+        });
     }
 
     private void setProductDetailsLoading(boolean loading) {

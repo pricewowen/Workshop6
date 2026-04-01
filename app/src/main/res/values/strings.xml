@@ -135,6 +135,8 @@
     <string name="label_featured_product_name">Butter Croissant</string>
     <string name="label_featured_product_price">$4.50</string>
     <string name="label_featured">TODAY\'S FEATURE</string>
+    <string name="btn_view_featured_product">View product</string>
+    <string name="featured_discount_today">%1$.0f%% off today</string>
     <string name="btn_add_to_cart">Add to Cart</string>
     <string name="label_points_available">1,240 pts</string>
     <string name="label_points_to_next">Gold • 260 to Platinum</string>
@@ -173,6 +175,20 @@
     <string name="label_search">Seach Products...</string>
     <string name="label_discount_cart"> (10% off!) </string>
     <string name="label_discount_applied">Discount Applied</string>
+    <string name="checkout_loyalty_title">Loyalty</string>
+    <string name="checkout_loyalty_balance">Your balance: %1$s pts</string>
+    <string name="checkout_loyalty_use_tier">Redeem your %1$s benefit: %2$.0f%% off this order for %3$s points.</string>
+    <string name="checkout_redeem_points_button">Redeem (%1$s pts)</string>
+    <string name="checkout_loyalty_no_discount">Your tier does not include a checkout discount yet. Earn points to reach a higher tier.</string>
+    <string name="checkout_loyalty_insufficient_points">You need %1$s points to redeem this benefit. You have %2$s.</string>
+    <string name="checkout_loyalty_applied_toast">%1$.0f%% tier discount applied to this order.</string>
+    <string name="checkout_special_title">Today\'s special</string>
+    <string name="checkout_special_cart_blurb">This order includes today\'s featured product at a special price. You save %1$s compared with regular prices on those items.</string>
+    <string name="checkout_merch_list">Regular subtotal</string>
+    <string name="checkout_special_line">Today\'s special</string>
+    <string name="checkout_tier_line">Tier reward</string>
+    <string name="checkout_subtotal_after_discounts">Subtotal</string>
+    <string name="product_special_badge">Today\'s special · %1$.0f%% off</string>
 
     <!-- Profile / photos -->
     <string name="btn_choose_photo">Choose photo</string>
@@ -260,6 +276,9 @@
     <string name="stub_me_address">Address</string>
     <string name="no_address_on_file">No address on file. Tap Edit to add one.</string>
     <string name="order_history">Order History</string>
+    <string name="loyalty_rewards_title">Rewards</string>
+    <string name="btn_loyalty_rewards">Rewards</string>
+    <string name="loyalty_rewards_checkout_hint">You can redeem your tier discount with points when you check out.</string>
     <string name="type_a_message">Type a message</string>
     <string name="send">Send</string>
     <string name="chat_empty_state">No messages yet</string>
