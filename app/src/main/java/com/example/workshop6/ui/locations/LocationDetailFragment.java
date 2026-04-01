@@ -9,6 +9,7 @@ import android.os.SystemClock;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ImageView;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
@@ -18,6 +19,8 @@ import androidx.navigation.Navigation;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.bumptech.glide.Glide;
+import com.bumptech.glide.request.RequestOptions;
 import com.example.workshop6.R;
 import com.example.workshop6.data.api.ApiClient;
 import com.example.workshop6.data.api.ApiService;
@@ -329,6 +332,24 @@ public class LocationDetailFragment extends Fragment {
     private void populateDetail(View view, BakeryLocationDetails loc) {
         MaterialToolbar toolbar = view.findViewById(R.id.toolbar_detail);
         toolbar.setTitle(loc.name);
+
+        ImageView ivHero = view.findViewById(R.id.iv_hero);
+        if (ivHero != null) {
+            String heroUrl = loc.bakeryImageUrl;
+            if (heroUrl != null && !heroUrl.trim().isEmpty()) {
+                Glide.with(requireContext())
+                        .load(heroUrl.trim())
+                        .apply(RequestOptions.centerCropTransform())
+                        .placeholder(R.drawable.location_thumb_placeholder)
+                        .error(R.drawable.location_thumb_placeholder)
+                        .into(ivHero);
+                ivHero.setAlpha(1f);
+            } else {
+                Glide.with(requireContext()).clear(ivHero);
+                ivHero.setImageResource(R.drawable.location_thumb_placeholder);
+                ivHero.setAlpha(0.5f);
+            }
+        }
 
         Chip chipStatus = view.findViewById(R.id.chip_detail_status);
         boolean open = loc.status != null && loc.status.toLowerCase(Locale.ROOT).contains("open");

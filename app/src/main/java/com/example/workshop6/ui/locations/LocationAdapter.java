@@ -12,6 +12,8 @@ import androidx.recyclerview.widget.DiffUtil;
 import androidx.recyclerview.widget.ListAdapter;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.bumptech.glide.Glide;
+import com.bumptech.glide.request.RequestOptions;
 import com.example.workshop6.R;
 import com.example.workshop6.data.model.BakeryLocationDetails;
 import com.example.workshop6.util.LocationUtils;
@@ -41,9 +43,10 @@ public class LocationAdapter extends ListAdapter<BakeryLocationDetails, Location
                             && Objects.equals(oldItem.address, newItem.address)
                             && Objects.equals(oldItem.city, newItem.city)
                             && Objects.equals(oldItem.status, newItem.status)
-                            && Objects.equals(oldItem.openingHours, newItem.openingHours)
-                            && Double.compare(oldItem.latitude, newItem.latitude) == 0
-                            && Double.compare(oldItem.longitude, newItem.longitude) == 0;
+                    && Objects.equals(oldItem.openingHours, newItem.openingHours)
+                    && Objects.equals(oldItem.bakeryImageUrl, newItem.bakeryImageUrl)
+                    && Double.compare(oldItem.latitude, newItem.latitude) == 0
+                    && Double.compare(oldItem.longitude, newItem.longitude) == 0;
                 }
             };
 
@@ -125,8 +128,18 @@ public class LocationAdapter extends ListAdapter<BakeryLocationDetails, Location
                 dotSeparator.setVisibility(View.GONE);
             }
 
-            // Thumbnail placeholder
-            thumbnail.setImageResource(R.drawable.ic_bakery_store);
+            String img = loc.bakeryImageUrl;
+            if (img != null && !img.trim().isEmpty()) {
+                Glide.with(itemView.getContext())
+                        .load(img.trim())
+                        .apply(RequestOptions.centerCropTransform())
+                        .placeholder(R.drawable.location_thumb_placeholder)
+                        .error(R.drawable.location_thumb_placeholder)
+                        .into(thumbnail);
+            } else {
+                Glide.with(itemView.getContext()).clear(thumbnail);
+                thumbnail.setImageResource(R.drawable.location_thumb_placeholder);
+            }
 
             itemView.setOnClickListener(v -> {
                 if (listener != null) listener.onClick(loc);

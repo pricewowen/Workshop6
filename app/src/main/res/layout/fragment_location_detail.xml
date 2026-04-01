@@ -39,11 +39,9 @@
                     android:id="@+id/iv_hero"
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
-                    android:alpha="0.45"
                     android:contentDescription="@string/cd_hero_image"
-                    android:padding="48dp"
-                    android:scaleType="fitCenter"
-                    android:src="@drawable/ic_bakery_store" />
+                    android:scaleType="centerCrop"
+                    android:src="@drawable/location_thumb_placeholder" />
             </FrameLayout>
 
             <LinearLayout
