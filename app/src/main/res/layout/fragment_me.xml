@@ -6,6 +6,7 @@
     android:background="@color/bakery_background">
 
     <ScrollView
+        android:id="@+id/me_scroll_content"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:fillViewport="true"
@@ -131,8 +132,9 @@
         android:id="@+id/me_loading_overlay"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:background="#E6F5F5F5"
+        android:background="@color/bakery_background"
         android:clickable="true"
+        android:elevation="8dp"
         android:focusable="true"
         android:visibility="gone">
 

@@ -67,6 +67,10 @@
             android:name="locationId"
             android:defaultValue="-1"
             app:argType="integer" />
+
+        <action
+            android:id="@+id/action_location_to_product"
+            app:destination="@id/productDetailFragment" />
     </fragment>
 
     <fragment

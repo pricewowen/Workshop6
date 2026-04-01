@@ -76,6 +76,7 @@ public class EditProfileActivity extends AppCompatActivity {
     private EmployeeDto loadedEmployee;
     private ApiService api;
     private View loadingOverlay;
+    private View editProfileScrollContent;
 
     private ActivityResultLauncher<String> galleryPickerLauncher;
     private ActivityResultLauncher<Uri> cameraLauncher;
@@ -96,6 +97,7 @@ public class EditProfileActivity extends AppCompatActivity {
 
         setContentView(R.layout.activity_edit_profile);
         loadingOverlay = findViewById(R.id.edit_profile_loading_overlay);
+        editProfileScrollContent = findViewById(R.id.edit_profile_scroll_content);
 
         ivPhoto = findViewById(R.id.iv_profile_photo);
         tvPhotoError = findViewById(R.id.tv_photo_error);
@@ -179,6 +181,9 @@ public class EditProfileActivity extends AppCompatActivity {
     private void setEditProfileLoading(boolean loading) {
         if (loadingOverlay != null) {
             loadingOverlay.setVisibility(loading ? View.VISIBLE : View.GONE);
+        }
+        if (editProfileScrollContent != null) {
+            editProfileScrollContent.setVisibility(loading ? View.INVISIBLE : View.VISIBLE);
         }
         View save = findViewById(R.id.btn_save);
         View changePw = findViewById(R.id.btn_change_password);

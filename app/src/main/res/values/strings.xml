@@ -107,6 +107,12 @@
     <string name="btn_call">Call</string>
     <string name="section_available_here">Available Here</string>
     <string name="section_reviews">Reviews</string>
+    <string name="location_section_contact">Contact</string>
+    <string name="location_section_hours">Hours</string>
+    <string name="hours_closed">Closed</string>
+    <string name="hours_range_fmt">%1$s – %2$s</string>
+    <string name="location_tap_product_hint">Tap to view</string>
+    <string name="available_here_empty">Fresh production batches will show here. Browse for our full catalog.</string>
 
     <!-- Stubs -->
     <string name="coming_soon">Coming Soon</string>

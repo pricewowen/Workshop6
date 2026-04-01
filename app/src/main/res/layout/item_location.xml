@@ -22,10 +22,11 @@
             android:id="@+id/iv_location_thumb"
             android:layout_width="56dp"
             android:layout_height="56dp"
-            android:scaleType="centerCrop"
-            android:background="@color/bakery_background"
+            android:background="@drawable/bg_hero_bakery"
             android:contentDescription="@string/cd_location_thumbnail"
-            android:src="@android:drawable/ic_menu_mapmode" />
+            android:padding="10dp"
+            android:scaleType="fitCenter"
+            android:src="@drawable/ic_bakery_store" />
 
         <!-- Info: name, distance + status, address -->
         <LinearLayout

@@ -48,6 +48,7 @@ public class MeFragment extends Fragment {
     private TextView tvPhotoStatus;
     private TextView tvAddress;
     private View meLoadingOverlay;
+    private View meScrollContent;
 
     @Nullable
     @Override
@@ -71,6 +72,7 @@ public class MeFragment extends Fragment {
         tvPhotoStatus = view.findViewById(R.id.tv_me_photo_status);
         tvAddress = view.findViewById(R.id.tv_me_address);
         meLoadingOverlay = view.findViewById(R.id.me_loading_overlay);
+        meScrollContent = view.findViewById(R.id.me_scroll_content);
 
         if (!"CUSTOMER".equalsIgnoreCase(sessionManager.getUserRole())) {
             view.findViewById(R.id.btn_loyalty_rewards).setVisibility(View.GONE);
@@ -123,6 +125,9 @@ public class MeFragment extends Fragment {
     private void setMeLoadingUi(boolean loading) {
         if (meLoadingOverlay != null) {
             meLoadingOverlay.setVisibility(loading ? View.VISIBLE : View.GONE);
+        }
+        if (meScrollContent != null) {
+            meScrollContent.setVisibility(loading ? View.INVISIBLE : View.VISIBLE);
         }
     }
 

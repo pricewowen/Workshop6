@@ -1,79 +1,103 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout
-    xmlns:android="http://schemas.android.com/apk/res/android"
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@color/bakery_background">
 
-    <!-- Search bar -->
-    <com.google.android.material.card.MaterialCardView
-        android:id="@+id/search_card"
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/map_content"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_margin="16dp"
-        app:cardCornerRadius="24dp"
-        app:cardElevation="2dp"
-        app:cardBackgroundColor="@color/bakery_card_white"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent">
+        android:layout_height="match_parent">
 
-        <androidx.appcompat.widget.SearchView
-            android:id="@+id/search_view"
+        <!-- Search bar -->
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/search_card"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            app:iconifiedByDefault="false"
-            app:queryHint="@string/search_locations_hint"
-            app:searchIcon="@null"
-            app:closeIcon="@null" />
+            android:layout_margin="16dp"
+            app:cardBackgroundColor="@color/bakery_card_white"
+            app:cardCornerRadius="24dp"
+            app:cardElevation="2dp"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent">
 
-    </com.google.android.material.card.MaterialCardView>
+            <androidx.appcompat.widget.SearchView
+                android:id="@+id/search_view"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                app:closeIcon="@null"
+                app:iconifiedByDefault="false"
+                app:queryHint="@string/search_locations_hint"
+                app:searchIcon="@null" />
 
-    <!-- Chip toggle: Nearby / All -->
-    <com.google.android.material.chip.ChipGroup
-        android:id="@+id/chip_group_filter"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="16dp"
-        android:layout_marginTop="8dp"
-        app:singleSelection="true"
-        app:selectionRequired="true"
-        app:layout_constraintTop_toBottomOf="@id/search_card"
-        app:layout_constraintStart_toStartOf="parent">
+        </com.google.android.material.card.MaterialCardView>
 
-        <com.google.android.material.chip.Chip
-            android:id="@+id/chip_nearby"
-            style="@style/Widget.MaterialComponents.Chip.Choice"
+        <!-- Chip toggle: Nearby / All -->
+        <com.google.android.material.chip.ChipGroup
+            android:id="@+id/chip_group_filter"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="@string/btn_show_nearby"
-            app:chipBackgroundColor="@color/bakery_card_white"
-            android:textColor="@color/bakery_text_dark" />
+            android:layout_marginStart="16dp"
+            android:layout_marginTop="8dp"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/search_card"
+            app:selectionRequired="true"
+            app:singleSelection="true">
 
-        <com.google.android.material.chip.Chip
-            android:id="@+id/chip_all"
-            style="@style/Widget.MaterialComponents.Chip.Choice"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="@string/btn_show_all"
-            android:checked="true"
-            app:chipBackgroundColor="@color/bakery_card_white"
-            android:textColor="@color/bakery_text_dark" />
+            <com.google.android.material.chip.Chip
+                android:id="@+id/chip_nearby"
+                style="@style/Widget.MaterialComponents.Chip.Choice"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/btn_show_nearby"
+                android:textColor="@color/bakery_text_dark"
+                app:chipBackgroundColor="@color/bakery_card_white" />
 
-    </com.google.android.material.chip.ChipGroup>
+            <com.google.android.material.chip.Chip
+                android:id="@+id/chip_all"
+                style="@style/Widget.MaterialComponents.Chip.Choice"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:checked="true"
+                android:text="@string/btn_show_all"
+                android:textColor="@color/bakery_text_dark"
+                app:chipBackgroundColor="@color/bakery_card_white" />
 
-    <!-- Locations list -->
-    <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/rv_locations"
+        </com.google.android.material.chip.ChipGroup>
+
+        <!-- Locations list -->
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/rv_locations"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:clipToPadding="false"
+            android:paddingTop="8dp"
+            android:paddingBottom="16dp"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/chip_group_filter" />
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+    <FrameLayout
+        android:id="@+id/map_loading_overlay"
         android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:clipToPadding="false"
-        android:paddingTop="8dp"
-        android:paddingBottom="16dp"
-        app:layout_constraintTop_toBottomOf="@id/chip_group_filter"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent" />
+        android:layout_height="match_parent"
+        android:background="@color/bakery_background"
+        android:clickable="true"
+        android:elevation="8dp"
+        android:focusable="true"
+        android:visibility="visible">
 
-</androidx.constraintlayout.widget.ConstraintLayout>
+        <ProgressBar
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:indeterminate="true"
+            android:indeterminateTint="@color/bakery_gold_bright" />
+    </FrameLayout>
+
+</FrameLayout>

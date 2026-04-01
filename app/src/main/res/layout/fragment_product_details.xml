@@ -6,6 +6,7 @@
     android:background="@color/bakery_background">
 
 <androidx.core.widget.NestedScrollView
+    android:id="@+id/product_details_content"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@color/bakery_background"
@@ -35,9 +36,9 @@
                 android:id="@+id/ivProductImage"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
-                android:scaleType="centerCrop"
                 android:contentDescription="@string/label_products"
-                android:src="@drawable/selected_product_image"/>
+                android:scaleType="centerCrop"
+                android:src="@drawable/product_image_placeholder" />
         </com.google.android.material.card.MaterialCardView>
 
 
@@ -191,10 +192,11 @@
         android:id="@+id/product_details_loading_overlay"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:background="#E6F5F5F5"
+        android:background="@color/bakery_background"
         android:clickable="true"
+        android:elevation="8dp"
         android:focusable="true"
-        android:visibility="visible">
+        android:visibility="gone">
 
         <ProgressBar
             android:layout_width="wrap_content"

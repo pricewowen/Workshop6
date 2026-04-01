@@ -69,6 +69,7 @@ public class ProductsFragment extends Fragment {
     private MaterialButton btnViewFeaturedProduct;
     private final NumberFormat currency = NumberFormat.getCurrencyInstance(Locale.CANADA);
     private View productsLoadingOverlay;
+    private View productsContent;
 
     private int featuredProductId = -1;
     private Product featured;
@@ -111,6 +112,7 @@ public class ProductsFragment extends Fragment {
         tvFeatureDiscountPercent = view.findViewById(R.id.tvFeatureDiscountPercent);
         btnViewFeaturedProduct = view.findViewById(R.id.btnViewFeaturedProduct);
         productsLoadingOverlay = view.findViewById(R.id.products_loading_overlay);
+        productsContent = view.findViewById(R.id.products_content);
 
         api = ApiClient.getInstance().getService();
         sessionManager = new SessionManager(requireContext());
@@ -393,6 +395,9 @@ public class ProductsFragment extends Fragment {
     private void setProductsPageLoading(boolean loading) {
         if (productsLoadingOverlay != null) {
             productsLoadingOverlay.setVisibility(loading ? View.VISIBLE : View.GONE);
+        }
+        if (productsContent != null) {
+            productsContent.setVisibility(loading ? View.INVISIBLE : View.VISIBLE);
         }
     }
 

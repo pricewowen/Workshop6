@@ -10,6 +10,7 @@ import android.os.Looper;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.navigation.NavBackStackEntry;
 import androidx.navigation.NavController;
 import androidx.navigation.NavDestination;
 import androidx.navigation.fragment.NavHostFragment;
@@ -281,8 +282,10 @@ public class MainActivity extends AppCompatActivity {
             }
             boolean navigated = NavigationUI.onNavDestinationSelected(item, navController);
             if (item.getItemId() == R.id.nav_browse) {
-                // RestoreState can reopen product details; catalog should be the tab root.
                 bottomNav.post(this::popBrowseToProductListIfNeeded);
+            }
+            if (item.getItemId() == R.id.nav_map) {
+                bottomNav.post(this::popMapStackIfNeeded);
             }
             return navigated;
         });
@@ -290,17 +293,54 @@ public class MainActivity extends AppCompatActivity {
             if (item.getItemId() == R.id.nav_browse) {
                 popBrowseToProductListIfNeeded();
             }
+            if (item.getItemId() == R.id.nav_map) {
+                popMapStackIfNeeded();
+            }
         });
     }
 
-    /** If the browse tab is showing product details, pop back to the catalog. */
+    /** If the browse tab stack is showing product details from the catalog, pop to the product list. */
     private void popBrowseToProductListIfNeeded() {
         if (navController == null || isFinishing()) {
             return;
         }
         NavDestination dest = navController.getCurrentDestination();
-        if (dest != null && dest.getId() == R.id.productDetailFragment) {
+        if (dest == null || dest.getId() != R.id.productDetailFragment) {
+            return;
+        }
+        NavBackStackEntry prev = navController.getPreviousBackStackEntry();
+        if (prev != null && prev.getDestination() != null
+                && prev.getDestination().getId() == R.id.nav_browse) {
             navController.popBackStack(R.id.nav_browse, false);
+        }
+    }
+
+    /**
+     * If the map tab stack shows location detail or a product opened from a location, pop back to
+     * the bakery list (same idea as browse → pop product when reselecting Browse).
+     */
+    private void popMapStackIfNeeded() {
+        if (navController == null || isFinishing()) {
+            return;
+        }
+        NavDestination dest = navController.getCurrentDestination();
+        if (dest == null) {
+            return;
+        }
+        int id = dest.getId();
+        if (id == R.id.nav_map) {
+            return;
+        }
+        if (id == R.id.locationDetailFragment) {
+            navController.popBackStack(R.id.nav_map, false);
+            return;
+        }
+        if (id == R.id.productDetailFragment) {
+            NavBackStackEntry prev = navController.getPreviousBackStackEntry();
+            if (prev != null && prev.getDestination() != null
+                    && prev.getDestination().getId() == R.id.locationDetailFragment) {
+                navController.popBackStack(R.id.nav_map, false);
+            }
         }
     }
 

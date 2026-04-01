@@ -1,8 +1,10 @@
 package com.example.workshop6.ui.products;
 
+import android.graphics.drawable.Drawable;
 import android.os.Bundle;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 import androidx.navigation.Navigation;
 import androidx.recyclerview.widget.LinearLayoutManager;
@@ -16,6 +18,10 @@ import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.bumptech.glide.load.DataSource;
+import com.bumptech.glide.load.engine.GlideException;
+import com.bumptech.glide.request.RequestListener;
+import com.bumptech.glide.request.target.Target;
 import com.bumptech.glide.Glide;
 import com.example.workshop6.R;
 import com.example.workshop6.auth.SessionManager;
@@ -61,11 +67,15 @@ public class ProductDetailsFragment extends Fragment {
 
     private RecyclerView rvReviews;
     private View productDetailsLoadingOverlay;
+    private View productDetailsContent;
 
     private CartManager cartManager;
     private ApiService api;
     private Product loadedProduct;
     private final NumberFormat currency = NumberFormat.getCurrencyInstance(Locale.CANADA);
+    /** Overlay stays until today's special price + hero image are both ready. */
+    private boolean revealImageReady;
+    private boolean revealSpecialPriceReady;
 
     public ProductDetailsFragment() {
     }
@@ -109,6 +119,7 @@ public class ProductDetailsFragment extends Fragment {
 
         ivProductImage = view.findViewById(R.id.ivProductImage);
         productDetailsLoadingOverlay = view.findViewById(R.id.product_details_loading_overlay);
+        productDetailsContent = view.findViewById(R.id.product_details_content);
 
         rvReviews = view.findViewById(R.id.rvReviews);
         rvReviews.setLayoutManager(new LinearLayoutManager(requireContext()));
@@ -131,6 +142,8 @@ public class ProductDetailsFragment extends Fragment {
             return;
         }
 
+        setProductDetailsLoading(true);
+
         api.getProduct(productId).enqueue(new Callback<ProductDto>() {
             @Override
             public void onResponse(Call<ProductDto> call, Response<ProductDto> response) {
@@ -150,19 +163,37 @@ public class ProductDetailsFragment extends Fragment {
                     Navigation.findNavController(requireView()).navigateUp();
                     return;
                 }
+                revealImageReady = false;
+                revealSpecialPriceReady = false;
                 tvProductName.setText(loadedProduct.getProductName());
                 tvProductDescription.setText(loadedProduct.getProductDescription());
                 applyTodaySpecialPricing(productId);
                 if (loadedProduct.getImageUrl() != null && !loadedProduct.getImageUrl().isEmpty()) {
                     Glide.with(requireContext())
                             .load(loadedProduct.getImageUrl())
-                            .placeholder(loadedProduct.getImgUrl())
-                            .error(loadedProduct.getImgUrl())
+                            .placeholder(R.drawable.product_image_placeholder)
+                            .error(R.drawable.product_image_placeholder)
+                            .listener(new RequestListener<Drawable>() {
+                                @Override
+                                public boolean onLoadFailed(@Nullable GlideException e, Object model,
+                                        Target<Drawable> target, boolean isFirstResource) {
+                                    markImageReadyAndTryRevealProductUi();
+                                    return false;
+                                }
+
+                                @Override
+                                public boolean onResourceReady(Drawable resource, Object model,
+                                        Target<Drawable> target, DataSource dataSource,
+                                        boolean isFirstResource) {
+                                    markImageReadyAndTryRevealProductUi();
+                                    return false;
+                                }
+                            })
                             .into(ivProductImage);
                 } else {
-                    ivProductImage.setImageResource(loadedProduct.getImgUrl());
+                    ivProductImage.setImageResource(R.drawable.product_image_placeholder);
+                    markImageReadyAndTryRevealProductUi();
                 }
-                setProductDetailsLoading(false);
             }
 
             @Override
@@ -257,7 +288,11 @@ public class ProductDetailsFragment extends Fragment {
         api.getTodayProductSpecial(today).enqueue(new Callback<ProductSpecialTodayDto>() {
             @Override
             public void onResponse(Call<ProductSpecialTodayDto> call, Response<ProductSpecialTodayDto> response) {
-                if (!isUiReady() || loadedProduct == null) {
+                if (!isUiReady()) {
+                    return;
+                }
+                if (loadedProduct == null) {
+                    markSpecialPriceReadyAndTryRevealProductUi();
                     return;
                 }
                 ProductSpecialTodayDto body = response.isSuccessful() ? response.body() : null;
@@ -278,6 +313,7 @@ public class ProductDetailsFragment extends Fragment {
                     tvProductSpecialBadge.setVisibility(View.GONE);
                     tvProductPrice.setText(String.format(Locale.US, "$%.2f", base));
                 }
+                markSpecialPriceReadyAndTryRevealProductUi();
             }
 
             @Override
@@ -288,13 +324,37 @@ public class ProductDetailsFragment extends Fragment {
                 tvProductSpecialBadge.setVisibility(View.GONE);
                 Double b = loadedProduct.getProductBasePrice();
                 tvProductPrice.setText(String.format(Locale.US, "$%.2f", b != null ? b : 0.0));
+                markSpecialPriceReadyAndTryRevealProductUi();
             }
         });
+    }
+
+    private void markImageReadyAndTryRevealProductUi() {
+        revealImageReady = true;
+        tryRevealProductDetailsUi();
+    }
+
+    private void markSpecialPriceReadyAndTryRevealProductUi() {
+        revealSpecialPriceReady = true;
+        tryRevealProductDetailsUi();
+    }
+
+    private void tryRevealProductDetailsUi() {
+        if (!isUiReady() || loadedProduct == null) {
+            return;
+        }
+        if (!revealImageReady || !revealSpecialPriceReady) {
+            return;
+        }
+        setProductDetailsLoading(false);
     }
 
     private void setProductDetailsLoading(boolean loading) {
         if (productDetailsLoadingOverlay != null) {
             productDetailsLoadingOverlay.setVisibility(loading ? View.VISIBLE : View.GONE);
+        }
+        if (productDetailsContent != null) {
+            productDetailsContent.setVisibility(loading ? View.INVISIBLE : View.VISIBLE);
         }
     }
 }

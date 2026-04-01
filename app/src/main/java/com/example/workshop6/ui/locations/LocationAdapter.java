@@ -126,7 +126,7 @@ public class LocationAdapter extends ListAdapter<BakeryLocationDetails, Location
             }
 
             // Thumbnail placeholder
-            thumbnail.setImageResource(android.R.drawable.ic_menu_mapmode);
+            thumbnail.setImageResource(R.drawable.ic_bakery_store);
 
             itemView.setOnClickListener(v -> {
                 if (listener != null) listener.onClick(loc);

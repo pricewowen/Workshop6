@@ -3,6 +3,9 @@ package com.example.workshop6.ui.locations;
 import android.Manifest;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
+import android.os.SystemClock;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -41,8 +44,17 @@ import retrofit2.Response;
 
 public class MapFragment extends Fragment {
 
+    private static final long MAP_LOAD_MIN_MS = 400L;
+
     private LocationAdapter adapter;
     private ApiService api;
+    private final Handler mainHandler = new Handler(Looper.getMainLooper());
+    private long mapLoadStartElapsed;
+    private final Runnable hideMapLoadingRunnable = () -> {
+        if (isAdded()) {
+            setMapLoadingUi(false);
+        }
+    };
 
     private boolean nearbyMode = false;
     private boolean hasUserLocation = false;
@@ -128,11 +140,51 @@ public class MapFragment extends Fragment {
         loadBakeries();
     }
 
+    private void setMapLoadingUi(boolean loading) {
+        View root = getView();
+        if (root == null) {
+            return;
+        }
+        View overlay = root.findViewById(R.id.map_loading_overlay);
+        View content = root.findViewById(R.id.map_content);
+        if (overlay != null) {
+            overlay.setVisibility(loading ? View.VISIBLE : View.GONE);
+        }
+        if (content != null) {
+            content.setVisibility(loading ? View.INVISIBLE : View.VISIBLE);
+        }
+    }
+
+    /** Keeps the gold spinner visible briefly so fast responses are still noticeable. */
+    private void scheduleHideMapLoadingUi() {
+        long elapsed = SystemClock.elapsedRealtime() - mapLoadStartElapsed;
+        long wait = Math.max(0, MAP_LOAD_MIN_MS - elapsed);
+        mainHandler.removeCallbacks(hideMapLoadingRunnable);
+        mainHandler.postDelayed(hideMapLoadingRunnable, wait);
+    }
+
+    @Override
+    public void onDestroyView() {
+        mainHandler.removeCallbacks(hideMapLoadingRunnable);
+        super.onDestroyView();
+    }
+
     private void loadBakeries() {
+        mapLoadStartElapsed = SystemClock.elapsedRealtime();
+        setMapLoadingUi(true);
         api.getBakeries(null).enqueue(new Callback<List<BakeryDto>>() {
             @Override
             public void onResponse(Call<List<BakeryDto>> call, Response<List<BakeryDto>> response) {
+                if (!isAdded()) {
+                    return;
+                }
+                scheduleHideMapLoadingUi();
                 if (!response.isSuccessful() || response.body() == null) {
+                    View v = getView();
+                    if (v != null) {
+                        Snackbar.make(v, getString(R.string.login_error_server, response.code()),
+                                Snackbar.LENGTH_LONG).show();
+                    }
                     return;
                 }
                 cachedLocations.clear();
@@ -144,6 +196,14 @@ public class MapFragment extends Fragment {
 
             @Override
             public void onFailure(Call<List<BakeryDto>> call, Throwable t) {
+                if (!isAdded()) {
+                    return;
+                }
+                setMapLoadingUi(false);
+                View v = getView();
+                if (v != null) {
+                    Snackbar.make(v, R.string.login_error_no_connection, Snackbar.LENGTH_LONG).show();
+                }
             }
         });
     }
