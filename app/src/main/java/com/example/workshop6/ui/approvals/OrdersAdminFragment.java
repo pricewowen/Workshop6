@@ -230,85 +230,19 @@ public class OrdersAdminFragment extends Fragment {
     }
 
     private static List<StatusOption> getAvailableTransitions(@Nullable OrderDto order, @Nullable String currentRaw) {
+        List<StatusOption> out = new ArrayList<>(ALL_STATUS_OPTIONS);
         String current = currentRaw != null ? currentRaw.toLowerCase(Locale.ROOT).trim() : "";
-        String method = order != null && order.orderMethod != null
-                ? order.orderMethod.toLowerCase(Locale.ROOT).trim()
-                : "pickup";
-        boolean delivery = "delivery".equals(method);
-
-        List<StatusOption> out = new ArrayList<>();
-        // Keep current status selectable/default for clarity in spinner.
-        addIfMissing(out, current);
-
-        switch (current) {
-            case "placed":
-                addIfMissing(out, "pending_payment");
-                addIfMissing(out, "paid");
-                addIfMissing(out, "cancelled");
+        boolean hasCurrent = false;
+        for (StatusOption option : out) {
+            if (option.raw.equalsIgnoreCase(current)) {
+                hasCurrent = true;
                 break;
-            case "pending_payment":
-                addIfMissing(out, "paid");
-                addIfMissing(out, "cancelled");
-                break;
-            case "paid":
-                addIfMissing(out, "preparing");
-                addIfMissing(out, "cancelled");
-                break;
-            case "preparing":
-                addIfMissing(out, "ready");
-                addIfMissing(out, "cancelled");
-                break;
-            case "ready":
-                if (delivery) {
-                    addIfMissing(out, "scheduled");
-                    addIfMissing(out, "delivered");
-                } else {
-                    addIfMissing(out, "picked_up");
-                }
-                addIfMissing(out, "cancelled");
-                break;
-            case "scheduled":
-                addIfMissing(out, "delivered");
-                addIfMissing(out, "cancelled");
-                break;
-            case "picked_up":
-            case "delivered":
-            case "completed":
-            case "cancelled":
-            default:
-                // Terminal/no-op options only (current status already included).
-                break;
+            }
+        }
+        if (!current.isEmpty() && !hasCurrent && !"completed".equals(current)) {
+            out.add(new StatusOption(current, OrdersAdminAdapter.prettyStatus(current)));
         }
         return out;
-    }
-
-    private static void addIfMissing(List<StatusOption> out, String raw) {
-        if (raw == null || raw.trim().isEmpty()) {
-            return;
-        }
-        StatusOption option = findStatusOption(raw);
-        if (option == null) {
-            return;
-        }
-        for (StatusOption existing : out) {
-            if (existing.raw.equals(option.raw)) {
-                return;
-            }
-        }
-        out.add(option);
-    }
-
-    @Nullable
-    private static StatusOption findStatusOption(String raw) {
-        if (raw == null) {
-            return null;
-        }
-        for (StatusOption o : ALL_STATUS_OPTIONS) {
-            if (o.raw.equalsIgnoreCase(raw.trim())) {
-                return o;
-            }
-        }
-        return null;
     }
 
     private void setLoadingUi(boolean loading) {
