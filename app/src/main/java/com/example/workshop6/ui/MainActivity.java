@@ -17,8 +17,6 @@ import com.example.workshop6.data.api.dto.CustomerDto;
 import com.example.workshop6.data.api.dto.EmployeeDto;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 
-import android.view.MenuItem;
-
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
@@ -169,11 +167,6 @@ public class MainActivity extends AppCompatActivity {
         bottomNav.getMenu().clear();
         bottomNav.inflateMenu(menuResId);
         NavigationUI.setupWithNavController(bottomNav, navController);
-        // Chat is temporarily disabled: do not allow navigation from the bottom-nav tab.
-        MenuItem chatItem = bottomNav.getMenu().findItem(R.id.nav_staff_chat);
-        if (chatItem != null) {
-            chatItem.setEnabled(false);
-        }
         currentBottomNavMenuResId = menuResId;
     }
 

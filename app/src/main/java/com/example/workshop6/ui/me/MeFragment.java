@@ -104,7 +104,43 @@ public class MeFragment extends Fragment {
     }
 
     private void openOrCreateChat() {
-        // Chat is temporarily disabled (no-op for now).
+        if (!"CUSTOMER".equalsIgnoreCase(sessionManager.getUserRole())) {
+            Toast.makeText(requireContext(), R.string.staff_chat_disabled_for_staff, Toast.LENGTH_SHORT).show();
+            return;
+        }
+        api.getMyOpenChatThread().enqueue(new Callback<ChatThreadDto>() {
+            @Override
+            public void onResponse(Call<ChatThreadDto> call, Response<ChatThreadDto> response) {
+                if (response.isSuccessful() && response.body() != null && response.body().id != null) {
+                    launchChat(response.body().id);
+                    return;
+                }
+                api.createChatThread().enqueue(new Callback<ChatThreadDto>() {
+                    @Override
+                    public void onResponse(Call<ChatThreadDto> call2, Response<ChatThreadDto> response2) {
+                        if (response2.isSuccessful() && response2.body() != null && response2.body().id != null) {
+                            launchChat(response2.body().id);
+                        }
+                    }
+
+                    @Override
+                    public void onFailure(Call<ChatThreadDto> call2, Throwable t) {
+                        if (!isAdded()) {
+                            return;
+                        }
+                        Toast.makeText(requireContext(), R.string.login_error_no_connection, Toast.LENGTH_SHORT).show();
+                    }
+                });
+            }
+
+            @Override
+            public void onFailure(Call<ChatThreadDto> call, Throwable t) {
+                if (!isAdded()) {
+                    return;
+                }
+                Toast.makeText(requireContext(), R.string.login_error_no_connection, Toast.LENGTH_SHORT).show();
+            }
+        });
     }
 
     private void launchChat(int threadId) {
