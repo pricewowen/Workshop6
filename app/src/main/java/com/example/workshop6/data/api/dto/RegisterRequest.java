@@ -5,16 +5,21 @@ public class RegisterRequest {
     public final String email;
     public final String password;
     public final String firstName;
+    public final String middleInitial;
     public final String lastName;
     public final String phone;
+    public final String businessPhone;
 
     public RegisterRequest(String username, String email, String password,
-                           String firstName, String lastName, String phone) {
+                           String firstName, String middleInitial, String lastName,
+                           String phone, String businessPhone) {
         this.username = username;
         this.email = email;
         this.password = password;
         this.firstName = firstName;
+        this.middleInitial = middleInitial;
         this.lastName = lastName;
         this.phone = phone;
+        this.businessPhone = businessPhone;
     }
 }

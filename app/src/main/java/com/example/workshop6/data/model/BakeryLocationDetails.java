@@ -17,4 +17,6 @@ public class BakeryLocationDetails {
     public String openingHours;
     public double latitude;
     public double longitude;
+    /** Hero / list image URL; null uses brown + storefront placeholder. */
+    public String bakeryImageUrl;
 }

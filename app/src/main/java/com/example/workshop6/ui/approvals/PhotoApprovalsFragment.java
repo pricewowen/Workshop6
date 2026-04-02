@@ -1,7 +1,8 @@
 package com.example.workshop6.ui.approvals;
 
-import android.graphics.Bitmap;
 import android.os.Bundle;
+import android.graphics.ColorMatrix;
+import android.graphics.ColorMatrixColorFilter;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -14,13 +15,13 @@ import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.bumptech.glide.Glide;
 import com.example.workshop6.R;
 import com.example.workshop6.auth.SessionManager;
 import com.example.workshop6.data.api.ApiClient;
 import com.example.workshop6.data.api.ApiService;
 import com.example.workshop6.data.api.dto.CustomerDto;
 import com.example.workshop6.logging.ActivityLogger;
-import com.example.workshop6.util.ImageUtils;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -131,7 +132,11 @@ public class PhotoApprovalsFragment extends Fragment {
                     return;
                 }
                 if (!response.isSuccessful()) {
-                    Toast.makeText(requireContext(), R.string.photo_approvals_access_denied, Toast.LENGTH_SHORT).show();
+                    int code = response.code();
+                    int messageRes = (code == 401 || code == 403)
+                            ? R.string.photo_approvals_access_denied
+                            : R.string.error_photo_read;
+                    Toast.makeText(requireContext(), messageRes, Toast.LENGTH_SHORT).show();
                     return;
                 }
                 ActivityLogger.log(
@@ -201,15 +206,21 @@ public class PhotoApprovalsFragment extends Fragment {
             holder.tvEmail.setText(c.email != null ? c.email : "");
 
             if (c.profilePhotoPath != null && !c.profilePhotoPath.trim().isEmpty()) {
-                Bitmap bm = ImageUtils.decodeFileForPreview(c.profilePhotoPath, 384);
-                if (bm != null) {
-                    holder.ivPhoto.setImageBitmap(bm);
-                } else {
-                    holder.ivPhoto.setImageResource(R.drawable.ic_person_placeholder);
-                }
+                String originFallback = cdnToOriginUrl(c.profilePhotoPath);
+                Glide.with(holder.itemView)
+                        .load(c.profilePhotoPath)
+                        .placeholder(R.drawable.ic_person_placeholder)
+                        .error(
+                                Glide.with(holder.itemView)
+                                        .load(originFallback != null ? originFallback : c.profilePhotoPath)
+                                        .placeholder(R.drawable.ic_person_placeholder)
+                                        .error(R.drawable.ic_person_placeholder)
+                        )
+                        .into(holder.ivPhoto);
             } else {
                 holder.ivPhoto.setImageResource(R.drawable.ic_person_placeholder);
             }
+            applyPendingPhotoStyle(holder.ivPhoto);
 
             holder.btnApprove.setOnClickListener(v -> listener.onApprove(c));
             holder.btnReject.setOnClickListener(v -> listener.onReject(c));
@@ -235,6 +246,26 @@ public class PhotoApprovalsFragment extends Fragment {
                 btnApprove = itemView.findViewById(R.id.btn_approve_photo);
                 btnReject = itemView.findViewById(R.id.btn_reject_photo);
             }
+        }
+
+        private static void applyPendingPhotoStyle(android.widget.ImageView imageView) {
+            ColorMatrix matrix = new ColorMatrix();
+            matrix.setSaturation(0f);
+            ColorMatrix darken = new ColorMatrix(new float[]{
+                    0.65f, 0, 0, 0, 0,
+                    0, 0.65f, 0, 0, 0,
+                    0, 0, 0.65f, 0, 0,
+                    0, 0, 0, 1, 0
+            });
+            matrix.postConcat(darken);
+            imageView.setColorFilter(new ColorMatrixColorFilter(matrix));
+            imageView.setImageAlpha(230);
+        }
+
+        private static String cdnToOriginUrl(String url) {
+            if (url == null) return null;
+            if (!url.contains(".cdn.digitaloceanspaces.com")) return null;
+            return url.replace(".cdn.digitaloceanspaces.com", ".digitaloceanspaces.com");
         }
     }
 }

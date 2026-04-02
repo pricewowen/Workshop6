@@ -31,6 +31,9 @@ public final class BakeryLocationMapper {
             d.province = b.address.province;
             d.postalCode = b.address.postalCode;
         }
+        d.bakeryImageUrl = b.bakeryImageUrl != null && !b.bakeryImageUrl.trim().isEmpty()
+                ? b.bakeryImageUrl.trim()
+                : null;
         d.openingHours = openingHoursSummary != null ? openingHoursSummary : "";
         return d;
     }

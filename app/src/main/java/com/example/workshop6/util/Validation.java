@@ -5,7 +5,7 @@ import androidx.annotation.Nullable;
 import java.util.regex.Pattern;
 
 public class Validation {
-    private static final int MIN_PASSWORD_LENGTH = 8;
+    private static final int MIN_PASSWORD_LENGTH = 7;
     // Keep max aligned with practical credential policy used by the app.
     private static final int MAX_PASSWORD_LENGTH = 72;
     private static final Pattern PASSWORD_UPPERCASE_PATTERN = Pattern.compile(".*[A-Z].*");
@@ -13,6 +13,7 @@ public class Validation {
     private static final Pattern PASSWORD_DIGIT_PATTERN = Pattern.compile(".*\\d.*");
     private static final Pattern PASSWORD_SYMBOL_PATTERN = Pattern.compile(".*[^A-Za-z0-9].*");
     private static final Pattern FULL_NAME_PATTERN = Pattern.compile("^[a-zA-Z ]+$");
+    private static final Pattern MIDDLE_INITIAL_PATTERN = Pattern.compile("^[A-Za-z]$");
     private static final Pattern PHONE_NUMBER_PATTERN = Pattern.compile("^[0-9]{10}$");
 
     private static final int MAX_ADDRESS_LENGTH = 120;
@@ -106,6 +107,17 @@ public class Validation {
      */
     public static boolean isFullNameValid(@Nullable CharSequence fullName) {
         return !isEmpty(fullName) && FULL_NAME_PATTERN.matcher(fullName).matches();
+    }
+
+    /**
+     * Middle initial is optional; when present it must be a single letter.
+     */
+    public static boolean isMiddleInitialValid(@Nullable CharSequence middleInitial) {
+        if (isEmpty(middleInitial)) {
+            return true;
+        }
+        String s = middleInitial.toString().trim();
+        return MIDDLE_INITIAL_PATTERN.matcher(s).matches();
     }
 
     /**

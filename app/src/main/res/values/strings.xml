@@ -6,7 +6,7 @@
     <string name="login_title">Welcome Back</string>
     <string name="login_heading">Welcome\nback.</string>
     <string name="login_subtitle">Sign in to your account</string>
-    <string name="hint_email">Email address</string>
+    <string name="hint_email">Email</string>
     <string name="hint_email_or_username">Email or username</string>
     <string name="error_email_or_username_required">Email or username is required</string>
     <string name="hint_password">Password</string>
@@ -23,6 +23,7 @@
     <string name="login_error_locked_out">Too many failed attempts. Try again in %1$s.</string>
     <string name="login_error_server">Server error (%1$d). Please try again.</string>
     <string name="login_error_no_connection">Cannot connect to server.</string>
+    <string name="lost_connection_logout">Lost connection to server. Please sign in again.</string>
     <string name="session_expired">Your session expired. Please sign in again.</string>
 
     <!-- Auth — Register -->
@@ -30,15 +31,20 @@
     <string name="label_photo">PHOTO</string>
     <string name="social_divider_register">or manually</string>
     <string name="label_full_name">FULL NAME</string>
-    <string name="hint_full_name">Your full name</string>
+    <string name="hint_full_name">Full Name</string>
     <string name="label_first_name">FIRST NAME</string>
-    <string name="hint_first_name">First name</string>
+    <string name="hint_first_name">First Name</string>
     <string name="label_last_name">LAST NAME</string>
-    <string name="hint_last_name">Last name</string>
+    <string name="label_middle_initial">MIDDLE INITIAL</string>
+    <string name="hint_last_name">Last Name</string>
+    <string name="hint_middle_initial">Middle Initial</string>
+    <string name="error_middle_initial_invalid">Use a single letter only</string>
     <string name="label_username">USERNAME</string>
-    <string name="hint_username">Choose a username</string>
+    <string name="hint_username">Username</string>
     <string name="label_phone">PHONE</string>
-    <string name="hint_phone">Your phone number</string>
+    <string name="hint_phone">Phone</string>
+    <string name="label_business_phone">BUSINESS PHONE</string>
+    <string name="hint_business_phone">Business Phone</string>
     <string name="btn_create_account">Create Account</string>
     <string name="link_have_account">Have an account? </string>
     <string name="link_sign_in">Sign in</string>
@@ -69,11 +75,10 @@
     <string name="error_password_too_long">Password is too long</string>
     <string name="error_password_invalid">Enter a valid password</string>
     <string name="error_password_strength">Use at least 8 characters with uppercase, lowercase, a number, and a symbol</string>
-    <string name="hint_confirm_password">Confirm password</string>
+    <string name="hint_confirm_password">Confirm Password</string>
     <string name="error_password_mismatch">Passwords do not match</string>
 
     <!-- Navigation -->
-    <string name="nav_home">Home</string>
     <string name="nav_browse">Browse</string>
     <string name="nav_map">Map</string>
     <string name="nav_me">Me</string>
@@ -83,6 +88,8 @@
     <string name="nav_account_admin">Deactivation</string>
     <string name="staff_chat">Staff Chat</string>
     <string name="nav_chat_short">Chat</string>
+    <string name="chat_new">New chat</string>
+    <string name="customer_chat_empty_threads">No chats yet. Tap New chat to start one.</string>
 
     <!-- Map / Locations -->
     <string name="locations_title">Find a Bakery</string>
@@ -99,17 +106,20 @@
     <string name="btn_get_directions">Get Directions</string>
     <string name="btn_call">Call</string>
     <string name="section_available_here">Available Here</string>
-    <string name="section_reviews">Reviews</string>
+    <string name="location_section_contact">Contact</string>
+    <string name="location_section_hours">Hours</string>
+    <string name="hours_closed">Closed</string>
+    <string name="hours_range_fmt">%1$s – %2$s</string>
+    <string name="location_tap_product_hint">Tap to view</string>
+    <string name="available_here_empty">Fresh production batches will show here. Browse for our full catalog.</string>
+    <string name="available_here_load_failed">Could not load what\'s in stock. Check your connection and open this location again.</string>
 
     <!-- Stubs -->
     <string name="coming_soon">Coming Soon</string>
-    <string name="stub_home_message">Welcome to Peelin\' Good!</string>
-    <string name="staff_home_message">Internal management dashboard</string>
     <string name="stub_browse_message">Browse our products</string>
     <string name="stub_me_message">Your profile</string>
 
     <!-- Content descriptions -->
-    <string name="cd_nav_home">Home</string>
     <string name="cd_nav_products">Products</string>
     <string name="cd_nav_orders">Orders</string>
     <string name="cd_nav_profile">Profile</string>
@@ -117,20 +127,19 @@
     <string name="cd_hero_image">Bakery storefront</string>
     <string name="cd_location_thumbnail">Location photo</string>
 
-    <!-- Stub review data -->
-    <string name="stub_review_1_rating">\u2605\u2605\u2605\u2605\u2606  4.0</string>
-    <string name="stub_review_1_text">Great croissants! Always fresh.</string>
-    <string name="stub_review_1_author">- Sophie L.</string>
-    <string name="stub_review_2_rating">\u2605\u2605\u2605\u2605\u2605  5.0</string>
-    <string name="stub_review_2_text">Love this place! Best sourdough in town.</string>
-    <string name="stub_review_2_author">- James R.</string>
-
     <string name="hello_blank_fragment">Hello blank fragment</string>
 
     <!-- Products -->
     <string name="label_featured_product_name">Butter Croissant</string>
     <string name="label_featured_product_price">$4.50</string>
     <string name="label_featured">TODAY\'S FEATURE</string>
+    <string name="btn_view_featured_product">View product</string>
+    <string name="featured_discount_today">%1$.0f%% off today</string>
+    <string name="section_product_reviews">Reviews</string>
+    <string name="product_reviews_with_average">Reviews (%1$.1f★ average)</string>
+    <string name="product_reviews_none_yet">No reviews yet.</string>
+    <string name="product_review_author_fallback">Customer</string>
+
     <string name="btn_add_to_cart">Add to Cart</string>
     <string name="label_points_available">1,240 pts</string>
     <string name="label_points_to_next">Gold • 260 to Platinum</string>
@@ -138,8 +147,10 @@
     <string name="label_tier_description_default">Starting tier for all customers</string>
     <string name="label_next_tier_default">Next Tier: Silver</string>
     <string name="label_points_needed_default">10000 points to next tier</string>
-    <string name="label_next_tier_fmt">Next Tier: %1$s</string>
-    <string name="label_points_needed_fmt">%1$d points to reach %2$s</string>
+    <string name="label_next_tier_fmt">Next tier: %1$s (at %2$s pts)</string>
+    <string name="label_points_needed_fmt">%1$s pts to reach %2$s</string>
+    <string name="loyalty_tier_desc_closed_range">%1$.0f%% off qualifying checkout · %2$s–%3$s pts</string>
+    <string name="loyalty_tier_desc_open_range">%1$.0f%% off qualifying checkout · %2$s+ pts</string>
     <string name="label_no_loyalty_account">No Loyalty Account</string>
     <string name="label_no_loyalty_account_desc">This account does not currently participate in customer rewards</string>
     <string name="label_next_tier_na">Next Tier: N/A</string>
@@ -164,9 +175,23 @@
     <string name="label_default">Default</string>
     <string name="label_product_price">$0.00</string>
     <string name="label_selected_arrow">&gt;</string>
-    <string name="label_search">Seach Products...</string>
+    <string name="label_search">Search Products...</string>
     <string name="label_discount_cart"> (10% off!) </string>
     <string name="label_discount_applied">Discount Applied</string>
+    <string name="checkout_loyalty_title">Loyalty</string>
+    <string name="checkout_loyalty_balance">Your balance: %1$s pts</string>
+    <string name="checkout_loyalty_use_tier">Redeem your %1$s benefit: %2$.0f%% off this order for %3$s points.</string>
+    <string name="checkout_redeem_points_button">Redeem (%1$s pts)</string>
+    <string name="checkout_loyalty_no_discount">Your tier does not include a checkout discount yet. Earn points to reach a higher tier.</string>
+    <string name="checkout_loyalty_insufficient_points">You need %1$s points to redeem this benefit. You have %2$s.</string>
+    <string name="checkout_loyalty_applied_toast">%1$.0f%% tier discount applied to this order.</string>
+    <string name="checkout_special_title">Today\'s special</string>
+    <string name="checkout_special_cart_blurb">This order includes today\'s featured product at a special price. You save %1$s compared with regular prices on those items.</string>
+    <string name="checkout_merch_list">Regular subtotal</string>
+    <string name="checkout_special_line">Today\'s special</string>
+    <string name="checkout_tier_line">Tier reward</string>
+    <string name="checkout_subtotal_after_discounts">Subtotal</string>
+    <string name="product_special_badge">Today\'s special · %1$.0f%% off</string>
 
     <!-- Profile / photos -->
     <string name="btn_choose_photo">Choose photo</string>
@@ -228,11 +253,16 @@
 
     <string name="label_address">Address (optional)</string>
     <string name="label_address_header">ADDRESS</string>
-    <string name="hint_address1">Address line 1</string>
-    <string name="hint_address2">Address line 2</string>
+    <string name="label_address_line_1">ADDRESS LINE 1</string>
+    <string name="label_address_line_2">ADDRESS LINE 2</string>
+    <string name="label_city">CITY</string>
+    <string name="label_postal_zip">POSTAL / ZIP</string>
+    <string name="label_province">PROVINCE / TERRITORY</string>
+    <string name="hint_address1">Address Line 1</string>
+    <string name="hint_address2">Address Line 2</string>
     <string name="hint_city">City</string>
     <string name="hint_province">Province/Territory</string>
-    <string name="hint_postal_code">Postal/ZIP</string>
+    <string name="hint_postal_code">Postal Code</string>
 
     <string name="error_address_required">Address line 1 is required</string>
     <string name="error_address_invalid">Address is too long</string>
@@ -249,7 +279,9 @@
     <string name="stub_me_address">Address</string>
     <string name="no_address_on_file">No address on file. Tap Edit to add one.</string>
     <string name="order_history">Order History</string>
-    <string name="chat_with_staff">Chat with Staff</string>
+    <string name="loyalty_rewards_title">Rewards</string>
+    <string name="btn_loyalty_rewards">Rewards</string>
+    <string name="loyalty_rewards_checkout_hint">You can redeem your tier discount with points when you check out.</string>
     <string name="type_a_message">Type a message</string>
     <string name="send">Send</string>
     <string name="chat_empty_state">No messages yet</string>

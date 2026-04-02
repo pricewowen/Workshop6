@@ -8,8 +8,8 @@ import android.os.ParcelFileDescriptor;
 
 import androidx.core.content.FileProvider;
 
+import java.io.ByteArrayOutputStream;
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.util.Locale;
 
@@ -81,64 +81,20 @@ public final class ImageUtils {
             }
         }
 
-        // Dimension check – skip for camera capture (we resize on save)
-        if (!isOurCameraFile) {
-            try (InputStream is = context.getContentResolver().openInputStream(uri)) {
-                if (is == null) return "Could not read the selected image.";
-
-                BitmapFactory.Options opts = new BitmapFactory.Options();
-                opts.inJustDecodeBounds = true;
-                BitmapFactory.decodeStream(is, null, opts);
-
-                if (opts.outWidth <= 0 || opts.outHeight <= 0) {
-                    return "Selected file is not a valid image.";
-                }
-                if (opts.outWidth > MAX_DIMENSION_PX || opts.outHeight > MAX_DIMENSION_PX) {
-                    return context.getString(com.example.workshop6.R.string.error_photo_dimensions_too_large);
-                }
-            } catch (Exception e) {
-                return "Could not read the selected image.";
+        // Ensure the selected file decodes as an image; large dimensions are resized on upload.
+        try (InputStream is = context.getContentResolver().openInputStream(uri)) {
+            if (is == null) return "Could not read the selected image.";
+            BitmapFactory.Options opts = new BitmapFactory.Options();
+            opts.inJustDecodeBounds = true;
+            BitmapFactory.decodeStream(is, null, opts);
+            if (opts.outWidth <= 0 || opts.outHeight <= 0) {
+                return "Selected file is not a valid image.";
             }
+        } catch (Exception e) {
+            return "Could not read the selected image.";
         }
 
         return null;
-    }
-
-    /**
-     * Saves a profile image to app storage. When {@code userId} is positive, uses {@code user_{id}.jpg};
-     * otherwise uses {@code profile_local.jpg} (API-backed sessions without a local numeric id).
-     */
-    public static String saveProfilePhoto(Context context, Uri uri, int userId) {
-        if (uri == null) return null;
-
-        Bitmap bitmap;
-        try (InputStream is = context.getContentResolver().openInputStream(uri)) {
-            if (is == null) return null;
-            bitmap = BitmapFactory.decodeStream(is);
-            if (bitmap == null) return null;
-        } catch (Exception e) {
-            return null;
-        }
-
-        // Keep source framing and resize for storage.
-        bitmap = scaleDownToMaxSize(bitmap, MAX_DIMENSION_PX);
-
-        File dir = new File(context.getFilesDir(), "profile_photos");
-        //noinspection ResultOfMethodCallIgnored
-        dir.mkdirs();
-
-        String fileName = userId > 0 ? ("user_" + userId + ".jpg") : "profile_local.jpg";
-        File outFile = new File(dir, fileName);
-
-        try (FileOutputStream fos = new FileOutputStream(outFile)) {
-            boolean ok = bitmap.compress(Bitmap.CompressFormat.JPEG, 90, fos);
-            fos.flush();
-            return ok ? outFile.getAbsolutePath() : null;
-        } catch (Exception e) {
-            return null;
-        } finally {
-            bitmap.recycle();
-        }
     }
 
     /** Returns a bitmap scaled so neither dimension exceeds maxSize; recycles the input if scaled. */
@@ -154,6 +110,57 @@ public final class ImageUtils {
         return scaled;
     }
 
+    private static int calculateInSampleSize(int width, int height, int reqWidth, int reqHeight) {
+        int inSampleSize = 1;
+        if (height > reqHeight || width > reqWidth) {
+            int halfHeight = height / 2;
+            int halfWidth = width / 2;
+            while ((halfHeight / inSampleSize) >= reqHeight
+                    && (halfWidth / inSampleSize) >= reqWidth) {
+                inSampleSize *= 2;
+            }
+        }
+        return Math.max(1, inSampleSize);
+    }
+
+    public static Bitmap decodeForUpload(Context context, Uri uri) {
+        if (uri == null) return null;
+        try (InputStream boundsStream = context.getContentResolver().openInputStream(uri)) {
+            if (boundsStream == null) return null;
+            BitmapFactory.Options bounds = new BitmapFactory.Options();
+            bounds.inJustDecodeBounds = true;
+            BitmapFactory.decodeStream(boundsStream, null, bounds);
+            if (bounds.outWidth <= 0 || bounds.outHeight <= 0) return null;
+
+            BitmapFactory.Options decode = new BitmapFactory.Options();
+            decode.inSampleSize = calculateInSampleSize(
+                    bounds.outWidth, bounds.outHeight, MAX_DIMENSION_PX, MAX_DIMENSION_PX
+            );
+            try (InputStream imageStream = context.getContentResolver().openInputStream(uri)) {
+                if (imageStream == null) return null;
+                Bitmap bitmap = BitmapFactory.decodeStream(imageStream, null, decode);
+                if (bitmap == null) return null;
+                return scaleDownToMaxSize(bitmap, MAX_DIMENSION_PX);
+            }
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    public static byte[] compressBitmapJpeg(Bitmap bitmap, long maxBytes) {
+        if (bitmap == null) return null;
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        int quality = 90;
+        bitmap.compress(Bitmap.CompressFormat.JPEG, quality, out);
+        while (out.size() > maxBytes && quality > 45) {
+            out.reset();
+            quality -= 10;
+            bitmap.compress(Bitmap.CompressFormat.JPEG, quality, out);
+        }
+        if (out.size() > maxBytes) return null;
+        return out.toByteArray();
+    }
+
     public static Bitmap decodeForPreview(Context context, Uri uri) {
         if (uri == null) return null;
         try (InputStream is = context.getContentResolver().openInputStream(uri)) {
@@ -166,44 +173,4 @@ public final class ImageUtils {
         }
     }
 
-    /**
-     * Decodes a local file path with sampling to avoid OOM on large images.
-     */
-    public static Bitmap decodeFileForPreview(String path, int maxSizePx) {
-        if (path == null || path.trim().isEmpty()) {
-            return null;
-        }
-        try {
-            BitmapFactory.Options bounds = new BitmapFactory.Options();
-            bounds.inJustDecodeBounds = true;
-            BitmapFactory.decodeFile(path, bounds);
-            if (bounds.outWidth <= 0 || bounds.outHeight <= 0) {
-                return null;
-            }
-
-            BitmapFactory.Options opts = new BitmapFactory.Options();
-            opts.inSampleSize = calculateInSampleSize(bounds, maxSizePx, maxSizePx);
-            opts.inPreferredConfig = Bitmap.Config.RGB_565;
-            Bitmap sampled = BitmapFactory.decodeFile(path, opts);
-            if (sampled == null) {
-                return null;
-            }
-            return scaleDownToMaxSize(sampled, maxSizePx);
-        } catch (OutOfMemoryError oom) {
-            return null;
-        } catch (Exception e) {
-            return null;
-        }
-    }
-
-    private static int calculateInSampleSize(BitmapFactory.Options options, int reqWidth, int reqHeight) {
-        int height = options.outHeight;
-        int width = options.outWidth;
-        int inSampleSize = 1;
-
-        while ((height / inSampleSize) > reqHeight || (width / inSampleSize) > reqWidth) {
-            inSampleSize *= 2;
-        }
-        return Math.max(1, inSampleSize);
-    }
 }

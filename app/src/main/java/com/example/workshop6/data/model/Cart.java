@@ -91,4 +91,31 @@ public class Cart {
     public double getDiscountFraction() {
         return discountPercent;
     }
+
+    /** Sum of line totals at regular (non-special) list prices. */
+    public double getMerchandiseListSubtotal() {
+        double total = 0;
+        for (CartItem item : items) {
+            total += item.getProduct().getProductBasePrice() * item.getQuantity();
+        }
+        return total;
+    }
+
+    /** Dollar savings from today's product special vs list prices (requires {@link com.example.workshop6.util.ProductSpecialState}). */
+    public double getTodaySpecialSavingsTotal() {
+        double savings = 0;
+        for (CartItem item : items) {
+            double listLine = item.getProduct().getProductBasePrice() * item.getQuantity();
+            savings += listLine - item.getTotalPrice();
+        }
+        return savings;
+    }
+
+    /** Loyalty cart discount in dollars (applied after special pricing). */
+    public double getTierDiscountDollars() {
+        if (!hasDiscount()) {
+            return 0;
+        }
+        return getMerchandiseSubtotal() * discountPercent;
+    }
 }

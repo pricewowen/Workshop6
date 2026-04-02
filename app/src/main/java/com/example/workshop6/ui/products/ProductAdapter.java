@@ -1,14 +1,16 @@
 package com.example.workshop6.ui.products;
 
-import android.content.Intent;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ImageView;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.bumptech.glide.Glide;
+import com.bumptech.glide.request.RequestOptions;
 import com.example.workshop6.R;
 import com.example.workshop6.data.model.Product;
 
@@ -39,9 +41,19 @@ public class ProductAdapter extends RecyclerView.Adapter<ProductAdapter.ProductV
     public void onBindViewHolder(@NonNull ProductAdapter.ProductViewHolder holder, int position) {
         Product product = productList.get(position);
         holder.tvProductName.setText(product.getProductName());
-
-        holder.tvProductName.setText(product.getProductName());
         holder.tvProductPrice.setText(String.format("$%.2f", product.getProductBasePrice().doubleValue()));
+        String url = product.getImageUrl();
+        if (url != null && !url.trim().isEmpty()) {
+            Glide.with(holder.ivThumb.getContext())
+                    .load(url.trim())
+                    .apply(RequestOptions.centerCropTransform())
+                    .placeholder(R.drawable.product_row_thumb_placeholder)
+                    .error(R.drawable.product_row_thumb_placeholder)
+                    .into(holder.ivThumb);
+        } else {
+            Glide.with(holder.ivThumb.getContext()).clear(holder.ivThumb);
+            holder.ivThumb.setImageResource(R.drawable.product_row_thumb_placeholder);
+        }
         holder.itemView.setOnClickListener(v -> listener.onProductClick(product.getProductId()));
     }
 
@@ -52,11 +64,13 @@ public class ProductAdapter extends RecyclerView.Adapter<ProductAdapter.ProductV
 
     // ViewHolder class
     static class ProductViewHolder extends RecyclerView.ViewHolder {
+        ImageView ivThumb;
         TextView tvProductName;
         TextView tvProductPrice;
 
         public ProductViewHolder(@NonNull View itemView) {
             super(itemView);
+            ivThumb = itemView.findViewById(R.id.iv_product_thumb);
             tvProductName = itemView.findViewById(R.id.tvProductName);
             tvProductPrice = itemView.findViewById(R.id.tvProductPrice);
         }

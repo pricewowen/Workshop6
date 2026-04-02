@@ -11,10 +11,12 @@ import com.example.workshop6.data.api.dto.CheckoutRequest;
 import com.example.workshop6.data.api.dto.CustomerDto;
 import com.example.workshop6.data.api.dto.CustomerPatchRequest;
 import com.example.workshop6.data.api.dto.EmployeeDto;
+import com.example.workshop6.data.api.dto.EmployeePatchRequest;
 import com.example.workshop6.data.api.dto.LoginRequest;
 import com.example.workshop6.data.api.dto.OrderDto;
 import com.example.workshop6.data.api.dto.PostChatMessageRequest;
 import com.example.workshop6.data.api.dto.ProductDto;
+import com.example.workshop6.data.api.dto.ProductSpecialTodayDto;
 import com.example.workshop6.data.api.dto.RegisterRequest;
 import com.example.workshop6.data.api.dto.ReviewCreateRequest;
 import com.example.workshop6.data.api.dto.ReviewDto;
@@ -29,11 +31,14 @@ import java.util.List;
 import retrofit2.Call;
 import retrofit2.http.Body;
 import retrofit2.http.GET;
+import retrofit2.http.Multipart;
 import retrofit2.http.PATCH;
 import retrofit2.http.POST;
 import retrofit2.http.PUT;
 import retrofit2.http.Path;
+import retrofit2.http.Part;
 import retrofit2.http.Query;
+import okhttp3.MultipartBody;
 
 public interface ApiService {
 
@@ -46,6 +51,10 @@ public interface ApiService {
     @PUT("api/v1/account/password")
     Call<Void> changePassword(@Body ChangePasswordRequest body);
 
+    @Multipart
+    @POST("api/v1/account/profile-photo")
+    Call<CustomerDto> uploadProfilePhoto(@Part MultipartBody.Part photo);
+
     @GET("api/v1/customers/me")
     Call<CustomerDto> getCustomerMe();
 
@@ -55,6 +64,9 @@ public interface ApiService {
     @GET("api/v1/employee/me")
     Call<EmployeeDto> getEmployeeMe();
 
+    @PATCH("api/v1/employee/me")
+    Call<EmployeeDto> patchEmployeeMe(@Body EmployeePatchRequest body);
+
     @GET("api/v1/products")
     Call<List<ProductDto>> getProducts(
             @Query("search") String search,
@@ -63,6 +75,12 @@ public interface ApiService {
 
     @GET("api/v1/products/{id}")
     Call<ProductDto> getProduct(@Path("id") int id);
+
+    /**
+     * @param date ISO-8601 calendar date ({@code yyyy-MM-dd}) for the user's local "today".
+     */
+    @GET("api/v1/product-specials/today")
+    Call<ProductSpecialTodayDto> getTodayProductSpecial(@Query("date") String date);
 
     @GET("api/v1/bakeries")
     Call<List<BakeryDto>> getBakeries(@Query("search") String search);

@@ -1,7 +1,6 @@
 package com.example.workshop6.ui.me;
 
 import android.content.Intent;
-import android.graphics.Bitmap;
 import android.graphics.ColorMatrix;
 import android.graphics.ColorMatrixColorFilter;
 import android.os.Bundle;
@@ -10,27 +9,25 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 
+import com.bumptech.glide.Glide;
 import com.example.workshop6.R;
 import com.example.workshop6.auth.LoginActivity;
 import com.example.workshop6.auth.SessionManager;
 import com.example.workshop6.data.api.ApiClient;
 import com.example.workshop6.data.api.ApiService;
 import com.example.workshop6.data.api.dto.AddressDto;
-import com.example.workshop6.data.api.dto.ChatThreadDto;
 import com.example.workshop6.data.api.dto.CustomerDto;
 import com.example.workshop6.data.api.dto.EmployeeDto;
 import com.example.workshop6.logging.ActivityLogger;
-import com.example.workshop6.ui.chat.ChatActivity;
 import com.example.workshop6.ui.cart.CartManager;
+import com.example.workshop6.ui.loyalty.LoyaltyRewardsActivity;
 import com.example.workshop6.ui.orders.OrderHistoryActivity;
 import com.example.workshop6.ui.profile.EditProfileActivity;
-import com.example.workshop6.util.ImageUtils;
 
 import retrofit2.Call;
 import retrofit2.Callback;
@@ -50,6 +47,8 @@ public class MeFragment extends Fragment {
     private TextView tvEmail;
     private TextView tvPhotoStatus;
     private TextView tvAddress;
+    private View meLoadingOverlay;
+    private View meScrollContent;
 
     @Nullable
     @Override
@@ -72,6 +71,12 @@ public class MeFragment extends Fragment {
         tvEmail = view.findViewById(R.id.tv_me_email);
         tvPhotoStatus = view.findViewById(R.id.tv_me_photo_status);
         tvAddress = view.findViewById(R.id.tv_me_address);
+        meLoadingOverlay = view.findViewById(R.id.me_loading_overlay);
+        meScrollContent = view.findViewById(R.id.me_scroll_content);
+
+        if (!"CUSTOMER".equalsIgnoreCase(sessionManager.getUserRole())) {
+            view.findViewById(R.id.btn_loyalty_rewards).setVisibility(View.GONE);
+        }
 
         view.findViewById(R.id.btn_edit_profile).setOnClickListener(v ->
                 startActivity(new Intent(requireContext(), EditProfileActivity.class)));
@@ -91,66 +96,44 @@ public class MeFragment extends Fragment {
             startActivity(intent);
         });
 
-        view.findViewById(R.id.btn_chat_staff).setOnClickListener(v -> openOrCreateChat());
+        view.findViewById(R.id.btn_loyalty_rewards).setOnClickListener(v ->
+                startActivity(new Intent(requireContext(), LoyaltyRewardsActivity.class)));
 
-        renderCachedMeIfPresent();
+        // On fresh entry (e.g., immediately after login), force a server read
+        // so pending-photo state text is accurate right away.
+        meCacheAtMs = 0L;
+        boolean showedCache = renderCachedMeIfPresent();
+        if (!showedCache) {
+            setMeLoadingUi(true);
+        }
         loadMe();
     }
 
     @Override
     public void onResume() {
         super.onResume();
+        // Force refresh after returning from Edit Profile so pending-photo state is not stale.
+        meCacheAtMs = 0L;
+        boolean showedCache = renderCachedMeIfPresent();
+        if (!showedCache) {
+            setMeLoadingUi(true);
+        }
         loadMe();
     }
 
-    private void openOrCreateChat() {
-        if (!"CUSTOMER".equalsIgnoreCase(sessionManager.getUserRole())) {
-            Toast.makeText(requireContext(), R.string.staff_chat_disabled_for_staff, Toast.LENGTH_SHORT).show();
-            return;
+    /** Full-screen gold spinner while profile is loading (no stub text visible). */
+    private void setMeLoadingUi(boolean loading) {
+        if (meLoadingOverlay != null) {
+            meLoadingOverlay.setVisibility(loading ? View.VISIBLE : View.GONE);
         }
-        api.getMyOpenChatThread().enqueue(new Callback<ChatThreadDto>() {
-            @Override
-            public void onResponse(Call<ChatThreadDto> call, Response<ChatThreadDto> response) {
-                if (response.isSuccessful() && response.body() != null && response.body().id != null) {
-                    launchChat(response.body().id);
-                    return;
-                }
-                api.createChatThread().enqueue(new Callback<ChatThreadDto>() {
-                    @Override
-                    public void onResponse(Call<ChatThreadDto> call2, Response<ChatThreadDto> response2) {
-                        if (response2.isSuccessful() && response2.body() != null && response2.body().id != null) {
-                            launchChat(response2.body().id);
-                        }
-                    }
-
-                    @Override
-                    public void onFailure(Call<ChatThreadDto> call2, Throwable t) {
-                        if (!isAdded()) {
-                            return;
-                        }
-                        Toast.makeText(requireContext(), R.string.login_error_no_connection, Toast.LENGTH_SHORT).show();
-                    }
-                });
-            }
-
-            @Override
-            public void onFailure(Call<ChatThreadDto> call, Throwable t) {
-                if (!isAdded()) {
-                    return;
-                }
-                Toast.makeText(requireContext(), R.string.login_error_no_connection, Toast.LENGTH_SHORT).show();
-            }
-        });
-    }
-
-    private void launchChat(int threadId) {
-        Intent intent = new Intent(requireContext(), ChatActivity.class);
-        intent.putExtra(ChatActivity.EXTRA_THREAD_ID, threadId);
-        startActivity(intent);
+        if (meScrollContent != null) {
+            meScrollContent.setVisibility(loading ? View.INVISIBLE : View.VISIBLE);
+        }
     }
 
     private void loadMe() {
         if (sessionManager.getUserUuid().isEmpty() && sessionManager.getUserId() <= 0) {
+            setMeLoadingUi(false);
             return;
         }
         if (isMeCacheFreshForCurrentUser()) {
@@ -162,13 +145,14 @@ public class MeFragment extends Fragment {
             api.getCustomerMe().enqueue(new Callback<CustomerDto>() {
                 @Override
                 public void onResponse(Call<CustomerDto> call, Response<CustomerDto> response) {
-                    if (!response.isSuccessful() || response.body() == null) {
-                        return;
-                    }
-                    CustomerDto c = response.body();
                     if (getView() == null) {
                         return;
                     }
+                    if (!response.isSuccessful() || response.body() == null) {
+                        setMeLoadingUi(false);
+                        return;
+                    }
+                    CustomerDto c = response.body();
                     String first = c.firstName != null ? c.firstName : "";
                     String last = c.lastName != null ? c.lastName : "";
                     String nameText = (first + " " + last).trim();
@@ -184,7 +168,7 @@ public class MeFragment extends Fragment {
                     View root = getView();
                     if (root != null) {
                         root.findViewById(R.id.btn_order_history).setVisibility(View.VISIBLE);
-                        root.findViewById(R.id.btn_chat_staff).setVisibility(View.VISIBLE);
+                        root.findViewById(R.id.btn_loyalty_rewards).setVisibility(View.VISIBLE);
                     }
                     cacheMeSnapshot(new MeSnapshot(nameText,
                             c.email != null ? c.email : sessionManager.getUserName(),
@@ -192,17 +176,24 @@ public class MeFragment extends Fragment {
                             pending,
                             formatCustomerAddress(c),
                             true,
-                            true));
+                            false));
+                    setMeLoadingUi(false);
                 }
 
                 @Override
                 public void onFailure(Call<CustomerDto> call, Throwable t) {
+                    if (getView() != null) {
+                        setMeLoadingUi(false);
+                    }
                 }
             });
         } else {
             api.getEmployeeMe().enqueue(new Callback<EmployeeDto>() {
                 @Override
                 public void onResponse(Call<EmployeeDto> call, Response<EmployeeDto> response) {
+                    if (getView() == null) {
+                        return;
+                    }
                     if (response.code() == 404 && "ADMIN".equalsIgnoreCase(role)) {
                         tvName.setText(sessionManager.getUserName());
                         tvEmail.setText(sessionManager.getUserName());
@@ -211,7 +202,7 @@ public class MeFragment extends Fragment {
                         View root = getView();
                         if (root != null) {
                             root.findViewById(R.id.btn_order_history).setVisibility(View.GONE);
-                            root.findViewById(R.id.btn_chat_staff).setVisibility(View.GONE);
+                            root.findViewById(R.id.btn_loyalty_rewards).setVisibility(View.GONE);
                         }
                         cacheMeSnapshot(new MeSnapshot(sessionManager.getUserName(),
                                 sessionManager.getUserName(),
@@ -220,9 +211,11 @@ public class MeFragment extends Fragment {
                                 "",
                                 false,
                                 false));
+                        setMeLoadingUi(false);
                         return;
                     }
                     if (!response.isSuccessful() || response.body() == null) {
+                        setMeLoadingUi(false);
                         return;
                     }
                     EmployeeDto e = response.body();
@@ -239,7 +232,7 @@ public class MeFragment extends Fragment {
                     View root = getView();
                     if (root != null) {
                         root.findViewById(R.id.btn_order_history).setVisibility(View.GONE);
-                        root.findViewById(R.id.btn_chat_staff).setVisibility(View.GONE);
+                        root.findViewById(R.id.btn_loyalty_rewards).setVisibility(View.GONE);
                     }
                     cacheMeSnapshot(new MeSnapshot(nameText,
                             e.workEmail != null ? e.workEmail : sessionManager.getUserName(),
@@ -248,18 +241,23 @@ public class MeFragment extends Fragment {
                             addressTextForEmployee(e),
                             false,
                             false));
+                    setMeLoadingUi(false);
                 }
 
                 @Override
                 public void onFailure(Call<EmployeeDto> call, Throwable t) {
+                    if (getView() != null) {
+                        setMeLoadingUi(false);
+                    }
                 }
             });
         }
     }
 
-    private void renderCachedMeIfPresent() {
+    /** @return true if cached profile was applied to the UI */
+    private boolean renderCachedMeIfPresent() {
         if (!isMeCacheFreshForCurrentUser() || cachedMeSnapshot == null || getView() == null) {
-            return;
+            return false;
         }
         tvName.setText(cachedMeSnapshot.name);
         tvEmail.setText(cachedMeSnapshot.email);
@@ -267,9 +265,12 @@ public class MeFragment extends Fragment {
         applyPhotoUI(cachedMeSnapshot.photoPath, cachedMeSnapshot.photoPending);
         View root = getView();
         if (root != null) {
-            root.findViewById(R.id.btn_order_history).setVisibility(cachedMeSnapshot.showOrderHistory ? View.VISIBLE : View.GONE);
-            root.findViewById(R.id.btn_chat_staff).setVisibility(cachedMeSnapshot.showChatStaff ? View.VISIBLE : View.GONE);
+            int vis = cachedMeSnapshot.showOrderHistory ? View.VISIBLE : View.GONE;
+            root.findViewById(R.id.btn_order_history).setVisibility(vis);
+            root.findViewById(R.id.btn_loyalty_rewards).setVisibility(vis);
         }
+        setMeLoadingUi(false);
+        return true;
     }
 
     private boolean isMeCacheFreshForCurrentUser() {
@@ -317,34 +318,36 @@ public class MeFragment extends Fragment {
     }
 
     private String addressTextForEmployee(EmployeeDto e) {
-        if (e.addressId != null && e.addressId > 0) {
-            return getString(R.string.no_address_on_file) + " (ID " + e.addressId + ")";
+        if (e.address != null && e.address.line1 != null && !e.address.line1.trim().isEmpty()) {
+            StringBuilder sb = new StringBuilder();
+            sb.append(e.address.line1.trim());
+            if (e.address.line2 != null && !e.address.line2.trim().isEmpty()) {
+                sb.append("\n").append(e.address.line2.trim());
+            }
+            if (e.address.city != null && !e.address.city.trim().isEmpty()) {
+                sb.append("\n").append(e.address.city.trim());
+            }
+            if (e.address.province != null && !e.address.province.trim().isEmpty()) {
+                sb.append(", ").append(e.address.province.trim());
+            }
+            if (e.address.postalCode != null && !e.address.postalCode.trim().isEmpty()) {
+                sb.append(" ").append(e.address.postalCode.trim());
+            }
+            return sb.toString();
         }
         return getString(R.string.no_address_on_file);
     }
 
     private void applyPhotoUI(String photoPath, boolean pending) {
         if (pending) {
-            Bitmap bm = (photoPath != null && !photoPath.isEmpty())
-                    ? ImageUtils.decodeFileForPreview(photoPath, 512)
-                    : null;
-            if (bm != null) {
-                ivPhoto.setImageBitmap(bm);
-            } else {
-                ivPhoto.setImageResource(R.drawable.ic_person_placeholder);
-            }
+            loadRemotePhoto(photoPath);
             applyPendingPhotoStyle(ivPhoto);
             tvPhotoStatus.setVisibility(View.VISIBLE);
             tvPhotoStatus.setText(R.string.photo_pending_approval);
         } else if (photoPath != null && !photoPath.isEmpty()) {
-            Bitmap bm = ImageUtils.decodeFileForPreview(photoPath, 512);
-            if (bm != null) {
-                ivPhoto.setImageBitmap(bm);
-                ivPhoto.clearColorFilter();
-                ivPhoto.setImageAlpha(255);
-            } else {
-                ivPhoto.setImageResource(R.drawable.ic_person_placeholder);
-            }
+            loadRemotePhoto(photoPath);
+            ivPhoto.clearColorFilter();
+            ivPhoto.setImageAlpha(255);
             tvPhotoStatus.setVisibility(View.GONE);
         } else {
             ivPhoto.setImageResource(R.drawable.ic_person_placeholder);
@@ -390,5 +393,29 @@ public class MeFragment extends Fragment {
         matrix.postConcat(darken);
         imageView.setColorFilter(new ColorMatrixColorFilter(matrix));
         imageView.setImageAlpha(230);
+    }
+
+    private void loadRemotePhoto(String photoPath) {
+        if (photoPath == null || photoPath.trim().isEmpty()) {
+            ivPhoto.setImageResource(R.drawable.ic_person_placeholder);
+            return;
+        }
+        String originFallback = cdnToOriginUrl(photoPath);
+        Glide.with(this)
+                .load(photoPath)
+                .placeholder(R.drawable.ic_person_placeholder)
+                .error(
+                        Glide.with(this)
+                                .load(originFallback != null ? originFallback : photoPath)
+                                .placeholder(R.drawable.ic_person_placeholder)
+                                .error(R.drawable.ic_person_placeholder)
+                )
+                .into(ivPhoto);
+    }
+
+    private String cdnToOriginUrl(String url) {
+        if (url == null) return null;
+        if (!url.contains(".cdn.digitaloceanspaces.com")) return null;
+        return url.replace(".cdn.digitaloceanspaces.com", ".digitaloceanspaces.com");
     }
 }

@@ -13,5 +13,8 @@ public class BakeryDto {
     public Object status;
     public BigDecimal latitude;
     public BigDecimal longitude;
+    /** Full URL to bakery location image (e.g. DigitalOcean Spaces …/locations/…); may be null. */
+    @SerializedName("bakeryImageUrl")
+    public String bakeryImageUrl;
     public AddressDto address;
 }

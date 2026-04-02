@@ -16,10 +16,19 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.workshop6.R;
 import com.example.workshop6.auth.SessionManager;
+import com.example.workshop6.data.api.ApiClient;
+import com.example.workshop6.data.api.ApiService;
+import com.example.workshop6.data.api.dto.ProductSpecialTodayDto;
 import com.example.workshop6.data.model.Cart;
+import com.example.workshop6.util.ProductSpecialState;
+import com.example.workshop6.util.TodayDate;
 
 import java.text.NumberFormat;
 import java.util.Locale;
+
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
 
 public class CartFragment extends Fragment implements CartAdapter.OnCartItemListener {
 
@@ -32,6 +41,7 @@ public class CartFragment extends Fragment implements CartAdapter.OnCartItemList
     private CartAdapter adapter;
     private Cart cart;
     private CartManager cartManager;
+    private ApiService api;
     private NumberFormat currencyFormat = NumberFormat.getCurrencyInstance(Locale.CANADA);
     private static final double TAX_RATE = 0.13; // 13% HST
 
@@ -68,6 +78,9 @@ public class CartFragment extends Fragment implements CartAdapter.OnCartItemList
             return;
         }
 
+        ApiClient.getInstance().setToken(sessionManager.getToken());
+        api = ApiClient.getInstance().getService();
+
         rvCart.setLayoutManager(new LinearLayoutManager(requireContext()));
         adapter = new CartAdapter(cart.getItems(), this);
         rvCart.setAdapter(adapter);
@@ -83,11 +96,33 @@ public class CartFragment extends Fragment implements CartAdapter.OnCartItemList
     @Override
     public void onResume() {
         super.onResume();
-        // Refresh cart when returning to fragment
-        if (adapter != null) {
-            adapter.updateItems(cart.getItems());
-            updateUI();
+        if (adapter == null || api == null) {
+            return;
         }
+        // Re-fetch cart in case it was cleared after checkout
+        cart = cartManager.getCart();
+        adapter.updateItems(cart.getItems());
+
+        api.getTodayProductSpecial(TodayDate.isoLocal()).enqueue(new Callback<ProductSpecialTodayDto>() {
+            @Override
+            public void onResponse(Call<ProductSpecialTodayDto> call, Response<ProductSpecialTodayDto> response) {
+                if (response.isSuccessful() && response.body() != null) {
+                    ProductSpecialState.updateFromDto(response.body(), TodayDate.isoLocal());
+                }
+                requireActivity().runOnUiThread(() -> {
+                    adapter.updateItems(cart.getItems());
+                    updateUI();
+                });
+            }
+
+            @Override
+            public void onFailure(Call<ProductSpecialTodayDto> call, Throwable t) {
+                requireActivity().runOnUiThread(() -> {
+                    adapter.updateItems(cart.getItems());
+                    updateUI();
+                });
+            }
+        });
     }
 
     private void updateUI() {

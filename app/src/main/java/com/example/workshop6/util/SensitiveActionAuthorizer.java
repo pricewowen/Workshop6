@@ -76,9 +76,14 @@ public final class SensitiveActionAuthorizer {
                     }
                     AuthResponse auth = response.body();
                     ApiClient.getInstance().setToken(auth.token);
-                    sessionManager.saveToken(auth.token);
                     String uid = auth.userId != null ? auth.userId : "";
-                    sessionManager.createSession(uid, auth.role.toUpperCase(), auth.username, email);
+                    sessionManager.persistLoginSession(
+                            auth.token,
+                            uid,
+                            auth.role.toUpperCase(),
+                            auth.username,
+                            email
+                    );
                     sessionManager.touch();
                     dialog.dismiss();
                     onAuthorized.run();

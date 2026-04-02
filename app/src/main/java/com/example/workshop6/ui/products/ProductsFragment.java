@@ -13,8 +13,6 @@ import android.text.TextWatcher;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.Button;
-import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -23,23 +21,24 @@ import com.example.workshop6.auth.SessionManager;
 import com.example.workshop6.data.api.ApiClient;
 import com.example.workshop6.data.api.ApiService;
 import com.example.workshop6.data.api.ProductMapper;
-import com.example.workshop6.data.api.dto.BatchDto;
-import com.example.workshop6.data.api.dto.CustomerDto;
-import com.example.workshop6.data.api.dto.CustomerPatchRequest;
 import com.example.workshop6.data.api.dto.ProductDto;
-import com.example.workshop6.data.api.dto.RewardTierDto;
+import com.example.workshop6.data.api.dto.ProductSpecialTodayDto;
 import com.example.workshop6.data.api.dto.TagDto;
-import com.example.workshop6.data.model.CartItem;
 import com.example.workshop6.data.model.Category;
 import com.example.workshop6.data.model.Product;
 import com.example.workshop6.logging.ActivityLogger;
-import com.example.workshop6.ui.cart.CartManager;
+import com.example.workshop6.util.ProductSpecialState;
 import com.example.workshop6.util.SearchUtils;
+import com.example.workshop6.util.SpecialPriceSpan;
+import com.example.workshop6.util.TodayDate;
+import com.google.android.material.button.MaterialButton;
+import com.google.android.material.card.MaterialCardView;
 import com.google.android.material.textfield.TextInputEditText;
 
+import java.text.NumberFormat;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
+import java.util.Locale;
 
 import retrofit2.Call;
 import retrofit2.Callback;
@@ -48,35 +47,33 @@ import retrofit2.Response;
 public class ProductsFragment extends Fragment {
     private static final long CACHE_TTL_MS = 30_000L;
     private static long productsCachedAtMs = 0L;
-    private static long rewardCachedAtMs = 0L;
     private static long featuredCachedAtMs = 0L;
+    /** ISO local date (yyyy-MM-dd) for which {@link #cachedFeaturedProduct} or a deliberate no-special is cached. */
+    private static String cachedFeaturedForDate;
     private static final List<Category> cachedCategories = new ArrayList<>();
     private static final List<Product> cachedProducts = new ArrayList<>();
-    private static final List<RewardTierDto> cachedRewardTiers = new ArrayList<>();
-    private static int cachedRewardPoints = -1;
     private static Product cachedFeaturedProduct;
+    private static Double cachedFeaturedDiscountPercent;
 
     private RecyclerView rvCategories;
     private CategoriesAdapter categoriesAdapter;
     private ProductAdapter productAdapter;
     private RecyclerView rvProducts;
-    private Button btnAddToCart;
-    private TextView tvPoints;
-    private TextView tvLevel;
-    private TextView tvTierDescription;
-    private TextView tvNextTier;
-    private TextView tvPointsNeeded;
-    private ProgressBar progressLoyalty;
-    private Button btnRedeem;
     private TextInputEditText etSearch;
-    private CartManager cartManager;
+    private MaterialCardView cardFeatured;
+    private View featuredLoadingPanel;
+    private View featuredLoadedPanel;
     private TextView tvFeatureProductName;
-    private TextView tvFeatureProductPrice;
+    private TextView tvFeaturePriceLine;
+    private TextView tvFeatureDiscountPercent;
+    private MaterialButton btnViewFeaturedProduct;
+    private final NumberFormat currency = NumberFormat.getCurrencyInstance(Locale.CANADA);
+    private View productsLoadingOverlay;
+    private View productsContent;
 
     private int featuredProductId = -1;
     private Product featured;
     private final List<Product> allProducts = new ArrayList<>();
-    private final List<RewardTierDto> rewardTiers = new ArrayList<>();
     private ApiService api;
     private SessionManager sessionManager;
 
@@ -106,26 +103,25 @@ public class ProductsFragment extends Fragment {
 
         rvCategories = view.findViewById(R.id.rvCategories);
         rvProducts = view.findViewById(R.id.rvProducts);
-        btnAddToCart = view.findViewById(R.id.btnAddToCart);
-        tvPoints = view.findViewById(R.id.tvPoints);
-        tvLevel = view.findViewById(R.id.tvLevel);
-        tvTierDescription = view.findViewById(R.id.tvTierDescription);
-        tvNextTier = view.findViewById(R.id.tvNextTier);
-        tvPointsNeeded = view.findViewById(R.id.tvPointsNeeded);
-        progressLoyalty = view.findViewById(R.id.progressLoyalty);
-        btnRedeem = view.findViewById(R.id.btnRedeem);
         etSearch = view.findViewById(R.id.etSearch);
+        cardFeatured = view.findViewById(R.id.card_featured);
+        featuredLoadingPanel = view.findViewById(R.id.featured_loading_panel);
+        featuredLoadedPanel = view.findViewById(R.id.featured_loaded_panel);
         tvFeatureProductName = view.findViewById(R.id.tvFeatureProductName);
-        tvFeatureProductPrice = view.findViewById(R.id.tvFeatureProductPrice);
+        tvFeaturePriceLine = view.findViewById(R.id.tvFeaturePriceLine);
+        tvFeatureDiscountPercent = view.findViewById(R.id.tvFeatureDiscountPercent);
+        btnViewFeaturedProduct = view.findViewById(R.id.btnViewFeaturedProduct);
+        productsLoadingOverlay = view.findViewById(R.id.products_loading_overlay);
+        productsContent = view.findViewById(R.id.products_content);
 
-        cartManager = CartManager.getInstance(requireContext());
         api = ApiClient.getInstance().getService();
         sessionManager = new SessionManager(requireContext());
 
         boolean isCustomer = "CUSTOMER".equalsIgnoreCase(sessionManager.getUserRole());
         if (!isCustomer) {
+            setProductsPageLoading(false);
             Toast.makeText(requireContext(), R.string.staff_purchase_blocked, Toast.LENGTH_SHORT).show();
-            Navigation.findNavController(view).navigate(R.id.nav_home);
+            Navigation.findNavController(view).navigate(R.id.nav_me);
             return;
         }
 
@@ -169,223 +165,149 @@ public class ProductsFragment extends Fragment {
             }
         });
 
+        btnViewFeaturedProduct.setOnClickListener(v -> openFeaturedProductDetails());
+
         loadFeaturedProduct();
-        loadRewardPanel();
         loadCategoriesAndProducts();
-
-        btnRedeem.setOnClickListener(v -> {
-            ActivityLogger.log(requireContext(), sessionManager, "ADJUST_POINTS", "Redeem selected from loyalty dashboard");
-            if (cartManager.getCart().hasDiscount()) {
-                Toast.makeText(requireContext(), "Discount already applied", Toast.LENGTH_SHORT).show();
-                return;
-            }
-            api.getCustomerMe().enqueue(new Callback<CustomerDto>() {
-                @Override
-                public void onResponse(Call<CustomerDto> call, Response<CustomerDto> response) {
-                    if (!isUiReady()) {
-                        return;
-                    }
-                    if (!response.isSuccessful() || response.body() == null) {
-                        showToastIfAttached(R.string.error_user_not_found, Toast.LENGTH_SHORT);
-                        return;
-                    }
-                    CustomerDto c = response.body();
-                    if (c.rewardBalance < 500) {
-                        showToastIfAttached("You need at least 500 points to redeem", Toast.LENGTH_SHORT);
-                        return;
-                    }
-                    CustomerPatchRequest patch = new CustomerPatchRequest();
-                    patch.rewardBalance = c.rewardBalance - 500;
-                    api.patchCustomerMe(patch).enqueue(new Callback<CustomerDto>() {
-                        @Override
-                        public void onResponse(Call<CustomerDto> call2, Response<CustomerDto> response2) {
-                            if (!isUiReady()) {
-                                return;
-                            }
-                            if (!response2.isSuccessful() || response2.body() == null) {
-                                showToastIfAttached(R.string.error_placing_order, Toast.LENGTH_SHORT);
-                                return;
-                            }
-                            cartManager.getCart().applyDiscount(0.10);
-                            tvPoints.setText(String.valueOf(response2.body().rewardBalance));
-                            btnRedeem.setEnabled(false);
-                            btnRedeem.setText(R.string.label_discount_applied);
-                            showToastIfAttached("10% discount applied!", Toast.LENGTH_LONG);
-                        }
-
-                        @Override
-                        public void onFailure(Call<CustomerDto> call2, Throwable t) {
-                            showToastIfAttached(R.string.login_error_no_connection, Toast.LENGTH_SHORT);
-                        }
-                    });
-                }
-
-                @Override
-                public void onFailure(Call<CustomerDto> call, Throwable t) {
-                    showToastIfAttached(R.string.login_error_no_connection, Toast.LENGTH_SHORT);
-                }
-            });
-        });
-
-        btnAddToCart.setOnClickListener(v -> {
-            ActivityLogger.log(requireContext(), sessionManager, "CREATE_ORDER", "Quick add-to-cart selected from featured section");
-            if (featuredProductId != -1 && featured != null) {
-                CartItem cartItem = new CartItem(featured, 1);
-                cartManager.getCart().addItem(cartItem);
-                Toast.makeText(requireContext(), "Added to Cart", Toast.LENGTH_SHORT).show();
-            } else {
-                Toast.makeText(requireContext(), "Product not found", Toast.LENGTH_SHORT).show();
-            }
-        });
     }
 
     private void loadFeaturedProduct() {
-        if (isCacheFresh(featuredCachedAtMs) && cachedFeaturedProduct != null) {
-            featured = cachedFeaturedProduct;
-            featuredProductId = featured.getProductId();
-            if (isUiReady()) {
-                tvFeatureProductName.setText(featured.getProductName());
-                tvFeatureProductPrice.setText(String.format("$%.2f", featured.getProductBasePrice()));
+        String today = TodayDate.isoLocal();
+        if (isCacheFresh(featuredCachedAtMs) && today.equals(cachedFeaturedForDate)) {
+            if (cachedFeaturedProduct != null) {
+                featured = cachedFeaturedProduct;
+                featuredProductId = featured.getProductId();
+                ProductSpecialState.applyForToday(featured.getProductId(), cachedFeaturedDiscountPercent, today);
+                showFeaturedCard(featured, cachedFeaturedDiscountPercent);
+            } else {
+                ProductSpecialState.applyForToday(null, null, today);
+                hideFeaturedCard();
             }
             return;
         }
-        api.getBatchesByBakery(1, true).enqueue(new Callback<List<BatchDto>>() {
+        api.getTodayProductSpecial(today).enqueue(new Callback<ProductSpecialTodayDto>() {
             @Override
-            public void onResponse(Call<List<BatchDto>> call, Response<List<BatchDto>> response) {
-                if (!response.isSuccessful() || response.body() == null || response.body().isEmpty()) {
+            public void onResponse(Call<ProductSpecialTodayDto> call, Response<ProductSpecialTodayDto> response) {
+                if (!isUiReady()) {
                     return;
                 }
-                Integer pid = response.body().get(0).productId;
-                if (pid == null) {
+                if (!response.isSuccessful() || response.body() == null) {
+                    hideFeaturedCard();
                     return;
                 }
+                ProductSpecialTodayDto body = response.body();
+                Integer pid = body.productId;
+                Double discountPercent = body.discountPercent;
+                if (pid == null || pid <= 0) {
+                    cacheAndApplyFeaturedForDate(today, null, null);
+                    return;
+                }
+                showFeaturedLoadingUi();
                 api.getProduct(pid).enqueue(new Callback<ProductDto>() {
                     @Override
                     public void onResponse(Call<ProductDto> call2, Response<ProductDto> response2) {
-                        if (!response2.isSuccessful() || response2.body() == null || !isUiReady()) {
+                        if (!isUiReady()) {
                             return;
                         }
-                        featured = ProductMapper.fromDto(response2.body());
-                        if (featured == null) {
+                        if (!response2.isSuccessful() || response2.body() == null) {
+                            hideFeaturedCard();
                             return;
                         }
-                        cachedFeaturedProduct = featured;
-                        featuredCachedAtMs = System.currentTimeMillis();
-                        featuredProductId = featured.getProductId();
-                        tvFeatureProductName.setText(featured.getProductName());
-                        tvFeatureProductPrice.setText(String.format("$%.2f", featured.getProductBasePrice()));
+                        Product p = ProductMapper.fromDto(response2.body());
+                        if (p == null) {
+                            hideFeaturedCard();
+                            return;
+                        }
+                        cacheAndApplyFeaturedForDate(today, p, discountPercent);
                     }
 
                     @Override
                     public void onFailure(Call<ProductDto> call2, Throwable t) {
-                    }
-                });
-            }
-
-            @Override
-            public void onFailure(Call<List<BatchDto>> call, Throwable t) {
-            }
-        });
-    }
-
-    private void loadRewardPanel() {
-        if (isCacheFresh(rewardCachedAtMs) && cachedRewardPoints >= 0 && !cachedRewardTiers.isEmpty()) {
-            rewardTiers.clear();
-            rewardTiers.addAll(cachedRewardTiers);
-            applyTierUi(cachedRewardPoints);
-            return;
-        }
-        api.getCustomerMe().enqueue(new Callback<CustomerDto>() {
-            @Override
-            public void onResponse(Call<CustomerDto> call, Response<CustomerDto> response) {
-                if (!response.isSuccessful() || response.body() == null) {
-                    return;
-                }
-                int points = response.body().rewardBalance;
-                api.getRewardTiers().enqueue(new Callback<List<RewardTierDto>>() {
-                    @Override
-                    public void onResponse(Call<List<RewardTierDto>> call2, Response<List<RewardTierDto>> response2) {
-                        if (!response2.isSuccessful() || response2.body() == null) {
-                            return;
+                        if (isUiReady()) {
+                            hideFeaturedCard();
                         }
-                        rewardTiers.clear();
-                        rewardTiers.addAll(response2.body());
-                        Collections.sort(rewardTiers, (a, b) -> Integer.compare(a.minPoints, b.minPoints));
-                        cachedRewardPoints = points;
-                        cachedRewardTiers.clear();
-                        cachedRewardTiers.addAll(rewardTiers);
-                        rewardCachedAtMs = System.currentTimeMillis();
-                        applyTierUi(points);
-                    }
-
-                    @Override
-                    public void onFailure(Call<List<RewardTierDto>> call2, Throwable t) {
                     }
                 });
             }
 
             @Override
-            public void onFailure(Call<CustomerDto> call, Throwable t) {
+            public void onFailure(Call<ProductSpecialTodayDto> call, Throwable t) {
+                if (isUiReady()) {
+                    hideFeaturedCard();
+                }
             }
         });
     }
 
-    private void applyTierUi(int points) {
-        RewardTierDto current = null;
-        RewardTierDto next = null;
-        for (RewardTierDto t : rewardTiers) {
-            int max = t.maxPoints != null ? t.maxPoints : Integer.MAX_VALUE;
-            if (points >= t.minPoints && points <= max) {
-                current = t;
-                break;
-            }
-        }
-        if (current == null && !rewardTiers.isEmpty()) {
-            current = rewardTiers.get(rewardTiers.size() - 1);
-        }
-        if (current != null) {
-            int idx = -1;
-            for (int i = 0; i < rewardTiers.size(); i++) {
-                if (rewardTiers.get(i) == current) {
-                    idx = i;
-                    break;
-                }
-            }
-            if (idx >= 0 && idx + 1 < rewardTiers.size()) {
-                next = rewardTiers.get(idx + 1);
-            }
-        }
-        RewardTierDto finalCurrent = current;
-        RewardTierDto finalNext = next;
+    private void showFeaturedLoadingUi() {
         if (!isUiReady()) {
             return;
         }
-        if (finalCurrent != null) {
-            tvPoints.setText(String.valueOf(points));
-            tvLevel.setText(finalCurrent.name);
-            tvTierDescription.setText(finalCurrent.name);
-            if (finalNext != null) {
-                int pointsNeeded = Math.max(0, finalNext.minPoints - points);
-                tvNextTier.setText(getString(R.string.label_next_tier_fmt, finalNext.name));
-                tvPointsNeeded.setText(getString(R.string.label_points_needed_fmt, pointsNeeded, finalNext.name));
-                int rangeStart = finalCurrent.minPoints;
-                int rangeEnd = finalNext.minPoints;
-                int rangeSize = Math.max(1, rangeEnd - rangeStart);
-                int progress = ((points - rangeStart) * 100) / rangeSize;
-                progressLoyalty.setProgress(Math.max(0, Math.min(100, progress)));
-            } else {
-                tvNextTier.setText(R.string.label_top_tier_reached);
-                tvPointsNeeded.setText(R.string.label_highest_tier_reached);
-                progressLoyalty.setProgress(100);
-            }
-        } else {
-            tvPoints.setText(String.valueOf(points));
-            tvLevel.setText(R.string.label_unknown_tier);
-            tvTierDescription.setText(R.string.label_unknown_tier_desc);
-            tvNextTier.setText(R.string.label_next_tier_na);
-            tvPointsNeeded.setText(R.string.label_points_to_next_na);
-            progressLoyalty.setProgress(0);
+        cardFeatured.setVisibility(View.VISIBLE);
+        featuredLoadingPanel.setVisibility(View.VISIBLE);
+        featuredLoadedPanel.setVisibility(View.GONE);
+    }
+
+    /** Cache only after a successful {@code /product-specials/today} response (and successful product load when applicable). */
+    private void cacheAndApplyFeaturedForDate(String today, Product p, Double discountPercent) {
+        featuredCachedAtMs = System.currentTimeMillis();
+        cachedFeaturedForDate = today;
+        if (p == null) {
+            cachedFeaturedProduct = null;
+            cachedFeaturedDiscountPercent = null;
+            featured = null;
+            featuredProductId = -1;
+            ProductSpecialState.applyForToday(null, null, today);
+            hideFeaturedCard();
+            return;
         }
+        cachedFeaturedProduct = p;
+        cachedFeaturedDiscountPercent = discountPercent;
+        featured = p;
+        featuredProductId = p.getProductId();
+        ProductSpecialState.applyForToday(p.getProductId(), discountPercent, today);
+        showFeaturedCard(p, discountPercent);
+    }
+
+    private void showFeaturedCard(Product p, Double discountPercent) {
+        if (!isUiReady()) {
+            return;
+        }
+        featuredLoadingPanel.setVisibility(View.GONE);
+        featuredLoadedPanel.setVisibility(View.VISIBLE);
+        cardFeatured.setVisibility(View.VISIBLE);
+        tvFeatureProductName.setText(p.getProductName());
+        Double baseObj = p.getProductBasePrice();
+        double base = baseObj != null ? baseObj : 0.0;
+        if (discountPercent != null && discountPercent > 0) {
+            double sale = base * (1.0 - discountPercent / 100.0);
+            tvFeaturePriceLine.setText(SpecialPriceSpan.wasNow(currency, base, sale));
+            tvFeatureDiscountPercent.setVisibility(View.VISIBLE);
+            tvFeatureDiscountPercent.setText(getString(R.string.featured_discount_today, discountPercent));
+        } else {
+            tvFeaturePriceLine.setText(currency.format(base));
+            tvFeatureDiscountPercent.setVisibility(View.GONE);
+        }
+    }
+
+    private void hideFeaturedCard() {
+        if (!isUiReady()) {
+            return;
+        }
+        cardFeatured.setVisibility(View.GONE);
+        featuredLoadingPanel.setVisibility(View.GONE);
+        featuredLoadedPanel.setVisibility(View.GONE);
+        featured = null;
+        featuredProductId = -1;
+    }
+
+    private void openFeaturedProductDetails() {
+        if (!isUiReady() || featuredProductId <= 0) {
+            return;
+        }
+        Bundle args = new Bundle();
+        args.putInt("productId", featuredProductId);
+        Navigation.findNavController(requireView()).navigate(R.id.action_products_to_details, args);
     }
 
     private void loadCategoriesAndProducts() {
@@ -407,10 +329,14 @@ public class ProductsFragment extends Fragment {
             return;
         }
 
+        setProductsPageLoading(true);
         api.getTags().enqueue(new Callback<List<TagDto>>() {
             @Override
             public void onResponse(Call<List<TagDto>> call, Response<List<TagDto>> response) {
                 if (!response.isSuccessful() || response.body() == null) {
+                    if (isUiReady()) {
+                        setProductsPageLoading(false);
+                    }
                     return;
                 }
                 List<Category> categories = new ArrayList<>();
@@ -423,6 +349,9 @@ public class ProductsFragment extends Fragment {
                     @Override
                     public void onResponse(Call<List<ProductDto>> call2, Response<List<ProductDto>> response2) {
                         if (!response2.isSuccessful() || response2.body() == null) {
+                            if (isUiReady()) {
+                                setProductsPageLoading(false);
+                            }
                             return;
                         }
                         allProducts.clear();
@@ -446,6 +375,9 @@ public class ProductsFragment extends Fragment {
                     @Override
                     public void onFailure(Call<List<ProductDto>> call2, Throwable t) {
                         logIfAttached("PRODUCTS", "Network error loading products");
+                        if (isUiReady()) {
+                            setProductsPageLoading(false);
+                        }
                     }
                 });
             }
@@ -453,8 +385,20 @@ public class ProductsFragment extends Fragment {
             @Override
             public void onFailure(Call<List<TagDto>> call, Throwable t) {
                 logIfAttached("PRODUCTS", "Network error loading tags");
+                if (isUiReady()) {
+                    setProductsPageLoading(false);
+                }
             }
         });
+    }
+
+    private void setProductsPageLoading(boolean loading) {
+        if (productsLoadingOverlay != null) {
+            productsLoadingOverlay.setVisibility(loading ? View.VISIBLE : View.GONE);
+        }
+        if (productsContent != null) {
+            productsContent.setVisibility(loading ? View.INVISIBLE : View.VISIBLE);
+        }
     }
 
     private boolean isUiReady() {
@@ -469,6 +413,7 @@ public class ProductsFragment extends Fragment {
         if (!isUiReady()) {
             return;
         }
+        setProductsPageLoading(false);
         categoriesAdapter = new CategoriesAdapter(new ArrayList<>(categories), tagId -> {
             if (!isUiReady() || productAdapter == null) {
                 return;

@@ -2,7 +2,13 @@ package com.example.workshop6.ui.locations;
 
 import android.Manifest;
 import android.content.pm.PackageManager;
+import android.location.Location;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
+import android.os.SystemClock;
+import android.text.Editable;
+import android.text.TextWatcher;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -11,7 +17,6 @@ import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.appcompat.widget.SearchView;
 import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 import androidx.navigation.Navigation;
@@ -24,14 +29,17 @@ import com.example.workshop6.data.api.ApiService;
 import com.example.workshop6.data.api.BakeryLocationMapper;
 import com.example.workshop6.data.api.dto.BakeryDto;
 import com.example.workshop6.data.model.BakeryLocationDetails;
+import com.example.workshop6.data.model.Category;
+import com.example.workshop6.ui.products.CategoriesAdapter;
 import com.example.workshop6.util.LocationUtils;
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.location.Priority;
-import com.google.android.material.chip.Chip;
 import com.google.android.material.snackbar.Snackbar;
+import com.google.android.material.textfield.TextInputEditText;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 
@@ -41,8 +49,20 @@ import retrofit2.Response;
 
 public class MapFragment extends Fragment {
 
+    private static final long MAP_LOAD_MIN_MS = 400L;
+    /** Synthetic tag id for the "Nearby" chip (Browse uses positive API tag ids). */
+    private static final int MAP_FILTER_TAG_NEARBY = -2;
+
     private LocationAdapter adapter;
+    private CategoriesAdapter mapFilterAdapter;
     private ApiService api;
+    private final Handler mainHandler = new Handler(Looper.getMainLooper());
+    private long mapLoadStartElapsed;
+    private final Runnable hideMapLoadingRunnable = () -> {
+        if (isAdded()) {
+            setMapLoadingUi(false);
+        }
+    };
 
     private boolean nearbyMode = false;
     private boolean hasUserLocation = false;
@@ -61,9 +81,9 @@ public class MapFragment extends Fragment {
                         } else {
                             hasUserLocation = false;
                             nearbyMode = false;
+                            revertToAllLocationsFilter();
                             View v = getView();
                             if (v != null) {
-                                ((Chip) v.findViewById(R.id.chip_all)).setChecked(true);
                                 Snackbar.make(v, R.string.permission_location_rationale,
                                         Snackbar.LENGTH_LONG).show();
                             }
@@ -96,43 +116,99 @@ public class MapFragment extends Fragment {
         });
         rv.setAdapter(adapter);
 
-        Chip chipNearby = view.findViewById(R.id.chip_nearby);
-        Chip chipAll = view.findViewById(R.id.chip_all);
-
-        chipNearby.setOnClickListener(v -> {
-            nearbyMode = true;
-            requestOrFetchLocation();
+        RecyclerView rvMapFilters = view.findViewById(R.id.rv_map_filters);
+        rvMapFilters.setLayoutManager(new LinearLayoutManager(
+                requireContext(),
+                LinearLayoutManager.HORIZONTAL,
+                false));
+        List<Category> nearbyOnly = Collections.singletonList(
+                new Category(MAP_FILTER_TAG_NEARBY, getString(R.string.btn_show_nearby)));
+        mapFilterAdapter = new CategoriesAdapter(new ArrayList<>(nearbyOnly), tagId -> {
+            if (tagId == -1) {
+                nearbyMode = false;
+                adapter.setNearbyMode(false, 0, 0);
+                applyFilterAndDisplay();
+            } else if (tagId == MAP_FILTER_TAG_NEARBY) {
+                nearbyMode = true;
+                requestOrFetchLocation();
+            }
         });
+        rvMapFilters.setAdapter(mapFilterAdapter);
 
-        chipAll.setOnClickListener(v -> {
-            nearbyMode = false;
-            adapter.setNearbyMode(false, 0, 0);
-            applyFilterAndDisplay();
-        });
-
-        SearchView searchView = view.findViewById(R.id.search_view);
-        searchView.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
+        TextInputEditText etMapSearch = view.findViewById(R.id.etMapSearch);
+        etMapSearch.addTextChangedListener(new TextWatcher() {
             @Override
-            public boolean onQueryTextSubmit(String query) {
-                return false;
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
             }
 
             @Override
-            public boolean onQueryTextChange(String newText) {
-                currentSearch = newText != null ? newText.trim() : "";
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+                currentSearch = s != null ? s.toString().trim() : "";
                 applyFilterAndDisplay();
-                return true;
+            }
+
+            @Override
+            public void afterTextChanged(Editable s) {
             }
         });
 
         loadBakeries();
     }
 
+    private void revertToAllLocationsFilter() {
+        nearbyMode = false;
+        if (mapFilterAdapter != null) {
+            mapFilterAdapter.setSelectedPosition(0);
+        }
+        adapter.setNearbyMode(false, 0, 0);
+        applyFilterAndDisplay();
+    }
+
+    private void setMapLoadingUi(boolean loading) {
+        View root = getView();
+        if (root == null) {
+            return;
+        }
+        View overlay = root.findViewById(R.id.map_loading_overlay);
+        View content = root.findViewById(R.id.map_content);
+        if (overlay != null) {
+            overlay.setVisibility(loading ? View.VISIBLE : View.GONE);
+        }
+        if (content != null) {
+            content.setVisibility(loading ? View.INVISIBLE : View.VISIBLE);
+        }
+    }
+
+    /** Keeps the gold spinner visible briefly so fast responses are still noticeable. */
+    private void scheduleHideMapLoadingUi() {
+        long elapsed = SystemClock.elapsedRealtime() - mapLoadStartElapsed;
+        long wait = Math.max(0, MAP_LOAD_MIN_MS - elapsed);
+        mainHandler.removeCallbacks(hideMapLoadingRunnable);
+        mainHandler.postDelayed(hideMapLoadingRunnable, wait);
+    }
+
+    @Override
+    public void onDestroyView() {
+        mainHandler.removeCallbacks(hideMapLoadingRunnable);
+        super.onDestroyView();
+    }
+
     private void loadBakeries() {
+        mapLoadStartElapsed = SystemClock.elapsedRealtime();
+        setMapLoadingUi(true);
         api.getBakeries(null).enqueue(new Callback<List<BakeryDto>>() {
             @Override
             public void onResponse(Call<List<BakeryDto>> call, Response<List<BakeryDto>> response) {
+                if (!isAdded()) {
+                    return;
+                }
+                scheduleHideMapLoadingUi();
                 if (!response.isSuccessful() || response.body() == null) {
+                    View v = getView();
+                    if (v != null) {
+                        Snackbar.make(v, getString(R.string.login_error_server, response.code()),
+                                Snackbar.LENGTH_LONG).show();
+                    }
                     return;
                 }
                 cachedLocations.clear();
@@ -144,6 +220,14 @@ public class MapFragment extends Fragment {
 
             @Override
             public void onFailure(Call<List<BakeryDto>> call, Throwable t) {
+                if (!isAdded()) {
+                    return;
+                }
+                setMapLoadingUi(false);
+                View v = getView();
+                if (v != null) {
+                    Snackbar.make(v, R.string.login_error_no_connection, Snackbar.LENGTH_LONG).show();
+                }
             }
         });
     }
@@ -190,23 +274,44 @@ public class MapFragment extends Fragment {
                 Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
             return;
         }
-        fusedClient.getCurrentLocation(Priority.PRIORITY_HIGH_ACCURACY, null)
-                .addOnSuccessListener(requireActivity(), location -> {
-                    if (location != null) {
-                        userLat = location.getLatitude();
-                        userLon = location.getLongitude();
-                        hasUserLocation = true;
-                        applyFilterAndDisplay();
-                    } else {
-                        hasUserLocation = false;
-                        nearbyMode = false;
-                        View v = getView();
-                        if (v != null) {
-                            ((Chip) v.findViewById(R.id.chip_all)).setChecked(true);
-                            Snackbar.make(v, R.string.error_could_not_get_location,
-                                    Snackbar.LENGTH_SHORT).show();
+        // Show a quick result from cache, then refine with a fresh fix (feels much faster than current-only).
+        fusedClient.getLastLocation().addOnCompleteListener(task -> {
+            if (task.isSuccessful()) {
+                Location last = task.getResult();
+                if (last != null) {
+                    applyUserLocation(last);
+                }
+            }
+            fusedClient.getCurrentLocation(Priority.PRIORITY_HIGH_ACCURACY, null)
+                    .addOnSuccessListener(requireActivity(), fresh -> {
+                        if (fresh != null) {
+                            applyUserLocation(fresh);
+                        } else if (!hasUserLocation) {
+                            onNearbyLocationFailed();
                         }
-                    }
-                });
+                    })
+                    .addOnFailureListener(requireActivity(), e -> {
+                        if (!hasUserLocation) {
+                            onNearbyLocationFailed();
+                        }
+                    });
+        });
+    }
+
+    private void applyUserLocation(@NonNull Location location) {
+        userLat = location.getLatitude();
+        userLon = location.getLongitude();
+        hasUserLocation = true;
+        applyFilterAndDisplay();
+    }
+
+    private void onNearbyLocationFailed() {
+        hasUserLocation = false;
+        nearbyMode = false;
+        revertToAllLocationsFilter();
+        View v = getView();
+        if (v != null) {
+            Snackbar.make(v, R.string.error_could_not_get_location, Snackbar.LENGTH_SHORT).show();
+        }
     }
 }

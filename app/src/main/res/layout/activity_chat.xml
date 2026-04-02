@@ -25,7 +25,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginStart="12dp"
-            android:text="@string/chat_with_staff"
+            android:text="@string/nav_chat_short"
             android:textColor="@color/bakery_text_light"
             android:textSize="18sp"
             android:textStyle="bold" />

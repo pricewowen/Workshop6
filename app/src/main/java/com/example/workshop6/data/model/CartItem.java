@@ -1,5 +1,7 @@
 package com.example.workshop6.data.model;
 
+import com.example.workshop6.util.ProductSpecialState;
+
 public class CartItem {
     private Product product;
     private int quantity;
@@ -36,6 +38,10 @@ public class CartItem {
     }
 
     public double getTotalPrice() {
-        return product.getProductBasePrice() * quantity;
+        double unit = product.getProductBasePrice();
+        if (ProductSpecialState.isSpecialProduct(product.getProductId())) {
+            unit *= ProductSpecialState.specialUnitMultiplier();
+        }
+        return unit * quantity;
     }
 }

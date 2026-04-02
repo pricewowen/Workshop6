@@ -7,6 +7,7 @@ import android.os.Looper;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -32,6 +33,7 @@ public class StaffChatInboxFragment extends Fragment {
 
     private RecyclerView recyclerThreads;
     private TextView textEmpty;
+    private Button buttonNewChat;
     private StaffThreadAdapter adapter;
 
     private SessionManager sessionManager;
@@ -61,6 +63,7 @@ public class StaffChatInboxFragment extends Fragment {
 
         recyclerThreads = view.findViewById(R.id.recycler_staff_threads);
         textEmpty = view.findViewById(R.id.text_staff_chat_empty);
+        buttonNewChat = view.findViewById(R.id.button_new_chat);
         recyclerThreads.setLayoutManager(new LinearLayoutManager(requireContext()));
 
         sessionManager = new SessionManager(requireContext().getApplicationContext());
@@ -68,8 +71,9 @@ public class StaffChatInboxFragment extends Fragment {
         ApiClient.getInstance().setToken(sessionManager.getToken());
 
         String role = sessionManager.getUserRole();
-        boolean canAccessStaffChat =
-                "ADMIN".equalsIgnoreCase(role) || "EMPLOYEE".equalsIgnoreCase(role);
+        boolean isCustomer = "CUSTOMER".equalsIgnoreCase(role);
+        boolean isStaff = "ADMIN".equalsIgnoreCase(role) || "EMPLOYEE".equalsIgnoreCase(role);
+        boolean canAccessStaffChat = isCustomer || isStaff;
 
         if (!canAccessStaffChat) {
             Toast.makeText(requireContext(), R.string.account_admin_access_denied, Toast.LENGTH_SHORT).show();
@@ -79,27 +83,33 @@ public class StaffChatInboxFragment extends Fragment {
             return;
         }
 
-        adapter = new StaffThreadAdapter(item -> api.assignChatThread(item.id).enqueue(new Callback<ChatThreadDto>() {
-            @Override
-            public void onResponse(Call<ChatThreadDto> call, Response<ChatThreadDto> response) {
-                if (!isAdded()) {
-                    return;
-                }
-                Intent intent = new Intent(requireContext(), ChatActivity.class);
-                intent.putExtra(ChatActivity.EXTRA_THREAD_ID, item.id);
-                startActivity(intent);
+        if (isCustomer) {
+            buttonNewChat.setVisibility(View.VISIBLE);
+            buttonNewChat.setOnClickListener(v -> createAndOpenChat());
+            textEmpty.setText(R.string.customer_chat_empty_threads);
+        } else {
+            buttonNewChat.setVisibility(View.GONE);
+            textEmpty.setText(R.string.staff_chat_empty_threads);
+        }
+
+        adapter = new StaffThreadAdapter(item -> {
+            if (isCustomer) {
+                launchChat(item.id);
+                return;
             }
 
-            @Override
-            public void onFailure(Call<ChatThreadDto> call, Throwable t) {
-                if (!isAdded()) {
-                    return;
+            api.assignChatThread(item.id).enqueue(new Callback<ChatThreadDto>() {
+                @Override
+                public void onResponse(Call<ChatThreadDto> call, Response<ChatThreadDto> response) {
+                    launchChat(item.id);
                 }
-                Intent intent = new Intent(requireContext(), ChatActivity.class);
-                intent.putExtra(ChatActivity.EXTRA_THREAD_ID, item.id);
-                startActivity(intent);
-            }
-        }));
+
+                @Override
+                public void onFailure(Call<ChatThreadDto> call, Throwable t) {
+                    launchChat(item.id);
+                }
+            });
+        });
 
         recyclerThreads.setAdapter(adapter);
         loadThreads();
@@ -119,7 +129,9 @@ public class StaffChatInboxFragment extends Fragment {
 
     private void loadThreads() {
         String role = sessionManager.getUserRole();
-        if (!"ADMIN".equalsIgnoreCase(role) && !"EMPLOYEE".equalsIgnoreCase(role)) {
+        boolean isCustomer = "CUSTOMER".equalsIgnoreCase(role);
+        boolean isStaff = "ADMIN".equalsIgnoreCase(role) || "EMPLOYEE".equalsIgnoreCase(role);
+        if (!isCustomer && !isStaff) {
             return;
         }
         if (adapter == null) {
@@ -145,5 +157,38 @@ public class StaffChatInboxFragment extends Fragment {
             public void onFailure(Call<List<ChatThreadDto>> call, Throwable t) {
             }
         });
+    }
+
+    private void createAndOpenChat() {
+        api.createChatThread().enqueue(new Callback<ChatThreadDto>() {
+            @Override
+            public void onResponse(Call<ChatThreadDto> call, Response<ChatThreadDto> response) {
+                if (!isAdded()) {
+                    return;
+                }
+                if (response.isSuccessful() && response.body() != null && response.body().id != null) {
+                    launchChat(response.body().id);
+                    return;
+                }
+                Toast.makeText(requireContext(), R.string.login_error_no_connection, Toast.LENGTH_SHORT).show();
+            }
+
+            @Override
+            public void onFailure(Call<ChatThreadDto> call, Throwable t) {
+                if (!isAdded()) {
+                    return;
+                }
+                Toast.makeText(requireContext(), R.string.login_error_no_connection, Toast.LENGTH_SHORT).show();
+            }
+        });
+    }
+
+    private void launchChat(int threadId) {
+        if (!isAdded()) {
+            return;
+        }
+        Intent intent = new Intent(requireContext(), ChatActivity.class);
+        intent.putExtra(ChatActivity.EXTRA_THREAD_ID, threadId);
+        startActivity(intent);
     }
 }

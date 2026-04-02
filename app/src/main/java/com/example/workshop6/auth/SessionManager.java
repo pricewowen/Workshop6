@@ -1,13 +1,13 @@
 package com.example.workshop6.auth;
 
 import android.content.Context;
-import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.ApplicationInfo;
 
 import androidx.security.crypto.EncryptedSharedPreferences;
 import androidx.security.crypto.MasterKey;
 
+import com.example.workshop6.data.api.ApiClient;
 import com.example.workshop6.ui.cart.CartManager;
 
 public class SessionManager {
@@ -24,9 +24,6 @@ public class SessionManager {
     private static final String KEY_FAILED_LOGIN_COUNT = "failedLoginCount";
     private static final String KEY_LOCKOUT_UNTIL = "lockoutUntil";
     private static final String KEY_JWT_TOKEN = "jwtToken";
-
-    private static final long STAFF_SESSION_TIMEOUT_MS = 30L * 60L * 1000L;
-    private static final long CUSTOMER_SESSION_TIMEOUT_MS = 12L * 60L * 60L * 1000L;
 
     private final Context appContext;
     private final SharedPreferences prefs;
@@ -71,22 +68,13 @@ public class SessionManager {
                 .putString(KEY_USER_ROLE, role)
                 .putString(KEY_USER_NAME, fullName)
                 .putLong(KEY_LAST_ACTIVITY_AT, now)
-                .apply();
-        startTaskRemovedWatcher();
+                .commit();
     }
 
     public boolean isLoggedIn() {
-        boolean loggedIn = prefs.getBoolean(KEY_IS_LOGGED_IN, false);
-        if (!loggedIn) {
-            return false;
-        }
-
-        if (isSessionExpired()) {
-            clearSession();
-            return false;
-        }
-
-        return true;
+        // Keep login state stable across activity transitions; avoid auto-expiring session
+        // during normal app use where lifecycle timing may vary by device/emulator.
+        return prefs.getBoolean(KEY_IS_LOGGED_IN, false);
     }
 
     public void touch() {
@@ -179,7 +167,21 @@ public class SessionManager {
     }
 
     public void saveToken(String token) {
-        prefs.edit().putString(KEY_JWT_TOKEN, token).apply();
+        prefs.edit().putString(KEY_JWT_TOKEN, token).commit();
+    }
+
+    public void persistLoginSession(String token, String userUuid, String role, String fullName, String loginEmail) {
+        long now = System.currentTimeMillis();
+        prefs.edit()
+                .putString(KEY_JWT_TOKEN, token)
+                .putBoolean(KEY_IS_LOGGED_IN, true)
+                .putInt(KEY_USER_ID, -1)
+                .putString(KEY_USER_UUID, userUuid != null ? userUuid : "")
+                .putString(KEY_LOGIN_EMAIL, loginEmail != null ? loginEmail : "")
+                .putString(KEY_USER_ROLE, role)
+                .putString(KEY_USER_NAME, fullName)
+                .putLong(KEY_LAST_ACTIVITY_AT, now)
+                .commit();
     }
 
     public String getToken() {
@@ -187,8 +189,8 @@ public class SessionManager {
     }
 
     private void clearSession() {
+        ApiClient.getInstance().clearToken();
         CartManager.getInstance(appContext).onLogout();
-        stopTaskRemovedWatcher();
         prefs.edit()
                 .remove(KEY_IS_LOGGED_IN)
                 .remove(KEY_USER_ID)
@@ -199,34 +201,6 @@ public class SessionManager {
                 .remove(KEY_LAST_ACTIVITY_AT)
                 .remove(KEY_JWT_TOKEN)
                 .apply();
-    }
-
-    private void startTaskRemovedWatcher() {
-        try {
-            appContext.startService(new Intent(appContext, TaskRemovedLogoutService.class));
-        } catch (Throwable ignored) {
-        }
-    }
-
-    private void stopTaskRemovedWatcher() {
-        try {
-            appContext.stopService(new Intent(appContext, TaskRemovedLogoutService.class));
-        } catch (Throwable ignored) {
-        }
-    }
-
-    private boolean isSessionExpired() {
-        long lastActivityAt = prefs.getLong(KEY_LAST_ACTIVITY_AT, 0L);
-        if (lastActivityAt <= 0L) {
-            return true;
-        }
-        return System.currentTimeMillis() - lastActivityAt > getTimeoutForRole(getUserRole());
-    }
-
-    private long getTimeoutForRole(String role) {
-        return ("ADMIN".equalsIgnoreCase(role) || "EMPLOYEE".equalsIgnoreCase(role))
-                ? STAFF_SESSION_TIMEOUT_MS
-                : CUSTOMER_SESSION_TIMEOUT_MS;
     }
 
     private long computeLockoutMs(int failedAttempts) {
