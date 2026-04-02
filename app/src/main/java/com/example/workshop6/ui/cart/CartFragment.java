@@ -99,6 +99,10 @@ public class CartFragment extends Fragment implements CartAdapter.OnCartItemList
         if (adapter == null || api == null) {
             return;
         }
+        // Re-fetch cart in case it was cleared after checkout
+        cart = cartManager.getCart();
+        adapter.updateItems(cart.getItems());
+
         api.getTodayProductSpecial(TodayDate.isoLocal()).enqueue(new Callback<ProductSpecialTodayDto>() {
             @Override
             public void onResponse(Call<ProductSpecialTodayDto> call, Response<ProductSpecialTodayDto> response) {
