@@ -33,6 +33,11 @@ public class ReviewAdapter extends RecyclerView.Adapter<ReviewAdapter.ReviewView
     @Override
     public void onBindViewHolder(@NonNull ReviewViewHolder holder, int position) {
         ReviewDto review = reviews.get(position);
+        String name = review.reviewerDisplayName;
+        if (name == null || name.trim().isEmpty()) {
+            name = holder.itemView.getContext().getString(R.string.product_review_author_fallback);
+        }
+        holder.tvAuthor.setText(name.trim());
         holder.ratingBar.setRating(review.rating);
         holder.tvComment.setText(review.comment != null ? review.comment : "");
     }
@@ -43,11 +48,13 @@ public class ReviewAdapter extends RecyclerView.Adapter<ReviewAdapter.ReviewView
     }
 
     static class ReviewViewHolder extends RecyclerView.ViewHolder {
-        RatingBar ratingBar;
-        TextView tvComment;
+        final TextView tvAuthor;
+        final RatingBar ratingBar;
+        final TextView tvComment;
 
-        public ReviewViewHolder(@NonNull View itemView) {
+        ReviewViewHolder(@NonNull View itemView) {
             super(itemView);
+            tvAuthor = itemView.findViewById(R.id.tvReviewAuthor);
             ratingBar = itemView.findViewById(R.id.ratingBar);
             tvComment = itemView.findViewById(R.id.tvComment);
         }

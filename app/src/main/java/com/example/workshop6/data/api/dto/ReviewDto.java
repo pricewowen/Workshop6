@@ -13,4 +13,9 @@ public class ReviewDto {
     public String status;
     @SerializedName("submittedAt")
     public String submittedAt;
+    @SerializedName("approvalDate")
+    public String approvalDate;
+    /** From API: first name + last initial (e.g. {@code James R.}). */
+    @SerializedName("reviewerDisplayName")
+    public String reviewerDisplayName;
 }
