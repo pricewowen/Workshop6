@@ -31,11 +31,14 @@ import com.example.workshop6.data.api.dto.BakeryDto;
 import com.example.workshop6.data.api.dto.BakeryHourDto;
 import com.example.workshop6.data.api.dto.BatchDto;
 import com.example.workshop6.data.api.dto.ProductDto;
+import com.example.workshop6.data.api.dto.ReviewDto;
 import com.example.workshop6.data.model.BakeryLocationDetails;
 import com.example.workshop6.data.model.Product;
+import com.example.workshop6.ui.products.ReviewAdapter;
 import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.chip.Chip;
+import com.example.workshop6.util.ProductReviewListHelper;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -154,6 +157,7 @@ public class LocationDetailFragment extends Fragment {
                             BakeryLocationDetails loc = BakeryLocationMapper.fromDto(bakery, "");
                             hoursAdapter.submit(hourRows);
                             populateDetail(view, loc);
+                            loadBakeryReviews(view, locationId);
                             scheduleHideLocationLoadingUi();
                         }
 
@@ -225,6 +229,92 @@ public class LocationDetailFragment extends Fragment {
         long wait = Math.max(0, LOCATION_DETAIL_LOAD_MIN_MS - elapsed);
         mainHandler.removeCallbacks(hideLocationLoadingRunnable);
         mainHandler.postDelayed(hideLocationLoadingRunnable, wait);
+    }
+
+    private void loadBakeryReviews(View root, int bakeryId) {
+        if (root == null) {
+            return;
+        }
+        TextView tvTitle = root.findViewById(R.id.tv_bakery_reviews_title);
+        TextView tvEmpty = root.findViewById(R.id.tv_bakery_reviews_empty);
+        RecyclerView rvReviews = root.findViewById(R.id.rv_bakery_reviews);
+        if (tvTitle == null || tvEmpty == null || rvReviews == null) {
+            return;
+        }
+
+        if (rvReviews.getLayoutManager() == null) {
+            rvReviews.setLayoutManager(
+                    new LinearLayoutManager(requireContext(),
+                            LinearLayoutManager.HORIZONTAL, false));
+            rvReviews.setNestedScrollingEnabled(false);
+            rvReviews.setHasFixedSize(true);
+        }
+
+        api.getBakeryReviewAverage(bakeryId).enqueue(new Callback<Double>() {
+            @Override
+            public void onResponse(Call<Double> call, Response<Double> response) {
+                Double avg = response.isSuccessful() ? response.body() : null;
+                fetchBakeryReviewsList(bakeryId, avg, root, tvTitle, tvEmpty, rvReviews);
+            }
+
+            @Override
+            public void onFailure(Call<Double> call, Throwable t) {
+                fetchBakeryReviewsList(bakeryId, null, root, tvTitle, tvEmpty, rvReviews);
+            }
+        });
+    }
+
+    private void fetchBakeryReviewsList(int bakeryId,
+                                         @Nullable Double averageRating,
+                                         View root,
+                                         TextView tvTitle,
+                                         TextView tvEmpty,
+                                         RecyclerView rvReviews) {
+        api.getBakeryReviews(bakeryId).enqueue(new Callback<List<ReviewDto>>() {
+            @Override
+            public void onResponse(Call<List<ReviewDto>> call, Response<List<ReviewDto>> response) {
+                if (!isAdded()) {
+                    return;
+                }
+                if (!response.isSuccessful() || response.body() == null) {
+                    bindBakeryReviewsUi(tvTitle, tvEmpty, rvReviews, averageRating, null);
+                    return;
+                }
+                List<ReviewDto> slice = ProductReviewListHelper.newestApprovedForDisplay(response.body());
+                bindBakeryReviewsUi(tvTitle, tvEmpty, rvReviews, averageRating, slice);
+            }
+
+            @Override
+            public void onFailure(Call<List<ReviewDto>> call, Throwable t) {
+                if (!isAdded()) {
+                    return;
+                }
+                bindBakeryReviewsUi(tvTitle, tvEmpty, rvReviews, averageRating, null);
+            }
+        });
+    }
+
+    private void bindBakeryReviewsUi(TextView tvTitle,
+                                      TextView tvEmpty,
+                                      RecyclerView rvReviews,
+                                      @Nullable Double averageRating,
+                                      @Nullable List<ReviewDto> displayedReviews) {
+        boolean hasAvg = averageRating != null && !averageRating.isNaN();
+        if (hasAvg) {
+            tvTitle.setText(getString(R.string.product_reviews_with_average, averageRating));
+        } else {
+            tvTitle.setText(R.string.section_product_reviews);
+        }
+        if (displayedReviews == null || displayedReviews.isEmpty()) {
+            tvEmpty.setVisibility(View.VISIBLE);
+            rvReviews.setVisibility(View.GONE);
+            rvReviews.setAdapter(null);
+        } else {
+            tvEmpty.setVisibility(View.GONE);
+            rvReviews.setVisibility(View.VISIBLE);
+            rvReviews.setAdapter(new ReviewAdapter(displayedReviews));
+            rvReviews.scrollToPosition(0);
+        }
     }
 
     @Override

@@ -52,6 +52,18 @@
         tools:layout="@layout/fragment_account_admin" />
 
     <fragment
+        android:id="@+id/nav_order_admin"
+        android:name="com.example.workshop6.ui.approvals.OrdersAdminFragment"
+        android:label="@string/nav_order_admin"
+        tools:layout="@layout/fragment_orders_admin" />
+
+    <fragment
+        android:id="@+id/nav_review_approvals"
+        android:name="com.example.workshop6.ui.approvals.ReviewApprovalsFragment"
+        android:label="@string/nav_review_approvals"
+        tools:layout="@layout/fragment_review_approvals" />
+
+    <fragment
         android:id="@+id/nav_staff_chat"
         android:name="com.example.workshop6.ui.chat.StaffChatInboxFragment"
         android:label="@string/staff_chat"

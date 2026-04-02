@@ -64,6 +64,18 @@
                         android:textSize="14sp" />
 
                     <TextView
+                        android:id="@+id/tv_me_bakery"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:ellipsize="end"
+                        android:maxLines="1"
+                        android:text=""
+                        android:textColor="@color/bakery_text_secondary"
+                        android:textSize="13sp"
+                        android:visibility="gone" />
+
+                    <TextView
                         android:id="@+id/tv_me_photo_status"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
@@ -95,6 +107,17 @@
                 android:text=""
                 android:textColor="@color/bakery_text_dark"
                 android:textSize="14sp" />
+
+            <TextView
+                android:id="@+id/tv_me_position"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="0dp"
+                android:layout_marginBottom="22dp"
+                android:text=""
+                android:textColor="@color/bakery_text_secondary"
+                android:textSize="13sp"
+                android:visibility="gone" />
 
             <Button
                 android:id="@+id/btn_loyalty_rewards"

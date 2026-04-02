@@ -23,6 +23,7 @@ import com.example.workshop6.data.api.ApiService;
 import com.example.workshop6.data.api.dto.AddressDto;
 import com.example.workshop6.data.api.dto.CustomerDto;
 import com.example.workshop6.data.api.dto.EmployeeDto;
+import com.example.workshop6.data.api.dto.BakeryDto;
 import com.example.workshop6.logging.ActivityLogger;
 import com.example.workshop6.ui.cart.CartManager;
 import com.example.workshop6.ui.loyalty.LoyaltyRewardsActivity;
@@ -45,6 +46,8 @@ public class MeFragment extends Fragment {
     private ImageView ivPhoto;
     private TextView tvName;
     private TextView tvEmail;
+    private TextView tvBakery;
+    private TextView tvPosition;
     private TextView tvPhotoStatus;
     private TextView tvAddress;
     private View meLoadingOverlay;
@@ -69,6 +72,8 @@ public class MeFragment extends Fragment {
         ivPhoto = view.findViewById(R.id.iv_me_photo);
         tvName = view.findViewById(R.id.tv_me_name);
         tvEmail = view.findViewById(R.id.tv_me_email);
+        tvBakery = view.findViewById(R.id.tv_me_bakery);
+        tvPosition = view.findViewById(R.id.tv_me_position);
         tvPhotoStatus = view.findViewById(R.id.tv_me_photo_status);
         tvAddress = view.findViewById(R.id.tv_me_address);
         meLoadingOverlay = view.findViewById(R.id.me_loading_overlay);
@@ -142,6 +147,12 @@ public class MeFragment extends Fragment {
 
         String role = sessionManager.getUserRole();
         if ("CUSTOMER".equalsIgnoreCase(role)) {
+            if (tvBakery != null) {
+                tvBakery.setVisibility(View.GONE);
+            }
+            if (tvPosition != null) {
+                tvPosition.setVisibility(View.GONE);
+            }
             api.getCustomerMe().enqueue(new Callback<CustomerDto>() {
                 @Override
                 public void onResponse(Call<CustomerDto> call, Response<CustomerDto> response) {
@@ -175,6 +186,10 @@ public class MeFragment extends Fragment {
                             photoPath,
                             pending,
                             formatCustomerAddress(c),
+                            "",
+                            false,
+                            "",
+                            false,
                             true,
                             false));
                     setMeLoadingUi(false);
@@ -198,6 +213,12 @@ public class MeFragment extends Fragment {
                         tvName.setText(sessionManager.getUserName());
                         tvEmail.setText(sessionManager.getUserName());
                         tvAddress.setText("");
+                        if (tvBakery != null) {
+                            tvBakery.setVisibility(View.GONE);
+                        }
+                        if (tvPosition != null) {
+                            tvPosition.setVisibility(View.GONE);
+                        }
                         tvPhotoStatus.setVisibility(View.GONE);
                         View root = getView();
                         if (root != null) {
@@ -209,6 +230,10 @@ public class MeFragment extends Fragment {
                                 null,
                                 false,
                                 "",
+                                "",
+                                false,
+                                "",
+                                false,
                                 false,
                                 false));
                         setMeLoadingUi(false);
@@ -229,19 +254,99 @@ public class MeFragment extends Fragment {
                     tvEmail.setText(e.workEmail != null ? e.workEmail : sessionManager.getUserName());
                     applyPhotoUI(e.profilePhotoPath, e.photoApprovalPending);
                     tvAddress.setText(addressTextForEmployee(e));
+                    String position = e.position != null ? e.position.trim() : "";
+                    final String positionText = position.isEmpty() ? "" : getString(R.string.me_position_label, position);
+                    final boolean showPosition = !position.isEmpty();
+                    if (tvPosition != null) {
+                        if (showPosition) {
+                            tvPosition.setVisibility(View.VISIBLE);
+                            tvPosition.setText(positionText);
+                        } else {
+                            tvPosition.setVisibility(View.GONE);
+                        }
+                    }
                     View root = getView();
                     if (root != null) {
                         root.findViewById(R.id.btn_order_history).setVisibility(View.GONE);
                         root.findViewById(R.id.btn_loyalty_rewards).setVisibility(View.GONE);
                     }
-                    cacheMeSnapshot(new MeSnapshot(nameText,
-                            e.workEmail != null ? e.workEmail : sessionManager.getUserName(),
-                            e.profilePhotoPath,
-                            e.photoApprovalPending,
-                            addressTextForEmployee(e),
-                            false,
-                            false));
-                    setMeLoadingUi(false);
+
+                    Integer bakeryId = e.bakeryId;
+                    if (bakeryId != null && bakeryId > 0) {
+                        final String employeeNameText = nameText;
+                        if (tvBakery != null) {
+                            tvBakery.setVisibility(View.VISIBLE);
+                            tvBakery.setText(getString(R.string.me_bakery_loading));
+                        }
+                        api.getBakery(bakeryId).enqueue(new Callback<BakeryDto>() {
+                            @Override
+                            public void onResponse(Call<BakeryDto> call2, Response<BakeryDto> response2) {
+                                if (!isAdded() || getView() == null) {
+                                    return;
+                                }
+                                String bakeryName = (response2.isSuccessful() && response2.body() != null && response2.body().name != null)
+                                        ? response2.body().name.trim()
+                                        : "";
+                                if (tvBakery != null) {
+                                    if (!bakeryName.isEmpty()) {
+                                        tvBakery.setText(getString(R.string.me_bakery_label, bakeryName));
+                                    } else {
+                                        tvBakery.setVisibility(View.GONE);
+                                    }
+                                }
+                                cacheMeSnapshot(new MeSnapshot(employeeNameText,
+                                        e.workEmail != null ? e.workEmail : sessionManager.getUserName(),
+                                        e.profilePhotoPath,
+                                        e.photoApprovalPending,
+                                        addressTextForEmployee(e),
+                                        bakeryName.isEmpty() ? "" : getString(R.string.me_bakery_label, bakeryName),
+                                        !bakeryName.isEmpty(),
+                                        positionText,
+                                        showPosition,
+                                        false,
+                                        false));
+                                setMeLoadingUi(false);
+                            }
+
+                            @Override
+                            public void onFailure(Call<BakeryDto> call2, Throwable t) {
+                                if (!isAdded() || getView() == null) {
+                                    return;
+                                }
+                                if (tvBakery != null) {
+                                    tvBakery.setVisibility(View.GONE);
+                                }
+                                cacheMeSnapshot(new MeSnapshot(employeeNameText,
+                                        e.workEmail != null ? e.workEmail : sessionManager.getUserName(),
+                                        e.profilePhotoPath,
+                                        e.photoApprovalPending,
+                                        addressTextForEmployee(e),
+                                        "",
+                                        false,
+                                        positionText,
+                                        showPosition,
+                                        false,
+                                        false));
+                                setMeLoadingUi(false);
+                            }
+                        });
+                    } else {
+                        if (tvBakery != null) {
+                            tvBakery.setVisibility(View.GONE);
+                        }
+                        cacheMeSnapshot(new MeSnapshot(nameText,
+                                e.workEmail != null ? e.workEmail : sessionManager.getUserName(),
+                                e.profilePhotoPath,
+                                e.photoApprovalPending,
+                                addressTextForEmployee(e),
+                                "",
+                                false,
+                                positionText,
+                                showPosition,
+                                false,
+                                false));
+                        setMeLoadingUi(false);
+                    }
                 }
 
                 @Override
@@ -262,6 +367,14 @@ public class MeFragment extends Fragment {
         tvName.setText(cachedMeSnapshot.name);
         tvEmail.setText(cachedMeSnapshot.email);
         tvAddress.setText(cachedMeSnapshot.addressText);
+        if (tvBakery != null) {
+            tvBakery.setText(cachedMeSnapshot.bakeryText);
+            tvBakery.setVisibility(cachedMeSnapshot.showBakery ? View.VISIBLE : View.GONE);
+        }
+        if (tvPosition != null) {
+            tvPosition.setText(cachedMeSnapshot.positionText);
+            tvPosition.setVisibility(cachedMeSnapshot.showPosition ? View.VISIBLE : View.GONE);
+        }
         applyPhotoUI(cachedMeSnapshot.photoPath, cachedMeSnapshot.photoPending);
         View root = getView();
         if (root != null) {
@@ -297,6 +410,10 @@ public class MeFragment extends Fragment {
         final String photoPath;
         final boolean photoPending;
         final String addressText;
+        final String bakeryText;
+        final boolean showBakery;
+        final String positionText;
+        final boolean showPosition;
         final boolean showOrderHistory;
         final boolean showChatStaff;
 
@@ -305,6 +422,10 @@ public class MeFragment extends Fragment {
                    String photoPath,
                    boolean photoPending,
                    String addressText,
+                   String bakeryText,
+                   boolean showBakery,
+                   String positionText,
+                   boolean showPosition,
                    boolean showOrderHistory,
                    boolean showChatStaff) {
             this.name = name;
@@ -312,6 +433,10 @@ public class MeFragment extends Fragment {
             this.photoPath = photoPath;
             this.photoPending = photoPending;
             this.addressText = addressText;
+            this.bakeryText = bakeryText;
+            this.showBakery = showBakery;
+            this.positionText = positionText;
+            this.showPosition = showPosition;
             this.showOrderHistory = showOrderHistory;
             this.showChatStaff = showChatStaff;
         }

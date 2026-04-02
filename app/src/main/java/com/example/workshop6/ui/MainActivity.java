@@ -220,7 +220,7 @@ public class MainActivity extends AppCompatActivity {
      * After a failed /me call, clear the session when the token is invalid or the server is unavailable.
      */
     private void handleSessionCheckHttpFailure(int httpCode) {
-        if (isFinishing()) {
+        if (isFinishing() || sessionManager == null || !sessionManager.isLoggedIn()) {
             return;
         }
         if (httpCode == 401 || httpCode == 403) {
@@ -235,7 +235,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void handleConnectionLost() {
-        if (isFinishing()) {
+        if (isFinishing() || sessionManager == null || !sessionManager.isLoggedIn()) {
             return;
         }
         Toast.makeText(this, R.string.lost_connection_logout, Toast.LENGTH_LONG).show();
@@ -278,6 +278,11 @@ public class MainActivity extends AppCompatActivity {
         bottomNav.setOnItemSelectedListener(item -> {
             if (!NetworkStatus.isOnline(MainActivity.this)) {
                 Toast.makeText(MainActivity.this, R.string.login_error_no_connection, Toast.LENGTH_SHORT).show();
+                return false;
+            }
+            // Chat is intentionally disabled for now (customer, staff, admin).
+            // Consume the click without navigating.
+            if (item.getItemId() == R.id.nav_staff_chat) {
                 return false;
             }
             boolean navigated = NavigationUI.onNavDestinationSelected(item, navController);

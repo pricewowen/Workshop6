@@ -70,6 +70,16 @@
                     android:textColor="@color/bakery_text_secondary"
                     android:visibility="gone" />
 
+                <TextView
+                    android:id="@+id/tv_location_rating"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginEnd="6dp"
+                    android:textColor="@color/bakery_gold_bright"
+                    android:textSize="12sp"
+                    android:textStyle="bold"
+                    android:visibility="gone" />
+
                 <com.google.android.material.chip.Chip
                     android:id="@+id/chip_status"
                     android:layout_width="wrap_content"

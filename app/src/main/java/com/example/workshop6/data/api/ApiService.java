@@ -14,6 +14,7 @@ import com.example.workshop6.data.api.dto.EmployeeDto;
 import com.example.workshop6.data.api.dto.EmployeePatchRequest;
 import com.example.workshop6.data.api.dto.LoginRequest;
 import com.example.workshop6.data.api.dto.OrderDto;
+import com.example.workshop6.data.api.dto.OrderStatusPatchRequest;
 import com.example.workshop6.data.api.dto.PostChatMessageRequest;
 import com.example.workshop6.data.api.dto.ProductDto;
 import com.example.workshop6.data.api.dto.ProductSpecialTodayDto;
@@ -103,14 +104,32 @@ public interface ApiService {
     @POST("api/v1/orders")
     Call<OrderDto> checkout(@Body CheckoutRequest body);
 
+    @PATCH("api/v1/orders/{id}/status")
+    Call<OrderDto> patchOrderStatus(@Path("id") String orderId, @Body OrderStatusPatchRequest body);
+
+    @PATCH("api/v1/orders/{id}/accept-delivery")
+    Call<OrderDto> acceptOrderDelivery(@Path("id") String orderId);
+
     @GET("api/v1/products/{productId}/reviews")
     Call<List<ReviewDto>> getProductReviews(@Path("productId") int productId);
 
     @GET("api/v1/products/{productId}/reviews/average")
     Call<Double> getProductReviewAverage(@Path("productId") int productId);
 
+    @GET("api/v1/bakeries/{bakeryId}/reviews")
+    Call<List<ReviewDto>> getBakeryReviews(@Path("bakeryId") int bakeryId);
+
+    @GET("api/v1/bakeries/{bakeryId}/reviews/average")
+    Call<Double> getBakeryReviewAverage(@Path("bakeryId") int bakeryId);
+
     @POST("api/v1/products/{productId}/reviews")
     Call<ReviewDto> createProductReview(@Path("productId") int productId, @Body ReviewCreateRequest body);
+
+    @POST("api/v1/orders/{orderId}/reviews")
+    Call<ReviewDto> createOrderReview(@Path("orderId") String orderId, @Body ReviewCreateRequest body);
+
+    @GET("api/v1/reviews/pending")
+    Call<List<ReviewDto>> getPendingReviews();
 
     @PATCH("api/v1/reviews/{reviewId}/status")
     Call<ReviewDto> patchReviewStatus(@Path("reviewId") String reviewId, @Body ReviewStatusPatchRequest body);

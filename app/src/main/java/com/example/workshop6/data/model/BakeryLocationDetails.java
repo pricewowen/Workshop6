@@ -17,6 +17,8 @@ public class BakeryLocationDetails {
     public String openingHours;
     public double latitude;
     public double longitude;
+    /** Average approved review rating for this bakery; null when no approved reviews yet. */
+    public Double averageRating;
     /** Hero / list image URL; null uses brown + storefront placeholder. */
     public String bakeryImageUrl;
 }

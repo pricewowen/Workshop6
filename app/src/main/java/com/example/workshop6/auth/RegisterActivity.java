@@ -467,7 +467,12 @@ public class RegisterActivity extends AppCompatActivity {
                 middleForApi,
                 lastName,
                 phoneStored,
-                businessPhoneStored
+                businessPhoneStored,
+                address1,
+                Validation.isEmpty(address2) ? null : address2,
+                city,
+                province,
+                postal
         );
 
         ApiService api = ApiClient.getInstance().getService();

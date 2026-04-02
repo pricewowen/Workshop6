@@ -200,7 +200,7 @@ public class SessionManager {
                 .remove(KEY_USER_NAME)
                 .remove(KEY_LAST_ACTIVITY_AT)
                 .remove(KEY_JWT_TOKEN)
-                .apply();
+                .commit();
     }
 
     private long computeLockoutMs(int failedAttempts) {

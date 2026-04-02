@@ -20,6 +20,7 @@ import com.example.workshop6.util.LocationUtils;
 import com.google.android.material.chip.Chip;
 
 import java.util.Objects;
+import java.util.Locale;
 
 public class LocationAdapter extends ListAdapter<BakeryLocationDetails, LocationAdapter.VH> {
 
@@ -43,6 +44,7 @@ public class LocationAdapter extends ListAdapter<BakeryLocationDetails, Location
                             && Objects.equals(oldItem.address, newItem.address)
                             && Objects.equals(oldItem.city, newItem.city)
                             && Objects.equals(oldItem.status, newItem.status)
+                            && Objects.equals(oldItem.averageRating, newItem.averageRating)
                     && Objects.equals(oldItem.openingHours, newItem.openingHours)
                     && Objects.equals(oldItem.bakeryImageUrl, newItem.bakeryImageUrl)
                     && Double.compare(oldItem.latitude, newItem.latitude) == 0
@@ -82,7 +84,7 @@ public class LocationAdapter extends ListAdapter<BakeryLocationDetails, Location
 
     static class VH extends RecyclerView.ViewHolder {
         final ImageView thumbnail;
-        final TextView name, address, distance, dotSeparator;
+        final TextView name, address, distance, dotSeparator, rating;
         final Chip chipStatus;
 
         VH(@NonNull View itemView) {
@@ -92,6 +94,7 @@ public class LocationAdapter extends ListAdapter<BakeryLocationDetails, Location
             address      = itemView.findViewById(R.id.tv_location_address);
             distance     = itemView.findViewById(R.id.tv_location_distance);
             dotSeparator = itemView.findViewById(R.id.tv_dot_separator);
+            rating       = itemView.findViewById(R.id.tv_location_rating);
             chipStatus   = itemView.findViewById(R.id.chip_status);
         }
 
@@ -126,6 +129,13 @@ public class LocationAdapter extends ListAdapter<BakeryLocationDetails, Location
             } else {
                 distance.setVisibility(View.GONE);
                 dotSeparator.setVisibility(View.GONE);
+            }
+
+            if (loc.averageRating != null && !loc.averageRating.isNaN()) {
+                rating.setVisibility(View.VISIBLE);
+                rating.setText(String.format(Locale.US, "%.1f★", loc.averageRating));
+            } else {
+                rating.setVisibility(View.GONE);
             }
 
             String img = loc.bakeryImageUrl;

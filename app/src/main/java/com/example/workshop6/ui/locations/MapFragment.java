@@ -216,6 +216,7 @@ public class MapFragment extends Fragment {
                     cachedLocations.add(BakeryLocationMapper.fromDto(b, ""));
                 }
                 applyFilterAndDisplay();
+                loadBakeryAverages();
             }
 
             @Override
@@ -230,6 +231,33 @@ public class MapFragment extends Fragment {
                 }
             }
         });
+    }
+
+    private void loadBakeryAverages() {
+        for (BakeryLocationDetails loc : cachedLocations) {
+            if (loc == null || loc.id <= 0) {
+                continue;
+            }
+            api.getBakeryReviewAverage(loc.id).enqueue(new Callback<Double>() {
+                @Override
+                public void onResponse(Call<Double> call, Response<Double> response) {
+                    if (!isAdded()) {
+                        return;
+                    }
+                    loc.averageRating = response.isSuccessful() ? response.body() : null;
+                    applyFilterAndDisplay();
+                }
+
+                @Override
+                public void onFailure(Call<Double> call, Throwable t) {
+                    if (!isAdded()) {
+                        return;
+                    }
+                    loc.averageRating = null;
+                    applyFilterAndDisplay();
+                }
+            });
+        }
     }
 
     private void applyFilterAndDisplay() {

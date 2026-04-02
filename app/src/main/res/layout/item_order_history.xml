@@ -159,6 +159,31 @@
                 android:textStyle="bold" />
         </LinearLayout>
 
+        <!-- Bakery -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginBottom="8dp">
+
+            <TextView
+                android:layout_width="100dp"
+                android:layout_height="wrap_content"
+                android:text="Bakery:"
+                android:textColor="@color/bakery_text_secondary"
+                android:textSize="14sp" />
+
+            <TextView
+                android:id="@+id/tvDetailBakery"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Downtown"
+                android:textColor="@color/bakery_text_dark"
+                android:textSize="14sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+
         <!-- Scheduled Time -->
         <LinearLayout
             android:layout_width="match_parent"
@@ -231,6 +256,85 @@
             android:layout_height="wrap_content"
             android:orientation="vertical" />
 
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:layout_marginVertical="12dp"
+            android:background="@color/bakery_text_secondary" />
+
+        <!-- Subtotal -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginBottom="8dp">
+
+            <TextView
+                android:layout_width="100dp"
+                android:layout_height="wrap_content"
+                android:text="@string/confirmation_subtotal"
+                android:textColor="@color/bakery_text_secondary"
+                android:textSize="14sp" />
+
+            <TextView
+                android:id="@+id/tvDetailSubtotal"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="$0.00"
+                android:textColor="@color/bakery_text_dark"
+                android:textSize="14sp" />
+        </LinearLayout>
+
+        <!-- Tax -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginBottom="8dp">
+
+            <TextView
+                android:layout_width="100dp"
+                android:layout_height="wrap_content"
+                android:text="@string/tax"
+                android:textColor="@color/bakery_text_secondary"
+                android:textSize="14sp" />
+
+            <TextView
+                android:id="@+id/tvDetailTax"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="$0.00"
+                android:textColor="@color/bakery_text_dark"
+                android:textSize="14sp" />
+        </LinearLayout>
+
+        <!-- Final Total -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <TextView
+                android:layout_width="100dp"
+                android:layout_height="wrap_content"
+                android:text="Final Total:"
+                android:textColor="@color/bakery_primary"
+                android:textSize="14sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/tvDetailFinalTotal"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="$0.00"
+                android:textColor="@color/bakery_primary"
+                android:textSize="14sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+
         <!-- Points Earned -->
         <View
             android:layout_width="match_parent"
@@ -260,6 +364,26 @@
                 android:textColor="@color/bakery_gold"
                 android:textSize="14sp"
                 android:textStyle="bold" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/llDeliveredActions"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:gravity="end"
+            android:orientation="horizontal"
+            android:visibility="gone">
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnAcceptDelivery"
+                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                android:layout_width="wrap_content"
+                android:layout_height="40dp"
+                android:text="@string/order_accept_delivery"
+                android:textColor="@color/bakery_text_dark"
+                app:cornerRadius="20dp"
+                app:strokeColor="@color/bakery_text_dark" />
         </LinearLayout>
     </LinearLayout>
 </LinearLayout>

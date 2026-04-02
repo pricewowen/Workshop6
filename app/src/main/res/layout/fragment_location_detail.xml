@@ -259,6 +259,42 @@
                         android:visibility="gone" />
                 </FrameLayout>
 
+                <TextView
+                    android:id="@+id/tv_bakery_reviews_title"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="8dp"
+                    android:text="@string/section_product_reviews"
+                    android:textColor="@color/bakery_text_dark"
+                    android:textSize="18sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/tv_bakery_reviews_empty"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="12dp"
+                    android:text="@string/product_reviews_none_yet"
+                    android:textColor="@color/bakery_text_secondary"
+                    android:textSize="14sp"
+                    android:visibility="gone" />
+
+                <FrameLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:minHeight="148dp">
+
+                    <androidx.recyclerview.widget.RecyclerView
+                        android:id="@+id/rv_bakery_reviews"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:clipToPadding="false"
+                        android:nestedScrollingEnabled="false"
+                        android:overScrollMode="never"
+                        android:paddingEnd="4dp"
+                        android:visibility="gone" />
+                </FrameLayout>
+
             </LinearLayout>
 
         </LinearLayout>

@@ -132,6 +132,13 @@ public class ProductDetailsFragment extends Fragment {
         rvReviews.setNestedScrollingEnabled(false);
         rvReviews.setHasFixedSize(true);
 
+        // Reviews are now displayed on the bakery/location page, not on product details.
+        tvReviewsTitle.setVisibility(View.GONE);
+        tvReviewsEmpty.setVisibility(View.GONE);
+        if (rvReviews.getParent() instanceof View) {
+            ((View) rvReviews.getParent()).setVisibility(View.GONE);
+        }
+
         tvQuantity.setText(String.valueOf(quantCounter));
 
         cartManager = CartManager.getInstance(requireContext());
@@ -218,7 +225,7 @@ public class ProductDetailsFragment extends Fragment {
             }
         });
 
-        loadProductReviewsSection(productId);
+        // No product reviews section on this screen anymore.
 
         btnIncrease.setOnClickListener(v -> {
             quantCounter++;

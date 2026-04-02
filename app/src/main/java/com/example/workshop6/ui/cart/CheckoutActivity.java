@@ -628,6 +628,8 @@ public class CheckoutActivity extends AppCompatActivity {
         double subtotal = cart.getTotalPrice();
         double tax = subtotal * TAX_RATE;
         double total = subtotal + tax;
+        // Keep estimate consistent with backend reward earning basis (orderTotal before tax).
+        int estimatedPointsEarned = Math.max(1, (int) Math.floor(subtotal * 1000.0));
 
         confirmationText.append("\n").append(getString(R.string.confirmation_subtotal))
                 .append(": ").append(currencyFormat.format(subtotal)).append("\n");
@@ -635,6 +637,10 @@ public class CheckoutActivity extends AppCompatActivity {
                 .append(": ").append(currencyFormat.format(tax)).append("\n");
         confirmationText.append(getString(R.string.confirmation_total))
                 .append(": ").append(currencyFormat.format(total)).append("\n\n");
+        confirmationText.append(getString(
+                        R.string.confirmation_points_earned_fmt,
+                        loyaltyPointsFormat.format(Math.max(estimatedPointsEarned, 1))))
+                .append("\n\n");
 
         confirmationText.append(getString(R.string.confirmation_delivery_method))
                 .append(": ").append(deliveryMethod).append("\n");

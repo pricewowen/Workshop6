@@ -6,6 +6,12 @@ public class ReviewDto {
     public String id;
     @SerializedName("customerId")
     public String customerId;
+    @SerializedName("orderId")
+    public String orderId;
+    @SerializedName("bakeryId")
+    public Integer bakeryId;
+    @SerializedName("bakeryName")
+    public String bakeryName;
     @SerializedName("productId")
     public Integer productId;
     public short rating;
