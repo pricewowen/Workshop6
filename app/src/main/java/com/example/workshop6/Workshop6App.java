@@ -2,10 +2,11 @@ package com.example.workshop6;
 
 import android.app.Application;
 
-import com.example.workshop6.data.db.AppDatabase;
+import com.example.workshop6.auth.SessionManager;
+import com.example.workshop6.data.api.ApiClient;
 
 /**
- * Application class used to eagerly initialize and seed the database on app start.
+ * Application class. Data is loaded from the Workshop 7 Spring API via {@link ApiClient}.
  */
 public class Workshop6App extends Application {
 
@@ -13,9 +14,10 @@ public class Workshop6App extends Application {
     public void onCreate() {
         super.onCreate();
 
-        // Build the Room database and ensure initial seed completes.
-        AppDatabase.getInstance(this);
-        AppDatabase.awaitSeed();
+        // Enforce fresh login whenever the app process starts.
+        // This covers emulator restarts and real-device process restarts.
+        new SessionManager(this).logout();
+        ApiClient.getInstance().clearToken();
     }
 }
 

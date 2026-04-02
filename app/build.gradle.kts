@@ -1,8 +1,23 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
 }
 
+val localProperties = Properties().apply {
+    val f = rootProject.file("local.properties")
+    if (f.exists()) load(f.inputStream())
+}
+
+/** Dev API base URL; override in local.properties as api.base.url= */
+val apiBaseUrl = (localProperties.getProperty("api.base.url") ?: "http://10.0.2.2:8080/")
+    .trim()
+    .let { if (it.endsWith("/")) it else "$it/" }
+
 android {
+    buildFeatures {
+        buildConfig = true
+    }
     namespace = "com.example.workshop6"
     compileSdk {
         version = release(36)
@@ -16,6 +31,7 @@ android {
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        buildConfigField("String", "API_BASE_URL", "\"${apiBaseUrl.replace("\"", "\\\"")}\"")
     }
 
     buildTypes {
@@ -37,10 +53,6 @@ dependencies {
     implementation(libs.appcompat)
     implementation(libs.material)
 
-    // Room (Java: annotationProcessor, NOT kapt)
-    implementation(libs.room.runtime)
-    annotationProcessor(libs.room.compiler)
-
     // Lifecycle
     implementation(libs.lifecycle.viewmodel)
     implementation(libs.lifecycle.livedata)
@@ -55,6 +67,13 @@ dependencies {
     // GPS
     implementation(libs.play.services.location)
     implementation(libs.security.crypto)
+
+    // Retrofit + OkHttp
+    implementation(libs.retrofit)
+    implementation(libs.retrofit.gson)
+    implementation(libs.okhttp.logging)
+    implementation(libs.gson)
+    implementation(libs.glide)
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.ext.junit)

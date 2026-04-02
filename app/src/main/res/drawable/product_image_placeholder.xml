@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:drawable="@drawable/bg_hero_bakery" />
+    <item>
+        <inset
+            android:drawable="@drawable/ic_bakery_bread_dark"
+            android:insetLeft="30%"
+            android:insetTop="30%"
+            android:insetRight="30%"
+            android:insetBottom="30%" />
+    </item>
+</layer-list>

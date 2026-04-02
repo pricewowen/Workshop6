@@ -12,8 +12,10 @@ import androidx.cardview.widget.CardView;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.workshop6.R;
+import com.example.workshop6.data.api.dto.OrderDto;
 
 import java.text.NumberFormat;
+import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
@@ -22,9 +24,9 @@ import java.util.Locale;
 public class OrderHistoryAdapter extends RecyclerView.Adapter<OrderHistoryAdapter.OrderViewHolder> {
 
     private List<OrderHistoryActivity.OrderWithDetails> orders;
-    private SimpleDateFormat dateFormat = new SimpleDateFormat("MMM dd, yyyy", Locale.CANADA);
-    private SimpleDateFormat dateTimeFormat = new SimpleDateFormat("MMM dd, hh:mm a", Locale.CANADA);
-    private NumberFormat currencyFormat = NumberFormat.getCurrencyInstance(Locale.CANADA);
+    private final SimpleDateFormat dateFormat = new SimpleDateFormat("MMM dd, yyyy", Locale.CANADA);
+    private final SimpleDateFormat dateTimeFormat = new SimpleDateFormat("MMM dd, hh:mm a", Locale.CANADA);
+    private final NumberFormat currencyFormat = NumberFormat.getCurrencyInstance(Locale.CANADA);
     private int expandedPosition = -1;
 
     public OrderHistoryAdapter(List<OrderHistoryActivity.OrderWithDetails> orders) {
@@ -57,19 +59,16 @@ public class OrderHistoryAdapter extends RecyclerView.Adapter<OrderHistoryAdapte
     }
 
     class OrderViewHolder extends RecyclerView.ViewHolder {
-        // Main views
         TextView tvOrderId, tvOrderDate, tvOrderTotal, tvOrderStatus, tvItemCount;
         CardView cardView;
         ImageView ivExpandIcon;
 
-        // Details views
         LinearLayout llOrderDetails, llCommentSection, llItemsContainer;
         TextView tvDetailMethod, tvDetailTime, tvDetailComment, tvDetailPoints;
 
         OrderViewHolder(@NonNull View itemView) {
             super(itemView);
 
-            // Main views
             tvOrderId = itemView.findViewById(R.id.tvOrderId);
             tvOrderDate = itemView.findViewById(R.id.tvOrderDate);
             tvOrderTotal = itemView.findViewById(R.id.tvOrderTotal);
@@ -78,7 +77,6 @@ public class OrderHistoryAdapter extends RecyclerView.Adapter<OrderHistoryAdapte
             cardView = itemView.findViewById(R.id.cardView);
             ivExpandIcon = itemView.findViewById(R.id.ivExpandIcon);
 
-            // Details views
             llOrderDetails = itemView.findViewById(R.id.llOrderDetails);
             llCommentSection = itemView.findViewById(R.id.llCommentSection);
             llItemsContainer = itemView.findViewById(R.id.llItemsContainer);
@@ -89,22 +87,35 @@ public class OrderHistoryAdapter extends RecyclerView.Adapter<OrderHistoryAdapte
         }
 
         void bind(OrderHistoryActivity.OrderWithDetails orderWithDetails, boolean isExpanded) {
-            // Set main order info
-            tvOrderId.setText("Order #" + orderWithDetails.order.getOrderId());
-            tvOrderDate.setText(dateFormat.format(new Date(orderWithDetails.order.getOrderPlacedDateTime())));
-            tvOrderTotal.setText(currencyFormat.format(orderWithDetails.order.getOrderTotal()));
+            OrderDto o = orderWithDetails.order;
+            String label = o.orderNumber != null && !o.orderNumber.isEmpty()
+                    ? o.orderNumber
+                    : (o.id != null ? o.id : "?");
+            tvOrderId.setText("Order #" + label);
 
-            String status = orderWithDetails.order.getOrderStatus();
-            tvOrderStatus.setText(status.substring(0, 1).toUpperCase() + status.substring(1));
+            Date placed = parseIsoDate(o.placedAt);
+            tvOrderDate.setText(placed != null ? dateFormat.format(placed) : "");
 
-            // Set status color
+            double total = o.orderTotal != null ? o.orderTotal.doubleValue() : 0.0;
+            tvOrderTotal.setText(currencyFormat.format(total));
+
+            String status = o.status != null ? o.status : "";
+            tvOrderStatus.setText(prettyStatus(status));
+
             int statusColor;
-            switch (status.toLowerCase()) {
+            switch (status.toLowerCase(Locale.ROOT)) {
                 case "pending":
+                case "placed":
+                case "pending_payment":
+                case "preparing":
+                case "scheduled":
                     statusColor = itemView.getContext().getColor(R.color.bakery_gold_bright);
                     break;
                 case "completed":
                 case "delivered":
+                case "picked_up":
+                case "paid":
+                case "ready":
                     statusColor = itemView.getContext().getColor(R.color.bakery_status_open);
                     break;
                 case "cancelled":
@@ -118,7 +129,6 @@ public class OrderHistoryAdapter extends RecyclerView.Adapter<OrderHistoryAdapte
             int itemCount = orderWithDetails.items.size();
             tvItemCount.setText(itemCount + " item" + (itemCount != 1 ? "s" : ""));
 
-            // Set expand/collapse icon
             if (isExpanded) {
                 ivExpandIcon.setImageResource(R.drawable.ic_expand_less);
                 llOrderDetails.setVisibility(View.VISIBLE);
@@ -128,12 +138,10 @@ public class OrderHistoryAdapter extends RecyclerView.Adapter<OrderHistoryAdapte
                 llOrderDetails.setVisibility(View.GONE);
             }
 
-            // Handle click to expand/collapse
             cardView.setOnClickListener(v -> {
                 int previousExpandedPosition = expandedPosition;
                 expandedPosition = isExpanded ? -1 : getAdapterPosition();
 
-                // Notify changes
                 if (previousExpandedPosition != -1) {
                     notifyItemChanged(previousExpandedPosition);
                 }
@@ -142,21 +150,18 @@ public class OrderHistoryAdapter extends RecyclerView.Adapter<OrderHistoryAdapte
         }
 
         private void populateDetails(OrderHistoryActivity.OrderWithDetails orderWithDetails) {
-            // Set delivery method
-            String method = orderWithDetails.order.getOrderMethod();
-            tvDetailMethod.setText(method != null ?
-                    method.substring(0, 1).toUpperCase() + method.substring(1) : "Pickup");
+            OrderDto o = orderWithDetails.order;
+            String method = o.orderMethod != null ? o.orderMethod : "pickup";
+            tvDetailMethod.setText(prettyStatus(method.replace('_', ' ')));
 
-            // Set scheduled time
-            Long scheduledTime = orderWithDetails.order.getOrderScheduledDateTime();
-            if (scheduledTime != null) {
-                tvDetailTime.setText(dateTimeFormat.format(new Date(scheduledTime)));
+            Date scheduled = parseIsoDate(o.scheduledAt);
+            if (scheduled != null) {
+                tvDetailTime.setText(dateTimeFormat.format(scheduled));
             } else {
                 tvDetailTime.setText("Not scheduled");
             }
 
-            // Set comment if exists
-            String comment = orderWithDetails.order.getOrderComment();
+            String comment = o.comment;
             if (comment != null && !comment.trim().isEmpty()) {
                 llCommentSection.setVisibility(View.VISIBLE);
                 tvDetailComment.setText(comment);
@@ -164,7 +169,6 @@ public class OrderHistoryAdapter extends RecyclerView.Adapter<OrderHistoryAdapte
                 llCommentSection.setVisibility(View.GONE);
             }
 
-            // Clear and populate items
             llItemsContainer.removeAllViews();
             LayoutInflater inflater = LayoutInflater.from(itemView.getContext());
 
@@ -181,14 +185,39 @@ public class OrderHistoryAdapter extends RecyclerView.Adapter<OrderHistoryAdapte
                 tvItemQuantity.setText("x" + item.quantity);
                 tvItemPrice.setText(currencyFormat.format(item.price * item.quantity));
 
-                // Calculate points (example: 10 points per dollar)
                 totalPoints += (item.price * item.quantity * 10);
 
                 llItemsContainer.addView(itemView);
             }
 
-            // Set points earned
-            tvDetailPoints.setText((int)totalPoints + " pts");
+            tvDetailPoints.setText((int) totalPoints + " pts");
         }
+    }
+
+    private static String prettyStatus(String raw) {
+        if (raw == null || raw.isEmpty()) {
+            return "";
+        }
+        String s = raw.replace('_', ' ');
+        return s.substring(0, 1).toUpperCase() + s.substring(1);
+    }
+
+    static Date parseIsoDate(String iso) {
+        if (iso == null || iso.isEmpty()) {
+            return null;
+        }
+        String[] patterns = new String[]{
+                "yyyy-MM-dd'T'HH:mm:ss.SSSXXX",
+                "yyyy-MM-dd'T'HH:mm:ssXXX",
+                "yyyy-MM-dd'T'HH:mm:ss.SSSSSSSSSXXX"
+        };
+        for (String p : patterns) {
+            try {
+                SimpleDateFormat sdf = new SimpleDateFormat(p, Locale.US);
+                return sdf.parse(iso);
+            } catch (ParseException ignored) {
+            }
+        }
+        return null;
     }
 }

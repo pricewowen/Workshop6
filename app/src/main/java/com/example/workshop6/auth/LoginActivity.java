@@ -2,6 +2,8 @@ package com.example.workshop6.auth;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.text.Editable;
+import android.text.TextWatcher;
 import android.view.View;
 import android.widget.TextView;
 import android.text.format.DateUtils;
@@ -9,16 +11,20 @@ import android.text.format.DateUtils;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.example.workshop6.R;
-import com.example.workshop6.data.db.AppDatabase;
-import com.example.workshop6.data.model.Customer;
-import com.example.workshop6.data.model.Employee;
-import com.example.workshop6.data.model.User;
+import com.example.workshop6.data.api.ApiClient;
+import com.example.workshop6.data.api.ApiService;
+import com.example.workshop6.data.api.dto.AuthResponse;
+import com.example.workshop6.data.api.dto.LoginRequest;
 import com.example.workshop6.logging.ActivityLogger;
 import com.example.workshop6.ui.MainActivity;
-import com.example.workshop6.util.HashUtils;
+import com.example.workshop6.util.ApiReachability;
+import com.example.workshop6.util.NetworkStatus;
 import com.example.workshop6.util.Validation;
 import com.google.android.material.textfield.TextInputEditText;
 import com.google.android.material.textfield.TextInputLayout;
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
 
 public class LoginActivity extends AppCompatActivity {
 
@@ -26,6 +32,7 @@ public class LoginActivity extends AppCompatActivity {
     private TextInputEditText etEmail, etPassword;
     private TextView tvError;
     private SessionManager sessionManager;
+    private View btnLogin;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -34,8 +41,13 @@ public class LoginActivity extends AppCompatActivity {
         sessionManager = new SessionManager(this);
 
         if (sessionManager.isLoggedIn()) {
-            goToMain();
-            return;
+            String token = sessionManager.getToken();
+            if (token != null && !token.trim().isEmpty()) {
+                ApiClient.getInstance().setToken(token);
+                goToMain();
+                return;
+            }
+            sessionManager.logout();
         }
 
         setContentView(R.layout.activity_login);
@@ -45,6 +57,41 @@ public class LoginActivity extends AppCompatActivity {
         etEmail     = findViewById(R.id.et_email);
         etPassword  = findViewById(R.id.et_password);
         tvError     = findViewById(R.id.tv_error);
+        btnLogin    = findViewById(R.id.btn_login);
+
+        etEmail.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+            }
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+            }
+
+            @Override
+            public void afterTextChanged(Editable s) {
+                tilEmail.setError(null);
+            }
+        });
+        etPassword.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+            }
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+            }
+
+            @Override
+            public void afterTextChanged(Editable s) {
+                tilPassword.setError(null);
+            }
+        });
+        etPassword.setOnFocusChangeListener((v, hasFocus) -> {
+            if (hasFocus) {
+                tilPassword.setError(null);
+            }
+        });
 
         String sessionMessage = getIntent().getStringExtra("session_message");
         if (!Validation.isEmpty(sessionMessage)) {
@@ -52,14 +99,29 @@ public class LoginActivity extends AppCompatActivity {
             tvError.setVisibility(View.VISIBLE);
         }
 
-        // Warm up Room immediately so seed starts immediately (admin row is created)
-        AppDatabase.getInstance(getApplicationContext());
+        btnLogin.setOnClickListener(v -> attemptLogin());
 
-        findViewById(R.id.btn_login).setOnClickListener(v -> attemptLogin());
-
-        // Register link
-        findViewById(R.id.tv_register_link).setOnClickListener(v ->
-                startActivity(new Intent(this, RegisterActivity.class)));
+        // Register link — device online + API reachable before opening registration.
+        findViewById(R.id.tv_register_link).setOnClickListener(v -> {
+            if (!NetworkStatus.isOnline(this)) {
+                tvError.setText(R.string.login_error_no_connection);
+                tvError.setVisibility(View.VISIBLE);
+                return;
+            }
+            ApiReachability.checkThen(
+                    () -> {
+                        if (!isFinishing()) {
+                            tvError.setText(R.string.login_error_no_connection);
+                            tvError.setVisibility(View.VISIBLE);
+                        }
+                    },
+                    () -> {
+                        if (!isFinishing()) {
+                            startActivity(new Intent(this, RegisterActivity.class));
+                        }
+                    }
+            );
+        });
     }
 
     private void attemptLogin() {
@@ -76,8 +138,45 @@ public class LoginActivity extends AppCompatActivity {
             return;
         }
 
-        boolean valid = true;
+        if (!NetworkStatus.isOnline(this)) {
+            showLoginNoConnection();
+            return;
+        }
 
+        btnLogin.setEnabled(false);
+        tvError.setVisibility(View.GONE);
+
+        ApiReachability.checkThen(
+                () -> {
+                    if (isFinishing() || isDestroyed()) {
+                        return;
+                    }
+                    btnLogin.setEnabled(true);
+                    showLoginNoConnection();
+                },
+                () -> {
+                    if (isFinishing() || isDestroyed()) {
+                        return;
+                    }
+                    if (!validateLoginFields(email, pass)) {
+                        btnLogin.setEnabled(true);
+                        return;
+                    }
+                    tvError.setVisibility(View.GONE);
+                    submitLoginRequest(email, pass);
+                }
+        );
+    }
+
+    private void showLoginNoConnection() {
+        tilEmail.setError(null);
+        tilPassword.setError(null);
+        tvError.setText(R.string.login_error_no_connection);
+        tvError.setVisibility(View.VISIBLE);
+    }
+
+    private boolean validateLoginFields(String email, String pass) {
+        boolean valid = true;
         if (Validation.isEmpty(email)) {
             tilEmail.setError(getString(R.string.error_email_or_username_required));
             valid = false;
@@ -94,76 +193,50 @@ public class LoginActivity extends AppCompatActivity {
         } else {
             tilPassword.setError(null);
         }
+        return valid;
+    }
 
-        if (!valid) return;
-
-        tvError.setVisibility(View.GONE);
-
-        AppDatabase.databaseWriteExecutor.execute(() -> {
-            // Ensure seed finished so admin exists on FIRST attempt
-            AppDatabase.awaitSeed();
-
-            AppDatabase db = AppDatabase.getInstance(getApplicationContext());
-            // Login with email or username
-            User user = email.contains("@")
-                    ? db.userDao().getUserByEmail(email)
-                    : db.userDao().getUserByUsername(email);
-            boolean passwordOk = (user != null) && HashUtils.verify(pass, user.userPasswordHash);
-            boolean activeOk = (user != null) && user.isActive;
-            boolean ok = passwordOk && activeOk;
-
-            String displayName = user != null ? user.userEmail : "";
-            if (user != null) {
-                Customer customer = db.customerDao().getByUserId(user.userId);
-                Employee employee = db.employeeDao().getByUserId(user.userId);
-                if (customer != null) {
-                    displayName = (customer.customerFirstName != null ? customer.customerFirstName : "")
-                            + " "
-                            + (customer.customerLastName != null ? customer.customerLastName : "");
-                    displayName = displayName.trim();
-                    if (displayName.isEmpty()) displayName = user.userEmail;
-                } else if (employee != null) {
-                    displayName = (employee.employeeFirstName != null ? employee.employeeFirstName : "")
-                            + " "
-                            + (employee.employeeLastName != null ? employee.employeeLastName : "");
-                    displayName = displayName.trim();
-                    if (displayName.isEmpty()) displayName = user.userEmail;
-                } else {
-                    displayName = user.userEmail;
+    private void submitLoginRequest(String email, String pass) {
+        btnLogin.setEnabled(false);
+        ApiService api = ApiClient.getInstance().getService();
+        api.login(new LoginRequest(email, pass)).enqueue(new Callback<AuthResponse>() {
+            @Override
+            public void onResponse(Call<AuthResponse> call, Response<AuthResponse> response) {
+                if (isFinishing() || isDestroyed()) {
+                    return;
                 }
-            }
+                btnLogin.setEnabled(true);
 
-            final String nameForSession = displayName;
-            final User userFinal = user;
-            runOnUiThread(() -> {
-                if (ok) {
+                if (response.isSuccessful() && response.body() != null) {
+                    AuthResponse auth = response.body();
+                    if (auth.token == null || auth.token.trim().isEmpty()
+                            || auth.role == null || auth.role.trim().isEmpty()
+                            || auth.username == null || auth.username.trim().isEmpty()) {
+                        tvError.setText(R.string.register_error_unexpected);
+                        tvError.setVisibility(View.VISIBLE);
+                        ActivityLogger.logFailure(LoginActivity.this, null, "LOGIN", "Malformed auth response");
+                        return;
+                    }
+
+                    ApiClient.getInstance().setToken(auth.token);
                     sessionManager.clearLoginFailures(email);
-                    sessionManager.createSession(userFinal.userId, userFinal.userRole, nameForSession);
-                    ActivityLogger.log(
-                            this,
-                            "USER#" + userFinal.userId,
-                            "LOGIN",
-                            "Login succeeded"
+                    String uid = auth.userId != null ? auth.userId : "";
+                    sessionManager.persistLoginSession(
+                            auth.token,
+                            uid,
+                            auth.role.toUpperCase(),
+                            auth.username,
+                            email
                     );
-                    goToMain();
-                } else if (passwordOk && userFinal != null && !userFinal.isActive) {
-                    ActivityLogger.logFailure(
-                            this,
-                            null,
-                            "LOGIN",
-                            "Inactive account login attempt"
-                    );
-                    tvError.setText(R.string.login_error_account_inactive);
-                    tvError.setVisibility(View.VISIBLE);
-                } else {
+
+                    ActivityLogger.log(LoginActivity.this, "USER@" + auth.username, "LOGIN", "Login succeeded");
+            goToMain();
+
+                } else if (response.code() == 401 || response.code() == 403) {
                     sessionManager.recordFailedLogin(email);
                     long nextRemainingLockoutMs = sessionManager.getRemainingLockoutMs(email);
-                    ActivityLogger.logFailure(
-                            this,
-                            null,
-                            "LOGIN",
-                            "Login failed"
-                    );
+                    ActivityLogger.logFailure(LoginActivity.this, null, "LOGIN", "Login failed");
+
                     if (nextRemainingLockoutMs > 0) {
                         tvError.setText(getString(
                                 R.string.login_error_locked_out,
@@ -173,8 +246,23 @@ public class LoginActivity extends AppCompatActivity {
                         tvError.setText(R.string.login_error_invalid_username_or_email);
                     }
                     tvError.setVisibility(View.VISIBLE);
+
+                } else {
+                    tvError.setText(getString(R.string.login_error_server, response.code()));
+                    tvError.setVisibility(View.VISIBLE);
                 }
-            });
+            }
+
+            @Override
+            public void onFailure(Call<AuthResponse> call, Throwable t) {
+                if (isFinishing() || isDestroyed()) {
+                    return;
+                }
+                btnLogin.setEnabled(true);
+                tvError.setText(R.string.login_error_no_connection);
+                tvError.setVisibility(View.VISIBLE);
+                ActivityLogger.logFailure(LoginActivity.this, null, "LOGIN", "Network error: " + t.getMessage());
+            }
         });
     }
 

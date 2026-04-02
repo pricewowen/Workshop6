@@ -4,11 +4,11 @@ import android.Manifest;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
 import android.graphics.ColorMatrix;
 import android.graphics.ColorMatrixColorFilter;
 import android.net.Uri;
 import android.os.Bundle;
+import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
@@ -23,17 +23,20 @@ import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.ContextCompat;
 
+import com.bumptech.glide.Glide;
 import com.example.workshop6.R;
 import com.example.workshop6.auth.LoginActivity;
 import com.example.workshop6.auth.SessionManager;
-import com.example.workshop6.data.db.AppDatabase;
-import com.example.workshop6.data.model.Address;
-import com.example.workshop6.data.model.Customer;
-import com.example.workshop6.data.model.Employee;
-import com.example.workshop6.data.model.User;
+import com.example.workshop6.data.api.ApiClient;
+import com.example.workshop6.data.api.ApiService;
+import com.example.workshop6.data.api.dto.AddressUpsertRequest;
+import com.example.workshop6.data.api.dto.ChangePasswordRequest;
+import com.example.workshop6.data.api.dto.CustomerDto;
+import com.example.workshop6.data.api.dto.CustomerPatchRequest;
+import com.example.workshop6.data.api.dto.EmployeeDto;
+import com.example.workshop6.data.api.dto.EmployeePatchRequest;
 import com.example.workshop6.logging.ActivityLogger;
 import com.example.workshop6.ui.MainActivity;
-import com.example.workshop6.util.HashUtils;
 import com.example.workshop6.util.ImageUtils;
 import com.example.workshop6.util.PhoneFormatTextWatcher;
 import com.example.workshop6.util.PostalCodeFormatTextWatcher;
@@ -42,6 +45,15 @@ import com.example.workshop6.util.Validation;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.textfield.TextInputEditText;
 import com.google.android.material.textfield.TextInputLayout;
+
+import okhttp3.MediaType;
+import okhttp3.MultipartBody;
+import okhttp3.RequestBody;
+import okhttp3.ResponseBody;
+
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
 
 public class EditProfileActivity extends AppCompatActivity {
 
@@ -55,14 +67,16 @@ public class EditProfileActivity extends AppCompatActivity {
     private Uri cameraPhotoUri;
     private boolean isCustomerPhotoPending;
 
-    private TextInputLayout tilFirstName, tilLastName, tilPhone, tilAddress1, tilAddress2, tilCity, tilPostal;
-    private TextInputEditText etFirstName, etLastName, etPhone, etAddress1, etAddress2, etCity, etPostal;
+    private TextInputLayout tilFirstName, tilMiddleInitial, tilLastName, tilPhone, tilBusinessPhone, tilAddress1, tilAddress2, tilCity, tilPostal;
+    private TextInputEditText etFirstName, etMiddleInitial, etLastName, etPhone, etBusinessPhone, etAddress1, etAddress2, etCity, etPostal;
     private Spinner spinnerProvince;
     private TextView tvProvinceError;
 
-    private Customer loadedCustomer;
-    private Employee loadedEmployee;
-    private Address loadedAddress;
+    private CustomerDto loadedCustomer;
+    private EmployeeDto loadedEmployee;
+    private ApiService api;
+    private View loadingOverlay;
+    private View editProfileScrollContent;
 
     private ActivityResultLauncher<String> galleryPickerLauncher;
     private ActivityResultLauncher<Uri> cameraLauncher;
@@ -73,6 +87,8 @@ public class EditProfileActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
 
         sessionManager = new SessionManager(this);
+        api = ApiClient.getInstance().getService();
+        ApiClient.getInstance().setToken(sessionManager.getToken());
 
         if (!sessionManager.isLoggedIn()) {
             redirectToLogin();
@@ -80,6 +96,8 @@ public class EditProfileActivity extends AppCompatActivity {
         }
 
         setContentView(R.layout.activity_edit_profile);
+        loadingOverlay = findViewById(R.id.edit_profile_loading_overlay);
+        editProfileScrollContent = findViewById(R.id.edit_profile_scroll_content);
 
         ivPhoto = findViewById(R.id.iv_profile_photo);
         tvPhotoError = findViewById(R.id.tv_photo_error);
@@ -87,16 +105,20 @@ public class EditProfileActivity extends AppCompatActivity {
         btnChoosePhoto = findViewById(R.id.btn_choose_photo);
 
         tilFirstName = findViewById(R.id.til_first_name);
+        tilMiddleInitial = findViewById(R.id.til_middle_initial);
         tilLastName = findViewById(R.id.til_last_name);
         tilPhone = findViewById(R.id.til_phone);
+        tilBusinessPhone = findViewById(R.id.til_business_phone);
         tilAddress1 = findViewById(R.id.til_address1);
         tilAddress2 = findViewById(R.id.til_address2);
         tilCity = findViewById(R.id.til_city);
         tilPostal = findViewById(R.id.til_postal);
 
         etFirstName = findViewById(R.id.et_first_name);
+        etMiddleInitial = findViewById(R.id.et_middle_initial);
         etLastName = findViewById(R.id.et_last_name);
         etPhone = findViewById(R.id.et_phone);
+        etBusinessPhone = findViewById(R.id.et_business_phone);
         etAddress1 = findViewById(R.id.et_address1);
         etAddress2 = findViewById(R.id.et_address2);
         etCity = findViewById(R.id.et_city);
@@ -111,6 +133,7 @@ public class EditProfileActivity extends AppCompatActivity {
         spinnerProvince.setAdapter(provinceAdapter);
 
         etPhone.addTextChangedListener(new PhoneFormatTextWatcher(etPhone));
+        etBusinessPhone.addTextChangedListener(new PhoneFormatTextWatcher(etBusinessPhone));
         etPostal.addTextChangedListener(new PostalCodeFormatTextWatcher(etPostal));
 
         galleryPickerLauncher = registerForActivityResult(
@@ -153,6 +176,25 @@ public class EditProfileActivity extends AppCompatActivity {
         findViewById(R.id.btn_cancel).setOnClickListener(v -> finish());
 
         loadProfile();
+    }
+
+    private void setEditProfileLoading(boolean loading) {
+        if (loadingOverlay != null) {
+            loadingOverlay.setVisibility(loading ? View.VISIBLE : View.GONE);
+        }
+        if (editProfileScrollContent != null) {
+            editProfileScrollContent.setVisibility(loading ? View.INVISIBLE : View.VISIBLE);
+        }
+        View save = findViewById(R.id.btn_save);
+        View changePw = findViewById(R.id.btn_change_password);
+        if (save != null) {
+            save.setEnabled(!loading);
+            save.setAlpha(loading ? 0.5f : 1f);
+        }
+        if (changePw != null) {
+            changePw.setEnabled(!loading);
+            changePw.setAlpha(loading ? 0.5f : 1f);
+        }
     }
 
     @Override
@@ -229,112 +271,227 @@ public class EditProfileActivity extends AppCompatActivity {
     }
 
     private void loadProfile() {
-        int userId = sessionManager.getUserId();
-
-        AppDatabase.databaseWriteExecutor.execute(() -> {
-            AppDatabase db = AppDatabase.getInstance(this);
-            Customer customer = db.customerDao().getByUserId(userId);
-            Employee employee = db.employeeDao().getByUserId(userId);
-            int addressId = customer != null ? customer.addressId : (employee != null ? employee.addressId : 0);
-            Address address = addressId > 0 ? db.addressDao().getById(addressId) : null;
-            loadedAddress = address != null ? address : new Address();
-            if (loadedAddress.addressId == 0 && addressId > 0) {
-                loadedAddress.addressId = addressId;
-            }
-
-            final Customer c = customer;
-            final Employee e = employee;
-            final Address addr = loadedAddress;
-
-            runOnUiThread(() -> {
-                if (c == null && e == null) {
-                    Toast.makeText(this, R.string.error_user_not_found, Toast.LENGTH_LONG).show();
-                    finish();
-                    return;
-                }
-
-                loadedCustomer = c;
-                loadedEmployee = e;
-                loadedAddress = addr;
-
-                String firstName = "";
-                String lastName = "";
-                String phone = "";
-                String photoPath = null;
-                if (c != null) {
-                    firstName = c.customerFirstName != null ? c.customerFirstName : "";
-                    lastName = c.customerLastName != null ? c.customerLastName : "";
-                    phone = c.customerPhone != null ? c.customerPhone : "";
-                    photoPath = c.profilePhotoPath;
-                    isCustomerPhotoPending = c.photoApprovalPending;
-                } else {
-                    firstName = e.employeeFirstName != null ? e.employeeFirstName : "";
-                    lastName = e.employeeLastName != null ? e.employeeLastName : "";
-                    phone = e.employeePhone != null ? e.employeePhone : "";
-                    photoPath = e.profilePhotoPath;
-                    isCustomerPhotoPending = false;
-                }
-
-                etFirstName.setText(firstName);
-                etLastName.setText(lastName);
-                etPhone.setText(phone);
-                etAddress1.setText(addr.addressLine1 != null ? addr.addressLine1 : "");
-                etAddress2.setText(addr.addressLine2 != null ? addr.addressLine2 : "");
-                etCity.setText(addr.addressCity != null ? addr.addressCity : "");
-                if (addr.addressProvince != null && !addr.addressProvince.isEmpty()) {
-                    String[] provinces = getResources().getStringArray(R.array.provinces);
-                    for (int i = 0; i < provinces.length; i++) {
-                        if (addr.addressProvince.equals(provinces[i])) {
-                            spinnerProvince.setSelection(i);
-                            break;
-                        }
+        setEditProfileLoading(true);
+        String role = sessionManager.getUserRole();
+        if ("CUSTOMER".equalsIgnoreCase(role)) {
+            api.getCustomerMe().enqueue(new Callback<CustomerDto>() {
+                @Override
+                public void onResponse(Call<CustomerDto> call, Response<CustomerDto> response) {
+                    if (!response.isSuccessful() || response.body() == null) {
+                        runOnUiThread(() -> {
+                            setEditProfileLoading(false);
+                            Toast.makeText(EditProfileActivity.this, R.string.error_user_not_found, Toast.LENGTH_LONG).show();
+                            finish();
+                        });
+                        return;
                     }
+                    loadedCustomer = response.body();
+                    loadedEmployee = null;
+                    runOnUiThread(() -> bindCustomerFields(loadedCustomer));
                 }
-                etPostal.setText(addr.addressPostalCode != null ? addr.addressPostalCode : "");
 
-                if (c != null && c.photoApprovalPending) {
-                    Bitmap bm = (photoPath != null && !photoPath.isEmpty()) ? BitmapFactory.decodeFile(photoPath) : null;
-                    if (bm != null) {
-                        ivPhoto.setImageBitmap(bm);
-                    } else {
-                        ivPhoto.setImageResource(R.drawable.ic_person_placeholder);
-                    }
-                    applyPendingPhotoStyle(ivPhoto);
-                    tvPhotoStatus.setText(getString(R.string.photo_pending_approval));
-                    tvPhotoStatus.setVisibility(View.VISIBLE);
-                    btnChoosePhoto.setEnabled(false);
-                    btnChoosePhoto.setAlpha(0.6f);
-                } else if (photoPath != null && !photoPath.isEmpty()) {
-                    Bitmap bm = BitmapFactory.decodeFile(photoPath);
-                    if (bm != null) ivPhoto.setImageBitmap(bm);
-                    ivPhoto.clearColorFilter();
-                    ivPhoto.setImageAlpha(255);
-                    tvPhotoStatus.setVisibility(View.GONE);
-                    btnChoosePhoto.setEnabled(true);
-                    btnChoosePhoto.setAlpha(1f);
-                } else {
-                    ivPhoto.setImageResource(R.drawable.ic_person_placeholder);
-                    ivPhoto.clearColorFilter();
-                    ivPhoto.setImageAlpha(255);
-                    tvPhotoStatus.setVisibility(View.GONE);
-                    btnChoosePhoto.setEnabled(true);
-                    btnChoosePhoto.setAlpha(1f);
+                @Override
+                public void onFailure(Call<CustomerDto> call, Throwable t) {
+                    runOnUiThread(() -> {
+                        setEditProfileLoading(false);
+                        Toast.makeText(EditProfileActivity.this, R.string.login_error_no_connection, Toast.LENGTH_SHORT).show();
+                    });
                 }
             });
-        });
+        } else {
+            api.getEmployeeMe().enqueue(new Callback<EmployeeDto>() {
+                @Override
+                public void onResponse(Call<EmployeeDto> call, Response<EmployeeDto> response) {
+                    if (response.code() == 404 && "ADMIN".equalsIgnoreCase(role)) {
+                        runOnUiThread(() -> {
+                            bindAdminFallbackFields();
+                            findViewById(R.id.btn_save).setEnabled(false);
+                            findViewById(R.id.btn_save).setAlpha(0.5f);
+                        });
+                        return;
+                    }
+                    if (!response.isSuccessful() || response.body() == null) {
+                        runOnUiThread(() -> {
+                            setEditProfileLoading(false);
+                            Toast.makeText(EditProfileActivity.this, R.string.error_user_not_found, Toast.LENGTH_LONG).show();
+                            finish();
+                        });
+                        return;
+                    }
+                    loadedEmployee = response.body();
+                    loadedCustomer = null;
+                    runOnUiThread(() -> bindEmployeeFields(loadedEmployee));
+                }
+
+                @Override
+                public void onFailure(Call<EmployeeDto> call, Throwable t) {
+                    runOnUiThread(() -> {
+                        setEditProfileLoading(false);
+                        Toast.makeText(EditProfileActivity.this, R.string.login_error_no_connection, Toast.LENGTH_SHORT).show();
+                    });
+                }
+            });
+        }
+    }
+
+    private void bindCustomerFields(CustomerDto c) {
+        setEditProfileLoading(false);
+        etFirstName.setText(c.firstName != null ? c.firstName : "");
+        etMiddleInitial.setText(c.middleInitial != null ? c.middleInitial : "");
+        etLastName.setText(c.lastName != null ? c.lastName : "");
+        etPhone.setText(c.phone != null ? c.phone : "");
+        etBusinessPhone.setText(c.businessPhone != null ? c.businessPhone : "");
+        if (c.address != null) {
+            etAddress1.setText(emptyToBlank(c.address.line1));
+            etAddress2.setText(emptyToBlank(c.address.line2));
+            etCity.setText(emptyToBlank(c.address.city));
+            etPostal.setText(emptyToBlank(c.address.postalCode));
+            setProvinceSelection(c.address.province);
+            tvProvinceError.setVisibility(View.GONE);
+        } else {
+            clearAddressFields();
+        }
+        isCustomerPhotoPending = c.photoApprovalPending;
+        applyPhotoState(c.profilePhotoPath, c.photoApprovalPending);
+        findViewById(R.id.btn_save).setEnabled(true);
+        findViewById(R.id.btn_save).setAlpha(1f);
+    }
+
+    private void bindEmployeeFields(EmployeeDto e) {
+        setEditProfileLoading(false);
+        String[] sessionNameParts = splitSessionDisplayName();
+        etFirstName.setText(e.firstName != null ? e.firstName : sessionNameParts[0]);
+        etMiddleInitial.setText(e.middleInitial != null ? e.middleInitial : "");
+        etLastName.setText(e.lastName != null ? e.lastName : sessionNameParts[1]);
+        etPhone.setText(e.phone != null ? e.phone : "");
+        etBusinessPhone.setText(e.businessPhone != null ? e.businessPhone : "");
+        if (e.address != null) {
+            etAddress1.setText(emptyToBlank(e.address.line1));
+            etAddress2.setText(emptyToBlank(e.address.line2));
+            etCity.setText(emptyToBlank(e.address.city));
+            etPostal.setText(emptyToBlank(e.address.postalCode));
+            setProvinceSelection(e.address.province);
+            tvProvinceError.setVisibility(View.GONE);
+        } else {
+            clearAddressFields();
+        }
+        isCustomerPhotoPending = e.photoApprovalPending;
+        applyPhotoState(e.profilePhotoPath, e.photoApprovalPending);
+        findViewById(R.id.btn_save).setEnabled(true);
+        findViewById(R.id.btn_save).setAlpha(1f);
+    }
+
+    private void bindAdminFallbackFields() {
+        setEditProfileLoading(false);
+        String[] sessionNameParts = splitSessionDisplayName();
+        etFirstName.setText(sessionNameParts[0]);
+        etMiddleInitial.setText("");
+        etLastName.setText(sessionNameParts[1]);
+        etPhone.setText("");
+        etBusinessPhone.setText("");
+        clearAddressFields();
+    }
+
+    private static String emptyToBlank(String s) {
+        return s != null ? s : "";
+    }
+
+    private void setProvinceSelection(String province) {
+        if (province == null || province.isEmpty()) {
+            spinnerProvince.setSelection(0);
+            return;
+        }
+        String normalized = normalizeProvince(province);
+        ArrayAdapter<?> adapter = (ArrayAdapter<?>) spinnerProvince.getAdapter();
+        for (int i = 0; i < adapter.getCount(); i++) {
+            CharSequence item = (CharSequence) adapter.getItem(i);
+            if (item != null && normalized.equalsIgnoreCase(item.toString().trim())) {
+                spinnerProvince.setSelection(i);
+                return;
+            }
+        }
+        spinnerProvince.setSelection(0);
+    }
+
+    private String normalizeProvince(String province) {
+        String p = province.trim();
+        String upper = p.toUpperCase();
+        if ("AB".equals(upper)) return "Alberta";
+        if ("BC".equals(upper)) return "British Columbia";
+        if ("MB".equals(upper)) return "Manitoba";
+        if ("NB".equals(upper)) return "New Brunswick";
+        if ("NL".equals(upper) || "NF".equals(upper)) return "Newfoundland and Labrador";
+        if ("NS".equals(upper)) return "Nova Scotia";
+        if ("NT".equals(upper)) return "Northwest Territories";
+        if ("NU".equals(upper)) return "Nunavut";
+        if ("ON".equals(upper)) return "Ontario";
+        if ("PE".equals(upper) || "PEI".equals(upper)) return "Prince Edward Island";
+        if ("QC".equals(upper) || "PQ".equals(upper)) return "Quebec";
+        if ("SK".equals(upper)) return "Saskatchewan";
+        if ("YT".equals(upper) || "YK".equals(upper)) return "Yukon";
+        return p;
+    }
+
+    private String[] splitSessionDisplayName() {
+        String raw = sessionManager.getUserName() != null ? sessionManager.getUserName().trim() : "";
+        if (raw.isEmpty()) {
+            return new String[]{"", ""};
+        }
+        String[] parts = raw.split("\\s+", 2);
+        if (parts.length == 1) {
+            return new String[]{parts[0], ""};
+        }
+        return parts;
+    }
+
+    private void clearAddressFields() {
+        etAddress1.setText("");
+        etAddress2.setText("");
+        etCity.setText("");
+        etPostal.setText("");
+        spinnerProvince.setSelection(0);
+    }
+
+    private void applyPhotoState(String photoPath, boolean pending) {
+        // Preserve a freshly selected local preview until the user saves/cancels.
+        // This avoids async profile reloads resetting it back to placeholder.
+        if (selectedPhotoUri != null) {
+            return;
+        }
+        if (pending) {
+            loadRemotePhoto(photoPath);
+            applyPendingPhotoStyle(ivPhoto);
+            tvPhotoStatus.setText(getString(R.string.photo_pending_approval));
+            tvPhotoStatus.setVisibility(View.VISIBLE);
+            btnChoosePhoto.setEnabled(false);
+            btnChoosePhoto.setAlpha(0.6f);
+        } else if (photoPath != null && !photoPath.isEmpty()) {
+            loadRemotePhoto(photoPath);
+            ivPhoto.clearColorFilter();
+            ivPhoto.setImageAlpha(255);
+            tvPhotoStatus.setVisibility(View.GONE);
+            btnChoosePhoto.setEnabled(true);
+            btnChoosePhoto.setAlpha(1f);
+        } else {
+            ivPhoto.setImageResource(R.drawable.ic_person_placeholder);
+            ivPhoto.clearColorFilter();
+            ivPhoto.setImageAlpha(255);
+            tvPhotoStatus.setVisibility(View.GONE);
+            btnChoosePhoto.setEnabled(true);
+            btnChoosePhoto.setAlpha(1f);
+        }
     }
 
     private void attemptSave() {
-        if ((loadedCustomer == null && loadedEmployee == null) || loadedAddress == null) return;
+        if (loadedCustomer == null && loadedEmployee == null) {
+            return;
+        }
 
         String firstName = etFirstName.getText() != null ? etFirstName.getText().toString().trim() : "";
+        String middleInitial = etMiddleInitial.getText() != null ? etMiddleInitial.getText().toString().trim() : "";
         String lastName = etLastName.getText() != null ? etLastName.getText().toString().trim() : "";
         String phoneDigits = etPhone.getText() != null ? etPhone.getText().toString().replaceAll("\\D", "") : "";
-        String address1 = etAddress1.getText() != null ? etAddress1.getText().toString().trim() : "";
-        String address2 = etAddress2.getText() != null ? etAddress2.getText().toString().trim() : "";
-        String city = etCity.getText() != null ? etCity.getText().toString().trim() : "";
-        String province = spinnerProvince.getSelectedItem() != null ? spinnerProvince.getSelectedItem().toString().trim() : "";
-        String postal = etPostal.getText() != null ? etPostal.getText().toString().trim() : "";
+        String businessPhoneRaw = etBusinessPhone.getText() != null ? etBusinessPhone.getText().toString().replaceAll("\\D", "") : "";
 
         boolean valid = true;
 
@@ -358,6 +515,13 @@ public class EditProfileActivity extends AppCompatActivity {
             tilLastName.setError(null);
         }
 
+        if (!Validation.isMiddleInitialValid(middleInitial)) {
+            tilMiddleInitial.setError(getString(R.string.error_middle_initial_invalid));
+            valid = false;
+        } else {
+            tilMiddleInitial.setError(null);
+        }
+
         if (Validation.isEmpty(phoneDigits)) {
             tilPhone.setError(getString(R.string.error_phone_required));
             valid = false;
@@ -368,66 +532,11 @@ public class EditProfileActivity extends AppCompatActivity {
             tilPhone.setError(null);
         }
 
-        boolean anyAddress =
-                !Validation.isEmpty(address1) ||
-                        !Validation.isEmpty(city) ||
-                        !Validation.isEmpty(province) ||
-                        !Validation.isEmpty(postal) ||
-                        !Validation.isEmpty(address2);
-
-        if (anyAddress) {
-            // Require address line 1 (not null/empty)
-            if (Validation.isEmpty(address1)) {
-                tilAddress1.setError(getString(R.string.error_address_required));
-                valid = false;
-            } else if (!Validation.isAddressLineValid(address1)) {
-                tilAddress1.setError(getString(R.string.error_address_invalid));
-                valid = false;
-            } else {
-                tilAddress1.setError(null);
-            }
-
-            if (!Validation.isEmpty(address2) && !Validation.isAddressLineValid(address2)) {
-                tilAddress2.setError(getString(R.string.error_address_invalid));
-                valid = false;
-            } else tilAddress2.setError(null);
-
-            // Require city (not null/empty)
-            if (Validation.isEmpty(city)) {
-                tilCity.setError(getString(R.string.error_city_required));
-                valid = false;
-            } else if (!Validation.isCityValid(city)) {
-                tilCity.setError(getString(R.string.error_city_required));
-                valid = false;
-            } else tilCity.setError(null);
-
-            // Require province (not null/empty)
-            if (Validation.isEmpty(province)) {
-                tvProvinceError.setText(getString(R.string.error_province_required));
-                tvProvinceError.setVisibility(View.VISIBLE);
-                valid = false;
-            } else if (!Validation.isProvinceValid(province)) {
-                tvProvinceError.setText(getString(R.string.error_province_required));
-                tvProvinceError.setVisibility(View.VISIBLE);
-                valid = false;
-            } else {
-                tvProvinceError.setVisibility(View.GONE);
-            }
-
-            // Require postal (not null/empty) and valid format
-            if (Validation.isEmpty(postal)) {
-                tilPostal.setError(getString(R.string.error_postal_required));
-                valid = false;
-            } else if (!Validation.isPostalCodeValid(postal)) {
-                tilPostal.setError(getString(R.string.error_postal_invalid));
-                valid = false;
-            } else tilPostal.setError(null);
+        if (!Validation.isEmpty(businessPhoneRaw) && !Validation.isPhoneNumberValid(businessPhoneRaw)) {
+            tilBusinessPhone.setError(getString(R.string.error_phone_invalid));
+            valid = false;
         } else {
-            tilAddress1.setError(null);
-            tilAddress2.setError(null);
-            tilCity.setError(null);
-            tvProvinceError.setVisibility(View.GONE);
-            tilPostal.setError(null);
+            tilBusinessPhone.setError(null);
         }
 
         if (selectedPhotoUri != null) {
@@ -441,146 +550,304 @@ public class EditProfileActivity extends AppCompatActivity {
             }
         }
 
-        if (!valid) return;
+        String address1 = etAddress1.getText() != null ? etAddress1.getText().toString().trim() : "";
+        String address2 = etAddress2.getText() != null ? etAddress2.getText().toString().trim() : "";
+        String city = etCity.getText() != null ? etCity.getText().toString().trim() : "";
+        String postalRaw = etPostal.getText() != null ? etPostal.getText().toString().trim() : "";
+        String postalNormalized = normalizePostalForApi(postalRaw);
 
-        loadedAddress.addressLine1 = anyAddress ? address1 : "";
-        loadedAddress.addressLine2 = anyAddress ? (Validation.isEmpty(address2) ? null : address2) : null;
-        loadedAddress.addressCity = anyAddress ? city : null;
-        loadedAddress.addressProvince = anyAddress ? province : "";
-        loadedAddress.addressPostalCode = anyAddress ? postal : "";
+        if (Validation.isEmpty(address1)) {
+            tilAddress1.setError(getString(R.string.error_address_required));
+            valid = false;
+        } else if (!Validation.isAddressLineValid(address1)) {
+            tilAddress1.setError(getString(R.string.error_address_invalid));
+            valid = false;
+        } else {
+            tilAddress1.setError(null);
+        }
+
+        if (!Validation.isEmpty(address2) && !Validation.isAddressLineValid(address2)) {
+            tilAddress2.setError(getString(R.string.error_address_invalid));
+            valid = false;
+        } else {
+            tilAddress2.setError(null);
+        }
+
+        if (Validation.isEmpty(city)) {
+            tilCity.setError(getString(R.string.error_city_required));
+            valid = false;
+        } else if (!Validation.isCityValid(city)) {
+            tilCity.setError(getString(R.string.error_city_required));
+            valid = false;
+        } else {
+            tilCity.setError(null);
+        }
+
+        if (Validation.isEmpty(postalNormalized)) {
+            tilPostal.setError(getString(R.string.error_postal_required));
+            valid = false;
+        } else if (!Validation.isPostalCodeValid(postalNormalized)) {
+            tilPostal.setError(getString(R.string.error_postal_invalid));
+            valid = false;
+        } else {
+            tilPostal.setError(null);
+        }
+
+        String provinceSel = spinnerProvince.getSelectedItem() != null ? spinnerProvince.getSelectedItem().toString().trim() : "";
+        int provincePos = spinnerProvince.getSelectedItemPosition();
+        if (Validation.isEmpty(provinceSel) || provincePos <= 0) {
+            tvProvinceError.setVisibility(View.VISIBLE);
+            tvProvinceError.setText(R.string.error_province_required);
+            valid = false;
+        } else if (!Validation.isProvinceValid(provinceSel)) {
+            tvProvinceError.setVisibility(View.VISIBLE);
+            tvProvinceError.setText(R.string.error_province_required);
+            valid = false;
+        } else {
+            tvProvinceError.setVisibility(View.GONE);
+        }
+
+        if (!valid) {
+            return;
+        }
 
         String phoneForStorage = Validation.formatPhoneForStorage(phoneDigits);
-        if (phoneForStorage == null) phoneForStorage = phoneDigits;
+        if (phoneForStorage == null) {
+            phoneForStorage = phoneDigits;
+        }
 
-        if (loadedCustomer != null) {
-            loadedCustomer.customerFirstName = firstName;
-            loadedCustomer.customerLastName = lastName;
-            loadedCustomer.customerPhone = phoneForStorage;
-        } else {
-            loadedEmployee.employeeFirstName = firstName;
-            loadedEmployee.employeeLastName = lastName;
-            loadedEmployee.employeePhone = phoneForStorage;
+        String businessPhoneForStorage = "";
+        if (!Validation.isEmpty(businessPhoneRaw)) {
+            businessPhoneForStorage = Validation.formatPhoneForStorage(businessPhoneRaw);
+            if (businessPhoneForStorage == null) {
+                businessPhoneForStorage = businessPhoneRaw;
+            }
         }
 
         final String saveFirstName = firstName;
+        final String saveMiddleInitial = middleInitial;
         final String saveLastName = lastName;
-        final boolean saveAnyAddress = anyAddress;
-        final int userId = sessionManager.getUserId();
+        final String savePhone = phoneForStorage;
+        final String saveBusinessPhone = businessPhoneForStorage;
+        String province = spinnerProvince.getSelectedItem().toString().trim();
+
+        final AddressUpsertRequest addr = new AddressUpsertRequest();
+        addr.line1 = address1;
+        addr.line2 = Validation.isEmpty(address2) ? null : address2;
+        addr.city = city;
+        addr.province = province;
+        addr.postalCode = postalNormalized;
 
         SensitiveActionAuthorizer.promptForPassword(
                 this,
                 sessionManager,
                 getString(R.string.reauth_title_profile),
                 getString(R.string.reauth_message_profile),
-                () -> persistProfileChanges(
-                        saveFirstName,
-                        saveLastName,
-                        saveAnyAddress,
-                        userId
-                )
+                () -> {
+                    if (loadedCustomer != null) {
+                        persistProfileChanges(saveFirstName, saveMiddleInitial, saveLastName, savePhone, saveBusinessPhone, addr);
+                    } else {
+                        persistEmployeeProfileChanges(saveFirstName, saveMiddleInitial, saveLastName, savePhone, saveBusinessPhone, addr);
+                    }
+                }
         );
     }
 
-    private void persistProfileChanges(String firstName, String lastName, boolean anyAddress, int userId) {
-        AppDatabase.databaseWriteExecutor.execute(() -> {
-            AppDatabase db = AppDatabase.getInstance(this);
+    /** Normalize postal for API: trim, collapse spaces, uppercase (Canadian codes). */
+    private static String normalizePostalForApi(String raw) {
+        if (raw == null) return "";
+        return raw.trim().toUpperCase().replaceAll("\\s+", " ");
+    }
 
-            if (selectedPhotoUri != null) {
-                String savedPath = ImageUtils.saveProfilePhoto(this, selectedPhotoUri, userId);
-                if (savedPath != null) {
-                    if (loadedCustomer != null) {
-                        loadedCustomer.profilePhotoPath = savedPath;
-                        loadedCustomer.photoApprovalPending = true;
-                        isCustomerPhotoPending = true;
-                    } else {
-                        loadedEmployee.profilePhotoPath = savedPath;
-                        loadedEmployee.photoApprovalPending = false;
-                    }
+    private void persistProfileChanges(String firstName, String middleInitial, String lastName, String phoneForStorage, String businessPhoneForStorage, AddressUpsertRequest address) {
+        if (selectedPhotoUri != null) {
+            uploadPhotoThenPatch(firstName, middleInitial, lastName, phoneForStorage, businessPhoneForStorage, address);
+            return;
+        }
+        patchProfileFields(firstName, middleInitial, lastName, phoneForStorage, businessPhoneForStorage, address);
+    }
+
+    private void uploadPhotoThenPatch(String firstName, String middleInitial, String lastName, String phoneForStorage, String businessPhoneForStorage, AddressUpsertRequest address) {
+        MultipartBody.Part photoPart = buildPhotoPart(selectedPhotoUri);
+        if (photoPart == null) {
+            Toast.makeText(this, R.string.error_photo_invalid, Toast.LENGTH_SHORT).show();
+            return;
+        }
+        api.uploadProfilePhoto(photoPart).enqueue(new Callback<CustomerDto>() {
+            @Override
+            public void onResponse(Call<CustomerDto> call, Response<CustomerDto> response) {
+                if (!response.isSuccessful() || response.body() == null) {
+                    String message = extractUploadErrorMessage(response);
+                    Toast.makeText(EditProfileActivity.this, message, Toast.LENGTH_LONG).show();
+                    return;
                 }
+                loadedCustomer = response.body();
+                selectedPhotoUri = null;
+                patchProfileFields(firstName, middleInitial, lastName, phoneForStorage, businessPhoneForStorage, address);
             }
 
-            boolean wasDefault = (loadedAddress.addressId == 1)
-                    && (loadedAddress.addressLine1 == null || loadedAddress.addressLine1.trim().isEmpty());
-
-            if (anyAddress) {
-                Address matchingAddress = db.addressDao().findMatchingAddress(
-                        loadedAddress.addressLine1,
-                        loadedAddress.addressLine2,
-                        loadedAddress.addressCity,
-                        loadedAddress.addressProvince,
-                        loadedAddress.addressPostalCode
-                );
-
-                if (matchingAddress != null && matchingAddress.addressId != loadedAddress.addressId) {
-                    loadedAddress.addressId = matchingAddress.addressId;
-                    if (loadedCustomer != null) {
-                        loadedCustomer.addressId = matchingAddress.addressId;
-                    } else {
-                        loadedEmployee.addressId = matchingAddress.addressId;
-                    }
-                } else if (wasDefault || loadedAddress.addressId <= 0) {
-                    Address newAddr = new Address();
-                    newAddr.addressLine1 = loadedAddress.addressLine1;
-                    newAddr.addressLine2 = loadedAddress.addressLine2;
-                    newAddr.addressCity = loadedAddress.addressCity;
-                    newAddr.addressProvince = loadedAddress.addressProvince;
-                    newAddr.addressPostalCode = loadedAddress.addressPostalCode;
-                    long newId = db.addressDao().insert(newAddr);
-                    loadedAddress.addressId = (int) newId;
-                    if (loadedCustomer != null) {
-                        loadedCustomer.addressId = (int) newId;
-                    } else {
-                        loadedEmployee.addressId = (int) newId;
-                    }
-                } else {
-                    int refs = db.addressDao().countCustomerReferences(loadedAddress.addressId)
-                            + db.addressDao().countEmployeeReferences(loadedAddress.addressId);
-                    if (refs > 1) {
-                        Address newAddr = new Address();
-                        newAddr.addressLine1 = loadedAddress.addressLine1;
-                        newAddr.addressLine2 = loadedAddress.addressLine2;
-                        newAddr.addressCity = loadedAddress.addressCity;
-                        newAddr.addressProvince = loadedAddress.addressProvince;
-                        newAddr.addressPostalCode = loadedAddress.addressPostalCode;
-                        long newId = db.addressDao().insert(newAddr);
-                        loadedAddress.addressId = (int) newId;
-                        if (loadedCustomer != null) {
-                            loadedCustomer.addressId = (int) newId;
-                        } else {
-                            loadedEmployee.addressId = (int) newId;
-                        }
-                    } else {
-                        db.addressDao().update(loadedAddress);
-                    }
-                }
-            } else {
-                db.addressDao().update(loadedAddress);
+            @Override
+            public void onFailure(Call<CustomerDto> call, Throwable t) {
+                Toast.makeText(EditProfileActivity.this, R.string.login_error_no_connection, Toast.LENGTH_SHORT).show();
             }
-            if (loadedCustomer != null) {
-                db.customerDao().update(loadedCustomer);
-            } else {
-                db.employeeDao().update(loadedEmployee);
-            }
-
-            runOnUiThread(() -> {
-                if (isFinishing()) return;
-                String displayName = (firstName + " " + lastName).trim();
-                if (displayName.isEmpty()) displayName = sessionManager.getUserName();
-                sessionManager.createSession(sessionManager.getUserId(), sessionManager.getUserRole(), displayName);
-                ActivityLogger.log(this, sessionManager, "UPDATE_PROFILE", "Profile details updated");
-
-                Toast.makeText(getApplicationContext(), R.string.profile_saved, Toast.LENGTH_SHORT).show();
-
-                Intent intent = new Intent(this, MainActivity.class);
-                intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
-                startActivity(intent);
-                finish();
-            });
         });
     }
 
+    private String extractUploadErrorMessage(Response<?> response) {
+        try {
+            if (response.errorBody() != null) {
+                String raw = response.errorBody().string();
+                if (raw != null) {
+                    if (raw.contains("Object storage is not configured")) {
+                        return "Photo storage is not configured on the server.";
+                    }
+                    if (raw.contains("Only JPG and PNG images are allowed")) {
+                        return getString(R.string.error_photo_format);
+                    }
+                    if (raw.contains("Photo exceeds 5MB limit")) {
+                        return "Photo is too large for server upload (max 5MB after compression).";
+                    }
+                }
+            }
+        } catch (Exception ignored) {
+        }
+        if (response.code() >= 500) {
+            return "Server error while uploading photo. Please try again later.";
+        }
+        return getString(R.string.error_photo_invalid);
+    }
+
+    private void patchProfileFields(String firstName, String middleInitial, String lastName, String phoneForStorage, String businessPhoneForStorage, AddressUpsertRequest address) {
+        CustomerPatchRequest patch = new CustomerPatchRequest();
+        patch.firstName = firstName;
+        patch.middleInitial = middleInitial.isEmpty() ? "" : middleInitial;
+        patch.lastName = lastName;
+        patch.phone = phoneForStorage;
+        patch.businessPhone = Validation.isEmpty(businessPhoneForStorage) ? "" : businessPhoneForStorage;
+        patch.address = address;
+        if (loadedCustomer != null && loadedCustomer.email != null) {
+            patch.email = loadedCustomer.email;
+        }
+        api.patchCustomerMe(patch).enqueue(new Callback<CustomerDto>() {
+            @Override
+            public void onResponse(Call<CustomerDto> call, Response<CustomerDto> response) {
+                if (!response.isSuccessful() || response.body() == null) {
+                    Toast.makeText(EditProfileActivity.this, R.string.error_user_not_found, Toast.LENGTH_SHORT).show();
+                    return;
+                }
+                loadedCustomer = response.body();
+                String displayName = (firstName + " " + lastName).trim();
+                if (displayName.isEmpty()) {
+                    displayName = sessionManager.getUserName();
+                }
+                sessionManager.createSession(
+                        sessionManager.getUserUuid(),
+                        sessionManager.getUserRole(),
+                        displayName,
+                        sessionManager.getLoginEmail()
+                );
+                ActivityLogger.log(EditProfileActivity.this, sessionManager, "UPDATE_PROFILE", "Profile details updated");
+                Toast.makeText(getApplicationContext(), R.string.profile_saved, Toast.LENGTH_SHORT).show();
+                Intent intent = new Intent(EditProfileActivity.this, MainActivity.class);
+                intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+                startActivity(intent);
+                finish();
+            }
+
+            @Override
+            public void onFailure(Call<CustomerDto> call, Throwable t) {
+                Toast.makeText(EditProfileActivity.this, R.string.login_error_no_connection, Toast.LENGTH_SHORT).show();
+            }
+        });
+    }
+
+    private void persistEmployeeProfileChanges(String firstName, String middleInitial, String lastName, String phoneForStorage, String businessPhoneForStorage, AddressUpsertRequest address) {
+        EmployeePatchRequest patch = new EmployeePatchRequest();
+        patch.firstName = firstName;
+        patch.middleInitial = middleInitial.isEmpty() ? "" : middleInitial;
+        patch.lastName = lastName;
+        patch.phone = phoneForStorage;
+        patch.businessPhone = Validation.isEmpty(businessPhoneForStorage) ? "" : businessPhoneForStorage;
+        patch.address = address;
+        if (loadedEmployee != null && loadedEmployee.workEmail != null) {
+            patch.workEmail = loadedEmployee.workEmail;
+        }
+        api.patchEmployeeMe(patch).enqueue(new Callback<EmployeeDto>() {
+            @Override
+            public void onResponse(Call<EmployeeDto> call, Response<EmployeeDto> response) {
+                if (!response.isSuccessful() || response.body() == null) {
+                    Toast.makeText(EditProfileActivity.this, R.string.error_user_not_found, Toast.LENGTH_SHORT).show();
+                    return;
+                }
+                loadedEmployee = response.body();
+                String displayName = (firstName + " " + lastName).trim();
+                if (displayName.isEmpty()) {
+                    displayName = sessionManager.getUserName();
+                }
+                sessionManager.createSession(
+                        sessionManager.getUserUuid(),
+                        sessionManager.getUserRole(),
+                        displayName,
+                        sessionManager.getLoginEmail()
+                );
+                ActivityLogger.log(EditProfileActivity.this, sessionManager, "UPDATE_PROFILE", "Employee profile details updated");
+                Toast.makeText(getApplicationContext(), R.string.profile_saved, Toast.LENGTH_SHORT).show();
+                Intent intent = new Intent(EditProfileActivity.this, MainActivity.class);
+                intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+                startActivity(intent);
+                finish();
+            }
+
+            @Override
+            public void onFailure(Call<EmployeeDto> call, Throwable t) {
+                Toast.makeText(EditProfileActivity.this, R.string.login_error_no_connection, Toast.LENGTH_SHORT).show();
+            }
+        });
+    }
+
+    private MultipartBody.Part buildPhotoPart(Uri uri) {
+        if (uri == null) {
+            return null;
+        }
+        Bitmap bitmap = ImageUtils.decodeForUpload(this, uri);
+        if (bitmap == null) {
+            return null;
+        }
+        byte[] bytes = ImageUtils.compressBitmapJpeg(bitmap, ImageUtils.MAX_PHOTO_BYTES);
+        bitmap.recycle();
+        if (bytes == null) {
+            return null;
+        }
+        RequestBody body = RequestBody.create(bytes, MediaType.parse("image/jpeg"));
+        return MultipartBody.Part.createFormData("photo", "profile.jpg", body);
+    }
+
+    private void loadRemotePhoto(String photoPath) {
+        if (photoPath == null || photoPath.trim().isEmpty()) {
+            ivPhoto.setImageResource(R.drawable.ic_person_placeholder);
+            return;
+        }
+        String originFallback = cdnToOriginUrl(photoPath);
+        Glide.with(this)
+                .load(photoPath)
+                .placeholder(R.drawable.ic_person_placeholder)
+                .error(
+                        Glide.with(this)
+                                .load(originFallback != null ? originFallback : photoPath)
+                                .placeholder(R.drawable.ic_person_placeholder)
+                                .error(R.drawable.ic_person_placeholder)
+                )
+                .into(ivPhoto);
+    }
+
+    private String cdnToOriginUrl(String url) {
+        if (url == null) return null;
+        if (!url.contains(".cdn.digitaloceanspaces.com")) return null;
+        return url.replace(".cdn.digitaloceanspaces.com", ".digitaloceanspaces.com");
+    }
+
     private void showChangePasswordDialog() {
-        View dialogView = getLayoutInflater().inflate(R.layout.dialog_change_password, null, false);
+        View dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_change_password, null, false);
         TextInputLayout tilCurrent = dialogView.findViewById(R.id.til_current_password);
         TextInputLayout tilNew = dialogView.findViewById(R.id.til_new_password);
         TextInputLayout tilConfirm = dialogView.findViewById(R.id.til_confirm_new_password);
@@ -595,66 +862,83 @@ public class EditProfileActivity extends AppCompatActivity {
                 .setPositiveButton(R.string.btn_save, null)
                 .create();
 
-        dialog.setOnShowListener(ignored -> dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v -> {
-            String currentPassword = etCurrent.getText() != null ? etCurrent.getText().toString() : "";
-            String newPassword = etNew.getText() != null ? etNew.getText().toString() : "";
-            String confirmPassword = etConfirm.getText() != null ? etConfirm.getText().toString() : "";
-
+        dialog.setOnShowListener(d -> dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v -> {
             tilCurrent.setError(null);
             tilNew.setError(null);
             tilConfirm.setError(null);
 
-            boolean valid = true;
-            if (Validation.isEmpty(currentPassword)) {
+            String cur = etCurrent.getText() != null ? etCurrent.getText().toString() : "";
+            String nw = etNew.getText() != null ? etNew.getText().toString() : "";
+            String cf = etConfirm.getText() != null ? etConfirm.getText().toString() : "";
+
+            if (Validation.isEmpty(cur)) {
                 tilCurrent.setError(getString(R.string.error_password_required));
-                valid = false;
+                return;
             }
-            if (Validation.isEmpty(newPassword)) {
+            if (Validation.isEmpty(nw)) {
                 tilNew.setError(getString(R.string.error_password_required));
-                valid = false;
-            } else if (!Validation.isPasswordStrong(newPassword)) {
+                return;
+            }
+            if (Validation.isPasswordTooShort(nw)) {
+                tilNew.setError(getString(R.string.error_password_too_short));
+                return;
+            }
+            if (Validation.isPasswordTooLong(nw)) {
+                tilNew.setError(getString(R.string.error_password_too_long));
+                return;
+            }
+            if (!Validation.isPasswordStrong(nw)) {
                 tilNew.setError(getString(R.string.error_password_strength));
-                valid = false;
+                return;
             }
-            if (Validation.isEmpty(confirmPassword)) {
-                tilConfirm.setError(getString(R.string.error_password_required));
-                valid = false;
-            } else if (!newPassword.equals(confirmPassword)) {
+            if (!nw.equals(cf)) {
                 tilConfirm.setError(getString(R.string.error_password_mismatch));
-                valid = false;
+                return;
             }
-            if (!valid) {
+            if (nw.equals(cur)) {
+                tilNew.setError(getString(R.string.change_password_reuse_error));
                 return;
             }
 
-            AppDatabase.databaseWriteExecutor.execute(() -> {
-                AppDatabase db = AppDatabase.getInstance(this);
-                User user = db.userDao().getUserById(sessionManager.getUserId());
-                boolean currentMatches = user != null && user.isActive && HashUtils.verify(currentPassword, user.userPasswordHash);
-                boolean sameAsExisting = currentMatches && HashUtils.verify(newPassword, user.userPasswordHash);
+            ChangePasswordRequest body = new ChangePasswordRequest();
+            body.currentPassword = cur;
+            body.newPassword = nw;
 
-                runOnUiThread(() -> {
-                    if (!currentMatches) {
-                        tilCurrent.setError(getString(R.string.reauth_error_invalid));
+            ApiClient.getInstance().setToken(sessionManager.getToken());
+            api.changePassword(body).enqueue(new Callback<Void>() {
+                @Override
+                public void onResponse(Call<Void> call, Response<Void> response) {
+                    if (response.isSuccessful()) {
+                        dialog.dismiss();
+                        Toast.makeText(EditProfileActivity.this, R.string.change_password_success, Toast.LENGTH_SHORT).show();
+                        ActivityLogger.log(EditProfileActivity.this, sessionManager, "CHANGE_PASSWORD", "Password updated");
                         return;
                     }
-                    if (sameAsExisting) {
-                        tilNew.setError(getString(R.string.change_password_reuse_error));
-                        return;
+                    String msg = getString(R.string.change_password_failed);
+                    try {
+                        ResponseBody err = response.errorBody();
+                        if (err != null) {
+                            String raw = err.string();
+                            if (raw != null) {
+                                if (raw.contains("Current password is incorrect")) {
+                                    msg = "Current password is incorrect";
+                                } else if (raw.contains("New password must differ")) {
+                                    msg = getString(R.string.change_password_reuse_error);
+                                } else if (raw.length() < 200) {
+                                    msg = raw;
+                                }
+                            }
+                        }
+                    } catch (Exception ignored) {
                     }
+                    tilCurrent.setError(msg);
+                    Toast.makeText(EditProfileActivity.this, msg, Toast.LENGTH_LONG).show();
+                }
 
-                    AppDatabase.databaseWriteExecutor.execute(() -> {
-                        user.userPasswordHash = HashUtils.hash(newPassword);
-                        db.userDao().update(user);
-
-                        runOnUiThread(() -> {
-                            sessionManager.touch();
-                            ActivityLogger.log(this, sessionManager, "CHANGE_PASSWORD", "Password updated");
-                            Toast.makeText(this, R.string.password_changed, Toast.LENGTH_SHORT).show();
-                            dialog.dismiss();
-                        });
-                    });
-                });
+                @Override
+                public void onFailure(Call<Void> call, Throwable t) {
+                    Toast.makeText(EditProfileActivity.this, R.string.login_error_no_connection, Toast.LENGTH_SHORT).show();
+                }
             });
         }));
 

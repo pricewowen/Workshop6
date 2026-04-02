@@ -1,119 +1,148 @@
 <?xml version="1.0" encoding="utf-8"?>
-<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:fillViewport="true"
     android:background="@color/bakery_background">
 
-    <LinearLayout
+    <ScrollView
+        android:id="@+id/me_scroll_content"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:padding="24dp">
+        android:layout_height="match_parent"
+        android:fillViewport="true"
+        android:background="@color/bakery_background">
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="18dp"
-            android:gravity="center_vertical"
-            android:orientation="horizontal">
-
-            <ImageView
-                android:id="@+id/iv_me_photo"
-                android:layout_width="64dp"
-                android:layout_height="64dp"
-                android:background="@drawable/circle_bg_gray"
-                android:clipToOutline="true"
-                android:contentDescription="@string/label_photo"
-                android:padding="0dp"
-                android:scaleType="centerCrop"
-                android:src="@drawable/ic_person_placeholder" />
+            android:orientation="vertical"
+            android:padding="24dp">
 
             <LinearLayout
-                android:layout_width="0dp"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="16dp"
-                android:layout_weight="1"
-                android:orientation="vertical">
+                android:layout_marginBottom="18dp"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
 
-                <TextView
-                    android:id="@+id/tv_me_name"
-                    android:layout_width="wrap_content"
+                <ImageView
+                    android:id="@+id/iv_me_photo"
+                    android:layout_width="64dp"
+                    android:layout_height="64dp"
+                    android:background="@drawable/circle_bg_gray"
+                    android:clipToOutline="true"
+                    android:contentDescription="@string/label_photo"
+                    android:padding="0dp"
+                    android:scaleType="centerCrop"
+                    android:src="@drawable/ic_person_placeholder" />
+
+                <LinearLayout
+                    android:layout_width="0dp"
                     android:layout_height="wrap_content"
-                    android:text="@string/stub_me_name"
+                    android:layout_marginStart="16dp"
+                    android:layout_weight="1"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:id="@+id/tv_me_name"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text=""
+                        android:textColor="@color/bakery_text_dark"
+                        android:textSize="20sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/tv_me_email"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:ellipsize="end"
+                        android:maxLines="1"
+                        android:text=""
+                        android:textColor="@color/bakery_text_secondary"
+                        android:textSize="14sp" />
+
+                    <TextView
+                        android:id="@+id/tv_me_photo_status"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:text="@string/photo_pending_approval"
+                        android:textColor="@color/bakery_text_secondary"
+                        android:textSize="12sp"
+                        android:visibility="gone" />
+                </LinearLayout>
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btn_edit_profile"
+                    style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                    android:layout_width="wrap_content"
+                    android:layout_height="40dp"
+                    android:text="@string/btn_edit"
                     android:textColor="@color/bakery_text_dark"
-                    android:textSize="20sp"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:id="@+id/tv_me_email"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="@string/stub_me_email"
-                    android:textColor="@color/bakery_text_secondary"
-                    android:textSize="14sp" />
-
-                <TextView
-                    android:id="@+id/tv_me_photo_status"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="2dp"
-                    android:text="@string/photo_pending_approval"
-                    android:textColor="@color/bakery_text_secondary"
-                    android:textSize="12sp"
-                    android:visibility="gone" />
+                    app:cornerRadius="20dp"
+                    app:strokeColor="@color/bakery_text_dark" />
             </LinearLayout>
 
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btn_edit_profile"
-                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
-                android:layout_width="wrap_content"
-                android:layout_height="40dp"
-                android:text="@string/btn_edit"
+            <TextView
+                android:id="@+id/tv_me_address"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="22dp"
+                android:lineSpacingExtra="2dp"
+                android:minHeight="48dp"
+                android:text=""
                 android:textColor="@color/bakery_text_dark"
-                app:cornerRadius="20dp"
-                app:strokeColor="@color/bakery_text_dark" />
+                android:textSize="14sp" />
+
+            <Button
+                android:id="@+id/btn_loyalty_rewards"
+                android:layout_width="match_parent"
+                android:layout_height="56dp"
+                android:layout_marginTop="8dp"
+                android:backgroundTint="@color/bakery_primary"
+                android:text="@string/btn_loyalty_rewards"
+                android:textColor="@color/bakery_text_light" />
+
+            <Button
+                android:id="@+id/btn_order_history"
+                android:layout_width="match_parent"
+                android:layout_height="56dp"
+                android:layout_marginTop="8dp"
+                android:backgroundTint="@color/bakery_primary"
+                android:text="@string/order_history"
+                android:textColor="@color/bakery_text_light" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_logout"
+                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                android:layout_width="match_parent"
+                android:layout_height="48dp"
+                android:layout_marginTop="12dp"
+                android:text="@string/btn_logout"
+                android:textColor="@color/bakery_status_closed"
+                app:cornerRadius="24dp"
+                app:strokeColor="@color/bakery_status_closed" />
+
         </LinearLayout>
+    </ScrollView>
 
-        <TextView
-            android:id="@+id/tv_me_address"
-            android:layout_width="match_parent"
+    <FrameLayout
+        android:id="@+id/me_loading_overlay"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@color/bakery_background"
+        android:clickable="true"
+        android:elevation="8dp"
+        android:focusable="true"
+        android:visibility="gone">
+
+        <ProgressBar
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="22dp"
-            android:lineSpacingExtra="2dp"
-            android:text="@string/stub_me_address"
-            android:textColor="@color/bakery_text_dark"
-            android:textSize="14sp" />
-
-        <Button
-            android:id="@+id/btn_order_history"
-            android:layout_width="match_parent"
-            android:layout_height="56dp"
-            android:layout_marginTop="8dp"
-            android:backgroundTint="@color/bakery_primary"
-            android:text="@string/order_history"
-            android:textColor="@color/bakery_text_light" />
-
-        <Button
-            android:id="@+id/btn_chat_staff"
-            android:layout_width="match_parent"
-            android:layout_height="56dp"
-            android:layout_marginTop="12dp"
-            android:backgroundTint="@color/bakery_primary"
-            android:text="@string/chat_with_staff"
-            android:textColor="@color/bakery_text_light" />
-
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btn_logout"
-            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
-            android:layout_width="match_parent"
-            android:layout_height="48dp"
-            android:layout_marginTop="12dp"
-            android:text="@string/btn_logout"
-            android:textColor="@color/bakery_status_closed"
-            app:cornerRadius="24dp"
-            app:strokeColor="@color/bakery_status_closed" />
-
-    </LinearLayout>
-</ScrollView>
+            android:layout_gravity="center"
+            android:indeterminate="true"
+            android:indeterminateTint="@color/bakery_gold_bright" />
+    </FrameLayout>
+</FrameLayout>

@@ -2,7 +2,6 @@ package com.example.workshop6.auth;
 
 import android.Manifest;
 import android.content.Intent;
-import android.database.sqlite.SQLiteConstraintException;
 import android.graphics.Bitmap;
 import android.net.Uri;
 import android.os.Bundle;
@@ -20,16 +19,17 @@ import androidx.core.content.ContextCompat;
 import android.content.pm.PackageManager;
 
 import com.example.workshop6.R;
-import com.example.workshop6.data.db.AppDatabase;
-import com.example.workshop6.data.model.Address;
-import com.example.workshop6.data.model.Customer;
-import com.example.workshop6.data.model.User;
+import com.example.workshop6.data.api.ApiClient;
+import com.example.workshop6.data.api.ApiService;
+import com.example.workshop6.data.api.dto.AuthResponse;
+import com.example.workshop6.data.api.dto.RegisterRequest;
 import com.example.workshop6.logging.ActivityLogger;
 import com.example.workshop6.ui.MainActivity;
-import com.example.workshop6.util.HashUtils;
 import com.example.workshop6.util.ImageUtils;
 import com.example.workshop6.util.PhoneFormatTextWatcher;
 import com.example.workshop6.util.PostalCodeFormatTextWatcher;
+import com.example.workshop6.util.ApiReachability;
+import com.example.workshop6.util.NetworkStatus;
 import com.example.workshop6.util.Validation;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.textfield.TextInputEditText;
@@ -37,15 +37,20 @@ import com.google.android.material.textfield.TextInputLayout;
 
 import java.util.Locale;
 
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
+
 public class RegisterActivity extends AppCompatActivity {
 
-    private TextInputLayout tilFirstName, tilLastName, tilUsername, tilEmail, tilPhone, tilPassword, tilConfirmPassword;
+    private TextInputLayout tilFirstName, tilMiddleInitial, tilLastName, tilUsername, tilEmail, tilPhone, tilBusinessPhone, tilPassword, tilConfirmPassword;
     private TextInputLayout tilAddress1, tilAddress2, tilCity, tilPostal;
-    private TextInputEditText etFirstName, etLastName, etUsername, etEmail, etPhone, etPassword, etConfirmPassword;
+    private TextInputEditText etFirstName, etMiddleInitial, etLastName, etUsername, etEmail, etPhone, etBusinessPhone, etPassword, etConfirmPassword;
     private TextInputEditText etAddress1, etAddress2, etCity, etPostal;
     private Spinner spinnerProvince;
     private TextView tvError;
     private TextView tvProvinceError;
+    private View btnCreateAccount;
 
     private ImageView ivProfilePhoto;
     private TextView tvPhotoError;
@@ -67,10 +72,12 @@ public class RegisterActivity extends AppCompatActivity {
         sessionManager = new SessionManager(this);
 
         tilFirstName = findViewById(R.id.til_first_name);
+        tilMiddleInitial = findViewById(R.id.til_middle_initial);
         tilLastName  = findViewById(R.id.til_last_name);
         tilUsername  = findViewById(R.id.til_username);
         tilEmail     = findViewById(R.id.til_email);
         tilPhone     = findViewById(R.id.til_phone);
+        tilBusinessPhone = findViewById(R.id.til_business_phone);
         tilPassword  = findViewById(R.id.til_password);
         tilConfirmPassword = findViewById(R.id.til_confirm_password);
         tilAddress1 = findViewById(R.id.til_address1);
@@ -79,10 +86,12 @@ public class RegisterActivity extends AppCompatActivity {
         tilPostal = findViewById(R.id.til_postal);
 
         etFirstName = findViewById(R.id.et_first_name);
+        etMiddleInitial = findViewById(R.id.et_middle_initial);
         etLastName  = findViewById(R.id.et_last_name);
         etUsername  = findViewById(R.id.et_username);
         etEmail     = findViewById(R.id.et_email);
         etPhone     = findViewById(R.id.et_phone);
+        etBusinessPhone = findViewById(R.id.et_business_phone);
         etPassword  = findViewById(R.id.et_password);
         etConfirmPassword = findViewById(R.id.et_confirm_password);
         etAddress1 = findViewById(R.id.et_address1);
@@ -100,6 +109,7 @@ public class RegisterActivity extends AppCompatActivity {
         spinnerProvince.setAdapter(provinceAdapter);
 
         etPhone.addTextChangedListener(new PhoneFormatTextWatcher(etPhone));
+        etBusinessPhone.addTextChangedListener(new PhoneFormatTextWatcher(etBusinessPhone));
         etPostal.addTextChangedListener(new PostalCodeFormatTextWatcher(etPostal));
 
         ivProfilePhoto = findViewById(R.id.iv_profile_photo);
@@ -134,8 +144,24 @@ public class RegisterActivity extends AppCompatActivity {
         );
 
         findViewById(R.id.btn_choose_photo).setOnClickListener(v -> showPhotoChooser());
-        findViewById(R.id.btn_create_account).setOnClickListener(v -> attemptRegister());
+        btnCreateAccount = findViewById(R.id.btn_create_account);
+        btnCreateAccount.setOnClickListener(v -> attemptRegister());
         findViewById(R.id.tv_sign_in_link).setOnClickListener(v -> finish());
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        updateRegisterAvailabilityForNetwork();
+    }
+
+    private void updateRegisterAvailabilityForNetwork() {
+        if (btnCreateAccount == null) {
+            return;
+        }
+        boolean online = NetworkStatus.isOnline(this);
+        btnCreateAccount.setEnabled(online);
+        btnCreateAccount.setAlpha(online ? 1f : 0.5f);
     }
 
     private void showPhotoChooser() {
@@ -193,11 +219,59 @@ public class RegisterActivity extends AppCompatActivity {
     }
 
     private void attemptRegister() {
+        if (!NetworkStatus.isOnline(this)) {
+            clearRegisterFieldErrorsForConnectionMessage();
+            tvError.setText(R.string.login_error_no_connection);
+            tvError.setVisibility(View.VISIBLE);
+            return;
+        }
+
+        btnCreateAccount.setEnabled(false);
+
+        ApiReachability.checkThen(
+                () -> {
+                    if (isFinishing() || isDestroyed()) {
+                        return;
+                    }
+                    btnCreateAccount.setEnabled(true);
+                    updateRegisterAvailabilityForNetwork();
+                    clearRegisterFieldErrorsForConnectionMessage();
+                    tvError.setText(R.string.login_error_no_connection);
+                    tvError.setVisibility(View.VISIBLE);
+                },
+                this::registerAfterReachabilityCheck
+        );
+    }
+
+    private void clearRegisterFieldErrorsForConnectionMessage() {
+        tilFirstName.setError(null);
+        tilMiddleInitial.setError(null);
+        tilLastName.setError(null);
+        tilUsername.setError(null);
+        tilEmail.setError(null);
+        tilPhone.setError(null);
+        tilBusinessPhone.setError(null);
+        tilPassword.setError(null);
+        tilConfirmPassword.setError(null);
+        tilAddress1.setError(null);
+        tilAddress2.setError(null);
+        tilCity.setError(null);
+        tilPostal.setError(null);
+        tvProvinceError.setVisibility(View.GONE);
+    }
+
+    private void registerAfterReachabilityCheck() {
+        if (isFinishing() || isDestroyed()) {
+            return;
+        }
+
         String firstName = etFirstName.getText() != null ? etFirstName.getText().toString().trim() : "";
+        String middleInitial = etMiddleInitial.getText() != null ? etMiddleInitial.getText().toString().trim() : "";
         String lastName  = etLastName.getText() != null ? etLastName.getText().toString().trim() : "";
         String username  = etUsername.getText() != null ? etUsername.getText().toString().trim() : "";
         String email     = etEmail.getText() != null ? etEmail.getText().toString().trim().toLowerCase(Locale.ROOT) : "";
         String phone     = etPhone.getText() != null ? etPhone.getText().toString().replaceAll("\\D", "") : "";
+        String businessPhoneRaw = etBusinessPhone.getText() != null ? etBusinessPhone.getText().toString().replaceAll("\\D", "") : "";
         String pass      = etPassword.getText() != null ? etPassword.getText().toString() : "";
         String confirm   = etConfirmPassword.getText() != null ? etConfirmPassword.getText().toString() : "";
         String address1  = etAddress1.getText() != null ? etAddress1.getText().toString().trim() : "";
@@ -216,6 +290,13 @@ public class RegisterActivity extends AppCompatActivity {
             valid = false;
         } else {
             tilFirstName.setError(null);
+        }
+
+        if (!Validation.isMiddleInitialValid(middleInitial)) {
+            tilMiddleInitial.setError(getString(R.string.error_middle_initial_invalid));
+            valid = false;
+        } else {
+            tilMiddleInitial.setError(null);
         }
 
         if (Validation.isEmpty(lastName)) {
@@ -262,6 +343,13 @@ public class RegisterActivity extends AppCompatActivity {
             valid = false;
         } else {
             tilPhone.setError(null);
+        }
+
+        if (!Validation.isEmpty(businessPhoneRaw) && !Validation.isPhoneNumberValid(businessPhoneRaw)) {
+            tilBusinessPhone.setError(getString(R.string.error_phone_invalid));
+            valid = false;
+        } else {
+            tilBusinessPhone.setError(null);
         }
 
         if (Validation.isEmpty(pass)) {
@@ -349,126 +437,100 @@ public class RegisterActivity extends AppCompatActivity {
                     "REGISTER",
                     "Registration validation failed"
             );
+            btnCreateAccount.setEnabled(true);
+            updateRegisterAvailabilityForNetwork();
             return;
         }
 
         tvError.setVisibility(View.GONE);
 
-        AppDatabase db = AppDatabase.getInstance(this);
+        String phoneStored = Validation.formatPhoneForStorage(phone);
+        if (phoneStored == null) {
+            phoneStored = phone;
+        }
 
-        AppDatabase.databaseWriteExecutor.execute(() -> {
-            AppDatabase.awaitSeed();
-
-            User existingByEmail = db.userDao().getUserByEmail(email);
-            if (existingByEmail != null) {
-                runOnUiThread(() -> {
-                    showDuplicateAccountError();
-                });
-                ActivityLogger.logFailure(this, null, "REGISTER", "Registration blocked: duplicate email");
-                return;
+        String businessPhoneStored = null;
+        if (!Validation.isEmpty(businessPhoneRaw)) {
+            businessPhoneStored = Validation.formatPhoneForStorage(businessPhoneRaw);
+            if (businessPhoneStored == null) {
+                businessPhoneStored = businessPhoneRaw;
             }
+        }
 
-            User existingByUsername = db.userDao().getUserByUsername(username);
-            if (existingByUsername != null) {
-                runOnUiThread(() -> {
+        String middleForApi = middleInitial.isEmpty() ? null : middleInitial;
+
+        RegisterRequest registerRequest = new RegisterRequest(
+                username,
+                email,
+                pass,
+                firstName,
+                middleForApi,
+                lastName,
+                phoneStored,
+                businessPhoneStored
+        );
+
+        ApiService api = ApiClient.getInstance().getService();
+        api.register(registerRequest).enqueue(new Callback<AuthResponse>() {
+            @Override
+            public void onResponse(Call<AuthResponse> call, Response<AuthResponse> response) {
+                if (isFinishing() || isDestroyed()) {
+                    return;
+                }
+                if (response.code() == 409) {
+                    btnCreateAccount.setEnabled(true);
+                    updateRegisterAvailabilityForNetwork();
                     showDuplicateAccountError();
-                });
-                ActivityLogger.logFailure(this, null, "REGISTER", "Registration blocked: duplicate username");
-                return;
-            }
-
-            try {
-                // User (auth)
-                User user = new User();
-                user.userUsername = username;
-                user.userEmail = email;
-                user.userPasswordHash = HashUtils.hash(pass);
-                user.userRole = "CUSTOMER";
-                user.isActive = true;
-                user.userCreatedAt = System.currentTimeMillis();
-                long newUserId = db.userDao().insert(user);
-                int userId = (int) newUserId;
-
-                // Reuse an existing address if the same normalized address already exists
-                String address2ForMatch = Validation.isEmpty(address2) ? null : address2;
-                Address existingAddress = db.addressDao().findMatchingAddress(
-                        address1,
-                        address2ForMatch,
-                        city,
-                        province,
-                        postal
+                    ActivityLogger.logFailure(RegisterActivity.this, null, "REGISTER", "Conflict from API");
+                    return;
+                }
+                if (!response.isSuccessful() || response.body() == null) {
+                    btnCreateAccount.setEnabled(true);
+                    updateRegisterAvailabilityForNetwork();
+                    tvError.setText(R.string.register_error_unexpected);
+                    tvError.setVisibility(View.VISIBLE);
+                    ActivityLogger.logFailure(RegisterActivity.this, null, "REGISTER", "HTTP " + response.code());
+                    return;
+                }
+                AuthResponse auth = response.body();
+                if (auth.token == null || auth.token.trim().isEmpty()
+                        || auth.role == null || auth.role.trim().isEmpty()
+                        || auth.username == null || auth.username.trim().isEmpty()) {
+                    btnCreateAccount.setEnabled(true);
+                    updateRegisterAvailabilityForNetwork();
+                    tvError.setText(R.string.register_error_unexpected);
+                    tvError.setVisibility(View.VISIBLE);
+                    ActivityLogger.logFailure(RegisterActivity.this, null, "REGISTER", "Malformed auth response");
+                    return;
+                }
+                ApiClient.getInstance().setToken(auth.token);
+                String uid = auth.userId != null ? auth.userId : "";
+                sessionManager.persistLoginSession(
+                        auth.token,
+                        uid,
+                        auth.role.toUpperCase(),
+                        auth.username,
+                        email
                 );
-                int addressId;
-                if (existingAddress != null) {
-                    addressId = existingAddress.addressId;
-                } else {
-                    Address addr = new Address();
-                    addr.addressLine1 = address1;
-                    addr.addressLine2 = address2ForMatch;
-                    addr.addressCity = city;
-                    addr.addressProvince = province;
-                    addr.addressPostalCode = postal;
-                    long addrId = db.addressDao().insert(addr);
-                    addressId = (int) addrId;
+                ActivityLogger.log(
+                        RegisterActivity.this,
+                        "USER@" + auth.username,
+                        "REGISTER",
+                        "Customer account created via API"
+                );
+                goToMain();
+            }
+
+            @Override
+            public void onFailure(Call<AuthResponse> call, Throwable t) {
+                if (isFinishing() || isDestroyed()) {
+                    return;
                 }
-
-                // Customer (every registered user is a customer)
-                Customer customer = new Customer();
-                customer.userId = userId;
-                customer.addressId = addressId;
-                customer.rewardTierId = com.example.workshop6.data.db.DatabaseSeeder.DEFAULT_REWARD_TIER_ID;
-                customer.customerFirstName = firstName;
-                customer.customerMiddleInitial = null;
-                customer.customerLastName = lastName;
-                customer.customerRole = "Customer";
-                String phoneStored = Validation.formatPhoneForStorage(phone);
-                customer.customerPhone = phoneStored != null ? phoneStored : phone;
-                customer.customerBusinessPhone = null;
-                customer.customerRewardBalance = 0;
-                customer.customerTierAssignedDate = null;
-                customer.customerEmail = email;
-                customer.profilePhotoPath = null;
-                customer.photoApprovalPending = false;
-
-                long newCustomerId = db.customerDao().insert(customer);
-                int customerId = (int) newCustomerId;
-
-                if (selectedPhotoUri != null && customerId > 0) {
-                    String savedPath = ImageUtils.saveProfilePhoto(this, selectedPhotoUri, customerId);
-                    if (savedPath != null) {
-                        customer.customerId = customerId;
-                        customer.profilePhotoPath = savedPath;
-                        customer.photoApprovalPending = true;
-                        db.customerDao().update(customer);
-                    }
-                }
-
-                String displayName = firstName + " " + lastName;
-                runOnUiThread(() -> {
-                    sessionManager.createSession(userId, user.userRole, displayName);
-                    ActivityLogger.log(
-                            this,
-                            "USER#" + userId,
-                            "REGISTER",
-                            "Customer account created"
-                    );
-                    goToMain();
-                });
-            } catch (SQLiteConstraintException e) {
-                ActivityLogger.logFailure(this, null, "REGISTER", "Constraint failure while creating account");
-                runOnUiThread(this::showDuplicateAccountError);
-            } catch (Exception e) {
-                String message = e.getMessage() != null ? e.getMessage().toLowerCase(Locale.ROOT) : "";
-                if (message.contains("unique") || message.contains("constraint")) {
-                    ActivityLogger.logFailure(this, null, "REGISTER", "Unique constraint failure while creating account");
-                    runOnUiThread(this::showDuplicateAccountError);
-                } else {
-                    ActivityLogger.logFailure(this, null, "REGISTER", "Unexpected registration failure: " + message);
-                    runOnUiThread(() -> {
-                        tvError.setText(R.string.register_error_unexpected);
-                        tvError.setVisibility(View.VISIBLE);
-                    });
-                }
+                btnCreateAccount.setEnabled(true);
+                updateRegisterAvailabilityForNetwork();
+                tvError.setText(R.string.login_error_no_connection);
+                tvError.setVisibility(View.VISIBLE);
+                ActivityLogger.logFailure(RegisterActivity.this, null, "REGISTER", "Network error");
             }
         });
     }

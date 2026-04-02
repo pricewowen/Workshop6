@@ -9,11 +9,17 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import com.example.workshop6.R;
 import com.example.workshop6.auth.SessionManager;
-import com.example.workshop6.data.db.AppDatabase;
-import com.example.workshop6.data.model.User;
+import com.example.workshop6.data.api.ApiClient;
+import com.example.workshop6.data.api.ApiService;
+import com.example.workshop6.data.api.dto.AuthResponse;
+import com.example.workshop6.data.api.dto.LoginRequest;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.textfield.TextInputEditText;
 import com.google.android.material.textfield.TextInputLayout;
+
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
 
 public final class SensitiveActionAuthorizer {
 
@@ -52,21 +58,42 @@ public final class SensitiveActionAuthorizer {
             }
             tilPassword.setError(null);
 
-            AppDatabase.databaseWriteExecutor.execute(() -> {
-                AppDatabase db = AppDatabase.getInstance(activity.getApplicationContext());
-                User user = db.userDao().getUserById(sessionManager.getUserId());
-                boolean allowed = user != null && user.isActive && HashUtils.verify(password, user.userPasswordHash);
+            String email = sessionManager.getLoginEmail();
+            if (email == null || email.isEmpty()) {
+                tilPassword.setError(activity.getString(R.string.error_email_or_username_required));
+                return;
+            }
 
-                activity.runOnUiThread(() -> {
-                    if (!allowed) {
+            ApiClient.getInstance().setToken(null);
+            ApiService api = ApiClient.getInstance().getService();
+            api.login(new LoginRequest(email, password)).enqueue(new Callback<AuthResponse>() {
+                @Override
+                public void onResponse(Call<AuthResponse> call, Response<AuthResponse> response) {
+                    if (!response.isSuccessful() || response.body() == null) {
                         tilPassword.setError(activity.getString(R.string.reauth_error_invalid));
+                        ApiClient.getInstance().setToken(sessionManager.getToken());
                         return;
                     }
-
+                    AuthResponse auth = response.body();
+                    ApiClient.getInstance().setToken(auth.token);
+                    String uid = auth.userId != null ? auth.userId : "";
+                    sessionManager.persistLoginSession(
+                            auth.token,
+                            uid,
+                            auth.role.toUpperCase(),
+                            auth.username,
+                            email
+                    );
                     sessionManager.touch();
                     dialog.dismiss();
                     onAuthorized.run();
-                });
+                }
+
+                @Override
+                public void onFailure(Call<AuthResponse> call, Throwable t) {
+                    tilPassword.setError(activity.getString(R.string.login_error_no_connection));
+                    ApiClient.getInstance().setToken(sessionManager.getToken());
+                }
             });
         }));
 

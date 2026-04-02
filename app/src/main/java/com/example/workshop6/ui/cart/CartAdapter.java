@@ -11,6 +11,8 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.workshop6.R;
 import com.example.workshop6.data.model.CartItem;
+import com.example.workshop6.util.ProductSpecialState;
+import com.example.workshop6.util.SpecialPriceSpan;
 
 import java.text.NumberFormat;
 import java.util.List;
@@ -78,7 +80,17 @@ public class CartAdapter extends RecyclerView.Adapter<CartAdapter.CartViewHolder
 
         void bind(CartItem item) {
             tvProductName.setText(item.getProduct().getProductName());
-            tvUnitPrice.setText(currencyFormat.format(item.getProduct().getProductBasePrice()));
+            Double baseObj = item.getProduct().getProductBasePrice();
+            double base = baseObj != null ? baseObj : 0.0;
+            if (ProductSpecialState.isSpecialProduct(item.getProduct().getProductId())) {
+                double unitSale = base * ProductSpecialState.specialUnitMultiplier();
+                CharSequence unitLine = android.text.TextUtils.concat(
+                        SpecialPriceSpan.wasNow(currencyFormat, base, unitSale),
+                        " each");
+                tvUnitPrice.setText(unitLine);
+            } else {
+                tvUnitPrice.setText(currencyFormat.format(base) + " each");
+            }
             tvQuantity.setText(String.valueOf(item.getQuantity()));
             tvTotal.setText(currencyFormat.format(item.getTotalPrice()));
 

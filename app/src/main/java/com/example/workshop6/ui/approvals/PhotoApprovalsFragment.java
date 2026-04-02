@@ -1,8 +1,8 @@
 package com.example.workshop6.ui.approvals;
 
-import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
 import android.os.Bundle;
+import android.graphics.ColorMatrix;
+import android.graphics.ColorMatrixColorFilter;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -15,19 +15,25 @@ import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.bumptech.glide.Glide;
 import com.example.workshop6.R;
 import com.example.workshop6.auth.SessionManager;
-import com.example.workshop6.data.db.AppDatabase;
-import com.example.workshop6.data.model.Customer;
-import com.example.workshop6.data.model.User;
+import com.example.workshop6.data.api.ApiClient;
+import com.example.workshop6.data.api.ApiService;
+import com.example.workshop6.data.api.dto.CustomerDto;
 import com.example.workshop6.logging.ActivityLogger;
 
 import java.util.ArrayList;
 import java.util.List;
 
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
+
 public class PhotoApprovalsFragment extends Fragment {
 
     private SessionManager sessionManager;
+    private ApiService api;
     private RecyclerView rvPendingPhotos;
     private TextView tvEmpty;
     private PendingPhotoAdapter adapter;
@@ -44,17 +50,20 @@ public class PhotoApprovalsFragment extends Fragment {
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
         sessionManager = new SessionManager(requireContext());
+        api = ApiClient.getInstance().getService();
+        ApiClient.getInstance().setToken(sessionManager.getToken());
+
         rvPendingPhotos = view.findViewById(R.id.rv_pending_photos);
         tvEmpty = view.findViewById(R.id.tv_pending_empty);
 
         adapter = new PendingPhotoAdapter(new ArrayList<>(), new PendingPhotoAdapter.Listener() {
             @Override
-            public void onApprove(Customer customer) {
+            public void onApprove(CustomerDto customer) {
                 updateApproval(customer, true);
             }
 
             @Override
-            public void onReject(Customer customer) {
+            public void onReject(CustomerDto customer) {
                 updateApproval(customer, false);
             }
         });
@@ -73,99 +82,107 @@ public class PhotoApprovalsFragment extends Fragment {
     }
 
     private void verifyAccessAndLoad() {
-        final AppDatabase db = AppDatabase.getInstance(requireContext().getApplicationContext());
-        AppDatabase.databaseWriteExecutor.execute(() -> {
-            User user = db.userDao().getUserById(sessionManager.getUserId());
-            boolean canModerate = user != null && user.isActive && !"CUSTOMER".equalsIgnoreCase(user.userRole);
-
-            requireActivity().runOnUiThread(() -> {
-                if (!isAdded()) return;
-                if (!canModerate) {
-                    tvEmpty.setVisibility(View.VISIBLE);
-                    tvEmpty.setText(R.string.photo_approvals_access_denied);
-                    rvPendingPhotos.setVisibility(View.GONE);
-                    return;
-                }
-                loadPendingPhotos();
-            });
-        });
+        boolean canModerate = !"CUSTOMER".equalsIgnoreCase(sessionManager.getUserRole());
+        if (!canModerate) {
+            tvEmpty.setVisibility(View.VISIBLE);
+            tvEmpty.setText(R.string.photo_approvals_access_denied);
+            rvPendingPhotos.setVisibility(View.GONE);
+            return;
+        }
+        loadPendingPhotos();
     }
 
     private void loadPendingPhotos() {
-        final AppDatabase db = AppDatabase.getInstance(requireContext().getApplicationContext());
-        AppDatabase.databaseWriteExecutor.execute(() -> {
-            List<Customer> pending = db.customerDao().getCustomersPendingPhotoApproval();
-            requireActivity().runOnUiThread(() -> {
-                if (!isAdded()) return;
+        api.getPendingPhotoCustomers().enqueue(new Callback<List<CustomerDto>>() {
+            @Override
+            public void onResponse(Call<List<CustomerDto>> call, Response<List<CustomerDto>> response) {
+                if (!isAdded()) {
+                    return;
+                }
+                if (!response.isSuccessful() || response.body() == null) {
+                    return;
+                }
+                List<CustomerDto> pending = response.body();
                 adapter.submitList(pending);
-                boolean empty = pending == null || pending.isEmpty();
+                boolean empty = pending.isEmpty();
                 tvEmpty.setVisibility(empty ? View.VISIBLE : View.GONE);
                 rvPendingPhotos.setVisibility(empty ? View.GONE : View.VISIBLE);
                 if (empty) {
                     tvEmpty.setText(R.string.photo_approvals_none_pending);
                 }
-            });
+            }
+
+            @Override
+            public void onFailure(Call<List<CustomerDto>> call, Throwable t) {
+            }
         });
     }
 
-    private void updateApproval(Customer customer, boolean approve) {
-        final AppDatabase db = AppDatabase.getInstance(requireContext().getApplicationContext());
-        AppDatabase.databaseWriteExecutor.execute(() -> {
-            User moderator = db.userDao().getUserById(sessionManager.getUserId());
-            boolean canModerate = moderator != null && moderator.isActive && !"CUSTOMER".equalsIgnoreCase(moderator.userRole);
-            if (!canModerate) {
-                requireActivity().runOnUiThread(() -> {
-                    if (!isAdded()) return;
-                    Toast.makeText(requireContext(), R.string.photo_approvals_access_denied, Toast.LENGTH_SHORT).show();
-                });
-                return;
-            }
-            if (approve) {
-                db.customerDao().approveCustomerPhoto(customer.customerId);
+    private void updateApproval(CustomerDto customer, boolean approve) {
+        if (customer == null || customer.id == null) {
+            return;
+        }
+        Call<Void> call = approve
+                ? api.approveCustomerPhoto(customer.id)
+                : api.rejectCustomerPhoto(customer.id);
+        call.enqueue(new Callback<Void>() {
+            @Override
+            public void onResponse(Call<Void> call, Response<Void> response) {
+                if (!isAdded()) {
+                    return;
+                }
+                if (!response.isSuccessful()) {
+                    int code = response.code();
+                    int messageRes = (code == 401 || code == 403)
+                            ? R.string.photo_approvals_access_denied
+                            : R.string.error_photo_read;
+                    Toast.makeText(requireContext(), messageRes, Toast.LENGTH_SHORT).show();
+                    return;
+                }
                 ActivityLogger.log(
                         requireContext(),
                         sessionManager,
-                        "APPROVE_PHOTO",
-                        "Approved customer photo for customerId=" + customer.customerId
+                        approve ? "APPROVE_PHOTO" : "REJECT_PHOTO",
+                        "customerId=" + customer.id
                 );
-            } else {
-                db.customerDao().rejectCustomerPhoto(customer.customerId);
-                ActivityLogger.log(
-                        requireContext(),
-                        sessionManager,
-                        "REJECT_PHOTO",
-                        "Rejected customer photo for customerId=" + customer.customerId
-                );
-            }
-            requireActivity().runOnUiThread(() -> {
-                if (!isAdded()) return;
                 Toast.makeText(
                         requireContext(),
                         approve ? R.string.photo_approved : R.string.photo_rejected,
                         Toast.LENGTH_SHORT
                 ).show();
                 loadPendingPhotos();
-            });
+            }
+
+            @Override
+            public void onFailure(Call<Void> call, Throwable t) {
+                if (!isAdded()) {
+                    return;
+                }
+                Toast.makeText(requireContext(), R.string.login_error_no_connection, Toast.LENGTH_SHORT).show();
+            }
         });
     }
 
     private static class PendingPhotoAdapter extends RecyclerView.Adapter<PendingPhotoAdapter.VH> {
         interface Listener {
-            void onApprove(Customer customer);
-            void onReject(Customer customer);
+            void onApprove(CustomerDto customer);
+
+            void onReject(CustomerDto customer);
         }
 
-        private final List<Customer> items;
+        private final List<CustomerDto> items;
         private final Listener listener;
 
-        PendingPhotoAdapter(List<Customer> items, Listener listener) {
+        PendingPhotoAdapter(List<CustomerDto> items, Listener listener) {
             this.items = items;
             this.listener = listener;
         }
 
-        void submitList(List<Customer> next) {
+        void submitList(List<CustomerDto> next) {
             items.clear();
-            if (next != null) items.addAll(next);
+            if (next != null) {
+                items.addAll(next);
+            }
             notifyDataSetChanged();
         }
 
@@ -179,25 +196,31 @@ public class PhotoApprovalsFragment extends Fragment {
 
         @Override
         public void onBindViewHolder(@NonNull VH holder, int position) {
-            Customer c = items.get(position);
-            String fullName = ((c.customerFirstName != null ? c.customerFirstName : "") + " "
-                    + (c.customerLastName != null ? c.customerLastName : "")).trim();
+            CustomerDto c = items.get(position);
+            String fullName = ((c.firstName != null ? c.firstName : "") + " "
+                    + (c.lastName != null ? c.lastName : "")).trim();
             if (fullName.isEmpty()) {
                 fullName = holder.itemView.getContext().getString(R.string.stub_me_name);
             }
             holder.tvName.setText(fullName);
-            holder.tvEmail.setText(c.customerEmail != null ? c.customerEmail : "");
+            holder.tvEmail.setText(c.email != null ? c.email : "");
 
             if (c.profilePhotoPath != null && !c.profilePhotoPath.trim().isEmpty()) {
-                Bitmap bm = BitmapFactory.decodeFile(c.profilePhotoPath);
-                if (bm != null) {
-                    holder.ivPhoto.setImageBitmap(bm);
-                } else {
-                    holder.ivPhoto.setImageResource(R.drawable.ic_person_placeholder);
-                }
+                String originFallback = cdnToOriginUrl(c.profilePhotoPath);
+                Glide.with(holder.itemView)
+                        .load(c.profilePhotoPath)
+                        .placeholder(R.drawable.ic_person_placeholder)
+                        .error(
+                                Glide.with(holder.itemView)
+                                        .load(originFallback != null ? originFallback : c.profilePhotoPath)
+                                        .placeholder(R.drawable.ic_person_placeholder)
+                                        .error(R.drawable.ic_person_placeholder)
+                        )
+                        .into(holder.ivPhoto);
             } else {
                 holder.ivPhoto.setImageResource(R.drawable.ic_person_placeholder);
             }
+            applyPendingPhotoStyle(holder.ivPhoto);
 
             holder.btnApprove.setOnClickListener(v -> listener.onApprove(c));
             holder.btnReject.setOnClickListener(v -> listener.onReject(c));
@@ -223,6 +246,26 @@ public class PhotoApprovalsFragment extends Fragment {
                 btnApprove = itemView.findViewById(R.id.btn_approve_photo);
                 btnReject = itemView.findViewById(R.id.btn_reject_photo);
             }
+        }
+
+        private static void applyPendingPhotoStyle(android.widget.ImageView imageView) {
+            ColorMatrix matrix = new ColorMatrix();
+            matrix.setSaturation(0f);
+            ColorMatrix darken = new ColorMatrix(new float[]{
+                    0.65f, 0, 0, 0, 0,
+                    0, 0.65f, 0, 0, 0,
+                    0, 0, 0.65f, 0, 0,
+                    0, 0, 0, 1, 0
+            });
+            matrix.postConcat(darken);
+            imageView.setColorFilter(new ColorMatrixColorFilter(matrix));
+            imageView.setImageAlpha(230);
+        }
+
+        private static String cdnToOriginUrl(String url) {
+            if (url == null) return null;
+            if (!url.contains(".cdn.digitaloceanspaces.com")) return null;
+            return url.replace(".cdn.digitaloceanspaces.com", ".digitaloceanspaces.com");
         }
     }
 }
