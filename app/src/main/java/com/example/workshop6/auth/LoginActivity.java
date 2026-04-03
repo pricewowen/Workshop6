@@ -24,7 +24,8 @@ import com.google.android.material.textfield.TextInputEditText;
 import com.google.android.material.textfield.TextInputLayout;
 import retrofit2.Call;
 import retrofit2.Callback;
-import retrofit2.Response;import io.sentry.Sentry;
+import io.sentry.Sentry;
+import retrofit2.Response;
 
 
 public class LoginActivity extends AppCompatActivity {
@@ -243,6 +244,11 @@ public class LoginActivity extends AppCompatActivity {
                     sessionManager.recordFailedLogin(email);
                     long nextRemainingLockoutMs = sessionManager.getRemainingLockoutMs(email);
                     ActivityLogger.logFailure(LoginActivity.this, null, "LOGIN", "Invalid credentials");
+                    Sentry.withScope(scope -> {
+                        scope.setTag("action", "LOGIN_FAILED");
+                        scope.setTag("reason", "invalid_credentials");
+                        Sentry.captureMessage("Login failed: invalid credentials", io.sentry.SentryLevel.WARNING);
+                    });
 
                     if (nextRemainingLockoutMs > 0) {
                         tvError.setText(getString(
@@ -270,10 +276,9 @@ public class LoginActivity extends AppCompatActivity {
                 tvError.setVisibility(View.VISIBLE);
                 ActivityLogger.logFailure(LoginActivity.this, null, "LOGIN", "Network error: " + t.getMessage());
                 Sentry.withScope(scope -> {
-                    scope.setLevel(io.sentry.SentryLevel.ERROR);
                     scope.setTag("action", "LOGIN_FAILED");
                     scope.setTag("reason", "network_error");
-                    Sentry.captureException(t);
+                    Sentry.captureException(t, io.sentry.SentryLevel.ERROR);
                 });
             }
         });

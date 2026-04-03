@@ -37,6 +37,8 @@ import com.google.android.material.textfield.TextInputLayout;
 
 import java.util.Locale;
 
+import io.sentry.Sentry;
+import io.sentry.SentryLevel;
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
@@ -482,6 +484,11 @@ public class RegisterActivity extends AppCompatActivity {
                     updateRegisterAvailabilityForNetwork();
                     showDuplicateAccountError();
                     ActivityLogger.logFailure(RegisterActivity.this, null, "REGISTER", "Conflict from API");
+                    Sentry.withScope(scope -> {
+                        scope.setTag("action", "REGISTER_FAILED");
+                        scope.setTag("reason", "duplicate_account");
+                        Sentry.captureMessage("Registration failed: duplicate account (409)", SentryLevel.WARNING);
+                    });
                     return;
                 }
                 if (!response.isSuccessful() || response.body() == null) {
@@ -490,6 +497,12 @@ public class RegisterActivity extends AppCompatActivity {
                     tvError.setText(R.string.register_error_unexpected);
                     tvError.setVisibility(View.VISIBLE);
                     ActivityLogger.logFailure(RegisterActivity.this, null, "REGISTER", "HTTP " + response.code());
+                    Sentry.withScope(scope -> {
+                        scope.setTag("action", "REGISTER_FAILED");
+                        scope.setTag("reason", "api_error");
+                        scope.setTag("status_code", String.valueOf(response.code()));
+                        Sentry.captureMessage("Registration failed: HTTP " + response.code(), SentryLevel.ERROR);
+                    });
                     return;
                 }
                 AuthResponse auth = response.body();
@@ -512,6 +525,13 @@ public class RegisterActivity extends AppCompatActivity {
                         auth.username,
                         email
                 );
+
+                io.sentry.protocol.User sentryUser = new io.sentry.protocol.User();
+                sentryUser.setUsername(auth.username);
+                sentryUser.setEmail(email);
+                Sentry.setUser(sentryUser);
+                Sentry.setTag("role", auth.role.toLowerCase());
+
                 ActivityLogger.log(
                         RegisterActivity.this,
                         "USER@" + auth.username,
@@ -531,6 +551,11 @@ public class RegisterActivity extends AppCompatActivity {
                 tvError.setText(R.string.login_error_no_connection);
                 tvError.setVisibility(View.VISIBLE);
                 ActivityLogger.logFailure(RegisterActivity.this, null, "REGISTER", "Network error");
+                Sentry.withScope(scope -> {
+                    scope.setTag("action", "REGISTER_FAILED");
+                    scope.setTag("reason", "network_error");
+                    Sentry.captureException(t, SentryLevel.ERROR);
+                });
             }
         });
     }

@@ -70,6 +70,9 @@ dependencies {
     implementation(libs.play.services.location)
     implementation(libs.security.crypto)
 
+    // Sentry
+    implementation("io.sentry:sentry-android:8.34.1")
+
     // Retrofit + OkHttp
     implementation(libs.retrofit)
     implementation(libs.retrofit.gson)

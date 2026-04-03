@@ -9,6 +9,7 @@ import androidx.security.crypto.MasterKey;
 
 import com.example.workshop6.data.api.ApiClient;
 import com.example.workshop6.ui.cart.CartManager;
+import io.sentry.Sentry;
 
 public class SessionManager {
 
@@ -189,6 +190,7 @@ public class SessionManager {
     }
 
     private void clearSession() {
+        Sentry.setUser(null);
         ApiClient.getInstance().clearToken();
         CartManager.getInstance(appContext).onLogout();
         prefs.edit()

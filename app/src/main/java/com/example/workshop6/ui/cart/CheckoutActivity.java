@@ -54,6 +54,8 @@ import java.util.List;
 import java.util.Locale;
 import java.util.TimeZone;
 
+import io.sentry.Sentry;
+import io.sentry.SentryLevel;
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
@@ -705,6 +707,12 @@ public class CheckoutActivity extends AppCompatActivity {
             @Override
             public void onResponse(Call<OrderDto> call, Response<OrderDto> response) {
                 if (response.code() == 401 || response.code() == 403) {
+                    ActivityLogger.logFailure(CheckoutActivity.this, sessionManager, "CHECKOUT", "Session expired");
+                    Sentry.withScope(scope -> {
+                        scope.setTag("action", "CHECKOUT_FAILED");
+                        scope.setTag("reason", "session_expired");
+                        Sentry.captureMessage("Checkout blocked: session expired (HTTP " + response.code() + ")", SentryLevel.WARNING);
+                    });
                     redirectToLogin();
                     return;
                 }
@@ -715,6 +723,12 @@ public class CheckoutActivity extends AppCompatActivity {
                     btnPlaceOrder.setText(R.string.place_order);
                     confirmationLayout.setVisibility(View.GONE);
                     mainLayout.setVisibility(View.VISIBLE);
+                    Sentry.withScope(scope -> {
+                        scope.setTag("action", "CHECKOUT_FAILED");
+                        scope.setTag("reason", "api_error");
+                        scope.setTag("status_code", String.valueOf(response.code()));
+                        Sentry.captureMessage("Order placement failed: HTTP " + response.code(), SentryLevel.ERROR);
+                    });
                     return;
                 }
                 cartManager.clearCart();
@@ -741,6 +755,11 @@ public class CheckoutActivity extends AppCompatActivity {
                 btnPlaceOrder.setText(R.string.place_order);
                 confirmationLayout.setVisibility(View.GONE);
                 mainLayout.setVisibility(View.VISIBLE);
+                Sentry.withScope(scope -> {
+                    scope.setTag("action", "CHECKOUT_FAILED");
+                    scope.setTag("reason", "network_error");
+                    Sentry.captureException(t, SentryLevel.ERROR);
+                });
             }
         });
     }

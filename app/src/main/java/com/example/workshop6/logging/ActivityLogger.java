@@ -13,8 +13,6 @@ import java.util.Date;
 import java.util.Locale;
 import java.util.TimeZone;
 
-import io.sentry.Sentry;
-import io.sentry.SentryLevel;
 
 public final class ActivityLogger {
     private static final String FILE_NAME = "activity_log.txt";
@@ -51,14 +49,6 @@ public final class ActivityLogger {
             }
         }
         writeLine(context, userName, action, target, true);
-
-        final String sentryAction = action;
-        final String sentryTarget = sanitize(target != null ? target.trim() : "");
-        Sentry.withScope(scope -> {
-            scope.setLevel(SentryLevel.WARNING);
-            scope.setTag("action", sentryAction.toUpperCase(Locale.ROOT) + "_FAILED");
-            Sentry.captureMessage(sentryAction.toUpperCase(Locale.ROOT) + "_FAILED: " + sentryTarget);
-        });
     }
 
     private static void writeLine(Context context, String userName, String action, String target, boolean failed) {
