@@ -22,6 +22,7 @@ import com.example.workshop6.data.api.ApiService;
 import com.example.workshop6.data.api.dto.OrderDto;
 import com.example.workshop6.data.api.dto.OrderStatusPatchRequest;
 import com.example.workshop6.logging.ActivityLogger;
+import com.example.workshop6.util.MoneyFormat;
 import com.google.android.material.button.MaterialButton;
 
 import java.text.NumberFormat;
@@ -290,12 +291,12 @@ public class OrdersAdminFragment extends Fragment {
             String orderLabel = order.orderNumber != null && !order.orderNumber.isEmpty() ? order.orderNumber : order.id;
             holder.tvNumber.setText(holder.itemView.getContext().getString(R.string.orders_admin_order_number, orderLabel));
 
-            double total = order.orderTotal != null ? order.orderTotal.doubleValue() : 0.0;
+            double total = order.getGrandTotalAmount().doubleValue();
             String bakery = order.bakeryName != null ? order.bakeryName : "";
             holder.tvMeta.setText(holder.itemView.getContext().getString(
                     R.string.orders_admin_meta,
                     bakery,
-                    currency.format(total)
+                    MoneyFormat.formatCad(currency, total)
             ));
 
             String current = order.status != null ? order.status : "";

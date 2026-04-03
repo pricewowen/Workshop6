@@ -28,9 +28,12 @@ import com.example.workshop6.data.api.ApiClient;
 import com.example.workshop6.data.api.ApiService;
 import com.example.workshop6.data.api.BakeryLocationMapper;
 import com.example.workshop6.data.api.dto.BakeryDto;
+import com.example.workshop6.data.api.dto.BatchDto;
+import com.example.workshop6.data.api.dto.ProductDto;
 import com.example.workshop6.data.model.BakeryLocationDetails;
 import com.example.workshop6.data.model.Category;
 import com.example.workshop6.ui.products.CategoriesAdapter;
+import com.example.workshop6.util.LocationSearchHelper;
 import com.example.workshop6.util.LocationUtils;
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationServices;
@@ -40,8 +43,11 @@ import com.google.android.material.textfield.TextInputEditText;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
 import retrofit2.Call;
 import retrofit2.Callback;
@@ -71,6 +77,7 @@ public class MapFragment extends Fragment {
 
     private final List<BakeryLocationDetails> cachedLocations = new ArrayList<>();
     private String currentSearch = "";
+    private final Map<Integer, ProductDto> productCatalogById = new HashMap<>();
 
     private final ActivityResultLauncher<String> locationPermissionLauncher =
             registerForActivityResult(
@@ -108,11 +115,19 @@ public class MapFragment extends Fragment {
 
         RecyclerView rv = view.findViewById(R.id.rv_locations);
         rv.setLayoutManager(new LinearLayoutManager(requireContext()));
-        adapter = new LocationAdapter(false, loc -> {
-            Bundle args = new Bundle();
-            args.putInt("locationId", loc.id);
-            Navigation.findNavController(view)
-                    .navigate(R.id.action_map_to_detail, args);
+        adapter = new LocationAdapter(false, new LocationAdapter.Listener() {
+            @Override
+            public void onLocationClick(BakeryLocationDetails loc) {
+                Bundle args = new Bundle();
+                args.putInt("locationId", loc.id);
+                Navigation.findNavController(view)
+                        .navigate(R.id.action_map_to_detail, args);
+            }
+
+            @Override
+            public void onDirectionsClick(BakeryLocationDetails loc) {
+                LocationUtils.openBakeryInMaps(requireContext(), loc);
+            }
         });
         rv.setAdapter(adapter);
 
@@ -212,11 +227,13 @@ public class MapFragment extends Fragment {
                     return;
                 }
                 cachedLocations.clear();
+                productCatalogById.clear();
                 for (BakeryDto b : response.body()) {
                     cachedLocations.add(BakeryLocationMapper.fromDto(b, ""));
                 }
                 applyFilterAndDisplay();
                 loadBakeryAverages();
+                loadCatalogAndBatchProductSearch();
             }
 
             @Override
@@ -261,21 +278,110 @@ public class MapFragment extends Fragment {
     }
 
     private void applyFilterAndDisplay() {
+        LocationSearchHelper.ParsedLocationQuery parsed = LocationSearchHelper.parseQuery(currentSearch);
         List<BakeryLocationDetails> filtered = new ArrayList<>();
         for (BakeryLocationDetails loc : cachedLocations) {
-            if (currentSearch.isEmpty()) {
+            if (!LocationSearchHelper.ratingSatisfies(loc.averageRating, parsed.minRating)) {
+                continue;
+            }
+            String haystack = LocationSearchHelper.buildHaystack(loc, loc.productSearchText);
+            if (LocationSearchHelper.matchesTokens(parsed.textQuery, haystack)) {
                 filtered.add(loc);
-            } else {
-                String q = currentSearch.toLowerCase(Locale.ROOT);
-                String name = loc.name != null ? loc.name.toLowerCase(Locale.ROOT) : "";
-                String city = loc.city != null ? loc.city.toLowerCase(Locale.ROOT) : "";
-                String addr = loc.address != null ? loc.address.toLowerCase(Locale.ROOT) : "";
-                if (name.contains(q) || city.contains(q) || addr.contains(q)) {
-                    filtered.add(loc);
-                }
             }
         }
         onLocationsUpdated(filtered);
+    }
+
+    /**
+     * Loads product catalog and batch product ids per bakery for search (includes non-active batches
+     * so product keywords still match when expiry dates have passed in dev data).
+     */
+    private void loadCatalogAndBatchProductSearch() {
+        api.getProducts(null, null).enqueue(new Callback<List<ProductDto>>() {
+            @Override
+            public void onResponse(@NonNull Call<List<ProductDto>> call,
+                                   @NonNull Response<List<ProductDto>> response) {
+                if (!isAdded()) {
+                    return;
+                }
+                productCatalogById.clear();
+                if (response.isSuccessful() && response.body() != null) {
+                    for (ProductDto p : response.body()) {
+                        if (p != null && p.id != null) {
+                            productCatalogById.put(p.id, p);
+                        }
+                    }
+                }
+                fetchBatchProductTextForEachLocation();
+            }
+
+            @Override
+            public void onFailure(@NonNull Call<List<ProductDto>> call, @NonNull Throwable t) {
+                if (!isAdded()) {
+                    return;
+                }
+                productCatalogById.clear();
+                fetchBatchProductTextForEachLocation();
+            }
+        });
+    }
+
+    private void fetchBatchProductTextForEachLocation() {
+        for (BakeryLocationDetails loc : cachedLocations) {
+            if (loc == null || loc.id <= 0) {
+                continue;
+            }
+            loc.productSearchText = "";
+            final BakeryLocationDetails target = loc;
+            api.getBatchesByBakery(loc.id, false).enqueue(new Callback<List<BatchDto>>() {
+                @Override
+                public void onResponse(@NonNull Call<List<BatchDto>> call,
+                                       @NonNull Response<List<BatchDto>> response) {
+                    if (!isAdded()) {
+                        return;
+                    }
+                    StringBuilder blob = new StringBuilder();
+                    if (response.isSuccessful() && response.body() != null) {
+                        LinkedHashSet<Integer> seen = new LinkedHashSet<>();
+                        for (BatchDto batch : response.body()) {
+                            if (batch == null || batch.productId == null) {
+                                continue;
+                            }
+                            if (!seen.add(batch.productId)) {
+                                continue;
+                            }
+                            ProductDto p = productCatalogById.get(batch.productId);
+                            if (p == null) {
+                                continue;
+                            }
+                            appendSearchBlob(blob, p.name);
+                            appendSearchBlob(blob, p.description);
+                        }
+                    }
+                    target.productSearchText = blob.toString().toLowerCase(Locale.ROOT);
+                    applyFilterAndDisplay();
+                }
+
+                @Override
+                public void onFailure(@NonNull Call<List<BatchDto>> call, @NonNull Throwable t) {
+                    if (!isAdded()) {
+                        return;
+                    }
+                    target.productSearchText = "";
+                    applyFilterAndDisplay();
+                }
+            });
+        }
+    }
+
+    private static void appendSearchBlob(StringBuilder blob, String part) {
+        if (part == null || part.trim().isEmpty()) {
+            return;
+        }
+        if (blob.length() > 0) {
+            blob.append(' ');
+        }
+        blob.append(part.trim());
     }
 
     private void onLocationsUpdated(List<BakeryLocationDetails> locs) {

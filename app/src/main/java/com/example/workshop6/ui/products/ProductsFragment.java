@@ -27,6 +27,7 @@ import com.example.workshop6.data.api.dto.TagDto;
 import com.example.workshop6.data.model.Category;
 import com.example.workshop6.data.model.Product;
 import com.example.workshop6.logging.ActivityLogger;
+import com.example.workshop6.util.MoneyFormat;
 import com.example.workshop6.util.ProductSpecialState;
 import com.example.workshop6.util.SearchUtils;
 import com.example.workshop6.util.SpecialPriceSpan;
@@ -285,7 +286,7 @@ public class ProductsFragment extends Fragment {
             tvFeatureDiscountPercent.setVisibility(View.VISIBLE);
             tvFeatureDiscountPercent.setText(getString(R.string.featured_discount_today, discountPercent));
         } else {
-            tvFeaturePriceLine.setText(currency.format(base));
+            tvFeaturePriceLine.setText(MoneyFormat.formatCad(currency, base));
             tvFeatureDiscountPercent.setVisibility(View.GONE);
         }
     }

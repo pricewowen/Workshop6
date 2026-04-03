@@ -164,6 +164,33 @@
 
             </LinearLayout>
 
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:layout_gravity="center_horizontal"
+                android:layout_marginTop="12dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/link_continue_as_guest_prompt"
+                    android:textSize="14sp"
+                    android:textColor="@color/bakery_text_secondary" />
+
+                <TextView
+                    android:id="@+id/tv_guest_link"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="6dp"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:text="@string/link_continue_as_guest"
+                    android:textColor="@color/bakery_primary"
+                    android:textSize="14sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
+
         </LinearLayout>
 
     </LinearLayout>

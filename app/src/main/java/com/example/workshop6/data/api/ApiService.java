@@ -1,5 +1,6 @@
 package com.example.workshop6.data.api;
 
+import com.example.workshop6.data.api.dto.AccountProfilePatchRequest;
 import com.example.workshop6.data.api.dto.AuthResponse;
 import com.example.workshop6.data.api.dto.BakeryDto;
 import com.example.workshop6.data.api.dto.BakeryHourDto;
@@ -8,8 +9,10 @@ import com.example.workshop6.data.api.dto.ChatMessageDto;
 import com.example.workshop6.data.api.dto.ChatThreadDto;
 import com.example.workshop6.data.api.dto.ChangePasswordRequest;
 import com.example.workshop6.data.api.dto.CheckoutRequest;
+import com.example.workshop6.data.api.dto.CustomerBootstrapRequest;
 import com.example.workshop6.data.api.dto.CustomerDto;
 import com.example.workshop6.data.api.dto.CustomerPatchRequest;
+import com.example.workshop6.data.api.dto.ProfilePhotoResponse;
 import com.example.workshop6.data.api.dto.EmployeeDto;
 import com.example.workshop6.data.api.dto.EmployeePatchRequest;
 import com.example.workshop6.data.api.dto.LoginRequest;
@@ -52,12 +55,18 @@ public interface ApiService {
     @PUT("api/v1/account/password")
     Call<Void> changePassword(@Body ChangePasswordRequest body);
 
+    @PATCH("api/v1/account/profile")
+    Call<AuthResponse> patchAccountProfile(@Body AccountProfilePatchRequest body);
+
     @Multipart
     @POST("api/v1/account/profile-photo")
-    Call<CustomerDto> uploadProfilePhoto(@Part MultipartBody.Part photo);
+    Call<ProfilePhotoResponse> uploadProfilePhoto(@Part MultipartBody.Part photo);
 
     @GET("api/v1/customers/me")
     Call<CustomerDto> getCustomerMe();
+
+    @POST("api/v1/customers/me")
+    Call<CustomerDto> createCustomerProfile(@Body CustomerBootstrapRequest body);
 
     @PATCH("api/v1/customers/me")
     Call<CustomerDto> patchCustomerMe(@Body CustomerPatchRequest body);

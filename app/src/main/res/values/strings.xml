@@ -17,6 +17,8 @@
     <string name="btn_microsoft">Microsoft</string>
     <string name="link_no_account">No account? </string>
     <string name="link_register_here">Register here</string>
+    <string name="link_continue_as_guest_prompt">Prefer not to sign in?</string>
+    <string name="link_continue_as_guest">Continue as guest</string>
     <string name="login_error_invalid">Invalid email or password</string>
     <string name="login_error_invalid_username_or_email">Invalid username/email or password</string>
     <string name="login_error_account_inactive">This account has been deactivated. Please contact staff.</string>
@@ -48,9 +50,14 @@
     <string name="btn_create_account">Create Account</string>
     <string name="link_have_account">Have an account? </string>
     <string name="link_sign_in">Sign in</string>
+    <string name="link_guest_instead_prompt">Just browsing?</string>
     <string name="already_have_account_sign_in">Have an account? Sign in</string>
     <string name="toast_coming_soon">Coming soon</string>
     <string name="btn_logout">Log Out</string>
+    <string name="btn_sign_in_or_create_account">Sign In or Create Account</string>
+    <string name="guest_display_name">Guest</string>
+    <string name="guest_profile_saved">Guest details saved</string>
+    <string name="guest_profile_hint_email">Add your email so we can reuse your customer info and order history later.</string>
 
     <string name="photo_picker_title">Profile photo</string>
     <string name="photo_take">Take a photo</string>
@@ -80,7 +87,7 @@
 
     <!-- Navigation -->
     <string name="nav_browse">Browse</string>
-    <string name="nav_map">Map</string>
+    <string name="nav_map">Locations</string>
     <string name="nav_me">Me</string>
     <string name="nav_account">Account</string>
     <string name="nav_cart">Cart</string>
@@ -95,7 +102,7 @@
 
     <!-- Map / Locations -->
     <string name="locations_title">Find a Bakery</string>
-    <string name="search_locations_hint">Search bakeries\u2026</string>
+    <string name="search_locations_hint">Search Locations...</string>
     <string name="btn_show_nearby">Nearby</string>
     <string name="btn_show_all">All</string>
     <string name="permission_location_rationale">Location permission is needed to find nearby bakeries.</string>
@@ -133,12 +140,13 @@
 
     <!-- Products -->
     <string name="label_featured_product_name">Butter Croissant</string>
-    <string name="label_featured_product_price">$4.50</string>
+    <string name="label_featured_product_price">$4.50 CAD</string>
     <string name="label_featured">TODAY\'S FEATURE</string>
     <string name="btn_view_featured_product">View product</string>
     <string name="featured_discount_today">%1$.0f%% off today</string>
     <string name="section_product_reviews">Reviews</string>
     <string name="product_reviews_with_average">Reviews (%1$.1f★ average)</string>
+    <string name="location_list_rating_average">%1$.1f★ average</string>
     <string name="product_reviews_none_yet">No reviews yet.</string>
     <string name="product_review_author_fallback">Customer</string>
 
@@ -166,7 +174,7 @@
     <string name="label_category">CATEGORY</string>
     <string name="label_products">PRODUCTS</string>
     <string name="label_selected_product_name">Selected Product</string>
-    <string name="label_selected_product_price">$4.50</string>
+    <string name="label_selected_product_price">$4.50 CAD</string>
     <string name="label_selected_product_description">Freshly baked croissant filled with rich Belgian chocolate. Crispy outside, soft inside.</string>
     <string name="label_product_quantity">Quantity</string>
     <string name="label_product_quantity_number">1</string>
@@ -175,7 +183,7 @@
     <string name="product_details">Product Details</string>
     <string name="btn_back">Back</string>
     <string name="label_default">Default</string>
-    <string name="label_product_price">$0.00</string>
+    <string name="label_product_price">$0.00 CAD</string>
     <string name="label_selected_arrow">&gt;</string>
     <string name="label_search">Search Products...</string>
     <string name="label_discount_cart"> (10% off!) </string>
@@ -273,6 +281,30 @@
     <string name="error_province_required">Province/Territory is required</string>
     <string name="register_error_duplicate_account">An account already exists with those details</string>
     <string name="register_error_unexpected">Unable to create account right now, please try again</string>
+    <string name="customer_profile_title">Personal information</string>
+    <string name="btn_your_details">Edit Personal Info</string>
+    <string name="btn_edit_account">Edit Account</string>
+    <string name="title_edit_account">Edit Account</string>
+    <string name="btn_update_account">Update Account</string>
+    <string name="btn_save_customer_profile">Update Personal Info</string>
+    <string name="customer_profile_saved">Your details were saved</string>
+    <string name="customer_profile_error_unexpected">Could not save your details. Try again.</string>
+    <string name="customer_profile_conflict">Your profile is already set up</string>
+    <string name="checkout_need_customer_profile">Add your name and address under Me before checking out.</string>
+    <string name="checkout_delivery_details_title">Delivery details</string>
+    <string name="btn_proceed_with_order">Proceed with order</string>
+    <string name="me_add_customer_profile_prompt">Complete your delivery profile under Me to shop and check out.</string>
+    <string name="account_label_username">Username</string>
+    <string name="account_label_sign_email">Sign-in email</string>
+    <string name="account_label_password">Password</string>
+    <string name="account_password_discard_change">Discard new password</string>
+    <string name="account_hint_new_password_optional">New password (optional)</string>
+    <string name="account_value_not_set">Not set</string>
+    <string name="role_display_customer">Customer</string>
+    <string name="role_display_guest">Guest</string>
+    <string name="role_display_employee">Employee</string>
+    <string name="role_display_admin">Admin</string>
+    <string name="nothing_to_save_profile">Choose a new photo to save, or go back if you are done.</string>
     <string name="error_postal_invalid">Postal/ZIP code is invalid</string>
     <string name="error_postal_required">Postal/ZIP code is required</string>
 
@@ -280,9 +312,9 @@
     <string name="stub_me_email">you@example.com</string>
     <string name="stub_me_address">Address</string>
     <string name="no_address_on_file">No address on file. Tap Edit to add one.</string>
-    <string name="order_history">Order History</string>
+    <string name="order_history">View Order History</string>
     <string name="loyalty_rewards_title">Rewards</string>
-    <string name="btn_loyalty_rewards">Rewards</string>
+    <string name="btn_loyalty_rewards">View Rewards</string>
     <string name="loyalty_rewards_checkout_hint">You can redeem your tier discount with points when you check out.</string>
     <string name="type_a_message">Type a message</string>
     <string name="send">Send</string>
@@ -296,7 +328,7 @@
     <string name="cart_title">Your Cart</string>
     <string name="cart_empty">Your cart is empty</string>
     <string name="cart_subtotal">Subtotal</string>
-    <string name="cart_tax">Tax (13%)</string>
+    <string name="cart_tax">Tax</string>
     <string name="cart_total">Total</string>
     <string name="checkout_button">Proceed to Checkout</string>
     <string name="quantity_label">Qty:</string>
@@ -313,7 +345,9 @@
     <string name="select_time">Select</string>
     <string name="order_summary">Order Summary</string>
     <string name="subtotal">Subtotal:</string>
-    <string name="tax">Tax (13%):</string>
+    <string name="tax">Tax</string>
+    <string name="tax_with_percent">Tax (%1$s)</string>
+    <string name="tax_with_percent_placeholder">Tax (0%)</string>
     <string name="total">Total:</string>
     <string name="confirm_order">Review Order</string>
     <string name="confirm_order_title">Confirm Your Order</string>
@@ -325,7 +359,7 @@
     <string name="error_complete_form">Please complete all required fields</string>
     <string name="error_past_time">Please select a future time</string>
     <string name="error_no_address">Please add a delivery address in your profile</string>
-    <string name="high_value_order_threshold">$100.00</string>
+    <string name="high_value_order_threshold">$100.00 CAD</string>
 
     <!-- Confirmation Text -->
     <string name="confirmation_order_summary">Order Summary</string>

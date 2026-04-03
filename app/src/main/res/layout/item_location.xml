@@ -28,7 +28,7 @@
             android:scaleType="fitCenter"
             android:src="@drawable/location_thumb_placeholder" />
 
-        <!-- Info: name, distance + status, address -->
+        <!-- Info: name, distance/rating, open + directions, address -->
         <LinearLayout
             android:layout_width="0dp"
             android:layout_height="wrap_content"
@@ -44,8 +44,9 @@
                 android:textStyle="bold"
                 android:textColor="@color/bakery_text_dark" />
 
-            <!-- Distance + Status on same line -->
+            <!-- Distance + rating (no status chip here) -->
             <LinearLayout
+                android:id="@+id/ll_location_distance_row"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:orientation="horizontal"
@@ -61,7 +62,6 @@
                     android:textStyle="bold"
                     android:visibility="gone" />
 
-                <!-- Dot separator (visible only when distance is shown) -->
                 <TextView
                     android:id="@+id/tv_dot_separator"
                     android:layout_width="wrap_content"
@@ -74,11 +74,20 @@
                     android:id="@+id/tv_location_rating"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginEnd="6dp"
                     android:textColor="@color/bakery_gold_bright"
                     android:textSize="12sp"
                     android:textStyle="bold"
                     android:visibility="gone" />
+
+            </LinearLayout>
+
+            <!-- Open/Closed chip + Get Directions (same colors as location detail) -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:layout_marginTop="6dp">
 
                 <com.google.android.material.chip.Chip
                     android:id="@+id/chip_status"
@@ -92,6 +101,22 @@
                     app:chipMinHeight="24dp"
                     app:chipCornerRadius="12dp" />
 
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btn_location_directions"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="8dp"
+                    android:minHeight="36dp"
+                    android:paddingStart="12dp"
+                    android:paddingEnd="12dp"
+                    android:text="@string/btn_get_directions"
+                    android:textAllCaps="false"
+                    android:textColor="@color/bakery_text_dark"
+                    android:textSize="11sp"
+                    android:contentDescription="@string/btn_get_directions"
+                    app:backgroundTint="@color/bakery_gold_bright"
+                    app:cornerRadius="24dp" />
+
             </LinearLayout>
 
             <TextView
@@ -100,7 +125,7 @@
                 android:layout_height="wrap_content"
                 android:textSize="12sp"
                 android:textColor="@color/bakery_text_secondary"
-                android:layout_marginTop="2dp" />
+                android:layout_marginTop="4dp" />
 
         </LinearLayout>
 

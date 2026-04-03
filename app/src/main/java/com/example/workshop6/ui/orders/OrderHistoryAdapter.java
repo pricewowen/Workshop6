@@ -13,6 +13,7 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.workshop6.R;
 import com.example.workshop6.data.api.dto.OrderDto;
+import com.example.workshop6.util.MoneyFormat;
 
 import java.text.NumberFormat;
 import java.text.ParseException;
@@ -22,8 +23,6 @@ import java.util.List;
 import java.util.Locale;
 
 public class OrderHistoryAdapter extends RecyclerView.Adapter<OrderHistoryAdapter.OrderViewHolder> {
-    private static final double TAX_RATE = 0.13;
-
     private List<OrderHistoryActivity.OrderWithDetails> orders;
     private final SimpleDateFormat dateFormat = new SimpleDateFormat("MMM dd, yyyy", Locale.CANADA);
     private final SimpleDateFormat dateTimeFormat = new SimpleDateFormat("MMM dd, hh:mm a", Locale.CANADA);
@@ -73,7 +72,7 @@ public class OrderHistoryAdapter extends RecyclerView.Adapter<OrderHistoryAdapte
 
         LinearLayout llOrderDetails, llCommentSection, llItemsContainer;
         LinearLayout llDeliveredActions;
-        TextView tvDetailMethod, tvDetailBakery, tvDetailTime, tvDetailSubtotal, tvDetailTax, tvDetailFinalTotal, tvDetailComment, tvDetailPoints;
+        TextView tvDetailMethod, tvDetailBakery, tvDetailTime, tvDetailSubtotal, tvDetailTaxLabel, tvDetailTax, tvDetailFinalTotal, tvDetailComment, tvDetailPoints;
         com.google.android.material.button.MaterialButton btnAcceptDelivery;
 
         OrderViewHolder(@NonNull View itemView) {
@@ -95,6 +94,7 @@ public class OrderHistoryAdapter extends RecyclerView.Adapter<OrderHistoryAdapte
             tvDetailBakery = itemView.findViewById(R.id.tvDetailBakery);
             tvDetailTime = itemView.findViewById(R.id.tvDetailTime);
             tvDetailSubtotal = itemView.findViewById(R.id.tvDetailSubtotal);
+            tvDetailTaxLabel = itemView.findViewById(R.id.tvDetailTaxLabel);
             tvDetailTax = itemView.findViewById(R.id.tvDetailTax);
             tvDetailFinalTotal = itemView.findViewById(R.id.tvDetailFinalTotal);
             tvDetailComment = itemView.findViewById(R.id.tvDetailComment);
@@ -112,9 +112,7 @@ public class OrderHistoryAdapter extends RecyclerView.Adapter<OrderHistoryAdapte
             Date placed = parseIsoDate(o.placedAt);
             tvOrderDate.setText(placed != null ? dateFormat.format(placed) : "");
 
-            double subtotal = o.orderTotal != null ? o.orderTotal.doubleValue() : 0.0;
-            double totalWithTax = subtotal + (subtotal * TAX_RATE);
-            tvOrderTotal.setText(currencyFormat.format(totalWithTax));
+            tvOrderTotal.setText(MoneyFormat.formatCad(currencyFormat, o.getGrandTotalAmount()));
 
             String status = o.status != null ? o.status : "";
             tvOrderStatus.setText(prettyStatus(status));
@@ -192,12 +190,13 @@ public class OrderHistoryAdapter extends RecyclerView.Adapter<OrderHistoryAdapte
             } else {
                 tvDetailTime.setText("Not scheduled");
             }
-            double subtotal = o.orderTotal != null ? o.orderTotal.doubleValue() : 0.0;
-            double tax = subtotal * TAX_RATE;
-            double finalTotal = subtotal + tax;
-            tvDetailSubtotal.setText(currencyFormat.format(subtotal));
-            tvDetailTax.setText(currencyFormat.format(tax));
-            tvDetailFinalTotal.setText(currencyFormat.format(finalTotal));
+            double taxRatePercent = o.orderTaxRate != null ? o.orderTaxRate.doubleValue() : 0.0;
+            tvDetailTaxLabel.setText(itemView.getContext().getString(
+                    R.string.tax_with_percent,
+                    com.example.workshop6.util.CanadianTaxRates.formatTaxPercent(taxRatePercent)));
+            tvDetailSubtotal.setText(MoneyFormat.formatCad(currencyFormat, o.getSubtotalAmount()));
+            tvDetailTax.setText(MoneyFormat.formatCad(currencyFormat, o.getTaxAmount()));
+            tvDetailFinalTotal.setText(MoneyFormat.formatCad(currencyFormat, o.getGrandTotalAmount()));
 
             String comment = o.comment;
             if (comment != null && !comment.trim().isEmpty()) {
@@ -220,7 +219,7 @@ public class OrderHistoryAdapter extends RecyclerView.Adapter<OrderHistoryAdapte
                 tvItemName.setText(item.productName);
                 tvItemQuantity.setText("x" + item.quantity);
                 // Show pre-tax unit price; quantity is displayed separately.
-                tvItemPrice.setText(currencyFormat.format(item.price));
+                tvItemPrice.setText(MoneyFormat.formatCad(currencyFormat, item.price));
 
                 llItemsContainer.addView(itemView);
             }

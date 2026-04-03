@@ -21,4 +21,9 @@ public class BakeryLocationDetails {
     public Double averageRating;
     /** Hero / list image URL; null uses brown + storefront placeholder. */
     public String bakeryImageUrl;
+    /**
+     * Lowercased product-related text (names/descriptions) for locations search; filled from active
+     * batches after catalog load. Empty until loaded or if unavailable.
+     */
+    public String productSearchText = "";
 }

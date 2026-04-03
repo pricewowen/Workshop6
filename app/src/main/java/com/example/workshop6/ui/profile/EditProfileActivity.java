@@ -8,6 +8,7 @@ import android.graphics.ColorMatrix;
 import android.graphics.ColorMatrixColorFilter;
 import android.net.Uri;
 import android.os.Bundle;
+import android.text.method.PasswordTransformationMethod;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.ArrayAdapter;
@@ -19,8 +20,10 @@ import android.widget.Toast;
 
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
+import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.widget.Toolbar;
 import androidx.core.content.ContextCompat;
 
 import com.bumptech.glide.Glide;
@@ -29,15 +32,18 @@ import com.example.workshop6.auth.LoginActivity;
 import com.example.workshop6.auth.SessionManager;
 import com.example.workshop6.data.api.ApiClient;
 import com.example.workshop6.data.api.ApiService;
+import com.example.workshop6.data.api.dto.AccountProfilePatchRequest;
 import com.example.workshop6.data.api.dto.AddressUpsertRequest;
+import com.example.workshop6.data.api.dto.AuthResponse;
 import com.example.workshop6.data.api.dto.ChangePasswordRequest;
 import com.example.workshop6.data.api.dto.CustomerDto;
-import com.example.workshop6.data.api.dto.CustomerPatchRequest;
+import com.example.workshop6.data.api.dto.ProfilePhotoResponse;
 import com.example.workshop6.data.api.dto.EmployeeDto;
 import com.example.workshop6.data.api.dto.EmployeePatchRequest;
 import com.example.workshop6.logging.ActivityLogger;
 import com.example.workshop6.ui.MainActivity;
 import com.example.workshop6.util.ImageUtils;
+import com.example.workshop6.util.NavTransitions;
 import com.example.workshop6.util.PhoneFormatTextWatcher;
 import com.example.workshop6.util.PostalCodeFormatTextWatcher;
 import com.example.workshop6.util.SensitiveActionAuthorizer;
@@ -49,13 +55,16 @@ import com.google.android.material.textfield.TextInputLayout;
 import okhttp3.MediaType;
 import okhttp3.MultipartBody;
 import okhttp3.RequestBody;
-import okhttp3.ResponseBody;
+import java.util.Locale;
 
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
 
 public class EditProfileActivity extends AppCompatActivity {
+
+    /** Shown as password dots in the read-only account password row (not the real password). */
+    private static final String ACCOUNT_PASSWORD_ROW_MASK = "12345678";
 
     private SessionManager sessionManager;
 
@@ -74,6 +83,20 @@ public class EditProfileActivity extends AppCompatActivity {
 
     private CustomerDto loadedCustomer;
     private EmployeeDto loadedEmployee;
+    private boolean customerAccountOnlyMode;
+    private View llAccountSummary;
+    private View customerDetailFields;
+    private TextInputLayout tilAccountUsername;
+    private TextInputEditText etAccountUsername;
+    private TextInputLayout tilAccountSignEmail;
+    private TextInputEditText etAccountSignEmail;
+    private TextInputLayout tilAccountPassword;
+    private TextInputEditText etAccountPassword;
+    /** Snapshot when account fields were last bound (for dirty checks). */
+    private String originalAccountUsername = "";
+    private String originalAccountEmail = "";
+    /** New password chosen in the change-password dialog; applied on Save after re-auth. */
+    private String pendingNewPassword = "";
     private ApiService api;
     private View loadingOverlay;
     private View editProfileScrollContent;
@@ -96,8 +119,25 @@ public class EditProfileActivity extends AppCompatActivity {
         }
 
         setContentView(R.layout.activity_edit_profile);
+        Toolbar toolbar = findViewById(R.id.toolbar);
+        setSupportActionBar(toolbar);
+        toolbar.setNavigationOnClickListener(v -> {
+            finish();
+            NavTransitions.applyBackwardPending(this);
+        });
+
         loadingOverlay = findViewById(R.id.edit_profile_loading_overlay);
         editProfileScrollContent = findViewById(R.id.edit_profile_scroll_content);
+
+        llAccountSummary = findViewById(R.id.ll_account_summary);
+        customerDetailFields = findViewById(R.id.customer_detail_fields);
+        tilAccountUsername = findViewById(R.id.til_account_username);
+        etAccountUsername = findViewById(R.id.et_account_username);
+        tilAccountSignEmail = findViewById(R.id.til_account_sign_email);
+        etAccountSignEmail = findViewById(R.id.et_account_sign_email);
+        tilAccountPassword = findViewById(R.id.til_account_password);
+        etAccountPassword = findViewById(R.id.et_account_password);
+        setupAccountPasswordRow();
 
         ivPhoto = findViewById(R.id.iv_profile_photo);
         tvPhotoError = findViewById(R.id.tv_photo_error);
@@ -169,11 +209,13 @@ public class EditProfileActivity extends AppCompatActivity {
                 Toast.makeText(this, R.string.photo_change_locked_pending, Toast.LENGTH_SHORT).show();
                 return;
             }
+            if (loadedEmployee != null && isCustomerPhotoPending) {
+                Toast.makeText(this, R.string.photo_change_locked_pending, Toast.LENGTH_SHORT).show();
+                return;
+            }
             showPhotoChooser();
         });
-        findViewById(R.id.btn_change_password).setOnClickListener(v -> showChangePasswordDialog());
         findViewById(R.id.btn_save).setOnClickListener(v -> attemptSave());
-        findViewById(R.id.btn_cancel).setOnClickListener(v -> finish());
 
         loadProfile();
     }
@@ -186,14 +228,29 @@ public class EditProfileActivity extends AppCompatActivity {
             editProfileScrollContent.setVisibility(loading ? View.INVISIBLE : View.VISIBLE);
         }
         View save = findViewById(R.id.btn_save);
-        View changePw = findViewById(R.id.btn_change_password);
         if (save != null) {
             save.setEnabled(!loading);
             save.setAlpha(loading ? 0.5f : 1f);
         }
-        if (changePw != null) {
-            changePw.setEnabled(!loading);
-            changePw.setAlpha(loading ? 0.5f : 1f);
+        if (btnChoosePhoto != null) {
+            btnChoosePhoto.setEnabled(!loading);
+            btnChoosePhoto.setAlpha(loading ? 0.5f : 1f);
+        }
+        if (tilAccountUsername != null) {
+            tilAccountUsername.setEnabled(!loading);
+            tilAccountUsername.setAlpha(loading ? 0.5f : 1f);
+        }
+        if (tilAccountSignEmail != null) {
+            tilAccountSignEmail.setEnabled(!loading);
+            tilAccountSignEmail.setAlpha(loading ? 0.5f : 1f);
+        }
+        if (tilAccountPassword != null) {
+            tilAccountPassword.setAlpha(loading ? 0.5f : 1f);
+            tilAccountPassword.setClickable(!loading);
+            tilAccountPassword.setFocusable(!loading);
+        }
+        if (etAccountPassword != null) {
+            etAccountPassword.setClickable(!loading);
         }
     }
 
@@ -277,17 +334,21 @@ public class EditProfileActivity extends AppCompatActivity {
             api.getCustomerMe().enqueue(new Callback<CustomerDto>() {
                 @Override
                 public void onResponse(Call<CustomerDto> call, Response<CustomerDto> response) {
+                    if (response.code() == 404) {
+                        runOnUiThread(() -> bindCustomerUserAccountUi(null));
+                        return;
+                    }
                     if (!response.isSuccessful() || response.body() == null) {
                         runOnUiThread(() -> {
                             setEditProfileLoading(false);
                             Toast.makeText(EditProfileActivity.this, R.string.error_user_not_found, Toast.LENGTH_LONG).show();
                             finish();
+                            NavTransitions.applyBackwardPending(EditProfileActivity.this);
                         });
                         return;
                     }
-                    loadedCustomer = response.body();
-                    loadedEmployee = null;
-                    runOnUiThread(() -> bindCustomerFields(loadedCustomer));
+                    CustomerDto body = response.body();
+                    runOnUiThread(() -> bindCustomerUserAccountUi(body));
                 }
 
                 @Override
@@ -315,6 +376,7 @@ public class EditProfileActivity extends AppCompatActivity {
                             setEditProfileLoading(false);
                             Toast.makeText(EditProfileActivity.this, R.string.error_user_not_found, Toast.LENGTH_LONG).show();
                             finish();
+                            NavTransitions.applyBackwardPending(EditProfileActivity.this);
                         });
                         return;
                     }
@@ -334,30 +396,79 @@ public class EditProfileActivity extends AppCompatActivity {
         }
     }
 
-    private void bindCustomerFields(CustomerDto c) {
+    private void bindCustomerUserAccountUi(@Nullable CustomerDto c) {
+        customerAccountOnlyMode = true;
+        loadedCustomer = c;
+        loadedEmployee = null;
         setEditProfileLoading(false);
-        etFirstName.setText(c.firstName != null ? c.firstName : "");
-        etMiddleInitial.setText(c.middleInitial != null ? c.middleInitial : "");
-        etLastName.setText(c.lastName != null ? c.lastName : "");
-        etPhone.setText(c.phone != null ? c.phone : "");
-        etBusinessPhone.setText(c.businessPhone != null ? c.businessPhone : "");
-        if (c.address != null) {
-            etAddress1.setText(emptyToBlank(c.address.line1));
-            etAddress2.setText(emptyToBlank(c.address.line2));
-            etCity.setText(emptyToBlank(c.address.city));
-            etPostal.setText(emptyToBlank(c.address.postalCode));
-            setProvinceSelection(c.address.province);
-            tvProvinceError.setVisibility(View.GONE);
-        } else {
-            clearAddressFields();
+        if (llAccountSummary != null) {
+            llAccountSummary.setVisibility(View.VISIBLE);
         }
-        isCustomerPhotoPending = c.photoApprovalPending;
-        applyPhotoState(c.profilePhotoPath, c.photoApprovalPending);
+        if (customerDetailFields != null) {
+            customerDetailFields.setVisibility(View.GONE);
+        }
+        populateAccountSummary(c, null);
+        selectedPhotoUri = null;
+        if (c != null) {
+            isCustomerPhotoPending = c.photoApprovalPending;
+            applyPhotoState(c.profilePhotoPath, c.photoApprovalPending);
+        } else {
+            isCustomerPhotoPending = false;
+            applyPhotoState(null, false);
+        }
         findViewById(R.id.btn_save).setEnabled(true);
         findViewById(R.id.btn_save).setAlpha(1f);
     }
 
+    private void populateAccountSummary(@Nullable CustomerDto c, @Nullable EmployeeDto e) {
+        if (etAccountUsername == null) {
+            return;
+        }
+        String un = sessionManager.getLoginUsername();
+        etAccountUsername.setText(un != null ? un.trim() : "");
+        etAccountSignEmail.setText(resolveSignInEmailForDisplay(c, e));
+        pendingNewPassword = "";
+        applyAccountPasswordRowDisplay();
+        rememberOriginalAccountSnapshot();
+    }
+
+    /**
+     * Prefer profile email (customer), then employee work email, then session login only if it is a valid email.
+     * Never show a bare username in the email field.
+     */
+    private String resolveSignInEmailForDisplay(@Nullable CustomerDto c, @Nullable EmployeeDto e) {
+        if (c != null && c.email != null && !c.email.trim().isEmpty()) {
+            return c.email.trim();
+        }
+        if (e != null && e.workEmail != null && !e.workEmail.trim().isEmpty()) {
+            return e.workEmail.trim();
+        }
+        String login = sessionManager.getLoginEmail();
+        if (login != null && Validation.isEmailValid(login.trim())) {
+            return login.trim();
+        }
+        return "";
+    }
+
+    private void rememberOriginalAccountSnapshot() {
+        if (etAccountUsername == null || etAccountSignEmail == null) {
+            return;
+        }
+        originalAccountUsername = etAccountUsername.getText() != null
+                ? etAccountUsername.getText().toString().trim() : "";
+        originalAccountEmail = etAccountSignEmail.getText() != null
+                ? etAccountSignEmail.getText().toString().trim().toLowerCase(Locale.ROOT) : "";
+    }
+
     private void bindEmployeeFields(EmployeeDto e) {
+        customerAccountOnlyMode = false;
+        if (llAccountSummary != null) {
+            llAccountSummary.setVisibility(View.VISIBLE);
+        }
+        if (customerDetailFields != null) {
+            customerDetailFields.setVisibility(View.VISIBLE);
+        }
+        populateAccountSummary(null, e);
         setEditProfileLoading(false);
         String[] sessionNameParts = splitSessionDisplayName();
         etFirstName.setText(e.firstName != null ? e.firstName : sessionNameParts[0]);
@@ -382,6 +493,14 @@ public class EditProfileActivity extends AppCompatActivity {
     }
 
     private void bindAdminFallbackFields() {
+        customerAccountOnlyMode = false;
+        if (llAccountSummary != null) {
+            llAccountSummary.setVisibility(View.VISIBLE);
+        }
+        if (customerDetailFields != null) {
+            customerDetailFields.setVisibility(View.VISIBLE);
+        }
+        populateAccountSummary(null, null);
         setEditProfileLoading(false);
         String[] sessionNameParts = splitSessionDisplayName();
         etFirstName.setText(sessionNameParts[0]);
@@ -483,6 +602,39 @@ public class EditProfileActivity extends AppCompatActivity {
     }
 
     private void attemptSave() {
+        if (customerAccountOnlyMode) {
+            if (!validateAccountFieldsLikeRegister()) {
+                return;
+            }
+            String newUser = etAccountUsername.getText() != null ? etAccountUsername.getText().toString().trim() : "";
+            String newEm = etAccountSignEmail.getText() != null
+                    ? etAccountSignEmail.getText().toString().trim().toLowerCase(Locale.ROOT) : "";
+            boolean dirtyUser = !newUser.equals(originalAccountUsername);
+            boolean dirtyEmail = !newEm.equals(originalAccountEmail);
+            boolean dirtyPass = !Validation.isEmpty(pendingNewPassword);
+            if (selectedPhotoUri == null && !dirtyUser && !dirtyEmail && !dirtyPass) {
+                Toast.makeText(this, R.string.nothing_to_save_profile, Toast.LENGTH_SHORT).show();
+                return;
+            }
+            if (selectedPhotoUri != null) {
+                String photoErr = ImageUtils.validateProfilePhoto(this, selectedPhotoUri);
+                if (photoErr != null) {
+                    tvPhotoError.setText(photoErr);
+                    tvPhotoError.setVisibility(View.VISIBLE);
+                    return;
+                }
+            }
+            tvPhotoError.setVisibility(View.GONE);
+            SensitiveActionAuthorizer.promptForPasswordWithCurrent(
+                    this,
+                    sessionManager,
+                    getString(R.string.reauth_title_profile),
+                    getString(R.string.reauth_message_profile),
+                    this::persistCustomerAccountAfterReauth
+            );
+            return;
+        }
+
         if (loadedCustomer == null && loadedEmployee == null) {
             return;
         }
@@ -611,6 +763,10 @@ public class EditProfileActivity extends AppCompatActivity {
             return;
         }
 
+        if (!validateAccountFieldsLikeRegister()) {
+            return;
+        }
+
         String phoneForStorage = Validation.formatPhoneForStorage(phoneDigits);
         if (phoneForStorage == null) {
             phoneForStorage = phoneDigits;
@@ -638,18 +794,19 @@ public class EditProfileActivity extends AppCompatActivity {
         addr.province = province;
         addr.postalCode = postalNormalized;
 
-        SensitiveActionAuthorizer.promptForPassword(
+        SensitiveActionAuthorizer.promptForPasswordWithCurrent(
                 this,
                 sessionManager,
                 getString(R.string.reauth_title_profile),
                 getString(R.string.reauth_message_profile),
-                () -> {
-                    if (loadedCustomer != null) {
-                        persistProfileChanges(saveFirstName, saveMiddleInitial, saveLastName, savePhone, saveBusinessPhone, addr);
-                    } else {
-                        persistEmployeeProfileChanges(saveFirstName, saveMiddleInitial, saveLastName, savePhone, saveBusinessPhone, addr);
-                    }
-                }
+                currentPassword -> runAccountUpdatesThenEmployeeSave(
+                        currentPassword,
+                        saveFirstName,
+                        saveMiddleInitial,
+                        saveLastName,
+                        savePhone,
+                        saveBusinessPhone,
+                        addr)
         );
     }
 
@@ -659,35 +816,356 @@ public class EditProfileActivity extends AppCompatActivity {
         return raw.trim().toUpperCase().replaceAll("\\s+", " ");
     }
 
-    private void persistProfileChanges(String firstName, String middleInitial, String lastName, String phoneForStorage, String businessPhoneForStorage, AddressUpsertRequest address) {
-        if (selectedPhotoUri != null) {
-            uploadPhotoThenPatch(firstName, middleInitial, lastName, phoneForStorage, businessPhoneForStorage, address);
-            return;
+    private boolean validateAccountFieldsLikeRegister() {
+        if (etAccountUsername == null || etAccountSignEmail == null || tilAccountPassword == null) {
+            return true;
         }
-        patchProfileFields(firstName, middleInitial, lastName, phoneForStorage, businessPhoneForStorage, address);
+        boolean ok = true;
+        String username = etAccountUsername.getText() != null ? etAccountUsername.getText().toString().trim() : "";
+        if (Validation.isEmpty(username)) {
+            tilAccountUsername.setError(getString(R.string.error_username_required));
+            ok = false;
+        } else if (Validation.isUsernameTooShort(username)) {
+            tilAccountUsername.setError(getString(R.string.error_username_too_short));
+            ok = false;
+        } else if (Validation.isUsernameTooLong(username)) {
+            tilAccountUsername.setError(getString(R.string.error_username_too_long));
+            ok = false;
+        } else if (!Validation.isUsernameFormatValid(username)) {
+            tilAccountUsername.setError(getString(R.string.error_username_invalid));
+            ok = false;
+        } else {
+            tilAccountUsername.setError(null);
+        }
+
+        String email = etAccountSignEmail.getText() != null
+                ? etAccountSignEmail.getText().toString().trim().toLowerCase(Locale.ROOT) : "";
+        if (Validation.isEmpty(email)) {
+            tilAccountSignEmail.setError(getString(R.string.error_email_required));
+            ok = false;
+        } else if (!Validation.isEmailValid(email)) {
+            tilAccountSignEmail.setError(getString(R.string.error_email_invalid));
+            ok = false;
+        } else {
+            tilAccountSignEmail.setError(null);
+        }
+
+        if (!Validation.isEmpty(pendingNewPassword)) {
+            if (Validation.isPasswordTooShort(pendingNewPassword)) {
+                tilAccountPassword.setError(getString(R.string.error_password_too_short));
+                ok = false;
+            } else if (Validation.isPasswordTooLong(pendingNewPassword)) {
+                tilAccountPassword.setError(getString(R.string.error_password_too_long));
+                ok = false;
+            } else if (!Validation.isPasswordStrong(pendingNewPassword)) {
+                tilAccountPassword.setError(getString(R.string.error_password_strength));
+                ok = false;
+            } else {
+                tilAccountPassword.setError(null);
+            }
+        } else {
+            tilAccountPassword.setError(null);
+        }
+        return ok;
     }
 
-    private void uploadPhotoThenPatch(String firstName, String middleInitial, String lastName, String phoneForStorage, String businessPhoneForStorage, AddressUpsertRequest address) {
+    private void setupAccountPasswordRow() {
+        if (tilAccountPassword == null || etAccountPassword == null) {
+            return;
+        }
+        etAccountPassword.setKeyListener(null);
+        applyAccountPasswordRowDisplay();
+        View.OnClickListener open = v -> {
+            if (loadingOverlay != null && loadingOverlay.getVisibility() == View.VISIBLE) {
+                return;
+            }
+            showChangePasswordDialog();
+        };
+        tilAccountPassword.setOnClickListener(open);
+        etAccountPassword.setOnClickListener(open);
+    }
+
+    private void applyAccountPasswordRowDisplay() {
+        if (etAccountPassword == null) {
+            return;
+        }
+        etAccountPassword.setTransformationMethod(PasswordTransformationMethod.getInstance());
+        etAccountPassword.setText(ACCOUNT_PASSWORD_ROW_MASK);
+    }
+
+    private void showChangePasswordDialog() {
+        if (isFinishing() || isDestroyed()) {
+            return;
+        }
+
+        View dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_change_password, null, false);
+        TextInputLayout tilCurrent = dialogView.findViewById(R.id.til_current_password);
+        TextInputLayout tilNew = dialogView.findViewById(R.id.til_new_password);
+        TextInputLayout tilConfirm = dialogView.findViewById(R.id.til_confirm_new_password);
+        TextInputEditText etCurrent = dialogView.findViewById(R.id.et_current_password);
+        TextInputEditText etNew = dialogView.findViewById(R.id.et_new_password);
+        TextInputEditText etConfirm = dialogView.findViewById(R.id.et_confirm_new_password);
+
+        MaterialAlertDialogBuilder builder = new MaterialAlertDialogBuilder(this)
+                .setTitle(R.string.change_password_title)
+                .setView(dialogView)
+                .setNegativeButton(R.string.btn_cancel, null);
+
+        if (!Validation.isEmpty(pendingNewPassword)) {
+            builder.setNeutralButton(R.string.account_password_discard_change, (d, w) -> {
+                pendingNewPassword = "";
+                applyAccountPasswordRowDisplay();
+                if (tilAccountPassword != null) {
+                    tilAccountPassword.setError(null);
+                }
+            });
+        }
+
+        AlertDialog dialog = builder
+                .setPositiveButton(R.string.btn_save, null)
+                .create();
+
+        dialog.setOnShowListener(ignored -> dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v -> {
+            tilCurrent.setError(null);
+            tilNew.setError(null);
+            tilConfirm.setError(null);
+
+            String cur = etCurrent.getText() != null ? etCurrent.getText().toString() : "";
+            String nw = etNew.getText() != null ? etNew.getText().toString() : "";
+            String cf = etConfirm.getText() != null ? etConfirm.getText().toString() : "";
+
+            if (Validation.isEmpty(cur)) {
+                tilCurrent.setError(getString(R.string.error_password_required));
+                return;
+            }
+            if (Validation.isEmpty(nw)) {
+                tilNew.setError(getString(R.string.error_password_required));
+                return;
+            }
+            if (Validation.isPasswordTooShort(nw)) {
+                tilNew.setError(getString(R.string.error_password_too_short));
+                return;
+            }
+            if (Validation.isPasswordTooLong(nw)) {
+                tilNew.setError(getString(R.string.error_password_too_long));
+                return;
+            }
+            if (!Validation.isPasswordStrong(nw)) {
+                tilNew.setError(getString(R.string.error_password_strength));
+                return;
+            }
+            if (Validation.isEmpty(cf)) {
+                tilConfirm.setError(getString(R.string.error_password_required));
+                return;
+            }
+            if (!nw.equals(cf)) {
+                tilConfirm.setError(getString(R.string.error_password_mismatch));
+                return;
+            }
+            if (nw.equals(cur)) {
+                tilNew.setError(getString(R.string.change_password_reuse_error));
+                return;
+            }
+
+            pendingNewPassword = nw;
+            if (tilAccountPassword != null) {
+                tilAccountPassword.setError(null);
+            }
+            applyAccountPasswordRowDisplay();
+            dialog.dismiss();
+        }));
+
+        dialog.show();
+    }
+
+    private void persistCustomerAccountAfterReauth(String currentPassword) {
+        String newUser = etAccountUsername.getText() != null ? etAccountUsername.getText().toString().trim() : "";
+        String newEm = etAccountSignEmail.getText() != null
+                ? etAccountSignEmail.getText().toString().trim().toLowerCase(Locale.ROOT) : "";
+        boolean dirtyUser = !newUser.equals(originalAccountUsername);
+        boolean dirtyEmail = !newEm.equals(originalAccountEmail);
+        boolean dirtyPass = !Validation.isEmpty(pendingNewPassword);
+
+        if (dirtyPass && pendingNewPassword.equals(currentPassword)) {
+            tilAccountPassword.setError(getString(R.string.change_password_reuse_error));
+            Toast.makeText(this, R.string.change_password_reuse_error, Toast.LENGTH_LONG).show();
+            return;
+        }
+
+        Runnable afterAccount = () -> {
+            if (selectedPhotoUri != null) {
+                persistAccountOnlyPhotoUpload();
+            } else {
+                Toast.makeText(getApplicationContext(), R.string.profile_saved, Toast.LENGTH_SHORT).show();
+                Intent intent = new Intent(EditProfileActivity.this, MainActivity.class);
+                intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+                intent.putExtra(MainActivity.EXTRA_OPEN_ME_TAB, true);
+                NavTransitions.startActivityWithForward(EditProfileActivity.this, intent);
+                finish();
+            }
+        };
+
+        if (!dirtyUser && !dirtyEmail) {
+            runChangePasswordIfNeeded(currentPassword, pendingNewPassword, afterAccount);
+            return;
+        }
+
+        AccountProfilePatchRequest body = new AccountProfilePatchRequest();
+        body.username = newUser;
+        body.email = newEm;
+        api.patchAccountProfile(body).enqueue(new Callback<AuthResponse>() {
+            @Override
+            public void onResponse(Call<AuthResponse> call, Response<AuthResponse> response) {
+                if (!response.isSuccessful() || response.body() == null) {
+                    Toast.makeText(EditProfileActivity.this, extractAccountPatchError(response), Toast.LENGTH_LONG).show();
+                    return;
+                }
+                applyAuthResponseToSession(response.body());
+                originalAccountUsername = newUser;
+                originalAccountEmail = newEm;
+                runChangePasswordIfNeeded(currentPassword, pendingNewPassword, afterAccount);
+            }
+
+            @Override
+            public void onFailure(Call<AuthResponse> call, Throwable t) {
+                Toast.makeText(EditProfileActivity.this, R.string.login_error_no_connection, Toast.LENGTH_SHORT).show();
+            }
+        });
+    }
+
+    private void runAccountUpdatesThenEmployeeSave(
+            String currentPassword,
+            String saveFirstName,
+            String saveMiddleInitial,
+            String saveLastName,
+            String savePhone,
+            String saveBusinessPhone,
+            AddressUpsertRequest addr) {
+        String newUser = etAccountUsername.getText() != null ? etAccountUsername.getText().toString().trim() : "";
+        String newEm = etAccountSignEmail.getText() != null
+                ? etAccountSignEmail.getText().toString().trim().toLowerCase(Locale.ROOT) : "";
+        boolean dirtyUser = !newUser.equals(originalAccountUsername);
+        boolean dirtyEmail = !newEm.equals(originalAccountEmail);
+        boolean dirtyPass = !Validation.isEmpty(pendingNewPassword);
+
+        if (dirtyPass && pendingNewPassword.equals(currentPassword)) {
+            tilAccountPassword.setError(getString(R.string.change_password_reuse_error));
+            Toast.makeText(this, R.string.change_password_reuse_error, Toast.LENGTH_LONG).show();
+            return;
+        }
+
+        Runnable afterAccount = () -> persistEmployeeProfileChanges(
+                saveFirstName, saveMiddleInitial, saveLastName, savePhone, saveBusinessPhone, addr);
+
+        if (!dirtyUser && !dirtyEmail) {
+            runChangePasswordIfNeeded(currentPassword, pendingNewPassword, afterAccount);
+            return;
+        }
+
+        AccountProfilePatchRequest body = new AccountProfilePatchRequest();
+        body.username = newUser;
+        body.email = newEm;
+        api.patchAccountProfile(body).enqueue(new Callback<AuthResponse>() {
+            @Override
+            public void onResponse(Call<AuthResponse> call, Response<AuthResponse> response) {
+                if (!response.isSuccessful() || response.body() == null) {
+                    Toast.makeText(EditProfileActivity.this, extractAccountPatchError(response), Toast.LENGTH_LONG).show();
+                    return;
+                }
+                applyAuthResponseToSession(response.body());
+                originalAccountUsername = newUser;
+                originalAccountEmail = newEm;
+                runChangePasswordIfNeeded(currentPassword, pendingNewPassword, afterAccount);
+            }
+
+            @Override
+            public void onFailure(Call<AuthResponse> call, Throwable t) {
+                Toast.makeText(EditProfileActivity.this, R.string.login_error_no_connection, Toast.LENGTH_SHORT).show();
+            }
+        });
+    }
+
+    private void applyAuthResponseToSession(AuthResponse auth) {
+        if (auth == null || auth.token == null || auth.token.trim().isEmpty()) {
+            return;
+        }
+        ApiClient.getInstance().setToken(auth.token);
+        String uid = auth.userId != null ? auth.userId : "";
+        String em = (auth.email != null && !auth.email.trim().isEmpty())
+                ? auth.email.trim()
+                : (etAccountSignEmail.getText() != null
+                ? etAccountSignEmail.getText().toString().trim()
+                : sessionManager.getLoginEmail());
+        String role = auth.role != null ? auth.role.toUpperCase() : sessionManager.getUserRole();
+        String un = auth.username != null ? auth.username : sessionManager.getLoginUsername();
+        sessionManager.persistLoginSession(auth.token, uid, role, un, em != null ? em : "");
+        sessionManager.touch();
+    }
+
+    private void runChangePasswordIfNeeded(String currentPassword, String newPass, Runnable then) {
+        if (Validation.isEmpty(newPass)) {
+            then.run();
+            return;
+        }
+        ChangePasswordRequest body = new ChangePasswordRequest();
+        body.currentPassword = currentPassword;
+        body.newPassword = newPass;
+        api.changePassword(body).enqueue(new Callback<Void>() {
+            @Override
+            public void onResponse(Call<Void> call, Response<Void> response) {
+                if (!response.isSuccessful()) {
+                    Toast.makeText(EditProfileActivity.this, R.string.change_password_failed, Toast.LENGTH_LONG).show();
+                    return;
+                }
+                pendingNewPassword = "";
+                applyAccountPasswordRowDisplay();
+                ActivityLogger.log(EditProfileActivity.this, sessionManager, "CHANGE_PASSWORD", "Password updated");
+                then.run();
+            }
+
+            @Override
+            public void onFailure(Call<Void> call, Throwable t) {
+                Toast.makeText(EditProfileActivity.this, R.string.login_error_no_connection, Toast.LENGTH_SHORT).show();
+            }
+        });
+    }
+
+    private String extractAccountPatchError(Response<?> response) {
+        if (response.code() == 409) {
+            return getString(R.string.register_error_duplicate_account);
+        }
+        if (response.code() == 400) {
+            return getString(R.string.register_error_unexpected);
+        }
+        return getString(R.string.register_error_unexpected);
+    }
+
+    private void persistAccountOnlyPhotoUpload() {
         MultipartBody.Part photoPart = buildPhotoPart(selectedPhotoUri);
         if (photoPart == null) {
             Toast.makeText(this, R.string.error_photo_invalid, Toast.LENGTH_SHORT).show();
             return;
         }
-        api.uploadProfilePhoto(photoPart).enqueue(new Callback<CustomerDto>() {
+        api.uploadProfilePhoto(photoPart).enqueue(new Callback<ProfilePhotoResponse>() {
             @Override
-            public void onResponse(Call<CustomerDto> call, Response<CustomerDto> response) {
+            public void onResponse(Call<ProfilePhotoResponse> call, Response<ProfilePhotoResponse> response) {
                 if (!response.isSuccessful() || response.body() == null) {
                     String message = extractUploadErrorMessage(response);
                     Toast.makeText(EditProfileActivity.this, message, Toast.LENGTH_LONG).show();
                     return;
                 }
-                loadedCustomer = response.body();
                 selectedPhotoUri = null;
-                patchProfileFields(firstName, middleInitial, lastName, phoneForStorage, businessPhoneForStorage, address);
+                ActivityLogger.log(EditProfileActivity.this, sessionManager, "UPDATE_PROFILE", "Profile photo uploaded");
+                Toast.makeText(getApplicationContext(), R.string.profile_saved, Toast.LENGTH_SHORT).show();
+                Intent intent = new Intent(EditProfileActivity.this, MainActivity.class);
+                intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+                intent.putExtra(MainActivity.EXTRA_OPEN_ME_TAB, true);
+                NavTransitions.startActivityWithForward(EditProfileActivity.this, intent);
+                finish();
             }
 
             @Override
-            public void onFailure(Call<CustomerDto> call, Throwable t) {
+            public void onFailure(Call<ProfilePhotoResponse> call, Throwable t) {
                 Toast.makeText(EditProfileActivity.this, R.string.login_error_no_connection, Toast.LENGTH_SHORT).show();
             }
         });
@@ -717,51 +1195,40 @@ public class EditProfileActivity extends AppCompatActivity {
         return getString(R.string.error_photo_invalid);
     }
 
-    private void patchProfileFields(String firstName, String middleInitial, String lastName, String phoneForStorage, String businessPhoneForStorage, AddressUpsertRequest address) {
-        CustomerPatchRequest patch = new CustomerPatchRequest();
-        patch.firstName = firstName;
-        patch.middleInitial = middleInitial.isEmpty() ? "" : middleInitial;
-        patch.lastName = lastName;
-        patch.phone = phoneForStorage;
-        patch.businessPhone = Validation.isEmpty(businessPhoneForStorage) ? "" : businessPhoneForStorage;
-        patch.address = address;
-        if (loadedCustomer != null && loadedCustomer.email != null) {
-            patch.email = loadedCustomer.email;
-        }
-        api.patchCustomerMe(patch).enqueue(new Callback<CustomerDto>() {
-            @Override
-            public void onResponse(Call<CustomerDto> call, Response<CustomerDto> response) {
-                if (!response.isSuccessful() || response.body() == null) {
-                    Toast.makeText(EditProfileActivity.this, R.string.error_user_not_found, Toast.LENGTH_SHORT).show();
-                    return;
-                }
-                loadedCustomer = response.body();
-                String displayName = (firstName + " " + lastName).trim();
-                if (displayName.isEmpty()) {
-                    displayName = sessionManager.getUserName();
-                }
-                sessionManager.createSession(
-                        sessionManager.getUserUuid(),
-                        sessionManager.getUserRole(),
-                        displayName,
-                        sessionManager.getLoginEmail()
-                );
-                ActivityLogger.log(EditProfileActivity.this, sessionManager, "UPDATE_PROFILE", "Profile details updated");
-                Toast.makeText(getApplicationContext(), R.string.profile_saved, Toast.LENGTH_SHORT).show();
-                Intent intent = new Intent(EditProfileActivity.this, MainActivity.class);
-                intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
-                startActivity(intent);
-                finish();
+    private void persistEmployeeProfileChanges(String firstName, String middleInitial, String lastName, String phoneForStorage, String businessPhoneForStorage, AddressUpsertRequest address) {
+        if (selectedPhotoUri != null) {
+            MultipartBody.Part photoPart = buildPhotoPart(selectedPhotoUri);
+            if (photoPart == null) {
+                Toast.makeText(this, R.string.error_photo_invalid, Toast.LENGTH_SHORT).show();
+                return;
             }
+            api.uploadProfilePhoto(photoPart).enqueue(new Callback<ProfilePhotoResponse>() {
+                @Override
+                public void onResponse(Call<ProfilePhotoResponse> call, Response<ProfilePhotoResponse> response) {
+                    if (!response.isSuccessful() || response.body() == null) {
+                        Toast.makeText(EditProfileActivity.this, extractUploadErrorMessage(response), Toast.LENGTH_LONG).show();
+                        return;
+                    }
+                    ProfilePhotoResponse body = response.body();
+                    if (loadedEmployee != null) {
+                        loadedEmployee.profilePhotoPath = body.profilePhotoPath;
+                        loadedEmployee.photoApprovalPending = body.photoApprovalPending;
+                    }
+                    selectedPhotoUri = null;
+                    submitEmployeePatch(firstName, middleInitial, lastName, phoneForStorage, businessPhoneForStorage, address);
+                }
 
-            @Override
-            public void onFailure(Call<CustomerDto> call, Throwable t) {
-                Toast.makeText(EditProfileActivity.this, R.string.login_error_no_connection, Toast.LENGTH_SHORT).show();
-            }
-        });
+                @Override
+                public void onFailure(Call<ProfilePhotoResponse> call, Throwable t) {
+                    Toast.makeText(EditProfileActivity.this, R.string.login_error_no_connection, Toast.LENGTH_SHORT).show();
+                }
+            });
+            return;
+        }
+        submitEmployeePatch(firstName, middleInitial, lastName, phoneForStorage, businessPhoneForStorage, address);
     }
 
-    private void persistEmployeeProfileChanges(String firstName, String middleInitial, String lastName, String phoneForStorage, String businessPhoneForStorage, AddressUpsertRequest address) {
+    private void submitEmployeePatch(String firstName, String middleInitial, String lastName, String phoneForStorage, String businessPhoneForStorage, AddressUpsertRequest address) {
         EmployeePatchRequest patch = new EmployeePatchRequest();
         patch.firstName = firstName;
         patch.middleInitial = middleInitial.isEmpty() ? "" : middleInitial;
@@ -769,7 +1236,12 @@ public class EditProfileActivity extends AppCompatActivity {
         patch.phone = phoneForStorage;
         patch.businessPhone = Validation.isEmpty(businessPhoneForStorage) ? "" : businessPhoneForStorage;
         patch.address = address;
-        if (loadedEmployee != null && loadedEmployee.workEmail != null) {
+        if (etAccountSignEmail != null && etAccountSignEmail.getText() != null) {
+            String we = etAccountSignEmail.getText().toString().trim();
+            patch.workEmail = we.isEmpty() && loadedEmployee != null && loadedEmployee.workEmail != null
+                    ? loadedEmployee.workEmail
+                    : we;
+        } else if (loadedEmployee != null && loadedEmployee.workEmail != null) {
             patch.workEmail = loadedEmployee.workEmail;
         }
         api.patchEmployeeMe(patch).enqueue(new Callback<EmployeeDto>() {
@@ -788,13 +1260,15 @@ public class EditProfileActivity extends AppCompatActivity {
                         sessionManager.getUserUuid(),
                         sessionManager.getUserRole(),
                         displayName,
-                        sessionManager.getLoginEmail()
+                        etAccountSignEmail != null && etAccountSignEmail.getText() != null
+                                ? etAccountSignEmail.getText().toString().trim()
+                                : sessionManager.getLoginEmail()
                 );
                 ActivityLogger.log(EditProfileActivity.this, sessionManager, "UPDATE_PROFILE", "Employee profile details updated");
                 Toast.makeText(getApplicationContext(), R.string.profile_saved, Toast.LENGTH_SHORT).show();
                 Intent intent = new Intent(EditProfileActivity.this, MainActivity.class);
                 intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
-                startActivity(intent);
+                NavTransitions.startActivityWithForward(EditProfileActivity.this, intent);
                 finish();
             }
 
@@ -846,111 +1320,12 @@ public class EditProfileActivity extends AppCompatActivity {
         return url.replace(".cdn.digitaloceanspaces.com", ".digitaloceanspaces.com");
     }
 
-    private void showChangePasswordDialog() {
-        View dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_change_password, null, false);
-        TextInputLayout tilCurrent = dialogView.findViewById(R.id.til_current_password);
-        TextInputLayout tilNew = dialogView.findViewById(R.id.til_new_password);
-        TextInputLayout tilConfirm = dialogView.findViewById(R.id.til_confirm_new_password);
-        TextInputEditText etCurrent = dialogView.findViewById(R.id.et_current_password);
-        TextInputEditText etNew = dialogView.findViewById(R.id.et_new_password);
-        TextInputEditText etConfirm = dialogView.findViewById(R.id.et_confirm_new_password);
-
-        AlertDialog dialog = new MaterialAlertDialogBuilder(this)
-                .setTitle(R.string.change_password_title)
-                .setView(dialogView)
-                .setNegativeButton(R.string.btn_cancel, null)
-                .setPositiveButton(R.string.btn_save, null)
-                .create();
-
-        dialog.setOnShowListener(d -> dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v -> {
-            tilCurrent.setError(null);
-            tilNew.setError(null);
-            tilConfirm.setError(null);
-
-            String cur = etCurrent.getText() != null ? etCurrent.getText().toString() : "";
-            String nw = etNew.getText() != null ? etNew.getText().toString() : "";
-            String cf = etConfirm.getText() != null ? etConfirm.getText().toString() : "";
-
-            if (Validation.isEmpty(cur)) {
-                tilCurrent.setError(getString(R.string.error_password_required));
-                return;
-            }
-            if (Validation.isEmpty(nw)) {
-                tilNew.setError(getString(R.string.error_password_required));
-                return;
-            }
-            if (Validation.isPasswordTooShort(nw)) {
-                tilNew.setError(getString(R.string.error_password_too_short));
-                return;
-            }
-            if (Validation.isPasswordTooLong(nw)) {
-                tilNew.setError(getString(R.string.error_password_too_long));
-                return;
-            }
-            if (!Validation.isPasswordStrong(nw)) {
-                tilNew.setError(getString(R.string.error_password_strength));
-                return;
-            }
-            if (!nw.equals(cf)) {
-                tilConfirm.setError(getString(R.string.error_password_mismatch));
-                return;
-            }
-            if (nw.equals(cur)) {
-                tilNew.setError(getString(R.string.change_password_reuse_error));
-                return;
-            }
-
-            ChangePasswordRequest body = new ChangePasswordRequest();
-            body.currentPassword = cur;
-            body.newPassword = nw;
-
-            ApiClient.getInstance().setToken(sessionManager.getToken());
-            api.changePassword(body).enqueue(new Callback<Void>() {
-                @Override
-                public void onResponse(Call<Void> call, Response<Void> response) {
-                    if (response.isSuccessful()) {
-                        dialog.dismiss();
-                        Toast.makeText(EditProfileActivity.this, R.string.change_password_success, Toast.LENGTH_SHORT).show();
-                        ActivityLogger.log(EditProfileActivity.this, sessionManager, "CHANGE_PASSWORD", "Password updated");
-                        return;
-                    }
-                    String msg = getString(R.string.change_password_failed);
-                    try {
-                        ResponseBody err = response.errorBody();
-                        if (err != null) {
-                            String raw = err.string();
-                            if (raw != null) {
-                                if (raw.contains("Current password is incorrect")) {
-                                    msg = "Current password is incorrect";
-                                } else if (raw.contains("New password must differ")) {
-                                    msg = getString(R.string.change_password_reuse_error);
-                                } else if (raw.length() < 200) {
-                                    msg = raw;
-                                }
-                            }
-                        }
-                    } catch (Exception ignored) {
-                    }
-                    tilCurrent.setError(msg);
-                    Toast.makeText(EditProfileActivity.this, msg, Toast.LENGTH_LONG).show();
-                }
-
-                @Override
-                public void onFailure(Call<Void> call, Throwable t) {
-                    Toast.makeText(EditProfileActivity.this, R.string.login_error_no_connection, Toast.LENGTH_SHORT).show();
-                }
-            });
-        }));
-
-        dialog.show();
-    }
-
     private void redirectToLogin() {
         sessionManager.logout();
         Intent intent = new Intent(this, LoginActivity.class);
         intent.putExtra("session_message", getString(R.string.session_expired));
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
-        startActivity(intent);
+        NavTransitions.startActivityWithForward(this, intent);
         finish();
     }
 

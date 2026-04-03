@@ -37,6 +37,7 @@ import com.example.workshop6.data.api.dto.ReviewDto;
 import com.example.workshop6.data.model.CartItem;
 import com.example.workshop6.data.model.Product;
 import com.example.workshop6.ui.cart.CartManager;
+import com.example.workshop6.util.MoneyFormat;
 import com.example.workshop6.util.ProductReviewListHelper;
 import com.example.workshop6.util.ProductSpecialState;
 import com.example.workshop6.util.SpecialPriceSpan;
@@ -288,7 +289,7 @@ public class ProductDetailsFragment extends Fragment {
                     tvProductPrice.setText(line);
                 } else {
                     tvProductSpecialBadge.setVisibility(View.GONE);
-                    tvProductPrice.setText(String.format(Locale.US, "$%.2f", base));
+                    tvProductPrice.setText(MoneyFormat.formatCad(currency, base));
                 }
                 markSpecialPriceReadyAndTryRevealProductUi();
             }
@@ -300,7 +301,7 @@ public class ProductDetailsFragment extends Fragment {
                 }
                 tvProductSpecialBadge.setVisibility(View.GONE);
                 Double b = loadedProduct.getProductBasePrice();
-                tvProductPrice.setText(String.format(Locale.US, "$%.2f", b != null ? b : 0.0));
+                tvProductPrice.setText(MoneyFormat.formatCad(currency, b != null ? b : 0.0));
                 markSpecialPriceReadyAndTryRevealProductUi();
             }
         });

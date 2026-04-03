@@ -28,6 +28,8 @@ import com.example.workshop6.data.api.dto.OrderDto;
 import com.example.workshop6.data.api.dto.OrderItemDto;
 import com.example.workshop6.data.api.dto.ReviewCreateRequest;
 import com.example.workshop6.data.api.dto.ReviewDto;
+import com.example.workshop6.util.MoneyFormat;
+import com.example.workshop6.util.NavTransitions;
 
 import java.text.NumberFormat;
 import java.text.SimpleDateFormat;
@@ -68,7 +70,10 @@ public class OrderHistoryActivity extends AppCompatActivity {
             getSupportActionBar().setDisplayHomeAsUpEnabled(true);
             getSupportActionBar().setTitle("My Orders");
         }
-        toolbar.setNavigationOnClickListener(v -> finish());
+        toolbar.setNavigationOnClickListener(v -> {
+            finish();
+            NavTransitions.applyBackwardPending(this);
+        });
 
         rvOrders = findViewById(R.id.rvOrders);
         tvEmptyOrders = findViewById(R.id.tvEmptyOrders);
@@ -103,6 +108,7 @@ public class OrderHistoryActivity extends AppCompatActivity {
         if (sessionManager.getUserUuid().isEmpty() && sessionManager.getUserId() <= 0) {
             Toast.makeText(this, "User not logged in", Toast.LENGTH_SHORT).show();
             finish();
+            NavTransitions.applyBackwardPending(this);
             return;
         }
 
@@ -164,8 +170,9 @@ public class OrderHistoryActivity extends AppCompatActivity {
         if (placed != null) {
             details.append("Date: ").append(dateFormat.format(placed)).append("\n");
         }
-        double total = order.order.orderTotal != null ? order.order.orderTotal.doubleValue() : 0.0;
-        details.append("Total: ").append(currencyFormat.format(total)).append("\n");
+        details.append("Total: ")
+                .append(MoneyFormat.formatCad(currencyFormat, order.order.getGrandTotalAmount()))
+                .append("\n");
         details.append("Status: ").append(order.order.status);
 
         Toast.makeText(this, details.toString(), Toast.LENGTH_LONG).show();
@@ -307,7 +314,7 @@ public class OrderHistoryActivity extends AppCompatActivity {
         Intent intent = new Intent(this, LoginActivity.class);
         intent.putExtra("session_message", getString(R.string.session_expired));
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
-        startActivity(intent);
+        NavTransitions.startActivityWithForward(this, intent);
         finish();
     }
 }

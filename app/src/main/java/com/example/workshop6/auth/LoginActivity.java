@@ -14,10 +14,12 @@ import com.example.workshop6.R;
 import com.example.workshop6.data.api.ApiClient;
 import com.example.workshop6.data.api.ApiService;
 import com.example.workshop6.data.api.dto.AuthResponse;
+import com.example.workshop6.data.api.dto.GuestCustomerRequest;
 import com.example.workshop6.data.api.dto.LoginRequest;
 import com.example.workshop6.logging.ActivityLogger;
 import com.example.workshop6.ui.MainActivity;
 import com.example.workshop6.util.ApiReachability;
+import com.example.workshop6.util.NavTransitions;
 import com.example.workshop6.util.NetworkStatus;
 import com.example.workshop6.util.Validation;
 import com.google.android.material.textfield.TextInputEditText;
@@ -27,6 +29,7 @@ import retrofit2.Callback;
 import retrofit2.Response;
 
 public class LoginActivity extends AppCompatActivity {
+    public static final String EXTRA_ALLOW_GUEST_AUTH = "allow_guest_auth";
 
     private TextInputLayout tilEmail, tilPassword;
     private TextInputEditText etEmail, etPassword;
@@ -39,6 +42,12 @@ public class LoginActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
 
         sessionManager = new SessionManager(this);
+
+        boolean allowGuestAuth = getIntent().getBooleanExtra(EXTRA_ALLOW_GUEST_AUTH, false);
+        if (sessionManager.isGuestMode() && !allowGuestAuth) {
+            goToMain();
+            return;
+        }
 
         if (sessionManager.isLoggedIn()) {
             String token = sessionManager.getToken();
@@ -58,6 +67,10 @@ public class LoginActivity extends AppCompatActivity {
         etPassword  = findViewById(R.id.et_password);
         tvError     = findViewById(R.id.tv_error);
         btnLogin    = findViewById(R.id.btn_login);
+        GuestCustomerRequest guest = sessionManager.getGuestProfile();
+        if (guest != null && guest.email != null && !guest.email.trim().isEmpty()) {
+            etEmail.setText(guest.email.trim());
+        }
 
         etEmail.addTextChangedListener(new TextWatcher() {
             @Override
@@ -117,10 +130,18 @@ public class LoginActivity extends AppCompatActivity {
                     },
                     () -> {
                         if (!isFinishing()) {
-                            startActivity(new Intent(this, RegisterActivity.class));
+                            Intent intent = new Intent(LoginActivity.this, RegisterActivity.class);
+                            intent.putExtra(EXTRA_ALLOW_GUEST_AUTH, sessionManager.isGuestMode());
+                            NavTransitions.startActivityWithForward(
+                                    LoginActivity.this,
+                                    intent);
                         }
                     }
             );
+        });
+        findViewById(R.id.tv_guest_link).setOnClickListener(v -> {
+            sessionManager.beginGuestSession();
+            goToMain();
         });
     }
 
@@ -221,12 +242,15 @@ public class LoginActivity extends AppCompatActivity {
                     ApiClient.getInstance().setToken(auth.token);
                     sessionManager.clearLoginFailures(email);
                     String uid = auth.userId != null ? auth.userId : "";
+                    String sessionEmail = (auth.email != null && !auth.email.trim().isEmpty())
+                            ? auth.email.trim()
+                            : email;
                     sessionManager.persistLoginSession(
                             auth.token,
                             uid,
                             auth.role.toUpperCase(),
                             auth.username,
-                            email
+                            sessionEmail
                     );
 
                     ActivityLogger.log(LoginActivity.this, "USER@" + auth.username, "LOGIN", "Login succeeded");
@@ -269,7 +293,7 @@ public class LoginActivity extends AppCompatActivity {
     private void goToMain() {
         Intent intent = new Intent(this, MainActivity.class);
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
-        startActivity(intent);
+        NavTransitions.startActivityWithForward(this, intent);
         finish();
     }
 }

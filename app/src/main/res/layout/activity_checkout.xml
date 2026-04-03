@@ -334,7 +334,7 @@
                             android:id="@+id/tvCheckoutRegularMerch"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="$0.00"
+                            android:text="$0.00 CAD"
                             android:textColor="@color/bakery_primary"
                             android:textStyle="bold" />
                     </LinearLayout>
@@ -358,7 +358,7 @@
                             android:id="@+id/tvCheckoutSpecialLine"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="-$0.00"
+                            android:text="-$0.00 CAD"
                             android:textColor="@color/bakery_text_secondary"
                             android:textStyle="bold" />
                     </LinearLayout>
@@ -382,7 +382,7 @@
                             android:id="@+id/tvCheckoutTierLine"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="-$0.00"
+                            android:text="-$0.00 CAD"
                             android:textColor="@color/bakery_text_secondary"
                             android:textStyle="bold" />
                     </LinearLayout>
@@ -404,7 +404,7 @@
                             android:id="@+id/tvSubtotal"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="$0.00"
+                            android:text="$0.00 CAD"
                             android:textColor="@color/bakery_primary"
                             android:textStyle="bold" />
                     </LinearLayout>
@@ -416,17 +416,18 @@
                         android:paddingVertical="4dp">
 
                         <TextView
+                            android:id="@+id/tvTaxLabel"
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
-                            android:text="@string/tax"
+                            android:text="@string/tax_with_percent_placeholder"
                             android:textColor="@color/bakery_primary" />
 
                         <TextView
                             android:id="@+id/tvTax"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="$0.00"
+                            android:text="$0.00 CAD"
                             android:textColor="@color/bakery_primary"
                             android:textStyle="bold" />
                     </LinearLayout>
@@ -456,7 +457,7 @@
                             android:id="@+id/tvTotal"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="$0.00"
+                            android:text="$0.00 CAD"
                             android:textColor="@color/bakery_primary"
                             android:textSize="18sp"
                             android:textStyle="bold" />

@@ -18,6 +18,7 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.workshop6.R;
+import com.example.workshop6.util.NavTransitions;
 import com.example.workshop6.auth.SessionManager;
 import com.example.workshop6.data.api.ApiClient;
 import com.example.workshop6.data.api.ApiService;
@@ -189,6 +190,6 @@ public class StaffChatInboxFragment extends Fragment {
         }
         Intent intent = new Intent(requireContext(), ChatActivity.class);
         intent.putExtra(ChatActivity.EXTRA_THREAD_ID, threadId);
-        startActivity(intent);
+        NavTransitions.startActivityWithForward(requireActivity(), intent);
     }
 }

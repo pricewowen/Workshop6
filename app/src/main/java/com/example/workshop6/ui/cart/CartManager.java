@@ -22,11 +22,8 @@ public class CartManager {
     }
 
     public Cart getCart() {
-        if (!sessionManager.isLoggedIn()) {
-            return new Cart(-1);
-        }
         if (currentCart == null) {
-            int userId = sessionManager.getUserId();
+            int userId = sessionManager.isLoggedIn() ? sessionManager.getUserId() : -1;
             currentCart = new Cart(userId);
         }
         return currentCart;
