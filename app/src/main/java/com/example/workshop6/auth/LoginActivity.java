@@ -7,6 +7,8 @@ import android.text.TextWatcher;
 import android.view.View;
 import android.widget.TextView;
 import android.text.format.DateUtils;
+import android.util.Log;
+import com.example.workshop6.BuildConfig;
 
 import androidx.appcompat.app.AppCompatActivity;
 
@@ -198,6 +200,9 @@ public class LoginActivity extends AppCompatActivity {
 
     private void submitLoginRequest(String email, String pass) {
         btnLogin.setEnabled(false);
+
+        Log.d("API_DEBUG", "BASE URL = " + BuildConfig.API_BASE_URL);
+
         ApiService api = ApiClient.getInstance().getService();
         api.login(new LoginRequest(email, pass)).enqueue(new Callback<AuthResponse>() {
             @Override

@@ -157,10 +157,12 @@ public class MainActivity extends AppCompatActivity {
 
     private void updateStaffAccess(BottomNavigationView bottomNav, boolean forceRefresh) {
         long now = System.currentTimeMillis();
+
         if (!forceRefresh && (staffAccessCheckInFlight || (now - lastStaffAccessCheckAt) < STAFF_ACCESS_REFRESH_MS)) {
             applyStaffNavigation(bottomNav, sessionManager.getUserRole());
             return;
         }
+
         if (staffAccessCheckInFlight) {
             return;
         }
@@ -173,15 +175,19 @@ public class MainActivity extends AppCompatActivity {
 
         staffAccessCheckInFlight = true;
         lastStaffAccessCheckAt = now;
+
         ApiClient.getInstance().setToken(token);
         ApiService api = ApiClient.getInstance().getService();
+
         String role = sessionManager.getUserRole();
 
         if ("CUSTOMER".equalsIgnoreCase(role)) {
+
             api.getCustomerMe().enqueue(new Callback<CustomerDto>() {
                 @Override
                 public void onResponse(Call<CustomerDto> call, Response<CustomerDto> response) {
                     staffAccessCheckInFlight = false;
+
                     if (response.isSuccessful()) {
                         applyStaffNavigation(bottomNav, role);
                     } else {
@@ -195,11 +201,14 @@ public class MainActivity extends AppCompatActivity {
                     handleConnectionLost();
                 }
             });
-        } else {
+
+        } else if ("EMPLOYEE".equalsIgnoreCase(role)) {
+
             api.getEmployeeMe().enqueue(new Callback<EmployeeDto>() {
                 @Override
                 public void onResponse(Call<EmployeeDto> call, Response<EmployeeDto> response) {
                     staffAccessCheckInFlight = false;
+
                     if (response.isSuccessful()) {
                         applyStaffNavigation(bottomNav, role);
                     } else {
@@ -213,6 +222,18 @@ public class MainActivity extends AppCompatActivity {
                     handleConnectionLost();
                 }
             });
+
+        } else if ("ADMIN".equalsIgnoreCase(role)) {
+
+            // 🔥 FIX: Admin should NOT call employee endpoint
+            staffAccessCheckInFlight = false;
+            applyStaffNavigation(bottomNav, role);
+
+        } else {
+
+            // Fallback safety (unknown role)
+            staffAccessCheckInFlight = false;
+            redirectToLogin(getString(R.string.session_expired));
         }
     }
 
