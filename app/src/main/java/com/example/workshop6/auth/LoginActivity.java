@@ -24,7 +24,8 @@ import com.google.android.material.textfield.TextInputEditText;
 import com.google.android.material.textfield.TextInputLayout;
 import retrofit2.Call;
 import retrofit2.Callback;
-import retrofit2.Response;
+import retrofit2.Response;import io.sentry.Sentry;
+
 
 public class LoginActivity extends AppCompatActivity {
 
@@ -229,13 +230,19 @@ public class LoginActivity extends AppCompatActivity {
                             email
                     );
 
+                    io.sentry.protocol.User sentryUser = new io.sentry.protocol.User();
+                    sentryUser.setUsername(auth.username);
+                    sentryUser.setEmail(email);
+                    Sentry.setUser(sentryUser);
+                    Sentry.setTag("role", auth.role.toLowerCase());
+
                     ActivityLogger.log(LoginActivity.this, "USER@" + auth.username, "LOGIN", "Login succeeded");
-            goToMain();
+                    goToMain();
 
                 } else if (response.code() == 401 || response.code() == 403) {
                     sessionManager.recordFailedLogin(email);
                     long nextRemainingLockoutMs = sessionManager.getRemainingLockoutMs(email);
-                    ActivityLogger.logFailure(LoginActivity.this, null, "LOGIN", "Login failed");
+                    ActivityLogger.logFailure(LoginActivity.this, null, "LOGIN", "Invalid credentials");
 
                     if (nextRemainingLockoutMs > 0) {
                         tvError.setText(getString(
@@ -262,6 +269,12 @@ public class LoginActivity extends AppCompatActivity {
                 tvError.setText(R.string.login_error_no_connection);
                 tvError.setVisibility(View.VISIBLE);
                 ActivityLogger.logFailure(LoginActivity.this, null, "LOGIN", "Network error: " + t.getMessage());
+                Sentry.withScope(scope -> {
+                    scope.setLevel(io.sentry.SentryLevel.ERROR);
+                    scope.setTag("action", "LOGIN_FAILED");
+                    scope.setTag("reason", "network_error");
+                    Sentry.captureException(t);
+                });
             }
         });
     }

@@ -2,6 +2,8 @@ import java.util.Properties
 
 plugins {
     alias(libs.plugins.android.application)
+
+    id("io.sentry.android.gradle") version "6.3.0"
 }
 
 val localProperties = Properties().apply {
@@ -78,4 +80,13 @@ dependencies {
     testImplementation(libs.junit)
     androidTestImplementation(libs.ext.junit)
     androidTestImplementation(libs.espresso.core)
+}
+
+sentry {
+    org.set("robbie-zg")
+    projectName.set("peelin-android")
+
+    // this will upload your source code to Sentry to show it as part of the stack traces
+    // disable if you don't want to expose your sources
+    includeSourceContext.set(true)
 }
