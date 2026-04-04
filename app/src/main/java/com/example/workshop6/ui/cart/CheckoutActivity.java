@@ -1,21 +1,22 @@
 package com.example.workshop6.ui.cart;
 
-import android.app.DatePickerDialog;
-import android.app.TimePickerDialog;
 import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.NumberPicker;
 import android.widget.RadioButton;
 import android.widget.RadioGroup;
 import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.stripe.android.paymentsheet.PaymentSheet;
@@ -29,7 +30,9 @@ import com.example.workshop6.auth.SessionManager;
 import com.example.workshop6.data.api.ApiClient;
 import com.example.workshop6.data.api.ApiService;
 import com.example.workshop6.data.api.BakeryLocationMapper;
+import com.example.workshop6.data.api.dto.AddressDto;
 import com.example.workshop6.data.api.dto.BakeryDto;
+import com.example.workshop6.data.api.dto.BakeryHourDto;
 import com.example.workshop6.data.api.dto.CheckoutRequest;
 import com.example.workshop6.data.api.dto.CheckoutSessionResponse;
 import com.example.workshop6.data.api.dto.CustomerDto;
@@ -112,6 +115,11 @@ public class CheckoutActivity extends AppCompatActivity {
     private List<BakeryLocationDetails> bakeryList;
     private BakeryLocationDetails selectedBakery;
     private int selectedBakeryId = 1;
+    private TextView tvDeliveryAddress;
+    private List<List<Calendar>> availableSlotsByDay;
+    private List<String> availableDayLabels;
+    private int selectedDayIndex = 0;
+    private int selectedTimeIndex = 0;
     private final List<RewardTierDto> checkoutRewardTiers = new ArrayList<>();
     private int checkoutLoyaltyPoints = -1;
     private Integer checkoutLoyaltyTierId;
@@ -197,6 +205,7 @@ public class CheckoutActivity extends AppCompatActivity {
         tvConfirmationText = findViewById(R.id.tvConfirmationText);
         spinnerBakery = findViewById(R.id.spinnerBakery);
         tvSelectedBakery = findViewById(R.id.tvSelectedBakery);
+        tvDeliveryAddress = findViewById(R.id.tvDeliveryAddress);
         cardCheckoutLoyalty = findViewById(R.id.cardCheckoutLoyalty);
         tvCheckoutLoyaltyBalance = findViewById(R.id.tvCheckoutLoyaltyBalance);
         tvCheckoutLoyaltyDetail = findViewById(R.id.tvCheckoutLoyaltyDetail);
@@ -210,22 +219,34 @@ public class CheckoutActivity extends AppCompatActivity {
         tvCheckoutSpecialLine = findViewById(R.id.tvCheckoutSpecialLine);
         tvCheckoutTierLine = findViewById(R.id.tvCheckoutTierLine);
 
-        selectedDateTime = Calendar.getInstance();
-        selectedDateTime.add(Calendar.HOUR, 1);
+        selectedDateTime = computeDefaultTime();
         updateScheduledTimeDisplay();
 
-        btnSelectTime.setOnClickListener(v -> showDateTimePicker());
+        btnSelectTime.setOnClickListener(v -> {
+            int bakeryId;
+            if ("delivery".equals(deliveryMethod)) {
+                bakeryId = bakeryList != null && !bakeryList.isEmpty() ? bakeryList.get(0).id : -1;
+            } else {
+                bakeryId = selectedBakeryId;
+            }
+            if (bakeryId <= 0) {
+                Toast.makeText(this, "Please wait while bakeries load", Toast.LENGTH_SHORT).show();
+                return;
+            }
+            fetchBakeryHoursAndShowPicker(bakeryId);
+        });
 
         rgDeliveryMethod.setOnCheckedChangeListener((group, checkedId) -> {
             if (checkedId == R.id.rbDelivery) {
                 deliveryMethod = "delivery";
-                loadUserAddressHint();
                 spinnerBakery.setVisibility(View.GONE);
                 tvSelectedBakery.setVisibility(View.GONE);
+                loadUserAddressHint();
             } else {
                 deliveryMethod = "pickup";
                 spinnerBakery.setVisibility(View.VISIBLE);
                 tvSelectedBakery.setVisibility(View.VISIBLE);
+                tvDeliveryAddress.setVisibility(View.GONE);
             }
             validateForm();
         });
@@ -455,8 +476,20 @@ public class CheckoutActivity extends AppCompatActivity {
                 runOnUiThread(() -> {
                     if (currentCustomer == null || currentCustomer.addressId == null || currentCustomer.addressId <= 0) {
                         rbDelivery.setError("Please add an address in your profile");
+                        tvDeliveryAddress.setVisibility(View.GONE);
                     } else {
                         rbDelivery.setError(null);
+                        AddressDto addr = currentCustomer.address;
+                        if (addr != null) {
+                            StringBuilder sb = new StringBuilder(addr.line1);
+                            if (addr.line2 != null && !addr.line2.isEmpty()) {
+                                sb.append(", ").append(addr.line2);
+                            }
+                            sb.append("\n").append(addr.city).append(", ")
+                              .append(addr.province).append("  ").append(addr.postalCode);
+                            tvDeliveryAddress.setText(sb.toString());
+                            tvDeliveryAddress.setVisibility(View.VISIBLE);
+                        }
                     }
                     validateForm();
                 });
@@ -520,32 +553,186 @@ public class CheckoutActivity extends AppCompatActivity {
         });
     }
 
-    private void showDateTimePicker() {
-        final Calendar current = Calendar.getInstance();
+    private Calendar computeDefaultTime() {
+        Calendar c = Calendar.getInstance();
+        c.add(Calendar.HOUR_OF_DAY, 2);
+        c.set(Calendar.SECOND, 0);
+        c.set(Calendar.MILLISECOND, 0);
+        int minute = c.get(Calendar.MINUTE);
+        if (minute != 0 && minute != 30) {
+            if (minute < 30) {
+                c.set(Calendar.MINUTE, 30);
+            } else {
+                c.set(Calendar.MINUTE, 0);
+                c.add(Calendar.HOUR_OF_DAY, 1);
+            }
+        }
+        return c;
+    }
 
-        DatePickerDialog datePickerDialog = new DatePickerDialog(this,
-                (view, year, month, dayOfMonth) -> {
-                    selectedDateTime.set(year, month, dayOfMonth);
+    private void fetchBakeryHoursAndShowPicker(int bakeryId) {
+        btnSelectTime.setEnabled(false);
+        api.getBakeryHours(bakeryId).enqueue(new Callback<List<BakeryHourDto>>() {
+            @Override
+            public void onResponse(Call<List<BakeryHourDto>> call, Response<List<BakeryHourDto>> response) {
+                runOnUiThread(() -> btnSelectTime.setEnabled(true));
+                if (!response.isSuccessful() || response.body() == null) {
+                    runOnUiThread(() -> Toast.makeText(CheckoutActivity.this,
+                            "Could not load bakery hours", Toast.LENGTH_SHORT).show());
+                    return;
+                }
+                List<List<Calendar>> slots = buildSlots(response.body());
+                runOnUiThread(() -> {
+                    if (slots.isEmpty()) {
+                        Toast.makeText(CheckoutActivity.this,
+                                "No available time slots in the next two weeks",
+                                Toast.LENGTH_LONG).show();
+                        return;
+                    }
+                    showSlotPickerDialog(slots);
+                });
+            }
 
-                    TimePickerDialog timePickerDialog = new TimePickerDialog(this, 0,
-                            //changed back to default as messing with time picker caused overlapping screen darkening bugs
-                            (view1, hourOfDay, minute) -> {
-                                selectedDateTime.set(Calendar.HOUR_OF_DAY, hourOfDay);
-                                selectedDateTime.set(Calendar.MINUTE, minute);
-                                updateScheduledTimeDisplay();
-                                validateForm();
-                            },
-                            selectedDateTime.get(Calendar.HOUR_OF_DAY),
-                            selectedDateTime.get(Calendar.MINUTE),
-                            false);
-                    timePickerDialog.show();
-                },
-                selectedDateTime.get(Calendar.YEAR),
-                selectedDateTime.get(Calendar.MONTH),
-                selectedDateTime.get(Calendar.DAY_OF_MONTH));
+            @Override
+            public void onFailure(Call<List<BakeryHourDto>> call, Throwable t) {
+                runOnUiThread(() -> {
+                    btnSelectTime.setEnabled(true);
+                    Toast.makeText(CheckoutActivity.this,
+                            "Could not load bakery hours", Toast.LENGTH_SHORT).show();
+                });
+            }
+        });
+    }
 
-        datePickerDialog.getDatePicker().setMinDate(current.getTimeInMillis());
-        datePickerDialog.show();
+    private List<List<Calendar>> buildSlots(List<BakeryHourDto> hours) {
+        availableDayLabels = new ArrayList<>();
+        List<List<Calendar>> result = new ArrayList<>();
+        Calendar minTime = computeDefaultTime();
+        SimpleDateFormat dayFmt = new SimpleDateFormat("EEE, MMM d", Locale.CANADA);
+
+        for (int offset = 0; offset < 14; offset++) {
+            Calendar day = Calendar.getInstance();
+            day.add(Calendar.DAY_OF_YEAR, offset);
+
+            // Calendar.DAY_OF_WEEK: 1=Sun…7=Sat  →  API dayOfWeek: 0=Sun…6=Sat
+            short apiDow = (short) (day.get(Calendar.DAY_OF_WEEK) - 1);
+
+            BakeryHourDto entry = null;
+            for (BakeryHourDto h : hours) {
+                if (h.dayOfWeek == apiDow) { entry = h; break; }
+            }
+            if (entry == null || entry.closed) continue;
+
+            int[] open  = parseTime(entry.openTime);
+            int[] close = parseTime(entry.closeTime);
+            if (open == null || close == null) continue;
+
+            Calendar slot = (Calendar) day.clone();
+            slot.set(Calendar.HOUR_OF_DAY, open[0]);
+            slot.set(Calendar.MINUTE, open[1]);
+            slot.set(Calendar.SECOND, 0);
+            slot.set(Calendar.MILLISECOND, 0);
+
+            // Round open time up to nearest 30-minute boundary
+            int m = slot.get(Calendar.MINUTE);
+            if (m != 0 && m != 30) {
+                if (m < 30) slot.set(Calendar.MINUTE, 30);
+                else { slot.set(Calendar.MINUTE, 0); slot.add(Calendar.HOUR_OF_DAY, 1); }
+            }
+
+            Calendar closeTime = (Calendar) day.clone();
+            closeTime.set(Calendar.HOUR_OF_DAY, close[0]);
+            closeTime.set(Calendar.MINUTE, close[1]);
+            closeTime.set(Calendar.SECOND, 0);
+            closeTime.set(Calendar.MILLISECOND, 0);
+
+            List<Calendar> daySlots = new ArrayList<>();
+            while (!slot.after(closeTime)) {
+                // Today: only slots at or after minTime; future days: all slots
+                if (offset > 0 || !slot.before(minTime)) {
+                    daySlots.add((Calendar) slot.clone());
+                }
+                slot.add(Calendar.MINUTE, 30);
+            }
+
+            if (!daySlots.isEmpty()) {
+                result.add(daySlots);
+                if (offset == 0)      availableDayLabels.add("Today");
+                else if (offset == 1) availableDayLabels.add("Tomorrow");
+                else                  availableDayLabels.add(dayFmt.format(day.getTime()));
+            }
+        }
+        return result;
+    }
+
+    private void showSlotPickerDialog(List<List<Calendar>> slotsByDay) {
+        availableSlotsByDay = slotsByDay;
+
+        View dialogView = LayoutInflater.from(this)
+                .inflate(R.layout.dialog_delivery_time_picker, null);
+        NumberPicker pickerDay  = dialogView.findViewById(R.id.pickerDay);
+        NumberPicker pickerTime = dialogView.findViewById(R.id.pickerTime);
+
+        String[] dayArr = availableDayLabels.toArray(new String[0]);
+        pickerDay.setDisplayedValues(null);
+        pickerDay.setMinValue(0);
+        pickerDay.setMaxValue(dayArr.length - 1);
+        pickerDay.setDisplayedValues(dayArr);
+        int initDay = Math.min(selectedDayIndex, dayArr.length - 1);
+        pickerDay.setValue(initDay);
+
+        List<Calendar> initSlots = slotsByDay.get(initDay);
+        updateTimePicker(pickerTime, initSlots);
+        pickerTime.setValue(Math.min(selectedTimeIndex, initSlots.size() - 1));
+
+        // Use arrays so the lambda can capture mutable state
+        int[] pendingDay  = {initDay};
+        int[] pendingTime = {Math.min(selectedTimeIndex, initSlots.size() - 1)};
+
+        pickerDay.setOnValueChangedListener((picker, oldVal, newVal) -> {
+            pendingDay[0]  = newVal;
+            pendingTime[0] = 0;
+            updateTimePicker(pickerTime, slotsByDay.get(newVal));
+        });
+        pickerTime.setOnValueChangedListener((picker, oldVal, newVal) ->
+                pendingTime[0] = newVal);
+
+        new AlertDialog.Builder(this)
+                .setTitle("Scheduled Time")
+                .setView(dialogView)
+                .setPositiveButton("Confirm", (dialog, which) -> {
+                    selectedDayIndex  = pendingDay[0];
+                    selectedTimeIndex = pendingTime[0];
+                    selectedDateTime  = slotsByDay.get(selectedDayIndex).get(selectedTimeIndex);
+                    updateScheduledTimeDisplay();
+                    validateForm();
+                })
+                .setNegativeButton("Cancel", null)
+                .show();
+    }
+
+    private void updateTimePicker(NumberPicker picker, List<Calendar> slots) {
+        SimpleDateFormat timeFmt = new SimpleDateFormat("h:mm a", Locale.CANADA);
+        String[] labels = new String[slots.size()];
+        for (int i = 0; i < slots.size(); i++) {
+            labels[i] = timeFmt.format(slots.get(i).getTime());
+        }
+        // Clear first to avoid IndexOutOfBoundsException when shrinking the value range
+        picker.setDisplayedValues(null);
+        picker.setMinValue(0);
+        picker.setMaxValue(labels.length - 1);
+        picker.setDisplayedValues(labels);
+        picker.setValue(0);
+    }
+
+    private int[] parseTime(String s) {
+        if (s == null) return null;
+        try {
+            String[] parts = s.split(":");
+            return new int[]{Integer.parseInt(parts[0]), Integer.parseInt(parts[1])};
+        } catch (Exception e) {
+            return null;
+        }
     }
 
     private void updateScheduledTimeDisplay() {
@@ -605,7 +792,9 @@ public class CheckoutActivity extends AppCompatActivity {
             }
         }
 
-        if (selectedDateTime.before(Calendar.getInstance())) {
+        Calendar minValid = Calendar.getInstance();
+        minValid.add(Calendar.HOUR_OF_DAY, 2);
+        if (selectedDateTime.before(minValid)) {
             tvScheduledTime.setError(getString(R.string.error_past_time));
             valid = false;
         } else {
