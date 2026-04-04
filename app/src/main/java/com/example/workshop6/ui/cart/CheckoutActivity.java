@@ -17,6 +17,9 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
+
+import com.stripe.android.paymentsheet.PaymentSheet;
+import com.stripe.android.paymentsheet.PaymentSheetResult;
 import androidx.appcompat.widget.Toolbar;
 
 import com.google.android.material.card.MaterialCardView;
@@ -28,9 +31,9 @@ import com.example.workshop6.data.api.ApiService;
 import com.example.workshop6.data.api.BakeryLocationMapper;
 import com.example.workshop6.data.api.dto.BakeryDto;
 import com.example.workshop6.data.api.dto.CheckoutRequest;
+import com.example.workshop6.data.api.dto.CheckoutSessionResponse;
 import com.example.workshop6.data.api.dto.CustomerDto;
 import com.example.workshop6.data.api.dto.CustomerPatchRequest;
-import com.example.workshop6.data.api.dto.OrderDto;
 import com.example.workshop6.data.api.dto.ProductSpecialTodayDto;
 import com.example.workshop6.data.api.dto.RewardTierDto;
 import com.example.workshop6.data.model.BakeryLocationDetails;
@@ -90,6 +93,8 @@ public class CheckoutActivity extends AppCompatActivity {
     private TextView tvCheckoutSpecialLine;
     private TextView tvCheckoutTierLine;
 
+    private PaymentSheet paymentSheet;
+
     private com.example.workshop6.data.model.Cart cart;
     private CartManager cartManager;
     private SessionManager sessionManager;
@@ -116,6 +121,9 @@ public class CheckoutActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_checkout);
+
+        // PaymentSheet must be registered before the activity is started.
+        paymentSheet = new PaymentSheet(this, this::onPaymentSheetResult);
 
         sessionManager = new SessionManager(this);
         if (!sessionManager.isLoggedIn()) {
@@ -702,14 +710,14 @@ public class CheckoutActivity extends AppCompatActivity {
         }
         req.items = lines;
 
-        api.checkout(req).enqueue(new Callback<OrderDto>() {
+        api.checkout(req).enqueue(new Callback<CheckoutSessionResponse>() {
             @Override
-            public void onResponse(Call<OrderDto> call, Response<OrderDto> response) {
+            public void onResponse(Call<CheckoutSessionResponse> call, Response<CheckoutSessionResponse> response) {
                 if (response.code() == 401 || response.code() == 403) {
                     redirectToLogin();
                     return;
                 }
-                if (!response.isSuccessful() || response.body() == null) {
+                if (!response.isSuccessful() || response.body() == null || response.body().clientSecret == null) {
                     Snackbar.make(findViewById(android.R.id.content),
                             R.string.error_placing_order, Snackbar.LENGTH_LONG).show();
                     btnPlaceOrder.setEnabled(true);
@@ -718,23 +726,17 @@ public class CheckoutActivity extends AppCompatActivity {
                     mainLayout.setVisibility(View.VISIBLE);
                     return;
                 }
-                cartManager.clearCart();
                 ActivityLogger.log(
                         CheckoutActivity.this,
                         sessionManager,
                         "CREATE_ORDER",
-                        "Order placed via API"
+                        "Order created, presenting Stripe payment sheet"
                 );
-                Toast.makeText(CheckoutActivity.this, R.string.order_placed_success, Toast.LENGTH_LONG).show();
-                Intent intent = new Intent(CheckoutActivity.this, com.example.workshop6.ui.MainActivity.class);
-                intent.putExtra("navigate_to", "me");
-                intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
-                startActivity(intent);
-                finish();
+                presentPaymentSheet(response.body().clientSecret);
             }
 
             @Override
-            public void onFailure(Call<OrderDto> call, Throwable t) {
+            public void onFailure(Call<CheckoutSessionResponse> call, Throwable t) {
                 Log.e("Checkout", "checkout failed", t);
                 Snackbar.make(findViewById(android.R.id.content),
                         R.string.error_placing_order, Snackbar.LENGTH_LONG).show();
@@ -744,6 +746,38 @@ public class CheckoutActivity extends AppCompatActivity {
                 mainLayout.setVisibility(View.VISIBLE);
             }
         });
+    }
+
+    private void presentPaymentSheet(String clientSecret) {
+        PaymentSheet.Configuration configuration = new PaymentSheet.Configuration.Builder("Peelin' Good")
+                .build();
+        paymentSheet.presentWithPaymentIntent(clientSecret, configuration);
+    }
+
+    private void onPaymentSheetResult(PaymentSheetResult result) {
+        if (result instanceof PaymentSheetResult.Completed) {
+            ActivityLogger.log(this, sessionManager, "PAYMENT_SUCCESS", "Stripe payment sheet completed");
+            CartManager.getInstance(this).clearCart();
+            Toast.makeText(this, R.string.order_placed_success, Toast.LENGTH_LONG).show();
+            Intent intent = new Intent(this, com.example.workshop6.ui.MainActivity.class);
+            intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK | Intent.FLAG_ACTIVITY_NEW_TASK);
+            startActivity(intent);
+        } else if (result instanceof PaymentSheetResult.Canceled) {
+            Toast.makeText(this, R.string.payment_cancelled, Toast.LENGTH_SHORT).show();
+            btnPlaceOrder.setEnabled(true);
+            btnPlaceOrder.setText(R.string.place_order);
+            confirmationLayout.setVisibility(View.GONE);
+            mainLayout.setVisibility(View.VISIBLE);
+        } else if (result instanceof PaymentSheetResult.Failed) {
+            String message = ((PaymentSheetResult.Failed) result).getError().getLocalizedMessage();
+            if (message == null) message = getString(R.string.error_placing_order);
+            Log.e("Checkout", "PaymentSheet failed: " + message);
+            Snackbar.make(findViewById(android.R.id.content), message, Snackbar.LENGTH_LONG).show();
+            btnPlaceOrder.setEnabled(true);
+            btnPlaceOrder.setText(R.string.place_order);
+            confirmationLayout.setVisibility(View.GONE);
+            mainLayout.setVisibility(View.VISIBLE);
+        }
     }
 
     private void redirectToLogin() {

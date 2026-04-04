@@ -14,6 +14,8 @@ val apiBaseUrl = (localProperties.getProperty("api.base.url") ?: "http://10.0.2.
     .trim()
     .let { if (it.endsWith("/")) it else "$it/" }
 
+val stripePublishableKey = (localProperties.getProperty("stripe.publishable.key") ?: "")
+
 android {
     buildFeatures {
         buildConfig = true
@@ -32,6 +34,7 @@ android {
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         buildConfigField("String", "API_BASE_URL", "\"${apiBaseUrl.replace("\"", "\\\"")}\"")
+        buildConfigField("String", "STRIPE_PUBLISHABLE_KEY", "\"${stripePublishableKey.replace("\"", "\\\"")}\"")
     }
 
     buildTypes {
@@ -74,6 +77,8 @@ dependencies {
     implementation(libs.okhttp.logging)
     implementation(libs.gson)
     implementation(libs.glide)
+    implementation(libs.browser)
+    implementation(libs.stripe.android)
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.ext.junit)

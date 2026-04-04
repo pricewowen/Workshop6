@@ -321,11 +321,14 @@
     <string name="confirm_order_message">Please review your order details before placing</string>
     <string name="edit_order">Edit Order</string>
     <string name="place_order">Place Order</string>
-    <string name="order_placed_success">Order placed successfully!</string>
+    <string name="order_placed_success">Payment successful! Your order has been placed.</string>
+    <string name="payment_cancelled">Payment cancelled. Your order was not placed.</string>
+    <string name="redirecting_to_payment">Redirecting to secure payment...</string>
     <string name="error_placing_order">Error placing order, please try again</string>
     <string name="error_complete_form">Please complete all required fields</string>
     <string name="error_past_time">Please select a future time</string>
     <string name="error_no_address">Please add a delivery address in your profile</string>
+    <string name="error_no_browser">No browser found on this device to open the payment page</string>
     <string name="high_value_order_threshold">$100.00</string>
 
     <!-- Confirmation Text -->
