@@ -647,7 +647,7 @@ public class CheckoutActivity extends AppCompatActivity {
             closeTime.set(Calendar.MILLISECOND, 0);
 
             List<Calendar> daySlots = new ArrayList<>();
-            while (!slot.after(closeTime)) {
+            while (slot.before(closeTime)) {
                 // Today: only slots at or after minTime; future days: all slots
                 if (offset > 0 || !slot.before(minTime)) {
                     daySlots.add((Calendar) slot.clone());
