@@ -121,13 +121,18 @@ public class Validation {
     }
 
     /**
-     * Checks if the given phone number contains only digits.
+     * Checks if the given phone number resolves to 10 digits.
+     * Accepts either raw digits (##########) or formatted values like (###) ###-####.
      *
      * @param phoneNumber the phone number to be validated
      * @return true if the phone number is valid
      */
     public static boolean isPhoneNumberValid(@Nullable CharSequence phoneNumber) {
-        return !isEmpty(phoneNumber) && PHONE_NUMBER_PATTERN.matcher(phoneNumber).matches();
+        if (isEmpty(phoneNumber)) {
+            return false;
+        }
+        String digits = phoneNumber.toString().replaceAll("\\D", "");
+        return PHONE_NUMBER_PATTERN.matcher(digits).matches();
     }
 
     /**
