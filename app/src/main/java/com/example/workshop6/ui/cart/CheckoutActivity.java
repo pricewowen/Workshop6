@@ -247,6 +247,7 @@ public class CheckoutActivity extends AppCompatActivity {
                 spinnerBakery.setVisibility(View.VISIBLE);
                 tvSelectedBakery.setVisibility(View.VISIBLE);
             }
+            updateTotals();
             validateForm();
         });
 
@@ -589,12 +590,14 @@ public class CheckoutActivity extends AppCompatActivity {
                             selectedBakery = bakeryList.get(position);
                             selectedBakeryId = selectedBakery.id;
                             tvSelectedBakery.setText(selectedBakery.name);
+                            updateTotals();
                         }
 
                         @Override
                         public void onNothingSelected(AdapterView<?> parent) {
                         }
                     });
+                    updateTotals();
                 });
             }
 
@@ -775,11 +778,49 @@ public class CheckoutActivity extends AppCompatActivity {
         return subtotal * getCurrentTaxRatePercent() / 100.0;
     }
 
+    /**
+     * Pickup: tax matches the selected bakery’s province (same idea as the API: pickup site address).
+     * Delivery: customer’s delivery address province.
+     * If the resolved rate is still 0 (unknown province / not loaded yet), uses Ontario as a display fallback.
+     */
     private double getCurrentTaxRatePercent() {
-        if (currentCustomer == null || currentCustomer.address == null) {
-            return 0.0;
+        String provinceRaw = null;
+        if ("pickup".equals(deliveryMethod)) {
+            provinceRaw = provinceFromBakery(selectedBakery);
+            if (provinceRaw == null) {
+                provinceRaw = provinceFromFirstListedBakery();
+            }
+        } else {
+            if (currentCustomer != null && currentCustomer.address != null) {
+                provinceRaw = currentCustomer.address.province;
+            }
         }
-        return CanadianTaxRates.getTaxPercent(currentCustomer.address.province);
+        double pct = CanadianTaxRates.getTaxPercent(provinceRaw);
+        if (pct <= 0) {
+            pct = CanadianTaxRates.getTaxPercent("ON");
+        }
+        return pct;
+    }
+
+    private static String provinceFromBakery(BakeryLocationDetails bakery) {
+        if (bakery == null || bakery.province == null) {
+            return null;
+        }
+        String p = bakery.province.trim();
+        return p.isEmpty() ? null : p;
+    }
+
+    private String provinceFromFirstListedBakery() {
+        if (bakeryList == null) {
+            return null;
+        }
+        for (BakeryLocationDetails b : bakeryList) {
+            String p = provinceFromBakery(b);
+            if (p != null) {
+                return p;
+            }
+        }
+        return null;
     }
 
     private String formatScheduledIso() {
