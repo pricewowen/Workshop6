@@ -15,6 +15,7 @@ public class CheckoutRequest {
     public String scheduledAt;
     public String paymentMethod;
     public List<CheckoutLineRequest> items;
+    public GuestCustomerRequest guest;
 
     public static class CheckoutLineRequest {
         public Integer productId;

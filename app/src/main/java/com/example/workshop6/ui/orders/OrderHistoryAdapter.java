@@ -13,6 +13,7 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.workshop6.R;
 import com.example.workshop6.data.api.dto.OrderDto;
+import com.example.workshop6.util.MoneyFormat;
 
 import java.text.NumberFormat;
 import java.text.ParseException;
@@ -22,15 +23,21 @@ import java.util.List;
 import java.util.Locale;
 
 public class OrderHistoryAdapter extends RecyclerView.Adapter<OrderHistoryAdapter.OrderViewHolder> {
-
     private List<OrderHistoryActivity.OrderWithDetails> orders;
     private final SimpleDateFormat dateFormat = new SimpleDateFormat("MMM dd, yyyy", Locale.CANADA);
     private final SimpleDateFormat dateTimeFormat = new SimpleDateFormat("MMM dd, hh:mm a", Locale.CANADA);
     private final NumberFormat currencyFormat = NumberFormat.getCurrencyInstance(Locale.CANADA);
+    private final NumberFormat pointsFormat = NumberFormat.getIntegerInstance(Locale.US);
     private int expandedPosition = -1;
+    private final Listener listener;
 
-    public OrderHistoryAdapter(List<OrderHistoryActivity.OrderWithDetails> orders) {
+    public interface Listener {
+        void onAcceptDelivery(OrderHistoryActivity.OrderWithDetails order);
+    }
+
+    public OrderHistoryAdapter(List<OrderHistoryActivity.OrderWithDetails> orders, Listener listener) {
         this.orders = orders;
+        this.listener = listener;
     }
 
     @NonNull
@@ -64,7 +71,9 @@ public class OrderHistoryAdapter extends RecyclerView.Adapter<OrderHistoryAdapte
         ImageView ivExpandIcon;
 
         LinearLayout llOrderDetails, llCommentSection, llItemsContainer;
-        TextView tvDetailMethod, tvDetailTime, tvDetailComment, tvDetailPoints;
+        LinearLayout llDeliveredActions;
+        TextView tvDetailMethod, tvDetailBakery, tvDetailTime, tvDetailSubtotal, tvDetailTaxLabel, tvDetailTax, tvDetailFinalTotal, tvDetailComment, tvDetailPoints;
+        com.google.android.material.button.MaterialButton btnAcceptDelivery;
 
         OrderViewHolder(@NonNull View itemView) {
             super(itemView);
@@ -80,10 +89,17 @@ public class OrderHistoryAdapter extends RecyclerView.Adapter<OrderHistoryAdapte
             llOrderDetails = itemView.findViewById(R.id.llOrderDetails);
             llCommentSection = itemView.findViewById(R.id.llCommentSection);
             llItemsContainer = itemView.findViewById(R.id.llItemsContainer);
+            llDeliveredActions = itemView.findViewById(R.id.llDeliveredActions);
             tvDetailMethod = itemView.findViewById(R.id.tvDetailMethod);
+            tvDetailBakery = itemView.findViewById(R.id.tvDetailBakery);
             tvDetailTime = itemView.findViewById(R.id.tvDetailTime);
+            tvDetailSubtotal = itemView.findViewById(R.id.tvDetailSubtotal);
+            tvDetailTaxLabel = itemView.findViewById(R.id.tvDetailTaxLabel);
+            tvDetailTax = itemView.findViewById(R.id.tvDetailTax);
+            tvDetailFinalTotal = itemView.findViewById(R.id.tvDetailFinalTotal);
             tvDetailComment = itemView.findViewById(R.id.tvDetailComment);
             tvDetailPoints = itemView.findViewById(R.id.tvDetailPoints);
+            btnAcceptDelivery = itemView.findViewById(R.id.btnAcceptDelivery);
         }
 
         void bind(OrderHistoryActivity.OrderWithDetails orderWithDetails, boolean isExpanded) {
@@ -96,8 +112,7 @@ public class OrderHistoryAdapter extends RecyclerView.Adapter<OrderHistoryAdapte
             Date placed = parseIsoDate(o.placedAt);
             tvOrderDate.setText(placed != null ? dateFormat.format(placed) : "");
 
-            double total = o.orderTotal != null ? o.orderTotal.doubleValue() : 0.0;
-            tvOrderTotal.setText(currencyFormat.format(total));
+            tvOrderTotal.setText(MoneyFormat.formatCad(currencyFormat, o.getGrandTotalAmount()));
 
             String status = o.status != null ? o.status : "";
             tvOrderStatus.setText(prettyStatus(status));
@@ -147,6 +162,14 @@ public class OrderHistoryAdapter extends RecyclerView.Adapter<OrderHistoryAdapte
                 }
                 notifyItemChanged(expandedPosition);
             });
+
+            boolean canAccept = "delivered".equalsIgnoreCase(status) || "picked_up".equalsIgnoreCase(status);
+            llDeliveredActions.setVisibility(isExpanded && canAccept ? View.VISIBLE : View.GONE);
+            btnAcceptDelivery.setOnClickListener(v -> {
+                if (listener != null) {
+                    listener.onAcceptDelivery(orderWithDetails);
+                }
+            });
         }
 
         private void populateDetails(OrderHistoryActivity.OrderWithDetails orderWithDetails) {
@@ -154,12 +177,26 @@ public class OrderHistoryAdapter extends RecyclerView.Adapter<OrderHistoryAdapte
             String method = o.orderMethod != null ? o.orderMethod : "pickup";
             tvDetailMethod.setText(prettyStatus(method.replace('_', ' ')));
 
+            String bakeryName = o.bakeryName != null ? o.bakeryName : "";
+            boolean hasBakery = bakeryName.trim().length() > 0;
+            tvDetailBakery.setVisibility(hasBakery ? View.VISIBLE : View.GONE);
+            if (hasBakery) {
+                tvDetailBakery.setText(bakeryName.trim());
+            }
+
             Date scheduled = parseIsoDate(o.scheduledAt);
             if (scheduled != null) {
                 tvDetailTime.setText(dateTimeFormat.format(scheduled));
             } else {
                 tvDetailTime.setText("Not scheduled");
             }
+            double taxRatePercent = o.orderTaxRate != null ? o.orderTaxRate.doubleValue() : 0.0;
+            tvDetailTaxLabel.setText(itemView.getContext().getString(
+                    R.string.tax_with_percent,
+                    com.example.workshop6.util.CanadianTaxRates.formatTaxPercent(taxRatePercent)));
+            tvDetailSubtotal.setText(MoneyFormat.formatCad(currencyFormat, o.getSubtotalAmount()));
+            tvDetailTax.setText(MoneyFormat.formatCad(currencyFormat, o.getTaxAmount()));
+            tvDetailFinalTotal.setText(MoneyFormat.formatCad(currencyFormat, o.getGrandTotalAmount()));
 
             String comment = o.comment;
             if (comment != null && !comment.trim().isEmpty()) {
@@ -172,8 +209,6 @@ public class OrderHistoryAdapter extends RecyclerView.Adapter<OrderHistoryAdapte
             llItemsContainer.removeAllViews();
             LayoutInflater inflater = LayoutInflater.from(itemView.getContext());
 
-            double totalPoints = 0;
-
             for (OrderHistoryActivity.OrderItemDetails item : orderWithDetails.items) {
                 View itemView = inflater.inflate(R.layout.item_order_detail, llItemsContainer, false);
 
@@ -183,15 +218,31 @@ public class OrderHistoryAdapter extends RecyclerView.Adapter<OrderHistoryAdapte
 
                 tvItemName.setText(item.productName);
                 tvItemQuantity.setText("x" + item.quantity);
-                tvItemPrice.setText(currencyFormat.format(item.price * item.quantity));
-
-                totalPoints += (item.price * item.quantity * 10);
+                // Show pre-tax unit price; quantity is displayed separately.
+                tvItemPrice.setText(MoneyFormat.formatCad(currencyFormat, item.price));
 
                 llItemsContainer.addView(itemView);
             }
-
-            tvDetailPoints.setText((int) totalPoints + " pts");
+            int earnedPoints = computeEarnedPoints(o, orderWithDetails.items);
+            tvDetailPoints.setText(pointsFormat.format(earnedPoints) + " pts");
         }
+    }
+
+    private int computeEarnedPoints(OrderDto order, List<OrderHistoryActivity.OrderItemDetails> items) {
+        if (order != null && order.orderTotal != null) {
+            int pointsFromOrderTotal = order.orderTotal
+                    .multiply(java.math.BigDecimal.valueOf(1000))
+                    .setScale(0, java.math.RoundingMode.DOWN)
+                    .intValue();
+            return Math.max(pointsFromOrderTotal, 1);
+        }
+        double subtotal = 0.0;
+        if (items != null) {
+            for (OrderHistoryActivity.OrderItemDetails item : items) {
+                subtotal += (item.price * item.quantity);
+            }
+        }
+        return Math.max(1, (int) Math.floor(subtotal * 1000.0));
     }
 
     private static String prettyStatus(String raw) {

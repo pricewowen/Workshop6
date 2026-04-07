@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Toolbar + band + avatar overlap: clears content below overlapping photo -->
+    <dimen name="edit_profile_scroll_content_top_pad">188dp</dimen>
+    <!-- Toolbar (~56dp) + 24dp: avatar top aligns with straddle point under brown band (see layout). -->
+    <dimen name="edit_profile_avatar_margin_top">80dp</dimen>
+</resources>

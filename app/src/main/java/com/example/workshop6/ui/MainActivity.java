@@ -23,6 +23,7 @@ import com.example.workshop6.data.api.ApiClient;
 import com.example.workshop6.data.api.ApiService;
 import com.example.workshop6.data.api.dto.CustomerDto;
 import com.example.workshop6.data.api.dto.EmployeeDto;
+import com.example.workshop6.util.NavTransitions;
 import com.example.workshop6.util.NetworkStatus;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 import android.widget.Toast;
@@ -32,6 +33,9 @@ import retrofit2.Callback;
 import retrofit2.Response;
 
 public class MainActivity extends AppCompatActivity {
+
+    public static final String EXTRA_OPEN_ME_TAB = "open_me_tab";
+    public static final String EXTRA_PROMPT_CUSTOMER_PROFILE = "prompt_customer_profile";
 
     /** How often we re-verify the session against the API while this screen is visible. */
     private static final long API_SESSION_POLL_MS = 4_000L;
@@ -79,8 +83,8 @@ public class MainActivity extends AppCompatActivity {
 
         sessionManager = new SessionManager(this);
 
-        if (!sessionManager.isLoggedIn()) {
-            startActivity(new Intent(this, LoginActivity.class));
+        if (!sessionManager.hasActiveSession()) {
+            NavTransitions.startActivityWithForward(this, new Intent(this, LoginActivity.class));
             finish();
             return;
         }
@@ -92,6 +96,7 @@ public class MainActivity extends AppCompatActivity {
 
         if (navHostFragment == null) {
             finish();
+            NavTransitions.applyBackwardPending(this);
             return;
         }
 
@@ -99,6 +104,27 @@ public class MainActivity extends AppCompatActivity {
 
         BottomNavigationView bottomNav = findViewById(R.id.bottom_nav);
         configureBottomNav(bottomNav, sessionManager.getUserRole());
+
+        applyLaunchIntentExtras(getIntent(), bottomNav);
+    }
+
+    @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        setIntent(intent);
+        applyLaunchIntentExtras(intent, findViewById(R.id.bottom_nav));
+    }
+
+    private void applyLaunchIntentExtras(Intent intent, BottomNavigationView bottomNav) {
+        if (intent == null) {
+            return;
+        }
+        if (intent.getBooleanExtra(EXTRA_OPEN_ME_TAB, false) && bottomNav != null && navController != null) {
+            bottomNav.post(() -> bottomNav.setSelectedItemId(R.id.nav_me));
+        }
+        if (intent.getBooleanExtra(EXTRA_PROMPT_CUSTOMER_PROFILE, false)) {
+            Toast.makeText(this, R.string.me_add_customer_profile_prompt, Toast.LENGTH_LONG).show();
+        }
     }
 
     @Override
@@ -128,17 +154,23 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
-        if (!sessionManager.isLoggedIn()) {
+        if (!sessionManager.hasActiveSession()) {
             redirectToLogin(getString(R.string.session_expired));
             return;
         }
         sessionManager.touch();
         BottomNavigationView bottomNav = findViewById(R.id.bottom_nav);
         if (bottomNav != null) {
-            updateStaffAccess(bottomNav, false);
+            if (sessionManager.isGuestMode()) {
+                applyStaffNavigation(bottomNav, "CUSTOMER");
+            } else {
+                updateStaffAccess(bottomNav, false);
+            }
         }
         connectivityHandler.removeCallbacks(connectivityPollRunnable);
-        connectivityHandler.post(connectivityPollRunnable);
+        if (sessionManager.isLoggedIn()) {
+            connectivityHandler.post(connectivityPollRunnable);
+        }
     }
 
     @Override
@@ -156,13 +188,15 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void updateStaffAccess(BottomNavigationView bottomNav, boolean forceRefresh) {
+        if (sessionManager.isGuestMode()) {
+            applyStaffNavigation(bottomNav, "CUSTOMER");
+            return;
+        }
         long now = System.currentTimeMillis();
-
         if (!forceRefresh && (staffAccessCheckInFlight || (now - lastStaffAccessCheckAt) < STAFF_ACCESS_REFRESH_MS)) {
             applyStaffNavigation(bottomNav, sessionManager.getUserRole());
             return;
         }
-
         if (staffAccessCheckInFlight) {
             return;
         }
@@ -175,20 +209,16 @@ public class MainActivity extends AppCompatActivity {
 
         staffAccessCheckInFlight = true;
         lastStaffAccessCheckAt = now;
-
         ApiClient.getInstance().setToken(token);
         ApiService api = ApiClient.getInstance().getService();
-
         String role = sessionManager.getUserRole();
 
         if ("CUSTOMER".equalsIgnoreCase(role)) {
-
             api.getCustomerMe().enqueue(new Callback<CustomerDto>() {
                 @Override
                 public void onResponse(Call<CustomerDto> call, Response<CustomerDto> response) {
                     staffAccessCheckInFlight = false;
-
-                    if (response.isSuccessful()) {
+                    if (response.isSuccessful() || response.code() == 404) {
                         applyStaffNavigation(bottomNav, role);
                     } else {
                         handleSessionCheckHttpFailure(response.code());
@@ -201,14 +231,11 @@ public class MainActivity extends AppCompatActivity {
                     handleConnectionLost();
                 }
             });
-
-        } else if ("EMPLOYEE".equalsIgnoreCase(role)) {
-
+        } else {
             api.getEmployeeMe().enqueue(new Callback<EmployeeDto>() {
                 @Override
                 public void onResponse(Call<EmployeeDto> call, Response<EmployeeDto> response) {
                     staffAccessCheckInFlight = false;
-
                     if (response.isSuccessful()) {
                         applyStaffNavigation(bottomNav, role);
                     } else {
@@ -222,18 +249,6 @@ public class MainActivity extends AppCompatActivity {
                     handleConnectionLost();
                 }
             });
-
-        } else if ("ADMIN".equalsIgnoreCase(role)) {
-
-            // 🔥 FIX: Admin should NOT call employee endpoint
-            staffAccessCheckInFlight = false;
-            applyStaffNavigation(bottomNav, role);
-
-        } else {
-
-            // Fallback safety (unknown role)
-            staffAccessCheckInFlight = false;
-            redirectToLogin(getString(R.string.session_expired));
         }
     }
 
@@ -241,7 +256,7 @@ public class MainActivity extends AppCompatActivity {
      * After a failed /me call, clear the session when the token is invalid or the server is unavailable.
      */
     private void handleSessionCheckHttpFailure(int httpCode) {
-        if (isFinishing()) {
+        if (isFinishing() || sessionManager == null || !sessionManager.isLoggedIn()) {
             return;
         }
         if (httpCode == 401 || httpCode == 403) {
@@ -256,7 +271,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void handleConnectionLost() {
-        if (isFinishing()) {
+        if (isFinishing() || sessionManager == null || !sessionManager.isLoggedIn()) {
             return;
         }
         Toast.makeText(this, R.string.lost_connection_logout, Toast.LENGTH_LONG).show();
@@ -268,7 +283,7 @@ public class MainActivity extends AppCompatActivity {
             if (isFinishing()) {
                 return;
             }
-            boolean isCustomer = "CUSTOMER".equalsIgnoreCase(role);
+            boolean isCustomer = "CUSTOMER".equalsIgnoreCase(role) || sessionManager.isGuestMode();
             configureBottomNav(bottomNav, role);
 
             if (!isCustomer && navController != null) {
@@ -286,7 +301,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void configureBottomNav(BottomNavigationView bottomNav, String role) {
-        int menuResId = "CUSTOMER".equalsIgnoreCase(role)
+        int menuResId = ("CUSTOMER".equalsIgnoreCase(role) || sessionManager.isGuestMode())
                 ? R.menu.bottom_nav_customer_menu
                 : R.menu.bottom_nav_staff_menu;
         if (currentBottomNavMenuResId == menuResId) {
@@ -299,6 +314,11 @@ public class MainActivity extends AppCompatActivity {
         bottomNav.setOnItemSelectedListener(item -> {
             if (!NetworkStatus.isOnline(MainActivity.this)) {
                 Toast.makeText(MainActivity.this, R.string.login_error_no_connection, Toast.LENGTH_SHORT).show();
+                return false;
+            }
+            // Chat is intentionally disabled for now (customer, staff, admin).
+            // Consume the click without navigating.
+            if (item.getItemId() == R.id.nav_staff_chat) {
                 return false;
             }
             boolean navigated = NavigationUI.onNavDestinationSelected(item, navController);
@@ -370,7 +390,7 @@ public class MainActivity extends AppCompatActivity {
         Intent intent = new Intent(this, LoginActivity.class);
         intent.putExtra("session_message", message);
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
-        startActivity(intent);
+        NavTransitions.startActivityWithForward(this, intent);
         finish();
     }
 

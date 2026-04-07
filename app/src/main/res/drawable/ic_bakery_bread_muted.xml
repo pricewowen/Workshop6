@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <!-- Same loaf as list/bright; darker gold for detail hero on white-adjacent card -->
+    <path
+        android:fillColor="@color/bakery_gold"
+        android:pathData="M4,11c0,-3.5 3.5,-6 8,-6s8,2.5 8,6v10H4V11z" />
+</vector>

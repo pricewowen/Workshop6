@@ -10,6 +10,8 @@ import androidx.navigation.Navigation;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.google.android.material.appbar.MaterialToolbar;
+
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -23,6 +25,7 @@ import com.bumptech.glide.load.engine.GlideException;
 import com.bumptech.glide.request.RequestListener;
 import com.bumptech.glide.request.target.Target;
 import com.bumptech.glide.Glide;
+import com.bumptech.glide.request.RequestOptions;
 import com.example.workshop6.R;
 import com.example.workshop6.auth.SessionManager;
 import com.example.workshop6.data.api.ApiClient;
@@ -34,12 +37,13 @@ import com.example.workshop6.data.api.dto.ReviewDto;
 import com.example.workshop6.data.model.CartItem;
 import com.example.workshop6.data.model.Product;
 import com.example.workshop6.ui.cart.CartManager;
+import com.example.workshop6.util.MoneyFormat;
+import com.example.workshop6.util.ProductReviewListHelper;
 import com.example.workshop6.util.ProductSpecialState;
 import com.example.workshop6.util.SpecialPriceSpan;
 import com.example.workshop6.util.TodayDate;
 
 import java.text.NumberFormat;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
@@ -51,16 +55,16 @@ public class ProductDetailsFragment extends Fragment {
 
     private int quantCounter = 1;
 
-    private TextView tvProductName;
+    private MaterialToolbar toolbarProduct;
     private TextView tvProductSpecialBadge;
     private TextView tvProductPrice;
     private TextView tvProductDescription;
     private TextView tvQuantity;
     private TextView tvReviewsTitle;
+    private TextView tvReviewsEmpty;
 
     private Button btnIncrease;
     private Button btnDecrease;
-    private Button btnBack;
     private Button btnAddToCart;
 
     private ImageView ivProductImage;
@@ -105,16 +109,18 @@ public class ProductDetailsFragment extends Fragment {
                 ? getArguments().getInt("productId", -1)
                 : -1;
 
-        tvProductName = view.findViewById(R.id.tvProductName);
+        toolbarProduct = view.findViewById(R.id.toolbar_product);
+        toolbarProduct.setNavigationOnClickListener(v ->
+                Navigation.findNavController(view).navigateUp());
         tvProductSpecialBadge = view.findViewById(R.id.tvProductSpecialBadge);
         tvProductPrice = view.findViewById(R.id.tvProductPrice);
         tvProductDescription = view.findViewById(R.id.tvProductDescription);
         tvQuantity = view.findViewById(R.id.tvQuantity);
         tvReviewsTitle = view.findViewById(R.id.tvReviewsTitle);
+        tvReviewsEmpty = view.findViewById(R.id.tvReviewsEmpty);
 
         btnIncrease = view.findViewById(R.id.btnIncrease);
         btnDecrease = view.findViewById(R.id.btnDecrease);
-        btnBack = view.findViewById(R.id.btnBack);
         btnAddToCart = view.findViewById(R.id.btnAddToCart);
 
         ivProductImage = view.findViewById(R.id.ivProductImage);
@@ -122,7 +128,17 @@ public class ProductDetailsFragment extends Fragment {
         productDetailsContent = view.findViewById(R.id.product_details_content);
 
         rvReviews = view.findViewById(R.id.rvReviews);
-        rvReviews.setLayoutManager(new LinearLayoutManager(requireContext()));
+        rvReviews.setLayoutManager(
+                new LinearLayoutManager(requireContext(), LinearLayoutManager.HORIZONTAL, false));
+        rvReviews.setNestedScrollingEnabled(false);
+        rvReviews.setHasFixedSize(true);
+
+        // Reviews are now displayed on the bakery/location page, not on product details.
+        tvReviewsTitle.setVisibility(View.GONE);
+        tvReviewsEmpty.setVisibility(View.GONE);
+        if (rvReviews.getParent() instanceof View) {
+            ((View) rvReviews.getParent()).setVisibility(View.GONE);
+        }
 
         tvQuantity.setText(String.valueOf(quantCounter));
 
@@ -165,12 +181,13 @@ public class ProductDetailsFragment extends Fragment {
                 }
                 revealImageReady = false;
                 revealSpecialPriceReady = false;
-                tvProductName.setText(loadedProduct.getProductName());
+                toolbarProduct.setTitle(loadedProduct.getProductName());
                 tvProductDescription.setText(loadedProduct.getProductDescription());
                 applyTodaySpecialPricing(productId);
                 if (loadedProduct.getImageUrl() != null && !loadedProduct.getImageUrl().isEmpty()) {
                     Glide.with(requireContext())
                             .load(loadedProduct.getImageUrl())
+                            .apply(RequestOptions.centerCropTransform())
                             .placeholder(R.drawable.product_image_placeholder)
                             .error(R.drawable.product_image_placeholder)
                             .listener(new RequestListener<Drawable>() {
@@ -209,46 +226,7 @@ public class ProductDetailsFragment extends Fragment {
             }
         });
 
-        api.getProductReviewAverage(productId).enqueue(new Callback<Double>() {
-            @Override
-            public void onResponse(Call<Double> call, Response<Double> response) {
-                Double avg = response.isSuccessful() ? response.body() : null;
-                api.getProductReviews(productId).enqueue(new Callback<List<ReviewDto>>() {
-                    @Override
-                    public void onResponse(Call<List<ReviewDto>> call2, Response<List<ReviewDto>> response2) {
-                        if (!response2.isSuccessful() || response2.body() == null || !isUiReady()) {
-                            return;
-                        }
-                        List<ReviewDto> reviews = new ArrayList<>();
-                        for (ReviewDto r : response2.body()) {
-                            if (r != null && "approved".equalsIgnoreCase(r.status)) {
-                                reviews.add(r);
-                            }
-                        }
-                        if (!reviews.isEmpty()) {
-                            double displayAvg = avg != null ? avg : 0;
-                            tvReviewsTitle.setText(
-                                    "Customer Reviews (" + String.format("%.1f", displayAvg) + "★)");
-                        } else {
-                            tvReviewsTitle.setText("Customer Reviews");
-                        }
-                        rvReviews.setAdapter(new ReviewAdapter(reviews));
-                    }
-
-                    @Override
-                    public void onFailure(Call<List<ReviewDto>> call2, Throwable t) {
-                    }
-                });
-            }
-
-            @Override
-            public void onFailure(Call<Double> call, Throwable t) {
-            }
-        });
-
-        btnBack.setOnClickListener(v ->
-                Navigation.findNavController(view).navigateUp()
-        );
+        // No product reviews section on this screen anymore.
 
         btnIncrease.setOnClickListener(v -> {
             quantCounter++;
@@ -311,7 +289,7 @@ public class ProductDetailsFragment extends Fragment {
                     tvProductPrice.setText(line);
                 } else {
                     tvProductSpecialBadge.setVisibility(View.GONE);
-                    tvProductPrice.setText(String.format(Locale.US, "$%.2f", base));
+                    tvProductPrice.setText(MoneyFormat.formatCad(currency, base));
                 }
                 markSpecialPriceReadyAndTryRevealProductUi();
             }
@@ -323,7 +301,7 @@ public class ProductDetailsFragment extends Fragment {
                 }
                 tvProductSpecialBadge.setVisibility(View.GONE);
                 Double b = loadedProduct.getProductBasePrice();
-                tvProductPrice.setText(String.format(Locale.US, "$%.2f", b != null ? b : 0.0));
+                tvProductPrice.setText(MoneyFormat.formatCad(currency, b != null ? b : 0.0));
                 markSpecialPriceReadyAndTryRevealProductUi();
             }
         });
@@ -355,6 +333,70 @@ public class ProductDetailsFragment extends Fragment {
         }
         if (productDetailsContent != null) {
             productDetailsContent.setVisibility(loading ? View.INVISIBLE : View.VISIBLE);
+        }
+    }
+
+    /**
+     * Loads average (optional) and review list; shows up to three newest approved in a horizontal strip.
+     */
+    private void loadProductReviewsSection(int productId) {
+        api.getProductReviewAverage(productId).enqueue(new Callback<Double>() {
+            @Override
+            public void onResponse(Call<Double> call, Response<Double> response) {
+                Double avg = response.isSuccessful() ? response.body() : null;
+                fetchProductReviewsList(productId, avg);
+            }
+
+            @Override
+            public void onFailure(Call<Double> call, Throwable t) {
+                fetchProductReviewsList(productId, null);
+            }
+        });
+    }
+
+    private void fetchProductReviewsList(int productId, @Nullable Double averageRating) {
+        api.getProductReviews(productId).enqueue(new Callback<List<ReviewDto>>() {
+            @Override
+            public void onResponse(Call<List<ReviewDto>> call, Response<List<ReviewDto>> response) {
+                if (!isUiReady()) {
+                    return;
+                }
+                if (!response.isSuccessful() || response.body() == null) {
+                    bindProductReviewsUi(averageRating, null);
+                    return;
+                }
+                List<ReviewDto> slice = ProductReviewListHelper.newestApprovedForDisplay(response.body());
+                bindProductReviewsUi(averageRating, slice);
+            }
+
+            @Override
+            public void onFailure(Call<List<ReviewDto>> call, Throwable t) {
+                if (isUiReady()) {
+                    bindProductReviewsUi(averageRating, null);
+                }
+            }
+        });
+    }
+
+    private void bindProductReviewsUi(@Nullable Double averageRating, @Nullable List<ReviewDto> displayedReviews) {
+        if (tvReviewsTitle == null || tvReviewsEmpty == null || rvReviews == null) {
+            return;
+        }
+        boolean hasAvg = averageRating != null && !averageRating.isNaN();
+        if (hasAvg) {
+            tvReviewsTitle.setText(getString(R.string.product_reviews_with_average, averageRating));
+        } else {
+            tvReviewsTitle.setText(R.string.section_product_reviews);
+        }
+        if (displayedReviews == null || displayedReviews.isEmpty()) {
+            tvReviewsEmpty.setVisibility(View.VISIBLE);
+            rvReviews.setVisibility(View.GONE);
+            rvReviews.setAdapter(null);
+        } else {
+            tvReviewsEmpty.setVisibility(View.GONE);
+            rvReviews.setVisibility(View.VISIBLE);
+            rvReviews.setAdapter(new ReviewAdapter(displayedReviews));
+            rvReviews.scrollToPosition(0);
         }
     }
 }
