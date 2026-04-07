@@ -124,12 +124,12 @@ public class MeFragment extends Fragment {
         } else {
             btnLogout.setText(R.string.btn_logout);
             btnLogout.setOnClickListener(v -> {
-                ActivityLogger.log(requireContext(), sessionManager, "LOGOUT", "User logged out");
-                CartManager.getInstance(requireContext()).onLogout();
-                sessionManager.logout();
+            ActivityLogger.log(requireContext(), sessionManager, "LOGOUT", "User logged out");
+            CartManager.getInstance(requireContext()).onLogout();
+            sessionManager.logout();
                 ApiClient.getInstance().clearToken();
-                Intent intent = new Intent(requireContext(), LoginActivity.class);
-                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+            Intent intent = new Intent(requireContext(), LoginActivity.class);
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
                 NavTransitions.startActivityWithForward(requireActivity(), intent);
             });
         }
@@ -177,8 +177,8 @@ public class MeFragment extends Fragment {
         tvMeRole.setVisibility(View.VISIBLE);
         if (sessionManager.isGuestMode()) {
             tvMeRole.setText(R.string.role_display_guest);
-            return;
-        }
+                return;
+            }
         switch (role.trim().toUpperCase()) {
             case "CUSTOMER":
                 tvMeRole.setText(R.string.role_display_customer);
@@ -582,20 +582,20 @@ public class MeFragment extends Fragment {
     private void applyPhotoUI(String photoPath, boolean pending) {
         if (pending) {
             loadRemotePhoto(photoPath);
-            applyPendingPhotoStyle(ivPhoto);
-            tvPhotoStatus.setVisibility(View.VISIBLE);
-            tvPhotoStatus.setText(R.string.photo_pending_approval);
-        } else if (photoPath != null && !photoPath.isEmpty()) {
+                    applyPendingPhotoStyle(ivPhoto);
+                    tvPhotoStatus.setVisibility(View.VISIBLE);
+                    tvPhotoStatus.setText(R.string.photo_pending_approval);
+                } else if (photoPath != null && !photoPath.isEmpty()) {
             loadRemotePhoto(photoPath);
-            ivPhoto.clearColorFilter();
-            ivPhoto.setImageAlpha(255);
-            tvPhotoStatus.setVisibility(View.GONE);
-        } else {
-            ivPhoto.setImageResource(R.drawable.ic_person_placeholder);
-            ivPhoto.clearColorFilter();
-            ivPhoto.setImageAlpha(255);
-            tvPhotoStatus.setVisibility(View.GONE);
-        }
+                        ivPhoto.clearColorFilter();
+                        ivPhoto.setImageAlpha(255);
+                        tvPhotoStatus.setVisibility(View.GONE);
+                    } else {
+                        ivPhoto.setImageResource(R.drawable.ic_person_placeholder);
+                        ivPhoto.clearColorFilter();
+                        ivPhoto.setImageAlpha(255);
+                        tvPhotoStatus.setVisibility(View.GONE);
+                    }
     }
 
     private void applyPendingPhotoStyle(ImageView imageView) {

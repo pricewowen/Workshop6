@@ -31,10 +31,10 @@ import com.example.workshop6.data.api.ApiService;
 import com.example.workshop6.data.api.BakeryLocationMapper;
 import com.example.workshop6.data.api.dto.BakeryDto;
 import com.example.workshop6.data.api.dto.CheckoutRequest;
+import com.example.workshop6.data.api.dto.CheckoutSessionResponse;
 import com.example.workshop6.data.api.dto.CustomerDto;
 import com.example.workshop6.data.api.dto.GuestCustomerRequest;
 import com.example.workshop6.data.api.dto.CustomerPatchRequest;
-import com.example.workshop6.data.api.dto.OrderDto;
 import com.example.workshop6.data.api.dto.ProductSpecialTodayDto;
 import com.example.workshop6.data.api.dto.RewardTierDto;
 import com.example.workshop6.data.model.BakeryLocationDetails;
@@ -822,16 +822,17 @@ public class CheckoutActivity extends AppCompatActivity {
         }
         req.items = lines;
 
-        api.checkout(req).enqueue(new Callback<OrderDto>() {
+        api.checkout(req).enqueue(new Callback<CheckoutSessionResponse>() {
             @Override
-            public void onResponse(Call<OrderDto> call, Response<OrderDto> response) {
+            public void onResponse(Call<CheckoutSessionResponse> call, Response<CheckoutSessionResponse> response) {
                 if (response.code() == 401 || response.code() == 403) {
                     if (sessionManager.isLoggedIn()) {
                         redirectToLogin();
                     }
                     return;
                 }
-                if (!response.isSuccessful() || response.body() == null) {
+                CheckoutSessionResponse body = response.body();
+                if (!response.isSuccessful() || body == null || body.orderId == null) {
                     Snackbar.make(findViewById(android.R.id.content),
                             R.string.error_placing_order, Snackbar.LENGTH_LONG).show();
                     btnPlaceOrder.setEnabled(true);
@@ -856,7 +857,7 @@ public class CheckoutActivity extends AppCompatActivity {
             }
 
             @Override
-            public void onFailure(Call<OrderDto> call, Throwable t) {
+            public void onFailure(Call<CheckoutSessionResponse> call, Throwable t) {
                 Log.e("Checkout", "checkout failed", t);
                 Snackbar.make(findViewById(android.R.id.content),
                         R.string.error_placing_order, Snackbar.LENGTH_LONG).show();

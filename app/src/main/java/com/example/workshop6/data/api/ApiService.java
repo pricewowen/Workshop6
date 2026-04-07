@@ -9,6 +9,7 @@ import com.example.workshop6.data.api.dto.ChatMessageDto;
 import com.example.workshop6.data.api.dto.ChatThreadDto;
 import com.example.workshop6.data.api.dto.ChangePasswordRequest;
 import com.example.workshop6.data.api.dto.CheckoutRequest;
+import com.example.workshop6.data.api.dto.CheckoutSessionResponse;
 import com.example.workshop6.data.api.dto.CustomerBootstrapRequest;
 import com.example.workshop6.data.api.dto.CustomerDto;
 import com.example.workshop6.data.api.dto.CustomerPatchRequest;
@@ -111,7 +112,7 @@ public interface ApiService {
     Call<List<OrderDto>> getOrders();
 
     @POST("api/v1/orders")
-    Call<OrderDto> checkout(@Body CheckoutRequest body);
+    Call<CheckoutSessionResponse> checkout(@Body CheckoutRequest body);
 
     @PATCH("api/v1/orders/{id}/status")
     Call<OrderDto> patchOrderStatus(@Path("id") String orderId, @Body OrderStatusPatchRequest body);

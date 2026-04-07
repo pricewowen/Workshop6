@@ -207,7 +207,13 @@ public class CartFragment extends Fragment implements CartAdapter.OnCartItemList
                 if (response.isSuccessful() && response.body() != null) {
                     ProductSpecialState.updateFromDto(response.body(), TodayDate.isoLocal());
                 }
+                if (!isAdded()) {
+                    return;
+                }
                 requireActivity().runOnUiThread(() -> {
+                    if (!isAdded()) {
+                        return;
+                    }
                     adapter.updateItems(cart.getItems());
                     updateUI();
                 });
@@ -215,7 +221,13 @@ public class CartFragment extends Fragment implements CartAdapter.OnCartItemList
 
             @Override
             public void onFailure(Call<ProductSpecialTodayDto> call, Throwable t) {
+                if (!isAdded()) {
+                    return;
+                }
                 requireActivity().runOnUiThread(() -> {
+                    if (!isAdded()) {
+                        return;
+                    }
                     adapter.updateItems(cart.getItems());
                     updateUI();
                 });
