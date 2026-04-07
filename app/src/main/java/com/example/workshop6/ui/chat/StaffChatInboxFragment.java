@@ -77,7 +77,7 @@ public class StaffChatInboxFragment extends Fragment {
         boolean canAccessStaffChat = isCustomer || isStaff;
 
         if (!canAccessStaffChat) {
-            Toast.makeText(requireContext(), R.string.account_admin_access_denied, Toast.LENGTH_SHORT).show();
+            // Toast.makeText(requireContext(), R.string.account_admin_access_denied, Toast.LENGTH_SHORT).show();
             recyclerThreads.setVisibility(View.GONE);
             textEmpty.setText(R.string.account_admin_access_denied);
             textEmpty.setVisibility(View.VISIBLE);
@@ -171,7 +171,7 @@ public class StaffChatInboxFragment extends Fragment {
                     launchChat(response.body().id);
                     return;
                 }
-                Toast.makeText(requireContext(), R.string.login_error_no_connection, Toast.LENGTH_SHORT).show();
+                // Toast.makeText(requireContext(), R.string.login_error_no_connection, Toast.LENGTH_SHORT).show();
             }
 
             @Override
@@ -179,7 +179,7 @@ public class StaffChatInboxFragment extends Fragment {
                 if (!isAdded()) {
                     return;
                 }
-                Toast.makeText(requireContext(), R.string.login_error_no_connection, Toast.LENGTH_SHORT).show();
+                // Toast.makeText(requireContext(), R.string.login_error_no_connection, Toast.LENGTH_SHORT).show();
             }
         });
     }

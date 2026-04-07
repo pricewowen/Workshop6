@@ -123,7 +123,7 @@ public class ReviewApprovalsFragment extends Fragment {
                     return;
                 }
                 setLoadingUi(false);
-                Toast.makeText(requireContext(), R.string.login_error_no_connection, Toast.LENGTH_SHORT).show();
+                // Toast.makeText(requireContext(), R.string.login_error_no_connection, Toast.LENGTH_SHORT).show();
             }
         });
     }
@@ -142,7 +142,7 @@ public class ReviewApprovalsFragment extends Fragment {
                 }
                 setLoadingUi(false);
                 if (!response.isSuccessful()) {
-                    Toast.makeText(requireContext(), R.string.orders_admin_update_failed, Toast.LENGTH_SHORT).show();
+                    // Toast.makeText(requireContext(), R.string.orders_admin_update_failed, Toast.LENGTH_SHORT).show();
                     return;
                 }
                 ActivityLogger.log(
@@ -151,7 +151,7 @@ public class ReviewApprovalsFragment extends Fragment {
                         "MODERATE_REVIEW",
                         "reviewId=" + review.id + ", status=" + status
                 );
-                Toast.makeText(requireContext(), R.string.review_approvals_status_updated, Toast.LENGTH_SHORT).show();
+                // Toast.makeText(requireContext(), R.string.review_approvals_status_updated, Toast.LENGTH_SHORT).show();
                 loadPendingReviews();
             }
 
@@ -161,7 +161,7 @@ public class ReviewApprovalsFragment extends Fragment {
                     return;
                 }
                 setLoadingUi(false);
-                Toast.makeText(requireContext(), R.string.login_error_no_connection, Toast.LENGTH_SHORT).show();
+                // Toast.makeText(requireContext(), R.string.login_error_no_connection, Toast.LENGTH_SHORT).show();
             }
         });
     }

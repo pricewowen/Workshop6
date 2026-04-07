@@ -69,8 +69,27 @@ public class RegisterActivity extends AppCompatActivity {
             NavTransitions.applyBackwardPending(this);
         });
         findViewById(R.id.tv_guest_link).setOnClickListener(v -> {
-            sessionManager.beginGuestSession();
-            goToMain();
+            if (!NetworkStatus.isOnline(this)) {
+                clearRegisterFieldErrorsForConnectionMessage();
+                tvError.setText(R.string.login_error_no_connection);
+                tvError.setVisibility(View.VISIBLE);
+                return;
+            }
+            ApiReachability.checkThen(
+                    () -> {
+                        if (!isFinishing()) {
+                            clearRegisterFieldErrorsForConnectionMessage();
+                            tvError.setText(R.string.login_error_no_connection);
+                            tvError.setVisibility(View.VISIBLE);
+                        }
+                    },
+                    () -> {
+                        if (!isFinishing()) {
+                            sessionManager.beginGuestSession();
+                            goToMain();
+                        }
+                    }
+            );
         });
     }
 
@@ -274,7 +293,6 @@ public class RegisterActivity extends AppCompatActivity {
     private void goToMain() {
         Intent intent = new Intent(this, MainActivity.class);
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
-        intent.putExtra(MainActivity.EXTRA_OPEN_ME_TAB, true);
         intent.putExtra(MainActivity.EXTRA_PROMPT_CUSTOMER_PROFILE, true);
         NavTransitions.startActivityWithForward(this, intent);
         finish();

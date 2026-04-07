@@ -119,7 +119,7 @@ public class MeFragment extends Fragment {
             btnLogout.setOnClickListener(v -> {
                 Intent intent = new Intent(requireContext(), LoginActivity.class);
                 intent.putExtra(LoginActivity.EXTRA_ALLOW_GUEST_AUTH, true);
-                NavTransitions.startActivityWithForward(requireActivity(), intent);
+                NavTransitions.startActivityWithBackward(requireActivity(), intent);
             });
         } else {
             btnLogout.setText(R.string.btn_logout);

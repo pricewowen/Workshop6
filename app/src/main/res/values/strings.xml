@@ -11,6 +11,9 @@
     <string name="error_email_or_username_required">Email or username is required</string>
     <string name="hint_password">Password</string>
     <string name="btn_login">Sign In</string>
+    <string name="auth_prompt_new_here">New here?</string>
+    <string name="link_register_short">Register</string>
+    <string name="link_skip_for_now">Skip for now</string>
     <string name="btn_forgot_password">Forgot password?</string>
     <string name="social_divider_login">or continue with</string>
     <string name="btn_google">Google</string>
@@ -47,9 +50,9 @@
     <string name="hint_phone">Phone</string>
     <string name="label_business_phone">BUSINESS PHONE</string>
     <string name="hint_business_phone">Business Phone</string>
-    <string name="btn_create_account">Create Account</string>
-    <string name="link_have_account">Have an account? </string>
-    <string name="link_sign_in">Sign in</string>
+    <string name="btn_create_account">Register</string>
+    <string name="link_have_account">Have an account?</string>
+    <string name="link_sign_in">Log In</string>
     <string name="link_guest_instead_prompt">Just browsing?</string>
     <string name="already_have_account_sign_in">Have an account? Sign in</string>
     <string name="toast_coming_soon">Coming soon</string>

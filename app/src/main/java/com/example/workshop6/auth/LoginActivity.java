@@ -139,9 +139,27 @@ public class LoginActivity extends AppCompatActivity {
                     }
             );
         });
+        // Skip for now — same online + API check as register link before starting guest session.
         findViewById(R.id.tv_guest_link).setOnClickListener(v -> {
-            sessionManager.beginGuestSession();
-            goToMain();
+            if (!NetworkStatus.isOnline(this)) {
+                tvError.setText(R.string.login_error_no_connection);
+                tvError.setVisibility(View.VISIBLE);
+                return;
+            }
+            ApiReachability.checkThen(
+                    () -> {
+                        if (!isFinishing()) {
+                            tvError.setText(R.string.login_error_no_connection);
+                            tvError.setVisibility(View.VISIBLE);
+                        }
+                    },
+                    () -> {
+                        if (!isFinishing()) {
+                            sessionManager.beginGuestSession();
+                            goToMain();
+                        }
+                    }
+            );
         });
     }
 

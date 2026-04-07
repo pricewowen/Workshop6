@@ -141,7 +141,7 @@ public class CheckoutActivity extends AppCompatActivity {
             return;
         }
         if (!sessionManager.isGuestMode() && !"CUSTOMER".equalsIgnoreCase(sessionManager.getUserRole())) {
-            Toast.makeText(this, R.string.staff_purchase_blocked, Toast.LENGTH_SHORT).show();
+            // Toast.makeText(this, R.string.staff_purchase_blocked, Toast.LENGTH_SHORT).show();
             finish();
             NavTransitions.applyBackwardPending(this);
             return;
@@ -156,7 +156,7 @@ public class CheckoutActivity extends AppCompatActivity {
         }
 
         if (cart.isEmpty()) {
-            Toast.makeText(this, R.string.cart_empty, Toast.LENGTH_SHORT).show();
+            // Toast.makeText(this, R.string.cart_empty, Toast.LENGTH_SHORT).show();
             finish();
             NavTransitions.applyBackwardPending(this);
             return;
@@ -437,13 +437,13 @@ public class CheckoutActivity extends AppCompatActivity {
             return;
         }
         if (cart.hasDiscount()) {
-            Toast.makeText(this, R.string.label_discount_applied, Toast.LENGTH_SHORT).show();
+            // Toast.makeText(this, R.string.label_discount_applied, Toast.LENGTH_SHORT).show();
             return;
         }
         RewardTierDto tier = checkoutResolvedTier;
         int cost = LoyaltyTierUi.redeemPointsCost(tier);
         if (tier == null || cost <= 0) {
-            Toast.makeText(this, R.string.checkout_loyalty_no_discount, Toast.LENGTH_SHORT).show();
+            // Toast.makeText(this, R.string.checkout_loyalty_no_discount, Toast.LENGTH_SHORT).show();
             return;
         }
         ActivityLogger.log(this, sessionManager, "ADJUST_POINTS", "Redeem tier discount at checkout");
@@ -455,18 +455,18 @@ public class CheckoutActivity extends AppCompatActivity {
                     return;
                 }
                 if (!response.isSuccessful() || response.body() == null) {
-                    Toast.makeText(CheckoutActivity.this, R.string.error_user_not_found, Toast.LENGTH_SHORT).show();
+                    // Toast.makeText(CheckoutActivity.this, R.string.error_user_not_found, Toast.LENGTH_SHORT).show();
                     return;
                 }
                 CustomerDto c = response.body();
                 if (c.rewardBalance < cost) {
-                    Toast.makeText(
-                            CheckoutActivity.this,
-                            getString(
-                                    R.string.checkout_loyalty_insufficient_points,
-                                    loyaltyPointsFormat.format(cost),
-                                    loyaltyPointsFormat.format(c.rewardBalance)),
-                            Toast.LENGTH_LONG).show();
+                    // Toast.makeText(
+                    //         CheckoutActivity.this,
+                    //         getString(
+                    //                 R.string.checkout_loyalty_insufficient_points,
+                    //                 loyaltyPointsFormat.format(cost),
+                    //                 loyaltyPointsFormat.format(c.rewardBalance)),
+                    //         Toast.LENGTH_LONG).show();
                     return;
                 }
                 CustomerPatchRequest patch = new CustomerPatchRequest();
@@ -475,7 +475,7 @@ public class CheckoutActivity extends AppCompatActivity {
                     @Override
                     public void onResponse(Call<CustomerDto> call2, Response<CustomerDto> response2) {
                         if (!response2.isSuccessful() || response2.body() == null) {
-                            Toast.makeText(CheckoutActivity.this, R.string.error_placing_order, Toast.LENGTH_SHORT).show();
+                            // Toast.makeText(CheckoutActivity.this, R.string.error_placing_order, Toast.LENGTH_SHORT).show();
                             return;
                         }
                         CustomerDto updated = response2.body();
@@ -486,24 +486,24 @@ public class CheckoutActivity extends AppCompatActivity {
                         checkoutResolvedTier = LoyaltyTierUi.resolveCurrentTier(
                                 checkoutRewardTiers, checkoutLoyaltyPoints, checkoutLoyaltyTierId);
                         double appliedPct = tier.discountRatePercent != null ? tier.discountRatePercent.doubleValue() : 0d;
-                        Toast.makeText(
-                                CheckoutActivity.this,
-                                getString(R.string.checkout_loyalty_applied_toast, appliedPct),
-                                Toast.LENGTH_LONG).show();
+                        // Toast.makeText(
+                        //         CheckoutActivity.this,
+                        //         getString(R.string.checkout_loyalty_applied_toast, appliedPct),
+                        //         Toast.LENGTH_LONG).show();
                         updateTotals();
                         bindCheckoutLoyaltyPanel();
                     }
 
                     @Override
                     public void onFailure(Call<CustomerDto> call2, Throwable t) {
-                        Toast.makeText(CheckoutActivity.this, R.string.login_error_no_connection, Toast.LENGTH_SHORT).show();
+                        // Toast.makeText(CheckoutActivity.this, R.string.login_error_no_connection, Toast.LENGTH_SHORT).show();
                     }
                 });
             }
 
             @Override
             public void onFailure(Call<CustomerDto> call, Throwable t) {
-                Toast.makeText(CheckoutActivity.this, R.string.login_error_no_connection, Toast.LENGTH_SHORT).show();
+                // Toast.makeText(CheckoutActivity.this, R.string.login_error_no_connection, Toast.LENGTH_SHORT).show();
             }
         });
     }
@@ -543,7 +543,7 @@ public class CheckoutActivity extends AppCompatActivity {
             @Override
             public void onFailure(Call<CustomerDto> call, Throwable t) {
                 runOnUiThread(() -> {
-                    Toast.makeText(CheckoutActivity.this, "Error loading profile", Toast.LENGTH_SHORT).show();
+                    // Toast.makeText(CheckoutActivity.this, "Error loading profile", Toast.LENGTH_SHORT).show();
                     validateForm();
                 });
             }
@@ -593,7 +593,7 @@ public class CheckoutActivity extends AppCompatActivity {
 
             @Override
             public void onFailure(Call<List<BakeryDto>> call, Throwable t) {
-                Toast.makeText(CheckoutActivity.this, R.string.login_error_no_connection, Toast.LENGTH_SHORT).show();
+                // Toast.makeText(CheckoutActivity.this, R.string.login_error_no_connection, Toast.LENGTH_SHORT).show();
             }
         });
     }
@@ -702,7 +702,7 @@ public class CheckoutActivity extends AppCompatActivity {
 
     private void showConfirmation() {
         if (!validateForm()) {
-            Toast.makeText(this, R.string.error_complete_form, Toast.LENGTH_SHORT).show();
+            // Toast.makeText(this, R.string.error_complete_form, Toast.LENGTH_SHORT).show();
             return;
         }
 
@@ -840,7 +840,7 @@ public class CheckoutActivity extends AppCompatActivity {
                         "CREATE_ORDER",
                         "Order placed via API"
                 );
-                Toast.makeText(CheckoutActivity.this, R.string.order_placed_success, Toast.LENGTH_LONG).show();
+                // Toast.makeText(CheckoutActivity.this, R.string.order_placed_success, Toast.LENGTH_LONG).show();
                 Intent intent = new Intent(CheckoutActivity.this, com.example.workshop6.ui.MainActivity.class);
                 intent.putExtra("navigate_to", "me");
                 intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);

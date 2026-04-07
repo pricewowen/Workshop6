@@ -123,7 +123,7 @@ public class MainActivity extends AppCompatActivity {
             bottomNav.post(() -> bottomNav.setSelectedItemId(R.id.nav_me));
         }
         if (intent.getBooleanExtra(EXTRA_PROMPT_CUSTOMER_PROFILE, false)) {
-            Toast.makeText(this, R.string.me_add_customer_profile_prompt, Toast.LENGTH_LONG).show();
+            // Toast.makeText(this, R.string.me_add_customer_profile_prompt, Toast.LENGTH_LONG).show();
         }
     }
 
@@ -274,7 +274,7 @@ public class MainActivity extends AppCompatActivity {
         if (isFinishing() || sessionManager == null || !sessionManager.isLoggedIn()) {
             return;
         }
-        Toast.makeText(this, R.string.lost_connection_logout, Toast.LENGTH_LONG).show();
+        // Toast.makeText(this, R.string.lost_connection_logout, Toast.LENGTH_LONG).show();
         redirectToLogin(getString(R.string.lost_connection_logout));
     }
 
@@ -313,7 +313,7 @@ public class MainActivity extends AppCompatActivity {
         NavigationUI.setupWithNavController(bottomNav, navController);
         bottomNav.setOnItemSelectedListener(item -> {
             if (!NetworkStatus.isOnline(MainActivity.this)) {
-                Toast.makeText(MainActivity.this, R.string.login_error_no_connection, Toast.LENGTH_SHORT).show();
+                // Toast.makeText(MainActivity.this, R.string.login_error_no_connection, Toast.LENGTH_SHORT).show();
                 return false;
             }
             // Chat is intentionally disabled for now (customer, staff, admin).

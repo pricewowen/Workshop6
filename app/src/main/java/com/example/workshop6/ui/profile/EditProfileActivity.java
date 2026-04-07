@@ -199,18 +199,18 @@ public class EditProfileActivity extends AppCompatActivity {
                     if (isGranted) {
                         launchCameraCapture();
                     } else {
-                        Toast.makeText(this, R.string.permission_camera_required, Toast.LENGTH_SHORT).show();
+                        // Toast.makeText(this, R.string.permission_camera_required, Toast.LENGTH_SHORT).show();
                     }
                 }
         );
 
         btnChoosePhoto.setOnClickListener(v -> {
             if (loadedCustomer != null && isCustomerPhotoPending) {
-                Toast.makeText(this, R.string.photo_change_locked_pending, Toast.LENGTH_SHORT).show();
+                // Toast.makeText(this, R.string.photo_change_locked_pending, Toast.LENGTH_SHORT).show();
                 return;
             }
             if (loadedEmployee != null && isCustomerPhotoPending) {
-                Toast.makeText(this, R.string.photo_change_locked_pending, Toast.LENGTH_SHORT).show();
+                // Toast.makeText(this, R.string.photo_change_locked_pending, Toast.LENGTH_SHORT).show();
                 return;
             }
             showPhotoChooser();
@@ -301,7 +301,7 @@ public class EditProfileActivity extends AppCompatActivity {
     private void launchCameraCapture() {
         cameraPhotoUri = ImageUtils.createCameraImageUri(this);
         if (cameraPhotoUri == null) {
-            Toast.makeText(this, R.string.error_photo_read, Toast.LENGTH_SHORT).show();
+            // Toast.makeText(this, R.string.error_photo_read, Toast.LENGTH_SHORT).show();
             return;
         }
         cameraLauncher.launch(cameraPhotoUri);
@@ -341,7 +341,7 @@ public class EditProfileActivity extends AppCompatActivity {
                     if (!response.isSuccessful() || response.body() == null) {
                         runOnUiThread(() -> {
                             setEditProfileLoading(false);
-                            Toast.makeText(EditProfileActivity.this, R.string.error_user_not_found, Toast.LENGTH_LONG).show();
+                            // Toast.makeText(EditProfileActivity.this, R.string.error_user_not_found, Toast.LENGTH_LONG).show();
                             finish();
                             NavTransitions.applyBackwardPending(EditProfileActivity.this);
                         });
@@ -355,7 +355,7 @@ public class EditProfileActivity extends AppCompatActivity {
                 public void onFailure(Call<CustomerDto> call, Throwable t) {
                     runOnUiThread(() -> {
                         setEditProfileLoading(false);
-                        Toast.makeText(EditProfileActivity.this, R.string.login_error_no_connection, Toast.LENGTH_SHORT).show();
+                        // Toast.makeText(EditProfileActivity.this, R.string.login_error_no_connection, Toast.LENGTH_SHORT).show();
                     });
                 }
             });
@@ -374,7 +374,7 @@ public class EditProfileActivity extends AppCompatActivity {
                     if (!response.isSuccessful() || response.body() == null) {
                         runOnUiThread(() -> {
                             setEditProfileLoading(false);
-                            Toast.makeText(EditProfileActivity.this, R.string.error_user_not_found, Toast.LENGTH_LONG).show();
+                            // Toast.makeText(EditProfileActivity.this, R.string.error_user_not_found, Toast.LENGTH_LONG).show();
                             finish();
                             NavTransitions.applyBackwardPending(EditProfileActivity.this);
                         });
@@ -389,7 +389,7 @@ public class EditProfileActivity extends AppCompatActivity {
                 public void onFailure(Call<EmployeeDto> call, Throwable t) {
                     runOnUiThread(() -> {
                         setEditProfileLoading(false);
-                        Toast.makeText(EditProfileActivity.this, R.string.login_error_no_connection, Toast.LENGTH_SHORT).show();
+                        // Toast.makeText(EditProfileActivity.this, R.string.login_error_no_connection, Toast.LENGTH_SHORT).show();
                     });
                 }
             });
@@ -613,7 +613,7 @@ public class EditProfileActivity extends AppCompatActivity {
             boolean dirtyEmail = !newEm.equals(originalAccountEmail);
             boolean dirtyPass = !Validation.isEmpty(pendingNewPassword);
             if (selectedPhotoUri == null && !dirtyUser && !dirtyEmail && !dirtyPass) {
-                Toast.makeText(this, R.string.nothing_to_save_profile, Toast.LENGTH_SHORT).show();
+                // Toast.makeText(this, R.string.nothing_to_save_profile, Toast.LENGTH_SHORT).show();
                 return;
             }
             if (selectedPhotoUri != null) {
@@ -988,7 +988,7 @@ public class EditProfileActivity extends AppCompatActivity {
 
         if (dirtyPass && pendingNewPassword.equals(currentPassword)) {
             tilAccountPassword.setError(getString(R.string.change_password_reuse_error));
-            Toast.makeText(this, R.string.change_password_reuse_error, Toast.LENGTH_LONG).show();
+            // Toast.makeText(this, R.string.change_password_reuse_error, Toast.LENGTH_LONG).show();
             return;
         }
 
@@ -996,7 +996,7 @@ public class EditProfileActivity extends AppCompatActivity {
             if (selectedPhotoUri != null) {
                 persistAccountOnlyPhotoUpload();
             } else {
-                Toast.makeText(getApplicationContext(), R.string.profile_saved, Toast.LENGTH_SHORT).show();
+                // Toast.makeText(getApplicationContext(), R.string.profile_saved, Toast.LENGTH_SHORT).show();
                 Intent intent = new Intent(EditProfileActivity.this, MainActivity.class);
                 intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
                 intent.putExtra(MainActivity.EXTRA_OPEN_ME_TAB, true);
@@ -1017,7 +1017,7 @@ public class EditProfileActivity extends AppCompatActivity {
             @Override
             public void onResponse(Call<AuthResponse> call, Response<AuthResponse> response) {
                 if (!response.isSuccessful() || response.body() == null) {
-                    Toast.makeText(EditProfileActivity.this, extractAccountPatchError(response), Toast.LENGTH_LONG).show();
+                    // Toast.makeText(EditProfileActivity.this, extractAccountPatchError(response), Toast.LENGTH_LONG).show();
                     return;
                 }
                 applyAuthResponseToSession(response.body());
@@ -1028,7 +1028,7 @@ public class EditProfileActivity extends AppCompatActivity {
 
             @Override
             public void onFailure(Call<AuthResponse> call, Throwable t) {
-                Toast.makeText(EditProfileActivity.this, R.string.login_error_no_connection, Toast.LENGTH_SHORT).show();
+                // Toast.makeText(EditProfileActivity.this, R.string.login_error_no_connection, Toast.LENGTH_SHORT).show();
             }
         });
     }
@@ -1050,7 +1050,7 @@ public class EditProfileActivity extends AppCompatActivity {
 
         if (dirtyPass && pendingNewPassword.equals(currentPassword)) {
             tilAccountPassword.setError(getString(R.string.change_password_reuse_error));
-            Toast.makeText(this, R.string.change_password_reuse_error, Toast.LENGTH_LONG).show();
+            // Toast.makeText(this, R.string.change_password_reuse_error, Toast.LENGTH_LONG).show();
             return;
         }
 
@@ -1069,7 +1069,7 @@ public class EditProfileActivity extends AppCompatActivity {
             @Override
             public void onResponse(Call<AuthResponse> call, Response<AuthResponse> response) {
                 if (!response.isSuccessful() || response.body() == null) {
-                    Toast.makeText(EditProfileActivity.this, extractAccountPatchError(response), Toast.LENGTH_LONG).show();
+                    // Toast.makeText(EditProfileActivity.this, extractAccountPatchError(response), Toast.LENGTH_LONG).show();
                     return;
                 }
                 applyAuthResponseToSession(response.body());
@@ -1080,7 +1080,7 @@ public class EditProfileActivity extends AppCompatActivity {
 
             @Override
             public void onFailure(Call<AuthResponse> call, Throwable t) {
-                Toast.makeText(EditProfileActivity.this, R.string.login_error_no_connection, Toast.LENGTH_SHORT).show();
+                // Toast.makeText(EditProfileActivity.this, R.string.login_error_no_connection, Toast.LENGTH_SHORT).show();
             }
         });
     }
@@ -1114,7 +1114,7 @@ public class EditProfileActivity extends AppCompatActivity {
             @Override
             public void onResponse(Call<Void> call, Response<Void> response) {
                 if (!response.isSuccessful()) {
-                    Toast.makeText(EditProfileActivity.this, R.string.change_password_failed, Toast.LENGTH_LONG).show();
+                    // Toast.makeText(EditProfileActivity.this, R.string.change_password_failed, Toast.LENGTH_LONG).show();
                     return;
                 }
                 pendingNewPassword = "";
@@ -1125,7 +1125,7 @@ public class EditProfileActivity extends AppCompatActivity {
 
             @Override
             public void onFailure(Call<Void> call, Throwable t) {
-                Toast.makeText(EditProfileActivity.this, R.string.login_error_no_connection, Toast.LENGTH_SHORT).show();
+                // Toast.makeText(EditProfileActivity.this, R.string.login_error_no_connection, Toast.LENGTH_SHORT).show();
             }
         });
     }
@@ -1143,7 +1143,7 @@ public class EditProfileActivity extends AppCompatActivity {
     private void persistAccountOnlyPhotoUpload() {
         MultipartBody.Part photoPart = buildPhotoPart(selectedPhotoUri);
         if (photoPart == null) {
-            Toast.makeText(this, R.string.error_photo_invalid, Toast.LENGTH_SHORT).show();
+            // Toast.makeText(this, R.string.error_photo_invalid, Toast.LENGTH_SHORT).show();
             return;
         }
         api.uploadProfilePhoto(photoPart).enqueue(new Callback<ProfilePhotoResponse>() {
@@ -1151,12 +1151,12 @@ public class EditProfileActivity extends AppCompatActivity {
             public void onResponse(Call<ProfilePhotoResponse> call, Response<ProfilePhotoResponse> response) {
                 if (!response.isSuccessful() || response.body() == null) {
                     String message = extractUploadErrorMessage(response);
-                    Toast.makeText(EditProfileActivity.this, message, Toast.LENGTH_LONG).show();
+                    // Toast.makeText(EditProfileActivity.this, message, Toast.LENGTH_LONG).show();
                     return;
                 }
                 selectedPhotoUri = null;
                 ActivityLogger.log(EditProfileActivity.this, sessionManager, "UPDATE_PROFILE", "Profile photo uploaded");
-                Toast.makeText(getApplicationContext(), R.string.profile_saved, Toast.LENGTH_SHORT).show();
+                // Toast.makeText(getApplicationContext(), R.string.profile_saved, Toast.LENGTH_SHORT).show();
                 Intent intent = new Intent(EditProfileActivity.this, MainActivity.class);
                 intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
                 intent.putExtra(MainActivity.EXTRA_OPEN_ME_TAB, true);
@@ -1166,7 +1166,7 @@ public class EditProfileActivity extends AppCompatActivity {
 
             @Override
             public void onFailure(Call<ProfilePhotoResponse> call, Throwable t) {
-                Toast.makeText(EditProfileActivity.this, R.string.login_error_no_connection, Toast.LENGTH_SHORT).show();
+                // Toast.makeText(EditProfileActivity.this, R.string.login_error_no_connection, Toast.LENGTH_SHORT).show();
             }
         });
     }
@@ -1199,14 +1199,14 @@ public class EditProfileActivity extends AppCompatActivity {
         if (selectedPhotoUri != null) {
             MultipartBody.Part photoPart = buildPhotoPart(selectedPhotoUri);
             if (photoPart == null) {
-                Toast.makeText(this, R.string.error_photo_invalid, Toast.LENGTH_SHORT).show();
+                // Toast.makeText(this, R.string.error_photo_invalid, Toast.LENGTH_SHORT).show();
                 return;
             }
             api.uploadProfilePhoto(photoPart).enqueue(new Callback<ProfilePhotoResponse>() {
                 @Override
                 public void onResponse(Call<ProfilePhotoResponse> call, Response<ProfilePhotoResponse> response) {
                     if (!response.isSuccessful() || response.body() == null) {
-                        Toast.makeText(EditProfileActivity.this, extractUploadErrorMessage(response), Toast.LENGTH_LONG).show();
+                        // Toast.makeText(EditProfileActivity.this, extractUploadErrorMessage(response), Toast.LENGTH_LONG).show();
                         return;
                     }
                     ProfilePhotoResponse body = response.body();
@@ -1220,7 +1220,7 @@ public class EditProfileActivity extends AppCompatActivity {
 
                 @Override
                 public void onFailure(Call<ProfilePhotoResponse> call, Throwable t) {
-                    Toast.makeText(EditProfileActivity.this, R.string.login_error_no_connection, Toast.LENGTH_SHORT).show();
+                    // Toast.makeText(EditProfileActivity.this, R.string.login_error_no_connection, Toast.LENGTH_SHORT).show();
                 }
             });
             return;
@@ -1248,7 +1248,7 @@ public class EditProfileActivity extends AppCompatActivity {
             @Override
             public void onResponse(Call<EmployeeDto> call, Response<EmployeeDto> response) {
                 if (!response.isSuccessful() || response.body() == null) {
-                    Toast.makeText(EditProfileActivity.this, R.string.error_user_not_found, Toast.LENGTH_SHORT).show();
+                    // Toast.makeText(EditProfileActivity.this, R.string.error_user_not_found, Toast.LENGTH_SHORT).show();
                     return;
                 }
                 loadedEmployee = response.body();
@@ -1265,7 +1265,7 @@ public class EditProfileActivity extends AppCompatActivity {
                                 : sessionManager.getLoginEmail()
                 );
                 ActivityLogger.log(EditProfileActivity.this, sessionManager, "UPDATE_PROFILE", "Employee profile details updated");
-                Toast.makeText(getApplicationContext(), R.string.profile_saved, Toast.LENGTH_SHORT).show();
+                // Toast.makeText(getApplicationContext(), R.string.profile_saved, Toast.LENGTH_SHORT).show();
                 Intent intent = new Intent(EditProfileActivity.this, MainActivity.class);
                 intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
                 NavTransitions.startActivityWithForward(EditProfileActivity.this, intent);
@@ -1274,7 +1274,7 @@ public class EditProfileActivity extends AppCompatActivity {
 
             @Override
             public void onFailure(Call<EmployeeDto> call, Throwable t) {
-                Toast.makeText(EditProfileActivity.this, R.string.login_error_no_connection, Toast.LENGTH_SHORT).show();
+                // Toast.makeText(EditProfileActivity.this, R.string.login_error_no_connection, Toast.LENGTH_SHORT).show();
             }
         });
     }
