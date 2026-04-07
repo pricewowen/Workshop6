@@ -3,7 +3,7 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/nav_graph"
-    app:startDestination="@id/nav_me">
+    app:startDestination="@id/nav_browse">
 
     <fragment
         android:id="@+id/nav_browse"
@@ -50,6 +50,18 @@
         android:name="com.example.workshop6.ui.approvals.AccountAdminFragment"
         android:label="@string/nav_account_admin"
         tools:layout="@layout/fragment_account_admin" />
+
+    <fragment
+        android:id="@+id/nav_order_admin"
+        android:name="com.example.workshop6.ui.approvals.OrdersAdminFragment"
+        android:label="@string/nav_order_admin"
+        tools:layout="@layout/fragment_orders_admin" />
+
+    <fragment
+        android:id="@+id/nav_review_approvals"
+        android:name="com.example.workshop6.ui.approvals.ReviewApprovalsFragment"
+        android:label="@string/nav_review_approvals"
+        tools:layout="@layout/fragment_review_approvals" />
 
     <fragment
         android:id="@+id/nav_staff_chat"

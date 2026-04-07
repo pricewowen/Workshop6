@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@color/bakery_background">
@@ -21,7 +22,7 @@
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="18dp"
+                android:layout_marginBottom="22dp"
                 android:gravity="center_vertical"
                 android:orientation="horizontal">
 
@@ -44,13 +45,38 @@
                     android:orientation="vertical">
 
                     <TextView
+                        android:id="@+id/tv_me_role"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:letterSpacing="0.03"
+                        android:textColor="@color/bakery_text_secondary"
+                        android:textSize="11sp"
+                        android:textStyle="bold"
+                        tools:text="Customer" />
+
+                    <TextView
                         android:id="@+id/tv_me_name"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
+                        android:layout_marginTop="4dp"
                         android:text=""
                         android:textColor="@color/bakery_text_dark"
                         android:textSize="20sp"
                         android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/tv_me_position"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:ellipsize="end"
+                        android:maxLines="2"
+                        android:text=""
+                        android:textColor="@color/bakery_text_secondary"
+                        android:textSize="13sp"
+                        android:visibility="gone"
+                        tools:text="Baker"
+                        tools:visibility="visible" />
 
                     <TextView
                         android:id="@+id/tv_me_email"
@@ -64,6 +90,18 @@
                         android:textSize="14sp" />
 
                     <TextView
+                        android:id="@+id/tv_me_bakery"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:ellipsize="end"
+                        android:maxLines="1"
+                        android:text=""
+                        android:textColor="@color/bakery_text_secondary"
+                        android:textSize="13sp"
+                        android:visibility="gone" />
+
+                    <TextView
                         android:id="@+id/tv_me_photo_status"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
@@ -73,28 +111,27 @@
                         android:textSize="12sp"
                         android:visibility="gone" />
                 </LinearLayout>
-
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/btn_edit_profile"
-                    style="@style/Widget.MaterialComponents.Button.OutlinedButton"
-                    android:layout_width="wrap_content"
-                    android:layout_height="40dp"
-                    android:text="@string/btn_edit"
-                    android:textColor="@color/bakery_text_dark"
-                    app:cornerRadius="20dp"
-                    app:strokeColor="@color/bakery_text_dark" />
             </LinearLayout>
 
-            <TextView
-                android:id="@+id/tv_me_address"
+            <Button
+                android:id="@+id/btn_edit_account"
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginBottom="22dp"
-                android:lineSpacingExtra="2dp"
-                android:minHeight="48dp"
-                android:text=""
-                android:textColor="@color/bakery_text_dark"
-                android:textSize="14sp" />
+                android:layout_height="56dp"
+                android:layout_marginTop="8dp"
+                android:visibility="gone"
+                android:backgroundTint="@color/bakery_primary"
+                android:text="@string/btn_edit_account"
+                android:textColor="@color/bakery_text_light" />
+
+            <Button
+                android:id="@+id/btn_customer_details"
+                android:layout_width="match_parent"
+                android:layout_height="56dp"
+                android:layout_marginTop="8dp"
+                android:visibility="gone"
+                android:backgroundTint="@color/bakery_primary"
+                android:text="@string/btn_your_details"
+                android:textColor="@color/bakery_text_light" />
 
             <Button
                 android:id="@+id/btn_loyalty_rewards"

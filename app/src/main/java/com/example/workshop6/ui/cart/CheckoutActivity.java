@@ -1,5 +1,8 @@
 package com.example.workshop6.ui.cart;
 
+import android.app.Activity;
+import android.app.DatePickerDialog;
+import android.app.TimePickerDialog;
 import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
@@ -16,6 +19,8 @@ import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 
@@ -36,13 +41,19 @@ import com.example.workshop6.data.api.dto.BakeryHourDto;
 import com.example.workshop6.data.api.dto.CheckoutRequest;
 import com.example.workshop6.data.api.dto.CheckoutSessionResponse;
 import com.example.workshop6.data.api.dto.CustomerDto;
+import com.example.workshop6.data.api.dto.GuestCustomerRequest;
 import com.example.workshop6.data.api.dto.CustomerPatchRequest;
 import com.example.workshop6.data.api.dto.ProductSpecialTodayDto;
 import com.example.workshop6.data.api.dto.RewardTierDto;
 import com.example.workshop6.data.model.BakeryLocationDetails;
 import com.example.workshop6.data.model.CartItem;
 import com.example.workshop6.logging.ActivityLogger;
+import com.example.workshop6.ui.MainActivity;
 import com.example.workshop6.ui.loyalty.LoyaltyTierUi;
+import com.example.workshop6.ui.profile.CustomerProfileSetupActivity;
+import com.example.workshop6.util.CanadianTaxRates;
+import com.example.workshop6.util.MoneyFormat;
+import com.example.workshop6.util.NavTransitions;
 import com.example.workshop6.util.ProductSpecialState;
 import com.example.workshop6.util.SensitiveActionAuthorizer;
 import com.example.workshop6.util.TodayDate;
@@ -73,6 +84,7 @@ public class CheckoutActivity extends AppCompatActivity {
     private TextView tvScheduledTime;
     private Button btnSelectTime;
     private TextView tvSubtotal;
+    private TextView tvTaxLabel;
     private TextView tvTax;
     private TextView tvTotal;
     private Button btnConfirmOrder;
@@ -106,7 +118,6 @@ public class CheckoutActivity extends AppCompatActivity {
     private final SimpleDateFormat dateTimeFormat = new SimpleDateFormat("MMM dd, yyyy hh:mm a", Locale.CANADA);
     private final NumberFormat currencyFormat = NumberFormat.getCurrencyInstance(Locale.CANADA);
     private final NumberFormat loyaltyPointsFormat = NumberFormat.getNumberInstance(Locale.US);
-    private static final double TAX_RATE = 0.13;
     private static final double HIGH_VALUE_ORDER_THRESHOLD = 100.0;
 
     private String deliveryMethod = "pickup";
@@ -125,8 +136,17 @@ public class CheckoutActivity extends AppCompatActivity {
     private Integer checkoutLoyaltyTierId;
     private RewardTierDto checkoutResolvedTier;
 
+    private ActivityResultLauncher<Intent> customerProfileLauncher;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        customerProfileLauncher = registerForActivityResult(
+                new ActivityResultContracts.StartActivityForResult(),
+                result -> {
+                    if (result.getResultCode() == Activity.RESULT_OK) {
+                        loadCustomerData();
+                    }
+                });
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_checkout);
 
@@ -134,23 +154,29 @@ public class CheckoutActivity extends AppCompatActivity {
         paymentSheet = new PaymentSheet(this, this::onPaymentSheetResult);
 
         sessionManager = new SessionManager(this);
-        if (!sessionManager.isLoggedIn()) {
+        if (!sessionManager.hasActiveSession()) {
             redirectToLogin();
             return;
         }
-        if (!"CUSTOMER".equalsIgnoreCase(sessionManager.getUserRole())) {
-            Toast.makeText(this, R.string.staff_purchase_blocked, Toast.LENGTH_SHORT).show();
+        if (!sessionManager.isGuestMode() && !"CUSTOMER".equalsIgnoreCase(sessionManager.getUserRole())) {
+            // Toast.makeText(this, R.string.staff_purchase_blocked, Toast.LENGTH_SHORT).show();
             finish();
+            NavTransitions.applyBackwardPending(this);
             return;
         }
         cartManager = CartManager.getInstance(this);
         cart = cartManager.getCart();
         api = ApiClient.getInstance().getService();
-        ApiClient.getInstance().setToken(sessionManager.getToken());
+        if (sessionManager.isLoggedIn()) {
+            ApiClient.getInstance().setToken(sessionManager.getToken());
+        } else {
+            ApiClient.getInstance().clearToken();
+        }
 
         if (cart.isEmpty()) {
-            Toast.makeText(this, R.string.cart_empty, Toast.LENGTH_SHORT).show();
+            // Toast.makeText(this, R.string.cart_empty, Toast.LENGTH_SHORT).show();
             finish();
+            NavTransitions.applyBackwardPending(this);
             return;
         }
 
@@ -160,7 +186,10 @@ public class CheckoutActivity extends AppCompatActivity {
             getSupportActionBar().setDisplayHomeAsUpEnabled(true);
             getSupportActionBar().setTitle(R.string.checkout_title);
         }
-        toolbar.setNavigationOnClickListener(v -> finish());
+        toolbar.setNavigationOnClickListener(v -> {
+            finish();
+            NavTransitions.applyBackwardPending(this);
+        });
 
         initializeViews();
         fetchTodaySpecialForCheckout();
@@ -171,7 +200,7 @@ public class CheckoutActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
-        if (!sessionManager.isLoggedIn()) {
+        if (!sessionManager.hasActiveSession()) {
             redirectToLogin();
             return;
         }
@@ -195,6 +224,7 @@ public class CheckoutActivity extends AppCompatActivity {
         tvScheduledTime = findViewById(R.id.tvScheduledTime);
         btnSelectTime = findViewById(R.id.btnSelectTime);
         tvSubtotal = findViewById(R.id.tvSubtotal);
+        tvTaxLabel = findViewById(R.id.tvTaxLabel);
         tvTax = findViewById(R.id.tvTax);
         tvTotal = findViewById(R.id.tvTotal);
         btnConfirmOrder = findViewById(R.id.btnConfirmOrder);
@@ -248,6 +278,7 @@ public class CheckoutActivity extends AppCompatActivity {
                 tvSelectedBakery.setVisibility(View.VISIBLE);
                 tvDeliveryAddress.setVisibility(View.GONE);
             }
+            updateTotals();
             validateForm();
         });
 
@@ -270,12 +301,12 @@ public class CheckoutActivity extends AppCompatActivity {
         btnConfirmOrder.setOnClickListener(v -> showConfirmation());
 
         btnPlaceOrder.setOnClickListener(v -> {
-            if (getOrderTotal() >= HIGH_VALUE_ORDER_THRESHOLD) {
+            if (sessionManager.isLoggedIn() && getOrderTotal() >= HIGH_VALUE_ORDER_THRESHOLD) {
                 SensitiveActionAuthorizer.promptForPassword(
                         this,
                         sessionManager,
                         getString(R.string.reauth_title_checkout),
-                        getString(R.string.reauth_message_checkout, currencyFormat.format(HIGH_VALUE_ORDER_THRESHOLD)),
+                        getString(R.string.reauth_message_checkout, MoneyFormat.formatCad(currencyFormat, HIGH_VALUE_ORDER_THRESHOLD)),
                         this::placeOrder
                 );
             } else {
@@ -310,10 +341,47 @@ public class CheckoutActivity extends AppCompatActivity {
         });
     }
 
+    /** Opens the same personal-info form as Me, then returns here when the customer taps Proceed with order. */
+    private void openCustomerProfileForCheckout() {
+        boolean minimalGuest = sessionManager.isGuestMode() && !sessionManager.hasMinimalGuestContact();
+        openCustomerProfileForCheckout(minimalGuest);
+    }
+
+    private void openCustomerProfileForCheckout(boolean minimalContactGuest) {
+        Intent i = new Intent(this, CustomerProfileSetupActivity.class);
+        i.putExtra(CustomerProfileSetupActivity.EXTRA_LAUNCHED_FOR_CHECKOUT, true);
+        i.putExtra(CustomerProfileSetupActivity.EXTRA_OPEN_CHECKOUT_AFTER_SAVE, false);
+        i.putExtra(CustomerProfileSetupActivity.EXTRA_GUEST_MODE, sessionManager.isGuestMode());
+        i.putExtra(CustomerProfileSetupActivity.EXTRA_MINIMAL_CONTACT_GUEST, minimalContactGuest);
+        customerProfileLauncher.launch(i, NavTransitions.forwardLaunchOptions(this));
+    }
+
     private void loadCustomerData() {
+        if (sessionManager.isGuestMode()) {
+            GuestCustomerRequest guest = sessionManager.getGuestProfile();
+            if (guest == null) {
+                runOnUiThread(this::openCustomerProfileForCheckout);
+                return;
+            }
+            currentCustomer = toGuestCustomer(guest);
+            checkoutRewardTiers.clear();
+            checkoutLoyaltyPoints = 0;
+            checkoutLoyaltyTierId = null;
+            checkoutResolvedTier = null;
+            runOnUiThread(() -> {
+                bindCheckoutLoyaltyPanel();
+                updateTotals();
+                validateForm();
+            });
+            return;
+        }
         api.getCustomerMe().enqueue(new Callback<CustomerDto>() {
             @Override
             public void onResponse(Call<CustomerDto> call, Response<CustomerDto> response) {
+                if (response.code() == 404) {
+                    runOnUiThread(() -> openCustomerProfileForCheckout());
+                    return;
+                }
                 if (response.isSuccessful() && response.body() != null) {
                     currentCustomer = response.body();
                     fetchRewardTiersForCheckout(currentCustomer);
@@ -358,6 +426,11 @@ public class CheckoutActivity extends AppCompatActivity {
         if (cardCheckoutLoyalty == null) {
             return;
         }
+        if (sessionManager.isGuestMode()) {
+            cardCheckoutLoyalty.setVisibility(View.GONE);
+            return;
+        }
+        cardCheckoutLoyalty.setVisibility(View.VISIBLE);
         tvCheckoutLoyaltyBalance.setText(getString(
                 R.string.checkout_loyalty_balance,
                 loyaltyPointsFormat.format(Math.max(0, checkoutLoyaltyPoints))));
@@ -398,33 +471,40 @@ public class CheckoutActivity extends AppCompatActivity {
     }
 
     private void redeemCheckoutLoyaltyDiscount() {
+        if (sessionManager.isGuestMode()) {
+            return;
+        }
         if (cart.hasDiscount()) {
-            Toast.makeText(this, R.string.label_discount_applied, Toast.LENGTH_SHORT).show();
+            // Toast.makeText(this, R.string.label_discount_applied, Toast.LENGTH_SHORT).show();
             return;
         }
         RewardTierDto tier = checkoutResolvedTier;
         int cost = LoyaltyTierUi.redeemPointsCost(tier);
         if (tier == null || cost <= 0) {
-            Toast.makeText(this, R.string.checkout_loyalty_no_discount, Toast.LENGTH_SHORT).show();
+            // Toast.makeText(this, R.string.checkout_loyalty_no_discount, Toast.LENGTH_SHORT).show();
             return;
         }
         ActivityLogger.log(this, sessionManager, "ADJUST_POINTS", "Redeem tier discount at checkout");
         api.getCustomerMe().enqueue(new Callback<CustomerDto>() {
             @Override
             public void onResponse(Call<CustomerDto> call, Response<CustomerDto> response) {
+                if (response.code() == 404) {
+                    runOnUiThread(() -> openCustomerProfileForCheckout());
+                    return;
+                }
                 if (!response.isSuccessful() || response.body() == null) {
-                    Toast.makeText(CheckoutActivity.this, R.string.error_user_not_found, Toast.LENGTH_SHORT).show();
+                    // Toast.makeText(CheckoutActivity.this, R.string.error_user_not_found, Toast.LENGTH_SHORT).show();
                     return;
                 }
                 CustomerDto c = response.body();
                 if (c.rewardBalance < cost) {
-                    Toast.makeText(
-                            CheckoutActivity.this,
-                            getString(
-                                    R.string.checkout_loyalty_insufficient_points,
-                                    loyaltyPointsFormat.format(cost),
-                                    loyaltyPointsFormat.format(c.rewardBalance)),
-                            Toast.LENGTH_LONG).show();
+                    // Toast.makeText(
+                    //         CheckoutActivity.this,
+                    //         getString(
+                    //                 R.string.checkout_loyalty_insufficient_points,
+                    //                 loyaltyPointsFormat.format(cost),
+                    //                 loyaltyPointsFormat.format(c.rewardBalance)),
+                    //         Toast.LENGTH_LONG).show();
                     return;
                 }
                 CustomerPatchRequest patch = new CustomerPatchRequest();
@@ -433,7 +513,7 @@ public class CheckoutActivity extends AppCompatActivity {
                     @Override
                     public void onResponse(Call<CustomerDto> call2, Response<CustomerDto> response2) {
                         if (!response2.isSuccessful() || response2.body() == null) {
-                            Toast.makeText(CheckoutActivity.this, R.string.error_placing_order, Toast.LENGTH_SHORT).show();
+                            // Toast.makeText(CheckoutActivity.this, R.string.error_placing_order, Toast.LENGTH_SHORT).show();
                             return;
                         }
                         CustomerDto updated = response2.body();
@@ -444,32 +524,48 @@ public class CheckoutActivity extends AppCompatActivity {
                         checkoutResolvedTier = LoyaltyTierUi.resolveCurrentTier(
                                 checkoutRewardTiers, checkoutLoyaltyPoints, checkoutLoyaltyTierId);
                         double appliedPct = tier.discountRatePercent != null ? tier.discountRatePercent.doubleValue() : 0d;
-                        Toast.makeText(
-                                CheckoutActivity.this,
-                                getString(R.string.checkout_loyalty_applied_toast, appliedPct),
-                                Toast.LENGTH_LONG).show();
+                        // Toast.makeText(
+                        //         CheckoutActivity.this,
+                        //         getString(R.string.checkout_loyalty_applied_toast, appliedPct),
+                        //         Toast.LENGTH_LONG).show();
                         updateTotals();
                         bindCheckoutLoyaltyPanel();
                     }
 
                     @Override
                     public void onFailure(Call<CustomerDto> call2, Throwable t) {
-                        Toast.makeText(CheckoutActivity.this, R.string.login_error_no_connection, Toast.LENGTH_SHORT).show();
+                        // Toast.makeText(CheckoutActivity.this, R.string.login_error_no_connection, Toast.LENGTH_SHORT).show();
                     }
                 });
             }
 
             @Override
             public void onFailure(Call<CustomerDto> call, Throwable t) {
-                Toast.makeText(CheckoutActivity.this, R.string.login_error_no_connection, Toast.LENGTH_SHORT).show();
+                // Toast.makeText(CheckoutActivity.this, R.string.login_error_no_connection, Toast.LENGTH_SHORT).show();
             }
         });
     }
 
     private void loadUserAddressHint() {
+        if (sessionManager.isGuestMode()) {
+            runOnUiThread(() -> {
+                if (!hasDeliveryAddress()) {
+                    rbDelivery.setError(getString(R.string.error_no_address));
+                    openCustomerProfileForCheckout(false);
+                } else {
+                    rbDelivery.setError(null);
+                }
+                validateForm();
+            });
+            return;
+        }
         api.getCustomerMe().enqueue(new Callback<CustomerDto>() {
             @Override
             public void onResponse(Call<CustomerDto> call, Response<CustomerDto> response) {
+                if (response.code() == 404) {
+                    runOnUiThread(() -> openCustomerProfileForCheckout());
+                    return;
+                }
                 if (response.isSuccessful() && response.body() != null) {
                     currentCustomer = response.body();
                 }
@@ -498,7 +594,7 @@ public class CheckoutActivity extends AppCompatActivity {
             @Override
             public void onFailure(Call<CustomerDto> call, Throwable t) {
                 runOnUiThread(() -> {
-                    Toast.makeText(CheckoutActivity.this, "Error loading profile", Toast.LENGTH_SHORT).show();
+                    // Toast.makeText(CheckoutActivity.this, "Error loading profile", Toast.LENGTH_SHORT).show();
                     validateForm();
                 });
             }
@@ -537,18 +633,20 @@ public class CheckoutActivity extends AppCompatActivity {
                             selectedBakery = bakeryList.get(position);
                             selectedBakeryId = selectedBakery.id;
                             tvSelectedBakery.setText(selectedBakery.name);
+                            updateTotals();
                         }
 
                         @Override
                         public void onNothingSelected(AdapterView<?> parent) {
                         }
                     });
+                    updateTotals();
                 });
             }
 
             @Override
             public void onFailure(Call<List<BakeryDto>> call, Throwable t) {
-                Toast.makeText(CheckoutActivity.this, R.string.login_error_no_connection, Toast.LENGTH_SHORT).show();
+                // Toast.makeText(CheckoutActivity.this, R.string.login_error_no_connection, Toast.LENGTH_SHORT).show();
             }
         });
     }
@@ -744,7 +842,7 @@ public class CheckoutActivity extends AppCompatActivity {
         double specSave = cart.getTodaySpecialSavingsTotal();
         double tierSave = cart.getTierDiscountDollars();
         double paySub = cart.getTotalPrice();
-        double tax = paySub * TAX_RATE;
+        double tax = calculateTaxAmount(paySub);
         double total = paySub + tax;
 
         boolean showSpec = specSave > 0.005;
@@ -753,11 +851,11 @@ public class CheckoutActivity extends AppCompatActivity {
             checkoutRowSpecial.setVisibility(showSpec ? View.VISIBLE : View.GONE);
         }
         if (showSpec && cardCheckoutSpecial != null) {
-            tvCheckoutRegularMerch.setText(currencyFormat.format(listSub));
-            tvCheckoutSpecialLine.setText("-" + currencyFormat.format(specSave));
+            tvCheckoutRegularMerch.setText(MoneyFormat.formatCad(currencyFormat, listSub));
+            tvCheckoutSpecialLine.setText("-" + MoneyFormat.formatCad(currencyFormat, specSave));
             tvCheckoutSpecialExplanation.setText(getString(
                     R.string.checkout_special_cart_blurb,
-                    currencyFormat.format(specSave)));
+                    MoneyFormat.formatCad(currencyFormat, specSave)));
             cardCheckoutSpecial.setVisibility(View.VISIBLE);
         } else if (cardCheckoutSpecial != null) {
             cardCheckoutSpecial.setVisibility(View.GONE);
@@ -768,19 +866,24 @@ public class CheckoutActivity extends AppCompatActivity {
             checkoutRowTier.setVisibility(showTier ? View.VISIBLE : View.GONE);
         }
         if (showTier && tvCheckoutTierLine != null) {
-            tvCheckoutTierLine.setText("-" + currencyFormat.format(tierSave));
+            tvCheckoutTierLine.setText("-" + MoneyFormat.formatCad(currencyFormat, tierSave));
         }
 
-        tvSubtotal.setText(currencyFormat.format(paySub));
-        tvTax.setText(currencyFormat.format(tax));
-        tvTotal.setText(currencyFormat.format(total));
+        if (tvTaxLabel != null) {
+            tvTaxLabel.setText(getString(
+                    R.string.tax_with_percent,
+                    CanadianTaxRates.formatTaxPercent(getCurrentTaxRatePercent())));
+        }
+        tvSubtotal.setText(MoneyFormat.formatCad(currencyFormat, paySub));
+        tvTax.setText(MoneyFormat.formatCad(currencyFormat, tax));
+        tvTotal.setText(MoneyFormat.formatCad(currencyFormat, total));
     }
 
     private boolean validateForm() {
         boolean valid = true;
 
         if ("delivery".equals(deliveryMethod)) {
-            if (currentCustomer == null || currentCustomer.addressId == null || currentCustomer.addressId <= 0) {
+            if (!hasDeliveryAddress()) {
                 rbDelivery.setError(getString(R.string.error_no_address));
                 valid = false;
             } else {
@@ -809,7 +912,7 @@ public class CheckoutActivity extends AppCompatActivity {
 
     private void showConfirmation() {
         if (!validateForm()) {
-            Toast.makeText(this, R.string.error_complete_form, Toast.LENGTH_SHORT).show();
+            // Toast.makeText(this, R.string.error_complete_form, Toast.LENGTH_SHORT).show();
             return;
         }
 
@@ -820,19 +923,27 @@ public class CheckoutActivity extends AppCompatActivity {
             confirmationText.append(String.format("%s x%d - %s\n",
                     item.getProduct().getProductName(),
                     item.getQuantity(),
-                    currencyFormat.format(item.getTotalPrice())));
+                    MoneyFormat.formatCad(currencyFormat, item.getTotalPrice())));
         }
 
         double subtotal = cart.getTotalPrice();
-        double tax = subtotal * TAX_RATE;
+        double tax = calculateTaxAmount(subtotal);
         double total = subtotal + tax;
+        // Points stay based on the pre-tax subtotal to match backend reward earning logic.
+        int estimatedPointsEarned = Math.max(1, (int) Math.floor(subtotal * 1000.0));
 
         confirmationText.append("\n").append(getString(R.string.confirmation_subtotal))
-                .append(": ").append(currencyFormat.format(subtotal)).append("\n");
-        confirmationText.append(getString(R.string.confirmation_tax))
-                .append(": ").append(currencyFormat.format(tax)).append("\n");
+                .append(": ").append(MoneyFormat.formatCad(currencyFormat, subtotal)).append("\n");
+        confirmationText.append(getString(
+                        R.string.tax_with_percent,
+                        CanadianTaxRates.formatTaxPercent(getCurrentTaxRatePercent())))
+                .append(": ").append(MoneyFormat.formatCad(currencyFormat, tax)).append("\n");
         confirmationText.append(getString(R.string.confirmation_total))
-                .append(": ").append(currencyFormat.format(total)).append("\n\n");
+                .append(": ").append(MoneyFormat.formatCad(currencyFormat, total)).append("\n\n");
+        confirmationText.append(getString(
+                        R.string.confirmation_points_earned_fmt,
+                        loyaltyPointsFormat.format(Math.max(estimatedPointsEarned, 1))))
+                .append("\n\n");
 
         confirmationText.append(getString(R.string.confirmation_delivery_method))
                 .append(": ").append(deliveryMethod).append("\n");
@@ -859,8 +970,57 @@ public class CheckoutActivity extends AppCompatActivity {
 
     private double getOrderTotal() {
         double subtotal = cart.getTotalPrice();
-        double tax = subtotal * TAX_RATE;
+        double tax = calculateTaxAmount(subtotal);
         return subtotal + tax;
+    }
+
+    private double calculateTaxAmount(double subtotal) {
+        return subtotal * getCurrentTaxRatePercent() / 100.0;
+    }
+
+    /**
+     * Pickup: tax matches the selected bakery’s province (same idea as the API: pickup site address).
+     * Delivery: customer’s delivery address province.
+     * If the resolved rate is still 0 (unknown province / not loaded yet), uses Ontario as a display fallback.
+     */
+    private double getCurrentTaxRatePercent() {
+        String provinceRaw = null;
+        if ("pickup".equals(deliveryMethod)) {
+            provinceRaw = provinceFromBakery(selectedBakery);
+            if (provinceRaw == null) {
+                provinceRaw = provinceFromFirstListedBakery();
+            }
+        } else {
+            if (currentCustomer != null && currentCustomer.address != null) {
+                provinceRaw = currentCustomer.address.province;
+            }
+        }
+        double pct = CanadianTaxRates.getTaxPercent(provinceRaw);
+        if (pct <= 0) {
+            pct = CanadianTaxRates.getTaxPercent("ON");
+        }
+        return pct;
+    }
+
+    private static String provinceFromBakery(BakeryLocationDetails bakery) {
+        if (bakery == null || bakery.province == null) {
+            return null;
+        }
+        String p = bakery.province.trim();
+        return p.isEmpty() ? null : p;
+    }
+
+    private String provinceFromFirstListedBakery() {
+        if (bakeryList == null) {
+            return null;
+        }
+        for (BakeryLocationDetails b : bakeryList) {
+            String p = provinceFromBakery(b);
+            if (p != null) {
+                return p;
+            }
+        }
+        return null;
     }
 
     private String formatScheduledIso() {
@@ -878,11 +1038,15 @@ public class CheckoutActivity extends AppCompatActivity {
         req.scheduledAt = formatScheduledIso();
 
         if ("delivery".equals(deliveryMethod)) {
-            if (currentCustomer != null && currentCustomer.addressId != null) {
+            if (!sessionManager.isGuestMode() && currentCustomer != null && currentCustomer.addressId != null) {
                 req.addressId = currentCustomer.addressId;
             }
         } else if (selectedBakery != null) {
             req.addressId = selectedBakery.addressId > 0 ? selectedBakery.addressId : null;
+        }
+
+        if (sessionManager.isGuestMode()) {
+            req.guest = sessionManager.getGuestProfile();
         }
 
         double manualDiscountDollars = cart.getTodaySpecialSavingsTotal() + cart.getTierDiscountDollars();
@@ -903,10 +1067,12 @@ public class CheckoutActivity extends AppCompatActivity {
             @Override
             public void onResponse(Call<CheckoutSessionResponse> call, Response<CheckoutSessionResponse> response) {
                 if (response.code() == 401 || response.code() == 403) {
-                    redirectToLogin();
+                    if (sessionManager.isLoggedIn()) {
+                        redirectToLogin();
+                    }
                     return;
                 }
-                if (!response.isSuccessful() || response.body() == null || response.body().clientSecret == null) {
+                if (!response.isSuccessful() || response.body() == null || response.body().clientSecret == null || response.body().orderId == null) {
                     Snackbar.make(findViewById(android.R.id.content),
                             R.string.error_placing_order, Snackbar.LENGTH_LONG).show();
                     btnPlaceOrder.setEnabled(true);
@@ -974,7 +1140,39 @@ public class CheckoutActivity extends AppCompatActivity {
         Intent intent = new Intent(this, com.example.workshop6.auth.LoginActivity.class);
         intent.putExtra("session_message", getString(R.string.session_expired));
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
-        startActivity(intent);
+        NavTransitions.startActivityWithForward(this, intent);
         finish();
+    }
+
+    private boolean hasDeliveryAddress() {
+        if (currentCustomer == null) {
+            return false;
+        }
+        if (sessionManager.isGuestMode()) {
+            return currentCustomer.address != null
+                    && currentCustomer.address.line1 != null
+                    && !currentCustomer.address.line1.trim().isEmpty();
+        }
+        return currentCustomer.addressId != null && currentCustomer.addressId > 0;
+    }
+
+    private CustomerDto toGuestCustomer(GuestCustomerRequest guest) {
+        CustomerDto dto = new CustomerDto();
+        dto.firstName = guest.firstName;
+        dto.middleInitial = guest.middleInitial;
+        dto.lastName = guest.lastName;
+        dto.phone = guest.phone;
+        dto.businessPhone = guest.businessPhone;
+        dto.email = guest.email;
+        dto.rewardBalance = 0;
+        dto.rewardTierId = null;
+        dto.addressId = null;
+        dto.address = new com.example.workshop6.data.api.dto.AddressDto();
+        dto.address.line1 = guest.addressLine1;
+        dto.address.line2 = guest.addressLine2;
+        dto.address.city = guest.city;
+        dto.address.province = guest.province;
+        dto.address.postalCode = guest.postalCode;
+        return dto;
     }
 }

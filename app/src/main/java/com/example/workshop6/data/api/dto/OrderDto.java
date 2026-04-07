@@ -23,6 +23,12 @@ public class OrderDto {
     public BigDecimal orderTotal;
     @SerializedName("orderDiscount")
     public BigDecimal orderDiscount;
+    @SerializedName("orderTaxRate")
+    public BigDecimal orderTaxRate;
+    @SerializedName("orderTaxAmount")
+    public BigDecimal orderTaxAmount;
+    @SerializedName("orderGrandTotal")
+    public BigDecimal orderGrandTotal;
     public String status;
     @SerializedName("placedAt")
     public String placedAt;
@@ -32,4 +38,19 @@ public class OrderDto {
     public String deliveredAt;
     public String comment;
     public List<OrderItemDto> items;
+
+    public BigDecimal getSubtotalAmount() {
+        return orderTotal != null ? orderTotal : BigDecimal.ZERO;
+    }
+
+    public BigDecimal getTaxAmount() {
+        return orderTaxAmount != null ? orderTaxAmount : BigDecimal.ZERO;
+    }
+
+    public BigDecimal getGrandTotalAmount() {
+        if (orderGrandTotal != null) {
+            return orderGrandTotal;
+        }
+        return getSubtotalAmount().add(getTaxAmount());
+    }
 }

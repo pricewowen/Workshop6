@@ -72,4 +72,35 @@ public class ApiClient {
     public void clearToken() {
         this.jwtToken = null;
     }
+
+    public <T> T createService(Class<T> serviceClass) {
+        HttpLoggingInterceptor logging = new HttpLoggingInterceptor();
+        logging.setLevel(HttpLoggingInterceptor.Level.BODY);
+
+        OkHttpClient httpClient = new OkHttpClient.Builder()
+                .connectTimeout(5, TimeUnit.SECONDS)
+                .readTimeout(8, TimeUnit.SECONDS)
+                .writeTimeout(45, TimeUnit.SECONDS)
+                .callTimeout(25, TimeUnit.SECONDS)
+                .addInterceptor(logging)
+                .addInterceptor(chain -> {
+                    Request original = chain.request();
+                    if (jwtToken == null) {
+                        return chain.proceed(original);
+                    }
+                    Request authenticated = original.newBuilder()
+                            .header("Authorization", "Bearer " + jwtToken)
+                            .build();
+                    return chain.proceed(authenticated);
+                })
+                .build();
+
+        Retrofit retrofit = new Retrofit.Builder()
+                .baseUrl(BASE_URL)
+                .client(httpClient)
+                .addConverterFactory(GsonConverterFactory.create())
+                .build();
+
+        return retrofit.create(serviceClass);
+    }
 }

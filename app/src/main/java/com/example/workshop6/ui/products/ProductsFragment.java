@@ -27,6 +27,7 @@ import com.example.workshop6.data.api.dto.TagDto;
 import com.example.workshop6.data.model.Category;
 import com.example.workshop6.data.model.Product;
 import com.example.workshop6.logging.ActivityLogger;
+import com.example.workshop6.util.MoneyFormat;
 import com.example.workshop6.util.ProductSpecialState;
 import com.example.workshop6.util.SearchUtils;
 import com.example.workshop6.util.SpecialPriceSpan;
@@ -120,7 +121,7 @@ public class ProductsFragment extends Fragment {
         boolean isCustomer = "CUSTOMER".equalsIgnoreCase(sessionManager.getUserRole());
         if (!isCustomer) {
             setProductsPageLoading(false);
-            Toast.makeText(requireContext(), R.string.staff_purchase_blocked, Toast.LENGTH_SHORT).show();
+            // Toast.makeText(requireContext(), R.string.staff_purchase_blocked, Toast.LENGTH_SHORT).show();
             Navigation.findNavController(view).navigate(R.id.nav_me);
             return;
         }
@@ -285,7 +286,7 @@ public class ProductsFragment extends Fragment {
             tvFeatureDiscountPercent.setVisibility(View.VISIBLE);
             tvFeatureDiscountPercent.setText(getString(R.string.featured_discount_today, discountPercent));
         } else {
-            tvFeaturePriceLine.setText(currency.format(base));
+            tvFeaturePriceLine.setText(MoneyFormat.formatCad(currency, base));
             tvFeatureDiscountPercent.setVisibility(View.GONE);
         }
     }
@@ -459,14 +460,14 @@ public class ProductsFragment extends Fragment {
         if (!isAdded()) {
             return;
         }
-        Toast.makeText(requireContext(), resId, duration).show();
+        // Toast.makeText(requireContext(), resId, duration).show();
     }
 
     private void showToastIfAttached(String message, int duration) {
         if (!isAdded()) {
             return;
         }
-        Toast.makeText(requireContext(), message, duration).show();
+        // Toast.makeText(requireContext(), message, duration).show();
     }
 
     private void logIfAttached(String action, String details) {

@@ -13,6 +13,8 @@ import androidx.appcompat.widget.Toolbar;
 import com.example.workshop6.R;
 import com.example.workshop6.auth.LoginActivity;
 import com.example.workshop6.auth.SessionManager;
+import com.example.workshop6.ui.MainActivity;
+import com.example.workshop6.util.NavTransitions;
 import com.example.workshop6.data.api.ApiClient;
 import com.example.workshop6.data.api.ApiService;
 import com.example.workshop6.data.api.dto.CustomerDto;
@@ -56,8 +58,9 @@ public class LoyaltyRewardsActivity extends AppCompatActivity {
             return;
         }
         if (!"CUSTOMER".equalsIgnoreCase(sessionManager.getUserRole())) {
-            Toast.makeText(this, R.string.staff_purchase_blocked, Toast.LENGTH_SHORT).show();
+            // Toast.makeText(this, R.string.staff_purchase_blocked, Toast.LENGTH_SHORT).show();
             finish();
+            NavTransitions.applyBackwardPending(this);
             return;
         }
 
@@ -69,7 +72,10 @@ public class LoyaltyRewardsActivity extends AppCompatActivity {
         if (getSupportActionBar() != null) {
             getSupportActionBar().setDisplayHomeAsUpEnabled(true);
         }
-        toolbar.setNavigationOnClickListener(v -> finish());
+        toolbar.setNavigationOnClickListener(v -> {
+            finish();
+            NavTransitions.applyBackwardPending(this);
+        });
 
         loadingOverlay = findViewById(R.id.loyalty_loading_overlay);
         tvPoints = findViewById(R.id.tv_loyalty_points);
@@ -96,9 +102,20 @@ public class LoyaltyRewardsActivity extends AppCompatActivity {
         api.getCustomerMe().enqueue(new Callback<CustomerDto>() {
             @Override
             public void onResponse(Call<CustomerDto> call, Response<CustomerDto> response) {
+                if (response.code() == 404) {
+                    loadingOverlay.setVisibility(View.GONE);
+                    // Toast.makeText(LoyaltyRewardsActivity.this, R.string.checkout_need_customer_profile, Toast.LENGTH_LONG).show();
+                    Intent i = new Intent(LoyaltyRewardsActivity.this, MainActivity.class);
+                    i.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+                    i.putExtra(MainActivity.EXTRA_OPEN_ME_TAB, true);
+                    i.putExtra(MainActivity.EXTRA_PROMPT_CUSTOMER_PROFILE, true);
+                    NavTransitions.startActivityWithForward(LoyaltyRewardsActivity.this, i);
+                    finish();
+                    return;
+                }
                 if (!response.isSuccessful() || response.body() == null) {
                     loadingOverlay.setVisibility(View.GONE);
-                    Toast.makeText(LoyaltyRewardsActivity.this, R.string.error_user_not_found, Toast.LENGTH_SHORT).show();
+                    // Toast.makeText(LoyaltyRewardsActivity.this, R.string.error_user_not_found, Toast.LENGTH_SHORT).show();
                     return;
                 }
                 CustomerDto c = response.body();
@@ -107,7 +124,7 @@ public class LoyaltyRewardsActivity extends AppCompatActivity {
                     public void onResponse(Call<List<RewardTierDto>> call2, Response<List<RewardTierDto>> response2) {
                         loadingOverlay.setVisibility(View.GONE);
                         if (!response2.isSuccessful() || response2.body() == null) {
-                            Toast.makeText(LoyaltyRewardsActivity.this, R.string.login_error_no_connection, Toast.LENGTH_SHORT).show();
+                            // Toast.makeText(LoyaltyRewardsActivity.this, R.string.login_error_no_connection, Toast.LENGTH_SHORT).show();
                             return;
                         }
                         rewardTiers.clear();
@@ -130,7 +147,7 @@ public class LoyaltyRewardsActivity extends AppCompatActivity {
                     @Override
                     public void onFailure(Call<List<RewardTierDto>> call2, Throwable t) {
                         loadingOverlay.setVisibility(View.GONE);
-                        Toast.makeText(LoyaltyRewardsActivity.this, R.string.login_error_no_connection, Toast.LENGTH_SHORT).show();
+                        // Toast.makeText(LoyaltyRewardsActivity.this, R.string.login_error_no_connection, Toast.LENGTH_SHORT).show();
                     }
                 });
             }
@@ -138,7 +155,7 @@ public class LoyaltyRewardsActivity extends AppCompatActivity {
             @Override
             public void onFailure(Call<CustomerDto> call, Throwable t) {
                 loadingOverlay.setVisibility(View.GONE);
-                Toast.makeText(LoyaltyRewardsActivity.this, R.string.login_error_no_connection, Toast.LENGTH_SHORT).show();
+                // Toast.makeText(LoyaltyRewardsActivity.this, R.string.login_error_no_connection, Toast.LENGTH_SHORT).show();
             }
         });
     }
@@ -147,7 +164,7 @@ public class LoyaltyRewardsActivity extends AppCompatActivity {
         sessionManager.logout();
         Intent intent = new Intent(this, LoginActivity.class);
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
-        startActivity(intent);
+        NavTransitions.startActivityWithForward(this, intent);
         finish();
     }
 }

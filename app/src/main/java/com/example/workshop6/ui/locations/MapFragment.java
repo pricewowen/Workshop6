@@ -2,10 +2,13 @@ package com.example.workshop6.ui.locations;
 
 import android.Manifest;
 import android.content.pm.PackageManager;
+import android.location.Location;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.SystemClock;
+import android.text.Editable;
+import android.text.TextWatcher;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -14,7 +17,6 @@ import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.appcompat.widget.SearchView;
 import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 import androidx.navigation.Navigation;
@@ -26,17 +28,26 @@ import com.example.workshop6.data.api.ApiClient;
 import com.example.workshop6.data.api.ApiService;
 import com.example.workshop6.data.api.BakeryLocationMapper;
 import com.example.workshop6.data.api.dto.BakeryDto;
+import com.example.workshop6.data.api.dto.BatchDto;
+import com.example.workshop6.data.api.dto.ProductDto;
 import com.example.workshop6.data.model.BakeryLocationDetails;
+import com.example.workshop6.data.model.Category;
+import com.example.workshop6.ui.products.CategoriesAdapter;
+import com.example.workshop6.util.LocationSearchHelper;
 import com.example.workshop6.util.LocationUtils;
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.location.Priority;
-import com.google.android.material.chip.Chip;
 import com.google.android.material.snackbar.Snackbar;
+import com.google.android.material.textfield.TextInputEditText;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
 import retrofit2.Call;
 import retrofit2.Callback;
@@ -45,8 +56,11 @@ import retrofit2.Response;
 public class MapFragment extends Fragment {
 
     private static final long MAP_LOAD_MIN_MS = 400L;
+    /** Synthetic tag id for the "Nearby" chip (Browse uses positive API tag ids). */
+    private static final int MAP_FILTER_TAG_NEARBY = -2;
 
     private LocationAdapter adapter;
+    private CategoriesAdapter mapFilterAdapter;
     private ApiService api;
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
     private long mapLoadStartElapsed;
@@ -63,6 +77,7 @@ public class MapFragment extends Fragment {
 
     private final List<BakeryLocationDetails> cachedLocations = new ArrayList<>();
     private String currentSearch = "";
+    private final Map<Integer, ProductDto> productCatalogById = new HashMap<>();
 
     private final ActivityResultLauncher<String> locationPermissionLauncher =
             registerForActivityResult(
@@ -73,9 +88,9 @@ public class MapFragment extends Fragment {
                         } else {
                             hasUserLocation = false;
                             nearbyMode = false;
+                            revertToAllLocationsFilter();
                             View v = getView();
                             if (v != null) {
-                                ((Chip) v.findViewById(R.id.chip_all)).setChecked(true);
                                 Snackbar.make(v, R.string.permission_location_rationale,
                                         Snackbar.LENGTH_LONG).show();
                             }
@@ -100,44 +115,68 @@ public class MapFragment extends Fragment {
 
         RecyclerView rv = view.findViewById(R.id.rv_locations);
         rv.setLayoutManager(new LinearLayoutManager(requireContext()));
-        adapter = new LocationAdapter(false, loc -> {
-            Bundle args = new Bundle();
-            args.putInt("locationId", loc.id);
-            Navigation.findNavController(view)
-                    .navigate(R.id.action_map_to_detail, args);
-        });
-        rv.setAdapter(adapter);
-
-        Chip chipNearby = view.findViewById(R.id.chip_nearby);
-        Chip chipAll = view.findViewById(R.id.chip_all);
-
-        chipNearby.setOnClickListener(v -> {
-            nearbyMode = true;
-            requestOrFetchLocation();
-        });
-
-        chipAll.setOnClickListener(v -> {
-            nearbyMode = false;
-            adapter.setNearbyMode(false, 0, 0);
-            applyFilterAndDisplay();
-        });
-
-        SearchView searchView = view.findViewById(R.id.search_view);
-        searchView.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
+        adapter = new LocationAdapter(false, new LocationAdapter.Listener() {
             @Override
-            public boolean onQueryTextSubmit(String query) {
-                return false;
+            public void onLocationClick(BakeryLocationDetails loc) {
+                Bundle args = new Bundle();
+                args.putInt("locationId", loc.id);
+                Navigation.findNavController(view)
+                        .navigate(R.id.action_map_to_detail, args);
             }
 
             @Override
-            public boolean onQueryTextChange(String newText) {
-                currentSearch = newText != null ? newText.trim() : "";
+            public void onDirectionsClick(BakeryLocationDetails loc) {
+                LocationUtils.openBakeryInMaps(requireContext(), loc);
+            }
+        });
+        rv.setAdapter(adapter);
+
+        RecyclerView rvMapFilters = view.findViewById(R.id.rv_map_filters);
+        rvMapFilters.setLayoutManager(new LinearLayoutManager(
+                requireContext(),
+                LinearLayoutManager.HORIZONTAL,
+                false));
+        List<Category> nearbyOnly = Collections.singletonList(
+                new Category(MAP_FILTER_TAG_NEARBY, getString(R.string.btn_show_nearby)));
+        mapFilterAdapter = new CategoriesAdapter(new ArrayList<>(nearbyOnly), tagId -> {
+            if (tagId == -1) {
+                nearbyMode = false;
+                adapter.setNearbyMode(false, 0, 0);
                 applyFilterAndDisplay();
-                return true;
+            } else if (tagId == MAP_FILTER_TAG_NEARBY) {
+                nearbyMode = true;
+                requestOrFetchLocation();
+            }
+        });
+        rvMapFilters.setAdapter(mapFilterAdapter);
+
+        TextInputEditText etMapSearch = view.findViewById(R.id.etMapSearch);
+        etMapSearch.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+            }
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+                currentSearch = s != null ? s.toString().trim() : "";
+                applyFilterAndDisplay();
+            }
+
+            @Override
+            public void afterTextChanged(Editable s) {
             }
         });
 
         loadBakeries();
+    }
+
+    private void revertToAllLocationsFilter() {
+        nearbyMode = false;
+        if (mapFilterAdapter != null) {
+            mapFilterAdapter.setSelectedPosition(0);
+        }
+        adapter.setNearbyMode(false, 0, 0);
+        applyFilterAndDisplay();
     }
 
     private void setMapLoadingUi(boolean loading) {
@@ -188,10 +227,13 @@ public class MapFragment extends Fragment {
                     return;
                 }
                 cachedLocations.clear();
+                productCatalogById.clear();
                 for (BakeryDto b : response.body()) {
                     cachedLocations.add(BakeryLocationMapper.fromDto(b, ""));
                 }
                 applyFilterAndDisplay();
+                loadBakeryAverages();
+                loadCatalogAndBatchProductSearch();
             }
 
             @Override
@@ -208,22 +250,138 @@ public class MapFragment extends Fragment {
         });
     }
 
+    private void loadBakeryAverages() {
+        for (BakeryLocationDetails loc : cachedLocations) {
+            if (loc == null || loc.id <= 0) {
+                continue;
+            }
+            api.getBakeryReviewAverage(loc.id).enqueue(new Callback<Double>() {
+                @Override
+                public void onResponse(Call<Double> call, Response<Double> response) {
+                    if (!isAdded()) {
+                        return;
+                    }
+                    loc.averageRating = response.isSuccessful() ? response.body() : null;
+                    applyFilterAndDisplay();
+                }
+
+                @Override
+                public void onFailure(Call<Double> call, Throwable t) {
+                    if (!isAdded()) {
+                        return;
+                    }
+                    loc.averageRating = null;
+                    applyFilterAndDisplay();
+                }
+            });
+        }
+    }
+
     private void applyFilterAndDisplay() {
+        LocationSearchHelper.ParsedLocationQuery parsed = LocationSearchHelper.parseQuery(currentSearch);
         List<BakeryLocationDetails> filtered = new ArrayList<>();
         for (BakeryLocationDetails loc : cachedLocations) {
-            if (currentSearch.isEmpty()) {
+            if (!LocationSearchHelper.ratingSatisfies(loc.averageRating, parsed.minRating)) {
+                continue;
+            }
+            String haystack = LocationSearchHelper.buildHaystack(loc, loc.productSearchText);
+            if (LocationSearchHelper.matchesTokens(parsed.textQuery, haystack)) {
                 filtered.add(loc);
-            } else {
-                String q = currentSearch.toLowerCase(Locale.ROOT);
-                String name = loc.name != null ? loc.name.toLowerCase(Locale.ROOT) : "";
-                String city = loc.city != null ? loc.city.toLowerCase(Locale.ROOT) : "";
-                String addr = loc.address != null ? loc.address.toLowerCase(Locale.ROOT) : "";
-                if (name.contains(q) || city.contains(q) || addr.contains(q)) {
-                    filtered.add(loc);
-                }
             }
         }
         onLocationsUpdated(filtered);
+    }
+
+    /**
+     * Loads product catalog and batch product ids per bakery for search (includes non-active batches
+     * so product keywords still match when expiry dates have passed in dev data).
+     */
+    private void loadCatalogAndBatchProductSearch() {
+        api.getProducts(null, null).enqueue(new Callback<List<ProductDto>>() {
+            @Override
+            public void onResponse(@NonNull Call<List<ProductDto>> call,
+                                   @NonNull Response<List<ProductDto>> response) {
+                if (!isAdded()) {
+                    return;
+                }
+                productCatalogById.clear();
+                if (response.isSuccessful() && response.body() != null) {
+                    for (ProductDto p : response.body()) {
+                        if (p != null && p.id != null) {
+                            productCatalogById.put(p.id, p);
+                        }
+                    }
+                }
+                fetchBatchProductTextForEachLocation();
+            }
+
+            @Override
+            public void onFailure(@NonNull Call<List<ProductDto>> call, @NonNull Throwable t) {
+                if (!isAdded()) {
+                    return;
+                }
+                productCatalogById.clear();
+                fetchBatchProductTextForEachLocation();
+            }
+        });
+    }
+
+    private void fetchBatchProductTextForEachLocation() {
+        for (BakeryLocationDetails loc : cachedLocations) {
+            if (loc == null || loc.id <= 0) {
+                continue;
+            }
+            loc.productSearchText = "";
+            final BakeryLocationDetails target = loc;
+            api.getBatchesByBakery(loc.id, false).enqueue(new Callback<List<BatchDto>>() {
+                @Override
+                public void onResponse(@NonNull Call<List<BatchDto>> call,
+                                       @NonNull Response<List<BatchDto>> response) {
+                    if (!isAdded()) {
+                        return;
+                    }
+                    StringBuilder blob = new StringBuilder();
+                    if (response.isSuccessful() && response.body() != null) {
+                        LinkedHashSet<Integer> seen = new LinkedHashSet<>();
+                        for (BatchDto batch : response.body()) {
+                            if (batch == null || batch.productId == null) {
+                                continue;
+                            }
+                            if (!seen.add(batch.productId)) {
+                                continue;
+                            }
+                            ProductDto p = productCatalogById.get(batch.productId);
+                            if (p == null) {
+                                continue;
+                            }
+                            appendSearchBlob(blob, p.name);
+                            appendSearchBlob(blob, p.description);
+                        }
+                    }
+                    target.productSearchText = blob.toString().toLowerCase(Locale.ROOT);
+                    applyFilterAndDisplay();
+                }
+
+                @Override
+                public void onFailure(@NonNull Call<List<BatchDto>> call, @NonNull Throwable t) {
+                    if (!isAdded()) {
+                        return;
+                    }
+                    target.productSearchText = "";
+                    applyFilterAndDisplay();
+                }
+            });
+        }
+    }
+
+    private static void appendSearchBlob(StringBuilder blob, String part) {
+        if (part == null || part.trim().isEmpty()) {
+            return;
+        }
+        if (blob.length() > 0) {
+            blob.append(' ');
+        }
+        blob.append(part.trim());
     }
 
     private void onLocationsUpdated(List<BakeryLocationDetails> locs) {
@@ -250,23 +408,44 @@ public class MapFragment extends Fragment {
                 Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
             return;
         }
-        fusedClient.getCurrentLocation(Priority.PRIORITY_HIGH_ACCURACY, null)
-                .addOnSuccessListener(requireActivity(), location -> {
-                    if (location != null) {
-                        userLat = location.getLatitude();
-                        userLon = location.getLongitude();
-                        hasUserLocation = true;
-                        applyFilterAndDisplay();
-                    } else {
-                        hasUserLocation = false;
-                        nearbyMode = false;
-                        View v = getView();
-                        if (v != null) {
-                            ((Chip) v.findViewById(R.id.chip_all)).setChecked(true);
-                            Snackbar.make(v, R.string.error_could_not_get_location,
-                                    Snackbar.LENGTH_SHORT).show();
+        // Show a quick result from cache, then refine with a fresh fix (feels much faster than current-only).
+        fusedClient.getLastLocation().addOnCompleteListener(task -> {
+            if (task.isSuccessful()) {
+                Location last = task.getResult();
+                if (last != null) {
+                    applyUserLocation(last);
+                }
+            }
+            fusedClient.getCurrentLocation(Priority.PRIORITY_HIGH_ACCURACY, null)
+                    .addOnSuccessListener(requireActivity(), fresh -> {
+                        if (fresh != null) {
+                            applyUserLocation(fresh);
+                        } else if (!hasUserLocation) {
+                            onNearbyLocationFailed();
                         }
-                    }
-                });
+                    })
+                    .addOnFailureListener(requireActivity(), e -> {
+                        if (!hasUserLocation) {
+                            onNearbyLocationFailed();
+                        }
+                    });
+        });
+    }
+
+    private void applyUserLocation(@NonNull Location location) {
+        userLat = location.getLatitude();
+        userLon = location.getLongitude();
+        hasUserLocation = true;
+        applyFilterAndDisplay();
+    }
+
+    private void onNearbyLocationFailed() {
+        hasUserLocation = false;
+        nearbyMode = false;
+        revertToAllLocationsFilter();
+        View v = getView();
+        if (v != null) {
+            Snackbar.make(v, R.string.error_could_not_get_location, Snackbar.LENGTH_SHORT).show();
+        }
     }
 }

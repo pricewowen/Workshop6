@@ -7,7 +7,10 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.TextView;
+import android.widget.Toast;
 
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
@@ -18,8 +21,12 @@ import com.example.workshop6.R;
 import com.example.workshop6.auth.SessionManager;
 import com.example.workshop6.data.api.ApiClient;
 import com.example.workshop6.data.api.ApiService;
+import com.example.workshop6.data.api.dto.CustomerDto;
 import com.example.workshop6.data.api.dto.ProductSpecialTodayDto;
+import com.example.workshop6.ui.profile.CustomerProfileSetupActivity;
 import com.example.workshop6.data.model.Cart;
+import com.example.workshop6.util.MoneyFormat;
+import com.example.workshop6.util.NavTransitions;
 import com.example.workshop6.util.ProductSpecialState;
 import com.example.workshop6.util.TodayDate;
 
@@ -35,15 +42,27 @@ public class CartFragment extends Fragment implements CartAdapter.OnCartItemList
     private RecyclerView rvCart;
     private TextView tvEmptyCart;
     private TextView tvSubtotal;
-    private TextView tvTax;
-    private TextView tvTotal;
     private Button btnCheckout;
     private CartAdapter adapter;
     private Cart cart;
     private CartManager cartManager;
     private ApiService api;
     private NumberFormat currencyFormat = NumberFormat.getCurrencyInstance(Locale.CANADA);
-    private static final double TAX_RATE = 0.13; // 13% HST
+
+    private ActivityResultLauncher<Intent> customerProfileLauncher;
+
+    @Override
+    public void onCreate(@Nullable Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        customerProfileLauncher = registerForActivityResult(
+                new ActivityResultContracts.StartActivityForResult(),
+                result -> {
+                    if (!isAdded()) {
+                        return;
+                    }
+                    restoreCheckoutButtonEnabledState();
+                });
+    }
 
     @Nullable
     @Override
@@ -63,8 +82,6 @@ public class CartFragment extends Fragment implements CartAdapter.OnCartItemList
         rvCart = view.findViewById(R.id.rvCart);
         tvEmptyCart = view.findViewById(R.id.tvEmptyCart);
         tvSubtotal = view.findViewById(R.id.tvSubtotal);
-        tvTax = view.findViewById(R.id.tvTax);
-        tvTotal = view.findViewById(R.id.tvTotal);
         btnCheckout = view.findViewById(R.id.btnCheckout);
 
         SessionManager sessionManager = new SessionManager(requireContext());
@@ -78,19 +95,100 @@ public class CartFragment extends Fragment implements CartAdapter.OnCartItemList
             return;
         }
 
-        ApiClient.getInstance().setToken(sessionManager.getToken());
+        if (sessionManager.isLoggedIn()) {
+            ApiClient.getInstance().setToken(sessionManager.getToken());
+        } else {
+            ApiClient.getInstance().clearToken();
+        }
         api = ApiClient.getInstance().getService();
 
         rvCart.setLayoutManager(new LinearLayoutManager(requireContext()));
         adapter = new CartAdapter(cart.getItems(), this);
         rvCart.setAdapter(adapter);
 
-        btnCheckout.setOnClickListener(v -> {
-            Intent intent = new Intent(requireContext(), CheckoutActivity.class);
-            startActivity(intent);
-        });
+        btnCheckout.setOnClickListener(v -> attemptProceedToCheckout());
 
         updateUI();
+    }
+
+    private void attemptProceedToCheckout() {
+        if (api == null || cart == null || cart.isEmpty()) {
+            return;
+        }
+        SessionManager sessionManager = new SessionManager(requireContext());
+        if (sessionManager.isGuestMode()) {
+            if (!sessionManager.hasGuestProfile()) {
+                Intent i = new Intent(requireContext(), CustomerProfileSetupActivity.class);
+                i.putExtra(CustomerProfileSetupActivity.EXTRA_LAUNCHED_FOR_CHECKOUT, true);
+                i.putExtra(CustomerProfileSetupActivity.EXTRA_GUEST_MODE, true);
+                i.putExtra(CustomerProfileSetupActivity.EXTRA_MINIMAL_CONTACT_GUEST, true);
+                customerProfileLauncher.launch(
+                        i,
+                        NavTransitions.forwardLaunchOptions(requireActivity()));
+                return;
+            }
+            startCheckoutActivity();
+            return;
+        }
+        setCheckoutLoading(true);
+        api.getCustomerMe().enqueue(new Callback<CustomerDto>() {
+            @Override
+            public void onResponse(Call<CustomerDto> call, Response<CustomerDto> response) {
+                if (!isAdded()) {
+                    return;
+                }
+                requireActivity().runOnUiThread(() -> {
+                    if (!isAdded()) {
+                        return;
+                    }
+                    if (response.code() == 404) {
+                        Intent i = new Intent(requireContext(), CustomerProfileSetupActivity.class);
+                        i.putExtra(CustomerProfileSetupActivity.EXTRA_LAUNCHED_FOR_CHECKOUT, true);
+                        customerProfileLauncher.launch(
+                                i,
+                                NavTransitions.forwardLaunchOptions(requireActivity()));
+                        return;
+                    }
+                    setCheckoutLoading(false);
+                    if (response.isSuccessful() && response.body() != null) {
+                        startCheckoutActivity();
+                        return;
+                    }
+                    // Toast.makeText(requireContext(), R.string.error_user_not_found, Toast.LENGTH_SHORT).show();
+                });
+            }
+
+            @Override
+            public void onFailure(Call<CustomerDto> call, Throwable t) {
+                if (!isAdded()) {
+                    return;
+                }
+                requireActivity().runOnUiThread(() -> {
+                    if (!isAdded()) {
+                        return;
+                    }
+                    setCheckoutLoading(false);
+                    // Toast.makeText(requireContext(), R.string.login_error_no_connection, Toast.LENGTH_SHORT).show();
+                });
+            }
+        });
+    }
+
+    private void startCheckoutActivity() {
+        NavTransitions.startActivityWithForward(requireActivity(),
+                new Intent(requireContext(), CheckoutActivity.class));
+    }
+
+    private void setCheckoutLoading(boolean loading) {
+        if (btnCheckout == null) {
+            return;
+        }
+        btnCheckout.setEnabled(!loading && cart != null && !cart.isEmpty());
+        btnCheckout.setAlpha(loading ? 0.5f : (cart != null && !cart.isEmpty() ? 1f : 0.5f));
+    }
+
+    private void restoreCheckoutButtonEnabledState() {
+        setCheckoutLoading(false);
     }
 
     @Override
@@ -109,7 +207,13 @@ public class CartFragment extends Fragment implements CartAdapter.OnCartItemList
                 if (response.isSuccessful() && response.body() != null) {
                     ProductSpecialState.updateFromDto(response.body(), TodayDate.isoLocal());
                 }
+                if (!isAdded()) {
+                    return;
+                }
                 requireActivity().runOnUiThread(() -> {
+                    if (!isAdded()) {
+                        return;
+                    }
                     adapter.updateItems(cart.getItems());
                     updateUI();
                 });
@@ -117,7 +221,13 @@ public class CartFragment extends Fragment implements CartAdapter.OnCartItemList
 
             @Override
             public void onFailure(Call<ProductSpecialTodayDto> call, Throwable t) {
+                if (!isAdded()) {
+                    return;
+                }
                 requireActivity().runOnUiThread(() -> {
+                    if (!isAdded()) {
+                        return;
+                    }
                     adapter.updateItems(cart.getItems());
                     updateUI();
                 });
@@ -132,28 +242,15 @@ public class CartFragment extends Fragment implements CartAdapter.OnCartItemList
             btnCheckout.setEnabled(false);
             btnCheckout.setAlpha(0.5f);
 
-            tvSubtotal.setText(currencyFormat.format(0));
-            tvTax.setText(currencyFormat.format(0));
-            tvTotal.setText(currencyFormat.format(0));
+            tvSubtotal.setText(MoneyFormat.formatCad(currencyFormat, 0));
         } else {
             rvCart.setVisibility(View.VISIBLE);
             tvEmptyCart.setVisibility(View.GONE);
             btnCheckout.setEnabled(true);
             btnCheckout.setAlpha(1.0f);
 
-            double subtotal = cart.getTotalPrice();
-            double tax = subtotal * TAX_RATE;
-            double total = subtotal + tax;
-
-            // show discount if there
-            if (cart.hasDiscount()) {
-                 String price = currencyFormat.format(subtotal);
-                tvSubtotal.setText(getString(R.string.label_discount_cart) + " " + price);
-            } else {
-                tvSubtotal.setText(currencyFormat.format(subtotal));
-            }
-            tvTax.setText(currencyFormat.format(tax));
-            tvTotal.setText(currencyFormat.format(total));
+            double estimatedTotal = cart.getTotalPrice();
+            tvSubtotal.setText(MoneyFormat.formatCad(currencyFormat, estimatedTotal));
         }
     }
 

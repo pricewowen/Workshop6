@@ -44,7 +44,13 @@
 
         <activity
             android:name=".ui.profile.EditProfileActivity"
-            android:exported="false" />
+            android:exported="false"
+            android:label="@string/title_edit_account" />
+
+        <activity
+            android:name=".ui.profile.CustomerProfileSetupActivity"
+            android:exported="false"
+            android:parentActivityName=".ui.MainActivity" />
 
         <activity
             android:name=".ui.MainActivity"
