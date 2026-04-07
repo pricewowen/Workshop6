@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RatingBar xmlns:android="http://schemas.android.com/apk/res/android"
+    style="?android:attr/ratingBarStyleSmall"
+    android:id="@+id/ratingBarDialog"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:numStars="5"
+    android:stepSize="1"
+    android:isIndicator="false"
+    android:clickable="true"
+    android:focusable="true"
+    android:enabled="true"
+    android:rating="0"
+    android:layout_gravity="start" />
+

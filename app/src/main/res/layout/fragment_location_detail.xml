@@ -260,91 +260,40 @@
                 </FrameLayout>
 
                 <TextView
+                    android:id="@+id/tv_bakery_reviews_title"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginBottom="8dp"
-                    android:text="@string/section_reviews"
+                    android:text="@string/section_product_reviews"
                     android:textColor="@color/bakery_text_dark"
-                    android:textSize="17sp"
+                    android:textSize="18sp"
                     android:textStyle="bold" />
 
-                <com.google.android.material.card.MaterialCardView
+                <TextView
+                    android:id="@+id/tv_bakery_reviews_empty"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginBottom="8dp"
-                    app:cardBackgroundColor="@color/bakery_card_white"
-                    app:cardCornerRadius="12dp"
-                    app:cardElevation="1dp">
+                    android:layout_marginBottom="12dp"
+                    android:text="@string/product_reviews_none_yet"
+                    android:textColor="@color/bakery_text_secondary"
+                    android:textSize="14sp"
+                    android:visibility="gone" />
 
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:orientation="vertical"
-                        android:padding="12dp">
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="@string/stub_review_1_rating"
-                            android:textColor="@color/bakery_gold_bright"
-                            android:textSize="13sp" />
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_marginTop="4dp"
-                            android:text="@string/stub_review_1_text"
-                            android:textColor="@color/bakery_text_dark"
-                            android:textSize="13sp" />
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_marginTop="2dp"
-                            android:text="@string/stub_review_1_author"
-                            android:textColor="@color/bakery_text_secondary"
-                            android:textSize="11sp" />
-                    </LinearLayout>
-                </com.google.android.material.card.MaterialCardView>
-
-                <com.google.android.material.card.MaterialCardView
+                <FrameLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginBottom="8dp"
-                    app:cardBackgroundColor="@color/bakery_card_white"
-                    app:cardCornerRadius="12dp"
-                    app:cardElevation="1dp">
+                    android:minHeight="148dp">
 
-                    <LinearLayout
+                    <androidx.recyclerview.widget.RecyclerView
+                        android:id="@+id/rv_bakery_reviews"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:orientation="vertical"
-                        android:padding="12dp">
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="@string/stub_review_2_rating"
-                            android:textColor="@color/bakery_gold_bright"
-                            android:textSize="13sp" />
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_marginTop="4dp"
-                            android:text="@string/stub_review_2_text"
-                            android:textColor="@color/bakery_text_dark"
-                            android:textSize="13sp" />
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_marginTop="2dp"
-                            android:text="@string/stub_review_2_author"
-                            android:textColor="@color/bakery_text_secondary"
-                            android:textSize="11sp" />
-                    </LinearLayout>
-                </com.google.android.material.card.MaterialCardView>
+                        android:clipToPadding="false"
+                        android:nestedScrollingEnabled="false"
+                        android:overScrollMode="never"
+                        android:paddingEnd="4dp"
+                        android:visibility="gone" />
+                </FrameLayout>
 
             </LinearLayout>
 

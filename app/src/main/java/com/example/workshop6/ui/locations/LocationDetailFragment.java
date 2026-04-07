@@ -11,6 +11,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -30,11 +31,15 @@ import com.example.workshop6.data.api.dto.BakeryDto;
 import com.example.workshop6.data.api.dto.BakeryHourDto;
 import com.example.workshop6.data.api.dto.BatchDto;
 import com.example.workshop6.data.api.dto.ProductDto;
+import com.example.workshop6.data.api.dto.ReviewDto;
 import com.example.workshop6.data.model.BakeryLocationDetails;
 import com.example.workshop6.data.model.Product;
+import com.example.workshop6.ui.products.ReviewAdapter;
 import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.chip.Chip;
+import com.example.workshop6.util.LocationUtils;
+import com.example.workshop6.util.ProductReviewListHelper;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -42,6 +47,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 import retrofit2.Call;
 import retrofit2.Callback;
@@ -50,6 +56,20 @@ import retrofit2.Response;
 public class LocationDetailFragment extends Fragment {
 
     private static final long LOCATION_DETAIL_LOAD_MIN_MS = 400L;
+    /** Same idea as {@link com.example.workshop6.ui.products.ProductsFragment} catalog cache. */
+    private static final long AVAILABLE_PRODUCTS_CACHE_TTL_MS = 30_000L;
+    private static final ConcurrentHashMap<Integer, AvailableHereCache> AVAILABLE_HERE_CACHE =
+            new ConcurrentHashMap<>();
+
+    private static final class AvailableHereCache {
+        final List<Product> products;
+        final long cachedAtMs;
+
+        AvailableHereCache(List<Product> products, long cachedAtMs) {
+            this.products = new ArrayList<>(products);
+            this.cachedAtMs = cachedAtMs;
+        }
+    }
 
     private ApiService api;
     private int locationId = -1;
@@ -138,6 +158,7 @@ public class LocationDetailFragment extends Fragment {
                             BakeryLocationDetails loc = BakeryLocationMapper.fromDto(bakery, "");
                             hoursAdapter.submit(hourRows);
                             populateDetail(view, loc);
+                            loadBakeryReviews(view, locationId);
                             scheduleHideLocationLoadingUi();
                         }
 
@@ -211,6 +232,92 @@ public class LocationDetailFragment extends Fragment {
         mainHandler.postDelayed(hideLocationLoadingRunnable, wait);
     }
 
+    private void loadBakeryReviews(View root, int bakeryId) {
+        if (root == null) {
+            return;
+        }
+        TextView tvTitle = root.findViewById(R.id.tv_bakery_reviews_title);
+        TextView tvEmpty = root.findViewById(R.id.tv_bakery_reviews_empty);
+        RecyclerView rvReviews = root.findViewById(R.id.rv_bakery_reviews);
+        if (tvTitle == null || tvEmpty == null || rvReviews == null) {
+            return;
+        }
+
+        if (rvReviews.getLayoutManager() == null) {
+            rvReviews.setLayoutManager(
+                    new LinearLayoutManager(requireContext(),
+                            LinearLayoutManager.HORIZONTAL, false));
+            rvReviews.setNestedScrollingEnabled(false);
+            rvReviews.setHasFixedSize(true);
+        }
+
+        api.getBakeryReviewAverage(bakeryId).enqueue(new Callback<Double>() {
+            @Override
+            public void onResponse(Call<Double> call, Response<Double> response) {
+                Double avg = response.isSuccessful() ? response.body() : null;
+                fetchBakeryReviewsList(bakeryId, avg, root, tvTitle, tvEmpty, rvReviews);
+            }
+
+            @Override
+            public void onFailure(Call<Double> call, Throwable t) {
+                fetchBakeryReviewsList(bakeryId, null, root, tvTitle, tvEmpty, rvReviews);
+            }
+        });
+    }
+
+    private void fetchBakeryReviewsList(int bakeryId,
+                                         @Nullable Double averageRating,
+                                         View root,
+                                         TextView tvTitle,
+                                         TextView tvEmpty,
+                                         RecyclerView rvReviews) {
+        api.getBakeryReviews(bakeryId).enqueue(new Callback<List<ReviewDto>>() {
+            @Override
+            public void onResponse(Call<List<ReviewDto>> call, Response<List<ReviewDto>> response) {
+                if (!isAdded()) {
+                    return;
+                }
+                if (!response.isSuccessful() || response.body() == null) {
+                    bindBakeryReviewsUi(tvTitle, tvEmpty, rvReviews, averageRating, null);
+                    return;
+                }
+                List<ReviewDto> slice = ProductReviewListHelper.newestApprovedForDisplay(response.body());
+                bindBakeryReviewsUi(tvTitle, tvEmpty, rvReviews, averageRating, slice);
+            }
+
+            @Override
+            public void onFailure(Call<List<ReviewDto>> call, Throwable t) {
+                if (!isAdded()) {
+                    return;
+                }
+                bindBakeryReviewsUi(tvTitle, tvEmpty, rvReviews, averageRating, null);
+            }
+        });
+    }
+
+    private void bindBakeryReviewsUi(TextView tvTitle,
+                                      TextView tvEmpty,
+                                      RecyclerView rvReviews,
+                                      @Nullable Double averageRating,
+                                      @Nullable List<ReviewDto> displayedReviews) {
+        boolean hasAvg = averageRating != null && !averageRating.isNaN();
+        if (hasAvg) {
+            tvTitle.setText(getString(R.string.product_reviews_with_average, averageRating));
+        } else {
+            tvTitle.setText(R.string.section_product_reviews);
+        }
+        if (displayedReviews == null || displayedReviews.isEmpty()) {
+            tvEmpty.setVisibility(View.VISIBLE);
+            rvReviews.setVisibility(View.GONE);
+            rvReviews.setAdapter(null);
+        } else {
+            tvEmpty.setVisibility(View.GONE);
+            rvReviews.setVisibility(View.VISIBLE);
+            rvReviews.setAdapter(new ReviewAdapter(displayedReviews));
+            rvReviews.scrollToPosition(0);
+        }
+    }
+
     @Override
     public void onDestroyView() {
         mainHandler.removeCallbacks(hideLocationLoadingRunnable);
@@ -221,37 +328,45 @@ public class LocationDetailFragment extends Fragment {
         TextView empty = view.findViewById(R.id.tv_available_empty);
         RecyclerView rv = view.findViewById(R.id.rv_products_stub);
         View loading = view.findViewById(R.id.available_products_loading);
+
+        AvailableHereCache cached = AVAILABLE_HERE_CACHE.get(bakeryId);
+        if (cached != null
+                && System.currentTimeMillis() - cached.cachedAtMs < AVAILABLE_PRODUCTS_CACHE_TTL_MS) {
+            bindAvailableProductsUi(empty, rv, loading, cached.products);
+            return;
+        }
+
         empty.setVisibility(View.GONE);
         if (loading != null) {
             loading.setVisibility(View.VISIBLE);
         }
         rv.setVisibility(View.GONE);
+
         api.getBatchesByBakery(bakeryId, false).enqueue(new Callback<List<BatchDto>>() {
             @Override
             public void onResponse(Call<List<BatchDto>> call, Response<List<BatchDto>> response) {
                 if (!isAdded()) {
                     return;
                 }
-                if (!response.isSuccessful() || response.body() == null || response.body().isEmpty()) {
-                    if (loading != null) {
-                        loading.setVisibility(View.GONE);
-                    }
-                    empty.setVisibility(View.VISIBLE);
-                    rv.setVisibility(View.GONE);
+                if (!response.isSuccessful() || response.body() == null) {
+                    onAvailableProductsLoadFailed(empty, rv, loading);
+                    return;
+                }
+                List<BatchDto> batches = response.body();
+                if (batches.isEmpty()) {
+                    AVAILABLE_HERE_CACHE.put(bakeryId, new AvailableHereCache(new ArrayList<>(), System.currentTimeMillis()));
+                    bindAvailableProductsUi(empty, rv, loading, new ArrayList<>());
                     return;
                 }
                 Set<Integer> ids = new LinkedHashSet<>();
-                for (BatchDto b : response.body()) {
+                for (BatchDto b : batches) {
                     if (b.productId != null) {
                         ids.add(b.productId);
                     }
                 }
                 if (ids.isEmpty()) {
-                    if (loading != null) {
-                        loading.setVisibility(View.GONE);
-                    }
-                    empty.setVisibility(View.VISIBLE);
-                    rv.setVisibility(View.GONE);
+                    AVAILABLE_HERE_CACHE.put(bakeryId, new AvailableHereCache(new ArrayList<>(), System.currentTimeMillis()));
+                    bindAvailableProductsUi(empty, rv, loading, new ArrayList<>());
                     return;
                 }
                 api.getProducts(null, null).enqueue(new Callback<List<ProductDto>>() {
@@ -261,11 +376,7 @@ public class LocationDetailFragment extends Fragment {
                             return;
                         }
                         if (!response2.isSuccessful() || response2.body() == null) {
-                            if (loading != null) {
-                                loading.setVisibility(View.GONE);
-                            }
-                            empty.setVisibility(View.VISIBLE);
-                            rv.setVisibility(View.GONE);
+                            onAvailableProductsLoadFailed(empty, rv, loading);
                             return;
                         }
                         List<Product> list = new ArrayList<>();
@@ -278,27 +389,8 @@ public class LocationDetailFragment extends Fragment {
                             }
                         }
                         list.sort(Comparator.comparing(Product::getProductName, String.CASE_INSENSITIVE_ORDER));
-                        if (list.isEmpty()) {
-                            if (loading != null) {
-                                loading.setVisibility(View.GONE);
-                            }
-                            empty.setVisibility(View.VISIBLE);
-                            rv.setVisibility(View.GONE);
-                        } else {
-                            if (loading != null) {
-                                loading.setVisibility(View.GONE);
-                            }
-                            empty.setVisibility(View.GONE);
-                            rv.setVisibility(View.VISIBLE);
-                            productAdapter.submit(list);
-                            rv.post(() -> {
-                                if (!isAdded()) {
-                                    return;
-                                }
-                                rv.scrollToPosition(0);
-                                rv.requestLayout();
-                            });
-                        }
+                        AVAILABLE_HERE_CACHE.put(bakeryId, new AvailableHereCache(list, System.currentTimeMillis()));
+                        bindAvailableProductsUi(empty, rv, loading, list);
                     }
 
                     @Override
@@ -306,11 +398,7 @@ public class LocationDetailFragment extends Fragment {
                         if (!isAdded()) {
                             return;
                         }
-                        if (loading != null) {
-                            loading.setVisibility(View.GONE);
-                        }
-                        empty.setVisibility(View.VISIBLE);
-                        rv.setVisibility(View.GONE);
+                        onAvailableProductsLoadFailed(empty, rv, loading);
                     }
                 });
             }
@@ -320,13 +408,44 @@ public class LocationDetailFragment extends Fragment {
                 if (!isAdded()) {
                     return;
                 }
-                if (loading != null) {
-                    loading.setVisibility(View.GONE);
-                }
-                empty.setVisibility(View.VISIBLE);
-                rv.setVisibility(View.GONE);
+                onAvailableProductsLoadFailed(empty, rv, loading);
             }
         });
+    }
+
+    private void bindAvailableProductsUi(
+            TextView empty,
+            RecyclerView rv,
+            View loading,
+            List<Product> list
+    ) {
+        if (loading != null) {
+            loading.setVisibility(View.GONE);
+        }
+        if (list == null || list.isEmpty()) {
+            empty.setVisibility(View.VISIBLE);
+            rv.setVisibility(View.GONE);
+            return;
+        }
+        empty.setVisibility(View.GONE);
+        rv.setVisibility(View.VISIBLE);
+        productAdapter.submit(list);
+        rv.post(() -> {
+            if (!isAdded()) {
+                return;
+            }
+            rv.scrollToPosition(0);
+            rv.requestLayout();
+        });
+    }
+
+    private void onAvailableProductsLoadFailed(TextView empty, RecyclerView rv, View loading) {
+        if (loading != null) {
+            loading.setVisibility(View.GONE);
+        }
+        empty.setVisibility(View.VISIBLE);
+        rv.setVisibility(View.GONE);
+        Toast.makeText(requireContext(), R.string.available_here_load_failed, Toast.LENGTH_LONG).show();
     }
 
     private void populateDetail(View view, BakeryLocationDetails loc) {
@@ -388,18 +507,7 @@ public class LocationDetailFragment extends Fragment {
 
         MaterialButton btnDirections = view.findViewById(R.id.btn_directions);
         if (loc.latitude != 0.0 || loc.longitude != 0.0) {
-            btnDirections.setOnClickListener(v -> {
-                String encodedName = Uri.encode(loc.name != null ? loc.name : "");
-                String uri = String.format(Locale.US,
-                        "geo:0,0?q=%f,%f(%s)", loc.latitude, loc.longitude, encodedName);
-                Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(uri));
-                intent.setPackage("com.google.android.apps.maps");
-                if (intent.resolveActivity(requireActivity().getPackageManager()) != null) {
-                    startActivity(intent);
-                } else {
-                    startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(uri)));
-                }
-            });
+            btnDirections.setOnClickListener(v -> LocationUtils.openBakeryInMaps(requireContext(), loc));
         } else {
             btnDirections.setEnabled(false);
             btnDirections.setAlpha(0.5f);

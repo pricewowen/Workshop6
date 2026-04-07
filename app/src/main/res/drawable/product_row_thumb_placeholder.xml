@@ -3,7 +3,7 @@
     <item android:drawable="@drawable/bg_hero_bakery" />
     <item>
         <inset
-            android:drawable="@drawable/ic_bakery_bread_dark"
+            android:drawable="@drawable/ic_bakery_bread"
             android:insetLeft="22%"
             android:insetTop="22%"
             android:insetRight="22%"

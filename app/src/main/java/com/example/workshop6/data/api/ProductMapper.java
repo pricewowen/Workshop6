@@ -19,6 +19,6 @@ public final class ProductMapper {
         if (imageUrl != null && imageUrl.isEmpty()) {
             imageUrl = null;
         }
-        return new Product(dto.id, dto.name, desc, price, R.drawable.ic_bakery_bread_dark, imageUrl);
+        return new Product(dto.id, dto.name, desc, price, R.drawable.ic_bakery_bread, imageUrl);
     }
 }
