@@ -106,7 +106,7 @@ public class OrderHistoryActivity extends AppCompatActivity {
 
     private void loadOrders() {
         if (sessionManager.getUserUuid().isEmpty() && sessionManager.getUserId() <= 0) {
-            // Toast.makeText(this, "User not logged in", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "User not logged in", Toast.LENGTH_SHORT).show();
             finish();
             NavTransitions.applyBackwardPending(this);
             return;
@@ -127,9 +127,9 @@ public class OrderHistoryActivity extends AppCompatActivity {
                     return;
                 }
                 if (!response.isSuccessful() || response.body() == null) {
-                    // Toast.makeText(OrderHistoryActivity.this,
-                    //         getString(R.string.login_error_server, response.code()),
-                    //         Toast.LENGTH_SHORT).show();
+                    Toast.makeText(OrderHistoryActivity.this,
+                            getString(R.string.login_error_server, response.code()),
+                            Toast.LENGTH_SHORT).show();
                     return;
                 }
                 List<OrderWithDetails> rows = new ArrayList<>();
@@ -158,7 +158,7 @@ public class OrderHistoryActivity extends AppCompatActivity {
             @Override
             public void onFailure(Call<List<OrderDto>> call, Throwable t) {
                 loadingView.setVisibility(View.GONE);
-                // Toast.makeText(OrderHistoryActivity.this, R.string.login_error_no_connection, Toast.LENGTH_SHORT).show();
+                Toast.makeText(OrderHistoryActivity.this, R.string.login_error_no_connection, Toast.LENGTH_SHORT).show();
             }
         });
     }
@@ -175,7 +175,7 @@ public class OrderHistoryActivity extends AppCompatActivity {
                 .append("\n");
         details.append("Status: ").append(order.order.status);
 
-        // Toast.makeText(this, details.toString(), Toast.LENGTH_LONG).show();
+        Toast.makeText(this, details.toString(), Toast.LENGTH_LONG).show();
     }
 
     private void showAcceptDeliveryDialog(OrderWithDetails orderWithDetails) {
@@ -193,7 +193,7 @@ public class OrderHistoryActivity extends AppCompatActivity {
 
     private void showReviewDialog(OrderWithDetails orderWithDetails) {
         if (orderWithDetails == null || orderWithDetails.order == null || orderWithDetails.items == null || orderWithDetails.items.isEmpty()) {
-            // Toast.makeText(this, R.string.order_review_no_items, Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, R.string.order_review_no_items, Toast.LENGTH_SHORT).show();
             return;
         }
 
@@ -252,16 +252,16 @@ public class OrderHistoryActivity extends AppCompatActivity {
             @Override
             public void onResponse(Call<ReviewDto> call, Response<ReviewDto> response) {
                 if (!response.isSuccessful()) {
-                    // Toast.makeText(OrderHistoryActivity.this, R.string.order_review_submit_failed, Toast.LENGTH_SHORT).show();
+                    Toast.makeText(OrderHistoryActivity.this, R.string.order_review_submit_failed, Toast.LENGTH_SHORT).show();
                     return;
                 }
-                // Toast.makeText(OrderHistoryActivity.this, R.string.order_review_submitted_pending, Toast.LENGTH_LONG).show();
+                Toast.makeText(OrderHistoryActivity.this, R.string.order_review_submitted_pending, Toast.LENGTH_LONG).show();
                 loadOrders();
             }
 
             @Override
             public void onFailure(Call<ReviewDto> call, Throwable t) {
-                // Toast.makeText(OrderHistoryActivity.this, R.string.login_error_no_connection, Toast.LENGTH_SHORT).show();
+                Toast.makeText(OrderHistoryActivity.this, R.string.login_error_no_connection, Toast.LENGTH_SHORT).show();
             }
         });
     }
@@ -271,16 +271,16 @@ public class OrderHistoryActivity extends AppCompatActivity {
             @Override
             public void onResponse(Call<OrderDto> call, Response<OrderDto> response) {
                 if (!response.isSuccessful()) {
-                    // Toast.makeText(OrderHistoryActivity.this, R.string.orders_admin_update_failed, Toast.LENGTH_SHORT).show();
+                    Toast.makeText(OrderHistoryActivity.this, R.string.orders_admin_update_failed, Toast.LENGTH_SHORT).show();
                     return;
                 }
-                // Toast.makeText(OrderHistoryActivity.this, R.string.order_delivery_accepted, Toast.LENGTH_SHORT).show();
+                Toast.makeText(OrderHistoryActivity.this, R.string.order_delivery_accepted, Toast.LENGTH_SHORT).show();
                 loadOrders();
             }
 
             @Override
             public void onFailure(Call<OrderDto> call, Throwable t) {
-                // Toast.makeText(OrderHistoryActivity.this, R.string.login_error_no_connection, Toast.LENGTH_SHORT).show();
+                Toast.makeText(OrderHistoryActivity.this, R.string.login_error_no_connection, Toast.LENGTH_SHORT).show();
             }
         });
     }

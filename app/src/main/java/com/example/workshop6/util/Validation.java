@@ -27,10 +27,10 @@ public class Validation {
     private static final Pattern POSTAL_CODE_CA = Pattern.compile("(?i)^[ABCEGHJ-NPRSTVXY]\\d[ABCEGHJ-NPRSTV-Z][ -]?\\d[ABCEGHJ-NPRSTV-Z]\\d$");
     private static final Pattern POSTAL_CODE_US = Pattern.compile("^\\d{5}(-\\d{4})?$");
 
-    /** Username: 3–50 chars, letters, numbers, underscore, hyphen only. */
+    /** Username: 3–50 chars, letters, numbers, underscore, hyphen, period. */
     private static final int USERNAME_MIN_LENGTH = 3;
     private static final int USERNAME_MAX_LENGTH = 50;
-    private static final Pattern USERNAME_PATTERN = Pattern.compile("^[a-zA-Z0-9_-]+$");
+    private static final Pattern USERNAME_PATTERN = Pattern.compile("^[a-zA-Z0-9_.-]+$");
 
     private Validation() {
         // private constructor to prevent instantiation
@@ -144,7 +144,7 @@ public class Validation {
     }
 
     /**
-     * Username: non-empty, 3–50 chars, only letters, digits, underscore, hyphen.
+     * Username: non-empty, 3–50 chars, only letters, digits, underscore, hyphen, period.
      */
     public static boolean isUsernameValid(@Nullable CharSequence username) {
         if (username == null) return false;

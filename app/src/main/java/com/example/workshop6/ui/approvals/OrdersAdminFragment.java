@@ -158,7 +158,7 @@ public class OrdersAdminFragment extends Fragment {
             public void onFailure(Call<List<OrderDto>> call, Throwable t) {
                 if (isAdded()) {
                     setLoadingUi(false);
-                    // Toast.makeText(requireContext(), R.string.login_error_no_connection, Toast.LENGTH_SHORT).show();
+                    Toast.makeText(requireContext(), R.string.login_error_no_connection, Toast.LENGTH_SHORT).show();
                 }
             }
         });
@@ -169,16 +169,16 @@ public class OrdersAdminFragment extends Fragment {
             return;
         }
         if ("completed".equalsIgnoreCase(nextStatus)) {
-            // Toast.makeText(requireContext(), R.string.orders_admin_update_failed, Toast.LENGTH_SHORT).show();
+            Toast.makeText(requireContext(), R.string.orders_admin_update_failed, Toast.LENGTH_SHORT).show();
             return;
         }
         String current = order.status != null ? order.status : "";
         if (nextStatus.equalsIgnoreCase(current)) {
-            // Toast.makeText(requireContext(), R.string.orders_admin_status_unchanged, Toast.LENGTH_SHORT).show();
+            Toast.makeText(requireContext(), R.string.orders_admin_status_unchanged, Toast.LENGTH_SHORT).show();
             return;
         }
         if (!isValidStatusTransition(order, current, nextStatus)) {
-            // Toast.makeText(requireContext(), R.string.orders_admin_update_failed, Toast.LENGTH_SHORT).show();
+            Toast.makeText(requireContext(), R.string.orders_admin_update_failed, Toast.LENGTH_SHORT).show();
             return;
         }
         setLoadingUi(true);
@@ -190,7 +190,7 @@ public class OrdersAdminFragment extends Fragment {
                 }
                 setLoadingUi(false);
                 if (!response.isSuccessful()) {
-                    // Toast.makeText(requireContext(), R.string.orders_admin_update_failed, Toast.LENGTH_SHORT).show();
+                    Toast.makeText(requireContext(), R.string.orders_admin_update_failed, Toast.LENGTH_SHORT).show();
                     return;
                 }
                 ActivityLogger.log(
@@ -199,7 +199,7 @@ public class OrdersAdminFragment extends Fragment {
                         "UPDATE_ORDER_STATUS",
                         "orderId=" + order.id + ", from=" + current + ", to=" + nextStatus
                 );
-                // Toast.makeText(requireContext(), R.string.orders_admin_status_updated, Toast.LENGTH_SHORT).show();
+                Toast.makeText(requireContext(), R.string.orders_admin_status_updated, Toast.LENGTH_SHORT).show();
                 loadOrders();
             }
 
@@ -209,7 +209,7 @@ public class OrdersAdminFragment extends Fragment {
                     return;
                 }
                 setLoadingUi(false);
-                // Toast.makeText(requireContext(), R.string.login_error_no_connection, Toast.LENGTH_SHORT).show();
+                Toast.makeText(requireContext(), R.string.login_error_no_connection, Toast.LENGTH_SHORT).show();
             }
         });
     }

@@ -154,7 +154,7 @@ public class CartFragment extends Fragment implements CartAdapter.OnCartItemList
                         startCheckoutActivity();
                         return;
                     }
-                    // Toast.makeText(requireContext(), R.string.error_user_not_found, Toast.LENGTH_SHORT).show();
+                    Toast.makeText(requireContext(), R.string.error_user_not_found, Toast.LENGTH_SHORT).show();
                 });
             }
 
@@ -168,7 +168,7 @@ public class CartFragment extends Fragment implements CartAdapter.OnCartItemList
                         return;
                     }
                     setCheckoutLoading(false);
-                    // Toast.makeText(requireContext(), R.string.login_error_no_connection, Toast.LENGTH_SHORT).show();
+                    Toast.makeText(requireContext(), R.string.login_error_no_connection, Toast.LENGTH_SHORT).show();
                 });
             }
         });

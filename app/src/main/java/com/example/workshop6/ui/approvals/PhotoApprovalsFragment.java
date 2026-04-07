@@ -136,7 +136,7 @@ public class PhotoApprovalsFragment extends Fragment {
                     int messageRes = (code == 401 || code == 403)
                             ? R.string.photo_approvals_access_denied
                             : R.string.error_photo_read;
-                    // Toast.makeText(requireContext(), messageRes, Toast.LENGTH_SHORT).show();
+                    Toast.makeText(requireContext(), messageRes, Toast.LENGTH_SHORT).show();
                     return;
                 }
                 ActivityLogger.log(
@@ -145,11 +145,9 @@ public class PhotoApprovalsFragment extends Fragment {
                         approve ? "APPROVE_PHOTO" : "REJECT_PHOTO",
                         "customerId=" + customer.id
                 );
-                // Toast.makeText(
-                //         requireContext(),
-                //         approve ? R.string.photo_approved : R.string.photo_rejected,
-                //         Toast.LENGTH_SHORT
-                // ).show();
+                Toast.makeText(requireContext(),
+                        approve ? R.string.photo_approved : R.string.photo_rejected,
+                        Toast.LENGTH_SHORT).show();
                 loadPendingPhotos();
             }
 
@@ -158,7 +156,7 @@ public class PhotoApprovalsFragment extends Fragment {
                 if (!isAdded()) {
                     return;
                 }
-                // Toast.makeText(requireContext(), R.string.login_error_no_connection, Toast.LENGTH_SHORT).show();
+                Toast.makeText(requireContext(), R.string.login_error_no_connection, Toast.LENGTH_SHORT).show();
             }
         });
     }

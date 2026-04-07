@@ -148,7 +148,7 @@ public class ProductDetailsFragment extends Fragment {
         boolean isCustomer = "CUSTOMER".equalsIgnoreCase(sessionManager.getUserRole());
         if (!isCustomer) {
             setProductDetailsLoading(false);
-            // Toast.makeText(requireContext(), R.string.staff_purchase_blocked, Toast.LENGTH_SHORT).show();
+            Toast.makeText(requireContext(), R.string.staff_purchase_blocked, Toast.LENGTH_SHORT).show();
             Navigation.findNavController(view).navigateUp();
             return;
         }
@@ -168,14 +168,14 @@ public class ProductDetailsFragment extends Fragment {
                 }
                 if (!response.isSuccessful() || response.body() == null) {
                     setProductDetailsLoading(false);
-                    // Toast.makeText(requireContext(), R.string.error_user_not_found, Toast.LENGTH_SHORT).show();
+                    Toast.makeText(requireContext(), R.string.error_user_not_found, Toast.LENGTH_SHORT).show();
                     Navigation.findNavController(requireView()).navigateUp();
                     return;
                 }
                 loadedProduct = ProductMapper.fromDto(response.body());
                 if (loadedProduct == null) {
                     setProductDetailsLoading(false);
-                    // Toast.makeText(requireContext(), R.string.error_user_not_found, Toast.LENGTH_SHORT).show();
+                    Toast.makeText(requireContext(), R.string.error_user_not_found, Toast.LENGTH_SHORT).show();
                     Navigation.findNavController(requireView()).navigateUp();
                     return;
                 }
@@ -219,7 +219,7 @@ public class ProductDetailsFragment extends Fragment {
                     return;
                 }
                 setProductDetailsLoading(false);
-                // Toast.makeText(requireContext(), R.string.login_error_no_connection, Toast.LENGTH_SHORT).show();
+                Toast.makeText(requireContext(), R.string.login_error_no_connection, Toast.LENGTH_SHORT).show();
                 if (isUiReady()) {
                     Navigation.findNavController(requireView()).navigateUp();
                 }
@@ -244,11 +244,7 @@ public class ProductDetailsFragment extends Fragment {
             if (loadedProduct != null) {
                 CartItem cartItem = new CartItem(loadedProduct, quantCounter);
                 cartManager.getCart().addItem(cartItem);
-                // Toast.makeText(
-                //         requireContext(),
-                //         R.string.added_to_cart,
-                //         Toast.LENGTH_SHORT
-                // ).show();
+                Toast.makeText(requireContext(), R.string.added_to_cart, Toast.LENGTH_SHORT).show();
                 Navigation.findNavController(view).navigateUp();
             }
         });

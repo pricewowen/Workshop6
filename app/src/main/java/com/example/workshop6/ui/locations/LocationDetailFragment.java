@@ -445,7 +445,7 @@ public class LocationDetailFragment extends Fragment {
         }
         empty.setVisibility(View.VISIBLE);
         rv.setVisibility(View.GONE);
-        // Toast.makeText(requireContext(), R.string.available_here_load_failed, Toast.LENGTH_LONG).show();
+        Toast.makeText(requireContext(), R.string.available_here_load_failed, Toast.LENGTH_LONG).show();
     }
 
     private void populateDetail(View view, BakeryLocationDetails loc) {

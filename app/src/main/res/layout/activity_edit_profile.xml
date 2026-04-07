@@ -23,17 +23,34 @@
                 android:paddingTop="8dp"
                 android:paddingBottom="32dp">
 
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btn_choose_photo"
-                style="@style/Widget.MaterialComponents.Button.TextButton"
+            <LinearLayout
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_gravity="center_horizontal"
-                android:layout_marginBottom="4dp"
-                android:text="@string/btn_change_photo"
-                android:textAllCaps="false"
-                android:textColor="@color/bakery_primary"
-                app:rippleColor="#408D6E63" />
+                android:orientation="horizontal"
+                android:layout_marginBottom="4dp">
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btn_choose_photo"
+                    style="@style/Widget.MaterialComponents.Button.TextButton"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/btn_change_photo"
+                    android:textAllCaps="false"
+                    android:textColor="@color/bakery_primary"
+                    app:rippleColor="#408D6E63" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btn_rotate_photo"
+                    style="@style/Widget.MaterialComponents.Button.TextButton"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:enabled="false"
+                    android:text="@string/btn_rotate_photo"
+                    android:textAllCaps="false"
+                    android:textColor="@color/bakery_primary"
+                    app:rippleColor="#408D6E63" />
+            </LinearLayout>
 
             <TextView
                 android:id="@+id/tv_photo_error"

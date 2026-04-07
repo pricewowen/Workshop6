@@ -635,7 +635,7 @@ public class CustomerProfileSetupActivity extends AppCompatActivity {
             }
             return;
         }
-        // Toast.makeText(this, R.string.guest_profile_saved, Toast.LENGTH_SHORT).show();
+        Toast.makeText(this, R.string.guest_profile_saved, Toast.LENGTH_SHORT).show();
         finish();
         NavTransitions.applyBackwardPending(this);
     }
@@ -714,7 +714,7 @@ public class CustomerProfileSetupActivity extends AppCompatActivity {
             }
             return;
         }
-        // Toast.makeText(CustomerProfileSetupActivity.this, R.string.customer_profile_saved, Toast.LENGTH_SHORT).show();
+        Toast.makeText(CustomerProfileSetupActivity.this, R.string.customer_profile_saved, Toast.LENGTH_SHORT).show();
         Intent intent = new Intent(CustomerProfileSetupActivity.this, MainActivity.class);
         intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
         intent.putExtra(MainActivity.EXTRA_OPEN_ME_TAB, true);
