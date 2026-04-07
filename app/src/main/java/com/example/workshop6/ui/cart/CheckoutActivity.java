@@ -311,10 +311,16 @@ public class CheckoutActivity extends AppCompatActivity {
 
     /** Opens the same personal-info form as Me, then returns here when the customer taps Proceed with order. */
     private void openCustomerProfileForCheckout() {
+        boolean minimalGuest = sessionManager.isGuestMode() && !sessionManager.hasMinimalGuestContact();
+        openCustomerProfileForCheckout(minimalGuest);
+    }
+
+    private void openCustomerProfileForCheckout(boolean minimalContactGuest) {
         Intent i = new Intent(this, CustomerProfileSetupActivity.class);
         i.putExtra(CustomerProfileSetupActivity.EXTRA_LAUNCHED_FOR_CHECKOUT, true);
         i.putExtra(CustomerProfileSetupActivity.EXTRA_OPEN_CHECKOUT_AFTER_SAVE, false);
         i.putExtra(CustomerProfileSetupActivity.EXTRA_GUEST_MODE, sessionManager.isGuestMode());
+        i.putExtra(CustomerProfileSetupActivity.EXTRA_MINIMAL_CONTACT_GUEST, minimalContactGuest);
         customerProfileLauncher.launch(i, NavTransitions.forwardLaunchOptions(this));
     }
 
@@ -513,6 +519,7 @@ public class CheckoutActivity extends AppCompatActivity {
             runOnUiThread(() -> {
                 if (!hasDeliveryAddress()) {
                     rbDelivery.setError(getString(R.string.error_no_address));
+                    openCustomerProfileForCheckout(false);
                 } else {
                     rbDelivery.setError(null);
                 }

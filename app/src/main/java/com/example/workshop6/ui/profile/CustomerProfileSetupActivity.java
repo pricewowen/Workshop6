@@ -3,6 +3,7 @@ package com.example.workshop6.ui.profile;
 import android.app.Activity;
 import android.content.Intent;
 import android.os.Bundle;
+import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.Spinner;
 import android.widget.TextView;
@@ -39,6 +40,8 @@ import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
 
+import java.util.Locale;
+
 public class CustomerProfileSetupActivity extends AppCompatActivity {
 
     /** When true, opened from cart/checkout: delivery title, proceed button. */
@@ -49,6 +52,10 @@ public class CustomerProfileSetupActivity extends AppCompatActivity {
      */
     public static final String EXTRA_OPEN_CHECKOUT_AFTER_SAVE = "open_checkout_after_save";
     public static final String EXTRA_GUEST_MODE = "guest_mode";
+    /**
+     * Guest-only: collect email and/or phone only (no name/address). Ignored when not {@link #EXTRA_GUEST_MODE}.
+     */
+    public static final String EXTRA_MINIMAL_CONTACT_GUEST = "minimal_contact_guest";
 
     private SessionManager sessionManager;
     private ApiService api;
@@ -64,9 +71,14 @@ public class CustomerProfileSetupActivity extends AppCompatActivity {
     private Spinner spinnerProvince;
     private TextView tvProvinceError;
     private TextView tvError;
+    private TextView tvMinimalContactHint;
     private MaterialButton btnSave;
+    private View profileNameSection;
+    private View profileAddressSection;
+    private View profileBusinessPhoneColumn;
     private boolean launchedForCheckout;
     private boolean guestMode;
+    private boolean minimalContactGuest;
     /** When launched for checkout: whether to {@code startActivity(CheckoutActivity)} on success (vs. {@code setResult} only). */
     private boolean openCheckoutAfterSave;
 
@@ -100,14 +112,16 @@ public class CustomerProfileSetupActivity extends AppCompatActivity {
         launchedForCheckout = getIntent().getBooleanExtra(EXTRA_LAUNCHED_FOR_CHECKOUT, false);
         openCheckoutAfterSave = launchedForCheckout
                 && getIntent().getBooleanExtra(EXTRA_OPEN_CHECKOUT_AFTER_SAVE, true);
+        minimalContactGuest = guestMode && getIntent().getBooleanExtra(EXTRA_MINIMAL_CONTACT_GUEST, false);
 
         Toolbar toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
         toolbar.setNavigationOnClickListener(v -> finishFromToolbar());
         if (launchedForCheckout) {
-            toolbar.setTitle(R.string.checkout_delivery_details_title);
+            int titleRes = minimalContactGuest ? R.string.guest_checkout_contact_title : R.string.checkout_delivery_details_title;
+            toolbar.setTitle(titleRes);
             if (getSupportActionBar() != null) {
-                getSupportActionBar().setTitle(R.string.checkout_delivery_details_title);
+                getSupportActionBar().setTitle(titleRes);
             }
             getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
                 @Override
@@ -143,9 +157,25 @@ public class CustomerProfileSetupActivity extends AppCompatActivity {
         spinnerProvince = findViewById(R.id.spinner_province);
         tvProvinceError = findViewById(R.id.tv_province_error);
         tvError = findViewById(R.id.tv_error);
+        tvMinimalContactHint = findViewById(R.id.tv_minimal_contact_hint);
+        profileNameSection = findViewById(R.id.profile_name_section);
+        profileAddressSection = findViewById(R.id.profile_address_section);
+        profileBusinessPhoneColumn = findViewById(R.id.profile_business_phone_column);
         btnSave = findViewById(R.id.btn_save);
         btnSave.setText(launchedForCheckout ? R.string.btn_proceed_with_order : R.string.btn_save_customer_profile);
-        findViewById(R.id.guest_email_group).setVisibility(guestMode ? TextView.VISIBLE : TextView.GONE);
+        if (guestMode) {
+            findViewById(R.id.guest_email_group).setVisibility(View.VISIBLE);
+        } else {
+            findViewById(R.id.guest_email_group).setVisibility(View.GONE);
+        }
+        if (minimalContactGuest) {
+            profileNameSection.setVisibility(View.GONE);
+            profileAddressSection.setVisibility(View.GONE);
+            profileBusinessPhoneColumn.setVisibility(View.GONE);
+            tvMinimalContactHint.setVisibility(View.VISIBLE);
+        } else {
+            tvMinimalContactHint.setVisibility(View.GONE);
+        }
 
         ArrayAdapter<CharSequence> provinceAdapter = ArrayAdapter.createFromResource(this,
                 R.array.provinces, android.R.layout.simple_spinner_item);
@@ -299,8 +329,83 @@ public class CustomerProfileSetupActivity extends AppCompatActivity {
         );
     }
 
+    private void saveGuestMinimalContact() {
+        tilFirstName.setError(null);
+        tilMiddleInitial.setError(null);
+        tilLastName.setError(null);
+        tilAddress1.setError(null);
+        tilAddress2.setError(null);
+        tilCity.setError(null);
+        tilPostal.setError(null);
+        tvProvinceError.setVisibility(View.GONE);
+
+        String email = text(etEmail).toLowerCase(Locale.ROOT).trim();
+        String phoneRaw = digits(etPhone);
+        boolean hasEmail = !email.isEmpty();
+        boolean hasPhone = !phoneRaw.isEmpty();
+
+        tilEmail.setError(null);
+        tilPhone.setError(null);
+        tvError.setVisibility(View.GONE);
+
+        if (!hasEmail && !hasPhone) {
+            String msg = getString(R.string.guest_contact_required);
+            tilEmail.setError(msg);
+            tilPhone.setError(msg);
+            tvError.setText(msg);
+            tvError.setVisibility(TextView.VISIBLE);
+            btnSave.setEnabled(true);
+            return;
+        }
+
+        boolean valid = true;
+        if (hasEmail && !Validation.isEmailValid(email)) {
+            tilEmail.setError(getString(R.string.error_email_invalid));
+            valid = false;
+        }
+        if (hasPhone && !Validation.isPhoneNumberValid(phoneRaw)) {
+            tilPhone.setError(getString(R.string.error_phone_invalid));
+            valid = false;
+        }
+        if (!valid) {
+            btnSave.setEnabled(true);
+            return;
+        }
+
+        String phoneStored = "";
+        if (hasPhone) {
+            phoneStored = Validation.formatPhoneForStorage(phoneRaw);
+            if (phoneStored == null) {
+                phoneStored = phoneRaw;
+            }
+        }
+
+        GuestCustomerRequest guest = new GuestCustomerRequest();
+        guest.firstName = null;
+        guest.middleInitial = null;
+        guest.lastName = null;
+        guest.email = hasEmail ? email : "";
+        guest.phone = hasPhone ? phoneStored : "";
+        guest.businessPhone = null;
+        guest.addressLine1 = "";
+        guest.addressLine2 = "";
+        guest.city = "";
+        guest.province = "";
+        guest.postalCode = "";
+
+        sessionManager.saveGuestProfile(guest);
+        ActivityLogger.log(this, sessionManager, "GUEST_PROFILE", "Minimal guest contact saved");
+        btnSave.setEnabled(true);
+        onGuestProfilePersistSuccess();
+    }
+
     private void saveAfterReachability() {
         if (isFinishing()) {
+            return;
+        }
+
+        if (minimalContactGuest) {
+            saveGuestMinimalContact();
             return;
         }
 

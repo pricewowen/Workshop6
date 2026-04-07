@@ -297,6 +297,11 @@
     <string name="checkout_need_customer_profile">Add your name and address under Me before checking out.</string>
     <string name="checkout_delivery_details_title">Delivery details</string>
     <string name="btn_proceed_with_order">Proceed with order</string>
+    <string name="guest_checkout_contact_title">Checkout contact</string>
+    <string name="guest_minimal_contact_hint">* We use this to reach you about your order.</string>
+    <string name="guest_contact_required">Enter an email or phone number</string>
+    <string name="register_phone_optional">Mobile phone (optional)</string>
+    <string name="register_phone_optional_help">If you checked out as a guest with this number, we can link your history when you register.</string>
     <string name="me_add_customer_profile_prompt">Complete your delivery profile under Me to shop and check out.</string>
     <string name="account_label_username">Username</string>
     <string name="account_label_sign_email">Sign-in email</string>

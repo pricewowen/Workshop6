@@ -18,7 +18,9 @@ import com.example.workshop6.ui.MainActivity;
 import com.example.workshop6.util.ApiReachability;
 import com.example.workshop6.util.NavTransitions;
 import com.example.workshop6.util.NetworkStatus;
+import com.example.workshop6.util.PhoneFormatTextWatcher;
 import com.example.workshop6.util.Validation;
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.textfield.TextInputEditText;
 import com.google.android.material.textfield.TextInputLayout;
 
@@ -30,8 +32,8 @@ import retrofit2.Response;
 
 public class RegisterActivity extends AppCompatActivity {
 
-    private TextInputLayout tilUsername, tilEmail, tilPassword, tilConfirmPassword;
-    private TextInputEditText etUsername, etEmail, etPassword, etConfirmPassword;
+    private TextInputLayout tilUsername, tilEmail, tilRegisterPhone, tilPassword, tilConfirmPassword;
+    private TextInputEditText etUsername, etEmail, etRegisterPhone, etPassword, etConfirmPassword;
     private TextView tvError;
     private View btnCreateAccount;
 
@@ -52,13 +54,16 @@ public class RegisterActivity extends AppCompatActivity {
 
         tilUsername = findViewById(R.id.til_username);
         tilEmail = findViewById(R.id.til_email);
+        tilRegisterPhone = findViewById(R.id.til_register_phone);
         tilPassword = findViewById(R.id.til_password);
         tilConfirmPassword = findViewById(R.id.til_confirm_password);
 
         etUsername = findViewById(R.id.et_username);
         etEmail = findViewById(R.id.et_email);
+        etRegisterPhone = findViewById(R.id.et_register_phone);
         etPassword = findViewById(R.id.et_password);
         etConfirmPassword = findViewById(R.id.et_confirm_password);
+        etRegisterPhone.addTextChangedListener(new PhoneFormatTextWatcher(etRegisterPhone));
 
         tvError = findViewById(R.id.tv_error);
 
@@ -138,6 +143,7 @@ public class RegisterActivity extends AppCompatActivity {
         tilEmail.setError(null);
         tilPassword.setError(null);
         tilConfirmPassword.setError(null);
+        tilRegisterPhone.setError(null);
     }
 
     private void registerAfterReachabilityCheck() {
@@ -149,6 +155,7 @@ public class RegisterActivity extends AppCompatActivity {
         String email = etEmail.getText() != null ? etEmail.getText().toString().trim().toLowerCase(Locale.ROOT) : "";
         String pass = etPassword.getText() != null ? etPassword.getText().toString() : "";
         String confirm = etConfirmPassword.getText() != null ? etConfirmPassword.getText().toString() : "";
+        String regPhoneRaw = etRegisterPhone.getText() != null ? etRegisterPhone.getText().toString().trim() : "";
 
         boolean valid = true;
 
@@ -176,6 +183,13 @@ public class RegisterActivity extends AppCompatActivity {
             valid = false;
         } else {
             tilEmail.setError(null);
+        }
+
+        if (!regPhoneRaw.isEmpty() && !Validation.isPhoneNumberValid(regPhoneRaw)) {
+            tilRegisterPhone.setError(getString(R.string.error_phone_invalid));
+            valid = false;
+        } else {
+            tilRegisterPhone.setError(null);
         }
 
         if (Validation.isEmpty(pass)) {
@@ -213,7 +227,16 @@ public class RegisterActivity extends AppCompatActivity {
 
         tvError.setVisibility(View.GONE);
 
-        RegisterRequest registerRequest = new RegisterRequest(username, email, pass);
+        String phoneOpt = null;
+        if (!regPhoneRaw.isEmpty()) {
+            String digits = regPhoneRaw.replaceAll("\\D", "");
+            phoneOpt = Validation.formatPhoneForStorage(digits);
+            if (phoneOpt == null && !digits.isEmpty()) {
+                phoneOpt = regPhoneRaw;
+            }
+        }
+
+        RegisterRequest registerRequest = new RegisterRequest(username, email, pass, phoneOpt);
 
         ApiService api = ApiClient.getInstance().getService();
         api.register(registerRequest).enqueue(new Callback<AuthResponse>() {
@@ -266,7 +289,17 @@ public class RegisterActivity extends AppCompatActivity {
                         "REGISTER",
                         "Account created via API"
                 );
-                goToMain();
+                if (Boolean.TRUE.equals(auth.priorGuestCheckout)
+                        && auth.guestProfileCompletionMessage != null
+                        && !auth.guestProfileCompletionMessage.trim().isEmpty()) {
+                    new MaterialAlertDialogBuilder(RegisterActivity.this)
+                            .setMessage(auth.guestProfileCompletionMessage)
+                            .setPositiveButton(android.R.string.ok, (d, w) -> goToMain())
+                            .setCancelable(false)
+                            .show();
+                } else {
+                    goToMain();
+                }
             }
 
             @Override

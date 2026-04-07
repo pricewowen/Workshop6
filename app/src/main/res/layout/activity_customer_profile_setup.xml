@@ -35,6 +35,7 @@
                 android:paddingBottom="32dp">
 
                 <LinearLayout
+                    android:id="@+id/profile_name_section"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="horizontal"
@@ -203,6 +204,7 @@
                         </com.google.android.material.textfield.TextInputLayout>
                     </LinearLayout>
                     <LinearLayout
+                        android:id="@+id/profile_business_phone_column"
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
@@ -233,6 +235,12 @@
                         </com.google.android.material.textfield.TextInputLayout>
                     </LinearLayout>
                 </LinearLayout>
+
+                <LinearLayout
+                    android:id="@+id/profile_address_section"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical">
 
                 <TextView
                     android:layout_width="wrap_content"
@@ -381,6 +389,8 @@
                     </LinearLayout>
                 </LinearLayout>
 
+                </LinearLayout>
+
                 <TextView
                     android:id="@+id/tv_error"
                     android:layout_width="wrap_content"
@@ -390,6 +400,16 @@
                     android:visibility="gone"
                     android:layout_marginBottom="8dp"
                     tools:visibility="gone" />
+
+                <TextView
+                    android:id="@+id/tv_minimal_contact_hint"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:visibility="gone"
+                    android:text="@string/guest_minimal_contact_hint"
+                    android:textSize="13sp"
+                    android:textColor="@color/bakery_text_secondary"
+                    android:layout_marginBottom="12dp" />
 
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/btn_save"

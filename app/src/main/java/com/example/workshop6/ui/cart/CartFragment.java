@@ -121,6 +121,7 @@ public class CartFragment extends Fragment implements CartAdapter.OnCartItemList
                 Intent i = new Intent(requireContext(), CustomerProfileSetupActivity.class);
                 i.putExtra(CustomerProfileSetupActivity.EXTRA_LAUNCHED_FOR_CHECKOUT, true);
                 i.putExtra(CustomerProfileSetupActivity.EXTRA_GUEST_MODE, true);
+                i.putExtra(CustomerProfileSetupActivity.EXTRA_MINIMAL_CONTACT_GUEST, true);
                 customerProfileLauncher.launch(
                         i,
                         NavTransitions.forwardLaunchOptions(requireActivity()));
