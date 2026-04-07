@@ -5,6 +5,7 @@ import android.graphics.ColorMatrix;
 import android.graphics.ColorMatrixColorFilter;
 import android.view.LayoutInflater;
 import android.view.View;
+import android.view.ViewOutlineProvider;
 import android.view.ViewGroup;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -207,10 +208,12 @@ public class PhotoApprovalsFragment extends Fragment {
                 String originFallback = cdnToOriginUrl(c.profilePhotoPath);
                 Glide.with(holder.itemView)
                         .load(c.profilePhotoPath)
+                        .circleCrop()
                         .placeholder(R.drawable.ic_person_placeholder)
                         .error(
                                 Glide.with(holder.itemView)
                                         .load(originFallback != null ? originFallback : c.profilePhotoPath)
+                                        .circleCrop()
                                         .placeholder(R.drawable.ic_person_placeholder)
                                         .error(R.drawable.ic_person_placeholder)
                         )
@@ -239,6 +242,8 @@ public class PhotoApprovalsFragment extends Fragment {
             VH(@NonNull View itemView) {
                 super(itemView);
                 ivPhoto = itemView.findViewById(R.id.iv_pending_photo);
+                ivPhoto.setClipToOutline(true);
+                ivPhoto.setOutlineProvider(ViewOutlineProvider.BACKGROUND);
                 tvName = itemView.findViewById(R.id.tv_pending_name);
                 tvEmail = itemView.findViewById(R.id.tv_pending_email);
                 btnApprove = itemView.findViewById(R.id.btn_approve_photo);

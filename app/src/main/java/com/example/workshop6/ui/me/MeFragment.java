@@ -6,6 +6,7 @@ import android.graphics.ColorMatrixColorFilter;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
+import android.view.ViewOutlineProvider;
 import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.ImageView;
@@ -77,6 +78,8 @@ public class MeFragment extends Fragment {
         }
 
         ivPhoto = view.findViewById(R.id.iv_me_photo);
+        ivPhoto.setClipToOutline(true);
+        ivPhoto.setOutlineProvider(ViewOutlineProvider.BACKGROUND);
         tvMeRole = view.findViewById(R.id.tv_me_role);
         tvName = view.findViewById(R.id.tv_me_name);
         tvEmail = view.findViewById(R.id.tv_me_email);
@@ -622,10 +625,12 @@ public class MeFragment extends Fragment {
         String originFallback = cdnToOriginUrl(photoPath);
         Glide.with(this)
                 .load(photoPath)
+                .circleCrop()
                 .placeholder(R.drawable.ic_person_placeholder)
                 .error(
                         Glide.with(this)
                                 .load(originFallback != null ? originFallback : photoPath)
+                                .circleCrop()
                                 .placeholder(R.drawable.ic_person_placeholder)
                                 .error(R.drawable.ic_person_placeholder)
                 )
