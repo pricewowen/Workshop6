@@ -2,6 +2,7 @@ package com.example.workshop6.ui.products;
 
 import android.graphics.drawable.Drawable;
 import android.os.Bundle;
+import android.text.InputType;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -33,7 +34,10 @@ import com.example.workshop6.data.api.ApiService;
 import com.example.workshop6.data.api.ProductMapper;
 import com.example.workshop6.data.api.dto.ProductDto;
 import com.example.workshop6.data.api.dto.ProductSpecialTodayDto;
+import com.example.workshop6.data.api.dto.ReviewCreateRequest;
 import com.example.workshop6.data.api.dto.ReviewDto;
+import com.example.workshop6.data.api.dto.OrderDto;
+import com.example.workshop6.data.api.dto.OrderItemDto;
 import com.example.workshop6.data.model.CartItem;
 import com.example.workshop6.data.model.Product;
 import com.example.workshop6.ui.cart.CartManager;
@@ -44,6 +48,7 @@ import com.example.workshop6.util.SpecialPriceSpan;
 import com.example.workshop6.util.TodayDate;
 
 import java.text.NumberFormat;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
@@ -66,6 +71,7 @@ public class ProductDetailsFragment extends Fragment {
     private Button btnIncrease;
     private Button btnDecrease;
     private Button btnAddToCart;
+    private Button btnLeaveReview;
 
     private ImageView ivProductImage;
 
@@ -133,12 +139,8 @@ public class ProductDetailsFragment extends Fragment {
         rvReviews.setNestedScrollingEnabled(false);
         rvReviews.setHasFixedSize(true);
 
-        // Reviews are now displayed on the bakery/location page, not on product details.
-        tvReviewsTitle.setVisibility(View.GONE);
-        tvReviewsEmpty.setVisibility(View.GONE);
-        if (rvReviews.getParent() instanceof View) {
-            ((View) rvReviews.getParent()).setVisibility(View.GONE);
-        }
+        btnLeaveReview = view.findViewById(R.id.btnLeaveReview);
+        btnLeaveReview.setVisibility(View.GONE);
 
         tvQuantity.setText(String.valueOf(quantCounter));
 
@@ -226,7 +228,8 @@ public class ProductDetailsFragment extends Fragment {
             }
         });
 
-        // No product reviews section on this screen anymore.
+        loadProductReviewsSection(productId);
+        loadProductReviewEligibility(productId);
 
         btnIncrease.setOnClickListener(v -> {
             quantCounter++;
@@ -248,6 +251,133 @@ public class ProductDetailsFragment extends Fragment {
                 Navigation.findNavController(view).navigateUp();
             }
         });
+    }
+
+    private void loadProductReviewEligibility(int productId) {
+        api.getOrders().enqueue(new Callback<List<OrderDto>>() {
+            @Override
+            public void onResponse(Call<List<OrderDto>> call, Response<List<OrderDto>> response) {
+                if (!isUiReady() || btnLeaveReview == null) {
+                    return;
+                }
+                if (!response.isSuccessful() || response.body() == null) {
+                    btnLeaveReview.setVisibility(View.GONE);
+                    return;
+                }
+                boolean purchased = false;
+                for (OrderDto order : response.body()) {
+                    if (order == null || order.items == null) {
+                        continue;
+                    }
+                    for (OrderItemDto item : order.items) {
+                        if (item != null && item.productId == productId) {
+                            purchased = true;
+                            break;
+                        }
+                    }
+                    if (purchased) {
+                        break;
+                    }
+                }
+                if (!purchased) {
+                    btnLeaveReview.setVisibility(View.GONE);
+                    return;
+                }
+                btnLeaveReview.setVisibility(View.VISIBLE);
+                btnLeaveReview.setOnClickListener(v -> showProductReviewDialog(productId));
+            }
+
+            @Override
+            public void onFailure(Call<List<OrderDto>> call, Throwable t) {
+                if (isUiReady() && btnLeaveReview != null) {
+                    btnLeaveReview.setVisibility(View.GONE);
+                }
+            }
+        });
+    }
+
+    private void showProductReviewDialog(int productId) {
+        if (!isUiReady()) {
+            return;
+        }
+        android.widget.LinearLayout container = new android.widget.LinearLayout(requireContext());
+        container.setOrientation(android.widget.LinearLayout.VERTICAL);
+        int pad = (int) (16 * getResources().getDisplayMetrics().density);
+        container.setPadding(pad, pad, pad, 0);
+
+        android.widget.TextView tvRating = new android.widget.TextView(requireContext());
+        tvRating.setText(R.string.order_review_rating_label);
+        container.addView(tvRating);
+
+        View ratingView = LayoutInflater.from(requireContext())
+                .inflate(R.layout.view_dialog_review_rating_bar, container, false);
+        android.widget.RatingBar ratingBar = ratingView.findViewById(R.id.ratingBarDialog);
+        container.addView(ratingView);
+
+        android.widget.TextView tvComment = new android.widget.TextView(requireContext());
+        tvComment.setText(R.string.order_review_comment_label);
+        tvComment.setPadding(0, pad, 0, 0);
+        container.addView(tvComment);
+
+        android.widget.EditText etComment = new android.widget.EditText(requireContext());
+        etComment.setHint(R.string.order_review_comment_hint);
+        etComment.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_MULTI_LINE);
+        etComment.setMinLines(3);
+        etComment.setMaxLines(5);
+        container.addView(etComment);
+
+        new androidx.appcompat.app.AlertDialog.Builder(requireContext())
+                .setTitle(R.string.btn_leave_review)
+                .setView(container)
+                .setNegativeButton(android.R.string.cancel, null)
+                .setPositiveButton(R.string.order_submit_review, (d, w) -> {
+                    short rating = (short) Math.max(1, Math.min(5, Math.round(ratingBar.getRating())));
+                    String comment = etComment.getText() != null ? etComment.getText().toString().trim() : "";
+                    submitProductReview(productId, rating, comment);
+                })
+                .show();
+    }
+
+    private void submitProductReview(int productId, short rating, String comment) {
+        api.createProductReview(productId, new ReviewCreateRequest(rating, comment))
+                .enqueue(new Callback<ReviewDto>() {
+                    @Override
+                    public void onResponse(Call<ReviewDto> call, Response<ReviewDto> response) {
+                        if (!isUiReady()) {
+                            return;
+                        }
+                        if (response.isSuccessful()) {
+                            Toast.makeText(requireContext(), R.string.order_review_submitted_pending, Toast.LENGTH_LONG).show();
+                            loadProductReviewsSection(productId);
+                            if (btnLeaveReview != null) {
+                                btnLeaveReview.setVisibility(View.GONE);
+                            }
+                            return;
+                        }
+                        if (response.code() == 409) {
+                            Toast.makeText(requireContext(), R.string.product_review_already_submitted, Toast.LENGTH_SHORT).show();
+                            if (btnLeaveReview != null) {
+                                btnLeaveReview.setVisibility(View.GONE);
+                            }
+                            return;
+                        }
+                        if (response.code() == 400) {
+                            Toast.makeText(requireContext(), R.string.product_review_requires_purchase, Toast.LENGTH_SHORT).show();
+                            if (btnLeaveReview != null) {
+                                btnLeaveReview.setVisibility(View.GONE);
+                            }
+                            return;
+                        }
+                        Toast.makeText(requireContext(), R.string.order_review_submit_failed, Toast.LENGTH_SHORT).show();
+                    }
+
+                    @Override
+                    public void onFailure(Call<ReviewDto> call, Throwable t) {
+                        if (isUiReady()) {
+                            Toast.makeText(requireContext(), R.string.login_error_no_connection, Toast.LENGTH_SHORT).show();
+                        }
+                    }
+                });
     }
 
     private boolean isUiReady() {

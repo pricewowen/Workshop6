@@ -24,6 +24,7 @@ import com.example.workshop6.auth.LoginActivity;
 import com.example.workshop6.auth.SessionManager;
 import com.example.workshop6.data.api.ApiClient;
 import com.example.workshop6.data.api.ApiService;
+import com.example.workshop6.data.api.dto.CustomerDto;
 import com.example.workshop6.data.api.dto.OrderDto;
 import com.example.workshop6.data.api.dto.OrderItemDto;
 import com.example.workshop6.data.api.dto.ReviewCreateRequest;
@@ -186,9 +187,35 @@ public class OrderHistoryActivity extends AppCompatActivity {
                 .setTitle(R.string.order_accept_delivery)
                 .setMessage(R.string.order_accept_delivery_prompt)
                 .setNegativeButton(R.string.order_accept_without_review, (d, w) -> markOrderCompleted(orderWithDetails.order.id))
-                .setPositiveButton(R.string.order_leave_review, (d, w) -> showReviewDialog(orderWithDetails))
+                .setPositiveButton(R.string.order_leave_review, (d, w) ->
+                        ensureProfileHasReviewNameThen(() -> showReviewDialog(orderWithDetails)))
                 .setNeutralButton(android.R.string.cancel, null)
                 .show();
+    }
+
+    private void ensureProfileHasReviewNameThen(Runnable onValidName) {
+        api.getCustomerMe().enqueue(new Callback<CustomerDto>() {
+            @Override
+            public void onResponse(Call<CustomerDto> call, Response<CustomerDto> response) {
+                if (!response.isSuccessful() || response.body() == null) {
+                    Toast.makeText(OrderHistoryActivity.this, R.string.order_review_submit_failed, Toast.LENGTH_SHORT).show();
+                    return;
+                }
+                CustomerDto customer = response.body();
+                boolean hasFirst = customer.firstName != null && !customer.firstName.trim().isEmpty();
+                boolean hasLast = customer.lastName != null && !customer.lastName.trim().isEmpty();
+                if (!hasFirst || !hasLast) {
+                    Toast.makeText(OrderHistoryActivity.this, R.string.review_name_required, Toast.LENGTH_LONG).show();
+                    return;
+                }
+                onValidName.run();
+            }
+
+            @Override
+            public void onFailure(Call<CustomerDto> call, Throwable t) {
+                Toast.makeText(OrderHistoryActivity.this, R.string.login_error_no_connection, Toast.LENGTH_SHORT).show();
+            }
+        });
     }
 
     private void showReviewDialog(OrderWithDetails orderWithDetails) {
@@ -252,6 +279,10 @@ public class OrderHistoryActivity extends AppCompatActivity {
             @Override
             public void onResponse(Call<ReviewDto> call, Response<ReviewDto> response) {
                 if (!response.isSuccessful()) {
+                    if (response.code() == 400) {
+                        Toast.makeText(OrderHistoryActivity.this, R.string.review_name_required, Toast.LENGTH_LONG).show();
+                        return;
+                    }
                     Toast.makeText(OrderHistoryActivity.this, R.string.order_review_submit_failed, Toast.LENGTH_SHORT).show();
                     return;
                 }

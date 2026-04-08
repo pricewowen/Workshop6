@@ -425,6 +425,10 @@
     <string name="order_review_submitted_pending">Review submitted and awaiting approval.</string>
     <string name="order_review_submit_failed">Could not submit review.</string>
     <string name="order_review_no_items">No reviewable items on this order.</string>
+    <string name="review_name_required">First and last name are required in your profile before leaving a review.</string>
+    <string name="btn_leave_review">Leave Review</string>
+    <string name="product_review_requires_purchase">You can only review products you have purchased.</string>
+    <string name="product_review_already_submitted">You already submitted a review for this product.</string>
     <string name="order_delivery_accepted">Delivery accepted. Order marked complete.</string>
     <string name="review_approvals_title">Review Approvals</string>
     <string name="review_approvals_subtitle">Approve or reject customer reviews from delivered orders.</string>
