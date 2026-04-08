@@ -93,14 +93,9 @@ public class MeFragment extends Fragment {
 
         if (sessionManager.isGuestMode()) {
             view.findViewById(R.id.btn_edit_account).setVisibility(View.GONE);
-            view.findViewById(R.id.btn_customer_details).setVisibility(View.VISIBLE);
+            view.findViewById(R.id.btn_customer_details).setVisibility(View.GONE);
             view.findViewById(R.id.btn_loyalty_rewards).setVisibility(View.GONE);
             view.findViewById(R.id.btn_order_history).setVisibility(View.GONE);
-            view.findViewById(R.id.btn_customer_details).setOnClickListener(v -> {
-                Intent intent = new Intent(requireContext(), CustomerProfileSetupActivity.class);
-                intent.putExtra(CustomerProfileSetupActivity.EXTRA_GUEST_MODE, true);
-                NavTransitions.startActivityWithForward(requireActivity(), intent);
-            });
         } else if ("CUSTOMER".equalsIgnoreCase(sessionManager.getUserRole())) {
             view.findViewById(R.id.btn_edit_account).setVisibility(View.VISIBLE);
             view.findViewById(R.id.btn_customer_details).setVisibility(View.VISIBLE);

@@ -1,10 +1,14 @@
 package com.example.workshop6.ui.cart;
 
-import android.app.Activity;
+import android.Manifest;
 import android.app.DatePickerDialog;
 import android.app.TimePickerDialog;
 import android.content.Intent;
+import android.content.pm.PackageManager;
+import android.location.Location;
 import android.os.Bundle;
+import android.text.Editable;
+import android.text.TextWatcher;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -19,15 +23,17 @@ import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import androidx.activity.result.ActivityResultLauncher;
-import androidx.activity.result.contract.ActivityResultContracts;
+import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.content.ContextCompat;
 
 import com.stripe.android.paymentsheet.PaymentSheet;
 import com.stripe.android.paymentsheet.PaymentSheetResult;
 import androidx.appcompat.widget.Toolbar;
 
+import com.google.android.gms.location.FusedLocationProviderClient;
+import com.google.android.gms.location.LocationServices;
 import com.google.android.material.card.MaterialCardView;
 
 import com.example.workshop6.R;
@@ -36,23 +42,26 @@ import com.example.workshop6.data.api.ApiClient;
 import com.example.workshop6.data.api.ApiService;
 import com.example.workshop6.data.api.BakeryLocationMapper;
 import com.example.workshop6.data.api.dto.AddressDto;
+import com.example.workshop6.data.api.dto.AddressUpsertRequest;
 import com.example.workshop6.data.api.dto.BakeryDto;
 import com.example.workshop6.data.api.dto.BakeryHourDto;
 import com.example.workshop6.data.api.dto.CheckoutRequest;
 import com.example.workshop6.data.api.dto.CheckoutSessionResponse;
+import com.example.workshop6.data.api.dto.CustomerBootstrapRequest;
 import com.example.workshop6.data.api.dto.CustomerDto;
+import com.example.workshop6.data.api.dto.CustomerPatchRequest;
 import com.example.workshop6.data.api.dto.GuestCustomerRequest;
 import com.example.workshop6.data.api.dto.ProductSpecialTodayDto;
 import com.example.workshop6.data.api.dto.RewardTierDto;
 import com.example.workshop6.data.model.BakeryLocationDetails;
 import com.example.workshop6.data.model.CartItem;
 import com.example.workshop6.logging.ActivityLogger;
-import com.example.workshop6.ui.MainActivity;
 import com.example.workshop6.ui.loyalty.LoyaltyTierUi;
-import com.example.workshop6.ui.profile.CustomerProfileSetupActivity;
 import com.example.workshop6.util.CanadianTaxRates;
 import com.example.workshop6.util.MoneyFormat;
 import com.example.workshop6.util.NavTransitions;
+import com.example.workshop6.util.PhoneFormatTextWatcher;
+import com.example.workshop6.util.PostalCodeFormatTextWatcher;
 import com.example.workshop6.util.ProductSpecialState;
 import com.example.workshop6.util.SensitiveActionAuthorizer;
 import com.example.workshop6.util.TodayDate;
@@ -69,6 +78,9 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 import java.util.TimeZone;
+
+import com.google.android.material.textfield.TextInputEditText;
+import com.google.android.material.textfield.TextInputLayout;
 
 import retrofit2.Call;
 import retrofit2.Callback;
@@ -93,7 +105,12 @@ public class CheckoutActivity extends AppCompatActivity {
     private Button btnEditOrder;
     private TextView tvConfirmationText;
     private Spinner spinnerBakery;
-    private TextView tvSelectedBakery;
+    private TextView tvCheckoutFulfillmentDetails;
+    private FusedLocationProviderClient fusedLocationClient;
+    @Nullable
+    private Double checkoutUserLat;
+    @Nullable
+    private Double checkoutUserLng;
     private MaterialCardView cardCheckoutLoyalty;
     private TextView tvCheckoutLoyaltyBalance;
     private TextView tvCheckoutLoyaltyDetail;
@@ -135,17 +152,64 @@ public class CheckoutActivity extends AppCompatActivity {
     private Integer checkoutLoyaltyTierId;
     private RewardTierDto checkoutResolvedTier;
 
-    private ActivityResultLauncher<Intent> customerProfileLauncher;
+    private TextView tvCheckoutIntro;
+    private View cardCheckoutGuestContact;
+    private View cardCheckoutProfileBootstrap;
+    private View cardCheckoutDeliveryForm;
+    private TextInputLayout tilCheckoutGuestEmail;
+    private TextInputLayout tilCheckoutGuestPhone;
+    private TextInputEditText etCheckoutGuestEmail;
+    private TextInputEditText etCheckoutGuestPhone;
+    private TextInputLayout tilCheckoutBootstrapFirst;
+    private TextInputLayout tilCheckoutBootstrapLast;
+    private TextInputLayout tilCheckoutBootstrapPhone;
+    private TextInputLayout tilCheckoutBootstrapAddr1;
+    private TextInputLayout tilCheckoutBootstrapAddr2;
+    private TextInputLayout tilCheckoutBootstrapCity;
+    private TextInputLayout tilCheckoutBootstrapPostal;
+    private TextInputEditText etCheckoutBootstrapFirst;
+    private TextInputEditText etCheckoutBootstrapLast;
+    private TextInputEditText etCheckoutBootstrapPhone;
+    private TextInputEditText etCheckoutBootstrapAddr1;
+    private TextInputEditText etCheckoutBootstrapAddr2;
+    private TextInputEditText etCheckoutBootstrapCity;
+    private TextInputEditText etCheckoutBootstrapPostal;
+    private Spinner spinnerCheckoutBootstrapProvince;
+    private TextView tvCheckoutBootstrapProvinceError;
+    private TextInputLayout tilCheckoutDeliveryLine1;
+    private TextInputLayout tilCheckoutDeliveryLine2;
+    private TextInputLayout tilCheckoutDeliveryCity;
+    private TextInputLayout tilCheckoutDeliveryPostal;
+    private TextInputEditText etCheckoutDeliveryLine1;
+    private TextInputEditText etCheckoutDeliveryLine2;
+    private TextInputEditText etCheckoutDeliveryCity;
+    private TextInputEditText etCheckoutDeliveryPostal;
+    private Spinner spinnerCheckoutDeliveryProvince;
+    private TextView tvCheckoutDeliveryProvinceError;
+
+    private boolean customerBootstrapRequired;
+
+    private final TextWatcher checkoutFormWatcher = new TextWatcher() {
+        @Override
+        public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+        }
+
+        @Override
+        public void onTextChanged(CharSequence s, int start, int before, int count) {
+        }
+
+        @Override
+        public void afterTextChanged(Editable s) {
+            if (sessionManager != null && sessionManager.isGuestMode()) {
+                syncGuestModelFromFields();
+            }
+            updateTotals();
+            refreshSubmitButtonState();
+        }
+    };
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-        customerProfileLauncher = registerForActivityResult(
-                new ActivityResultContracts.StartActivityForResult(),
-                result -> {
-                    if (result.getResultCode() == Activity.RESULT_OK) {
-                        loadCustomerData();
-                    }
-                });
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_checkout);
 
@@ -233,7 +297,8 @@ public class CheckoutActivity extends AppCompatActivity {
         btnEditOrder = findViewById(R.id.btnEditOrder);
         tvConfirmationText = findViewById(R.id.tvConfirmationText);
         spinnerBakery = findViewById(R.id.spinnerBakery);
-        tvSelectedBakery = findViewById(R.id.tvSelectedBakery);
+        tvCheckoutFulfillmentDetails = findViewById(R.id.tv_checkout_fulfillment_details);
+        fusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
         tvDeliveryAddress = findViewById(R.id.tvDeliveryAddress);
         cardCheckoutLoyalty = findViewById(R.id.cardCheckoutLoyalty);
         tvCheckoutLoyaltyBalance = findViewById(R.id.tvCheckoutLoyaltyBalance);
@@ -248,15 +313,91 @@ public class CheckoutActivity extends AppCompatActivity {
         tvCheckoutSpecialLine = findViewById(R.id.tvCheckoutSpecialLine);
         tvCheckoutTierLine = findViewById(R.id.tvCheckoutTierLine);
 
+        tvCheckoutIntro = findViewById(R.id.tv_checkout_intro);
+        cardCheckoutGuestContact = findViewById(R.id.card_checkout_guest_contact);
+        cardCheckoutProfileBootstrap = findViewById(R.id.card_checkout_profile_bootstrap);
+        cardCheckoutDeliveryForm = findViewById(R.id.card_checkout_delivery_form);
+        tilCheckoutGuestEmail = findViewById(R.id.til_checkout_guest_email);
+        tilCheckoutGuestPhone = findViewById(R.id.til_checkout_guest_phone);
+        etCheckoutGuestEmail = findViewById(R.id.et_checkout_guest_email);
+        etCheckoutGuestPhone = findViewById(R.id.et_checkout_guest_phone);
+        tilCheckoutBootstrapFirst = findViewById(R.id.til_checkout_bootstrap_first);
+        tilCheckoutBootstrapLast = findViewById(R.id.til_checkout_bootstrap_last);
+        tilCheckoutBootstrapPhone = findViewById(R.id.til_checkout_bootstrap_phone);
+        tilCheckoutBootstrapAddr1 = findViewById(R.id.til_checkout_bootstrap_addr1);
+        tilCheckoutBootstrapAddr2 = findViewById(R.id.til_checkout_bootstrap_addr2);
+        tilCheckoutBootstrapCity = findViewById(R.id.til_checkout_bootstrap_city);
+        tilCheckoutBootstrapPostal = findViewById(R.id.til_checkout_bootstrap_postal);
+        etCheckoutBootstrapFirst = findViewById(R.id.et_checkout_bootstrap_first);
+        etCheckoutBootstrapLast = findViewById(R.id.et_checkout_bootstrap_last);
+        etCheckoutBootstrapPhone = findViewById(R.id.et_checkout_bootstrap_phone);
+        etCheckoutBootstrapAddr1 = findViewById(R.id.et_checkout_bootstrap_addr1);
+        etCheckoutBootstrapAddr2 = findViewById(R.id.et_checkout_bootstrap_addr2);
+        etCheckoutBootstrapCity = findViewById(R.id.et_checkout_bootstrap_city);
+        etCheckoutBootstrapPostal = findViewById(R.id.et_checkout_bootstrap_postal);
+        spinnerCheckoutBootstrapProvince = findViewById(R.id.spinner_checkout_bootstrap_province);
+        tvCheckoutBootstrapProvinceError = findViewById(R.id.tv_checkout_bootstrap_province_error);
+        tilCheckoutDeliveryLine1 = findViewById(R.id.til_checkout_delivery_line1);
+        tilCheckoutDeliveryLine2 = findViewById(R.id.til_checkout_delivery_line2);
+        tilCheckoutDeliveryCity = findViewById(R.id.til_checkout_delivery_city);
+        tilCheckoutDeliveryPostal = findViewById(R.id.til_checkout_delivery_postal);
+        etCheckoutDeliveryLine1 = findViewById(R.id.et_checkout_delivery_line1);
+        etCheckoutDeliveryLine2 = findViewById(R.id.et_checkout_delivery_line2);
+        etCheckoutDeliveryCity = findViewById(R.id.et_checkout_delivery_city);
+        etCheckoutDeliveryPostal = findViewById(R.id.et_checkout_delivery_postal);
+        spinnerCheckoutDeliveryProvince = findViewById(R.id.spinner_checkout_delivery_province);
+        tvCheckoutDeliveryProvinceError = findViewById(R.id.tv_checkout_delivery_province_error);
+
+        ArrayAdapter<CharSequence> provinceAdapterBootstrap = ArrayAdapter.createFromResource(
+                this, R.array.provinces, android.R.layout.simple_spinner_item);
+        provinceAdapterBootstrap.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        spinnerCheckoutBootstrapProvince.setAdapter(provinceAdapterBootstrap);
+        ArrayAdapter<CharSequence> provinceAdapterDelivery = ArrayAdapter.createFromResource(
+                this, R.array.provinces, android.R.layout.simple_spinner_item);
+        provinceAdapterDelivery.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        spinnerCheckoutDeliveryProvince.setAdapter(provinceAdapterDelivery);
+
+        AdapterView.OnItemSelectedListener provinceChangedListener = new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                refreshSubmitButtonState();
+            }
+
+            @Override
+            public void onNothingSelected(AdapterView<?> parent) {
+            }
+        };
+        spinnerCheckoutBootstrapProvince.setOnItemSelectedListener(provinceChangedListener);
+        spinnerCheckoutDeliveryProvince.setOnItemSelectedListener(provinceChangedListener);
+
+        etCheckoutGuestPhone.addTextChangedListener(new PhoneFormatTextWatcher(etCheckoutGuestPhone));
+        etCheckoutBootstrapPhone.addTextChangedListener(new PhoneFormatTextWatcher(etCheckoutBootstrapPhone));
+        etCheckoutBootstrapPostal.addTextChangedListener(new PostalCodeFormatTextWatcher(etCheckoutBootstrapPostal));
+        etCheckoutDeliveryPostal.addTextChangedListener(new PostalCodeFormatTextWatcher(etCheckoutDeliveryPostal));
+        etCheckoutGuestEmail.addTextChangedListener(checkoutFormWatcher);
+        etCheckoutGuestPhone.addTextChangedListener(checkoutFormWatcher);
+        etCheckoutDeliveryLine1.addTextChangedListener(checkoutFormWatcher);
+        etCheckoutDeliveryLine2.addTextChangedListener(checkoutFormWatcher);
+        etCheckoutDeliveryCity.addTextChangedListener(checkoutFormWatcher);
+        etCheckoutDeliveryPostal.addTextChangedListener(checkoutFormWatcher);
+        etCheckoutBootstrapFirst.addTextChangedListener(checkoutFormWatcher);
+        etCheckoutBootstrapLast.addTextChangedListener(checkoutFormWatcher);
+        etCheckoutBootstrapPhone.addTextChangedListener(checkoutFormWatcher);
+        etCheckoutBootstrapAddr1.addTextChangedListener(checkoutFormWatcher);
+        etCheckoutBootstrapAddr2.addTextChangedListener(checkoutFormWatcher);
+        etCheckoutBootstrapCity.addTextChangedListener(checkoutFormWatcher);
+        etCheckoutBootstrapPostal.addTextChangedListener(checkoutFormWatcher);
+
+        btnConfirmOrder.setEnabled(true);
+        btnConfirmOrder.setAlpha(1f);
+
         selectedDateTime = computeDefaultTime();
         updateScheduledTimeDisplay();
 
         btnSelectTime.setOnClickListener(v -> {
-            int bakeryId;
-            if ("delivery".equals(deliveryMethod)) {
-                bakeryId = bakeryList != null && !bakeryList.isEmpty() ? bakeryList.get(0).id : -1;
-            } else {
-                bakeryId = selectedBakeryId;
+            int bakeryId = selectedBakeryId;
+            if (bakeryId <= 0 && bakeryList != null && !bakeryList.isEmpty()) {
+                bakeryId = bakeryList.get(0).id;
             }
             if (bakeryId <= 0) {
                 Toast.makeText(this, "Please wait while bakeries load", Toast.LENGTH_SHORT).show();
@@ -268,17 +409,14 @@ public class CheckoutActivity extends AppCompatActivity {
         rgDeliveryMethod.setOnCheckedChangeListener((group, checkedId) -> {
             if (checkedId == R.id.rbDelivery) {
                 deliveryMethod = "delivery";
-                spinnerBakery.setVisibility(View.GONE);
-                tvSelectedBakery.setVisibility(View.GONE);
                 loadUserAddressHint();
             } else {
                 deliveryMethod = "pickup";
-                spinnerBakery.setVisibility(View.VISIBLE);
-                tvSelectedBakery.setVisibility(View.VISIBLE);
                 tvDeliveryAddress.setVisibility(View.GONE);
             }
+            updateCheckoutSectionVisibility();
             updateTotals();
-            validateForm();
+            refreshSubmitButtonState();
         });
 
         etOrderComment.addTextChangedListener(new android.text.TextWatcher() {
@@ -316,9 +454,13 @@ public class CheckoutActivity extends AppCompatActivity {
         btnEditOrder.setOnClickListener(v -> {
             confirmationLayout.setVisibility(View.GONE);
             mainLayout.setVisibility(View.VISIBLE);
+            refreshSubmitButtonState();
         });
 
+        updateCheckoutSectionVisibility();
+        loadUserAddressHint();
         updateTotals();
+        refreshSubmitButtonState();
     }
 
     private void fetchTodaySpecialForCheckout() {
@@ -338,67 +480,279 @@ public class CheckoutActivity extends AppCompatActivity {
         });
     }
 
-    /** Opens the same personal-info form as Me, then returns here when the customer taps Proceed with order. */
-    private void openCustomerProfileForCheckout() {
-        boolean minimalGuest = sessionManager.isGuestMode() && !sessionManager.hasMinimalGuestContact();
-        openCustomerProfileForCheckout(minimalGuest);
-    }
-
-    private void openCustomerProfileForCheckout(boolean minimalContactGuest) {
-        Intent i = new Intent(this, CustomerProfileSetupActivity.class);
-        i.putExtra(CustomerProfileSetupActivity.EXTRA_LAUNCHED_FOR_CHECKOUT, true);
-        i.putExtra(CustomerProfileSetupActivity.EXTRA_OPEN_CHECKOUT_AFTER_SAVE, false);
-        i.putExtra(CustomerProfileSetupActivity.EXTRA_GUEST_MODE, sessionManager.isGuestMode());
-        i.putExtra(CustomerProfileSetupActivity.EXTRA_MINIMAL_CONTACT_GUEST, minimalContactGuest);
-        customerProfileLauncher.launch(i, NavTransitions.forwardLaunchOptions(this));
-    }
-
     private void loadCustomerData() {
         if (sessionManager.isGuestMode()) {
-            GuestCustomerRequest guest = sessionManager.getGuestProfile();
-            if (guest == null) {
-                runOnUiThread(this::openCustomerProfileForCheckout);
-                return;
-            }
-            currentCustomer = toGuestCustomer(guest);
+            customerBootstrapRequired = false;
+            populateGuestFieldsFromDraft(sessionManager.getGuestProfileOrDraft());
+            syncGuestModelFromFields();
             checkoutRewardTiers.clear();
             checkoutLoyaltyPoints = 0;
             checkoutLoyaltyTierId = null;
             checkoutResolvedTier = null;
             cart.applyDiscount(0d);
             runOnUiThread(() -> {
+                updateCheckoutSectionVisibility();
+                loadUserAddressHint();
                 bindCheckoutLoyaltyPanel();
                 updateTotals();
-                validateForm();
+                refreshSubmitButtonState();
             });
             return;
         }
+        customerBootstrapRequired = false;
         api.getCustomerMe().enqueue(new Callback<CustomerDto>() {
             @Override
             public void onResponse(Call<CustomerDto> call, Response<CustomerDto> response) {
                 if (response.code() == 404) {
-                    runOnUiThread(() -> openCustomerProfileForCheckout());
+                    currentCustomer = null;
+                    customerBootstrapRequired = true;
+                    clearBootstrapFields();
+                    runOnUiThread(() -> {
+                        updateCheckoutSectionVisibility();
+                        loadUserAddressHint();
+                        refreshSubmitButtonState();
+                    });
                     return;
                 }
                 if (response.isSuccessful() && response.body() != null) {
                     currentCustomer = response.body();
+                    customerBootstrapRequired = false;
                     fetchRewardTiersForCheckout(currentCustomer);
                 }
-                validateForm();
+                runOnUiThread(() -> {
+                    updateCheckoutSectionVisibility();
+                    loadUserAddressHint();
+                    refreshSubmitButtonState();
+                });
             }
 
             @Override
             public void onFailure(Call<CustomerDto> call, Throwable t) {
-                validateForm();
+                refreshSubmitButtonState();
             }
         });
     }
 
+    private void clearBootstrapFields() {
+        if (etCheckoutBootstrapFirst == null) {
+            return;
+        }
+        etCheckoutBootstrapFirst.setText("");
+        etCheckoutBootstrapLast.setText("");
+        etCheckoutBootstrapPhone.setText("");
+        etCheckoutBootstrapAddr1.setText("");
+        etCheckoutBootstrapAddr2.setText("");
+        etCheckoutBootstrapCity.setText("");
+        setProvinceSpinnerSelection(spinnerCheckoutBootstrapProvince, "");
+        etCheckoutBootstrapPostal.setText("");
+    }
+
+    private void populateGuestFieldsFromDraft(GuestCustomerRequest draft) {
+        if (draft == null || etCheckoutGuestEmail == null) {
+            return;
+        }
+        etCheckoutGuestEmail.setText(draft.email != null ? draft.email : "");
+        etCheckoutGuestPhone.setText(draft.phone != null ? draft.phone : "");
+        etCheckoutDeliveryLine1.setText(draft.addressLine1 != null ? draft.addressLine1 : "");
+        etCheckoutDeliveryLine2.setText(draft.addressLine2 != null ? draft.addressLine2 : "");
+        etCheckoutDeliveryCity.setText(draft.city != null ? draft.city : "");
+        setProvinceSpinnerSelection(spinnerCheckoutDeliveryProvince, draft.province);
+        etCheckoutDeliveryPostal.setText(draft.postalCode != null ? draft.postalCode : "");
+    }
+
+    private void syncGuestModelFromFields() {
+        if (!sessionManager.isGuestMode()) {
+            return;
+        }
+        currentCustomer = toGuestCustomer(buildGuestFromFields());
+    }
+
+    private GuestCustomerRequest buildGuestFromFields() {
+        GuestCustomerRequest g = new GuestCustomerRequest();
+        g.firstName = null;
+        g.middleInitial = null;
+        g.lastName = null;
+
+        String email = etCheckoutGuestEmail != null && etCheckoutGuestEmail.getText() != null
+                ? etCheckoutGuestEmail.getText().toString().trim().toLowerCase(Locale.ROOT) : "";
+        String phoneRaw = etCheckoutGuestPhone != null && etCheckoutGuestPhone.getText() != null
+                ? etCheckoutGuestPhone.getText().toString().replaceAll("\\D", "") : "";
+        boolean hasEmail = !email.isEmpty();
+        boolean hasPhone = !phoneRaw.isEmpty();
+        g.email = hasEmail ? email : "";
+        if (hasPhone) {
+            String phoneStored = Validation.formatPhoneForStorage(phoneRaw);
+            g.phone = phoneStored != null ? phoneStored : phoneRaw;
+        } else {
+            g.phone = "";
+        }
+        g.businessPhone = null;
+
+        boolean useDeliveryForm = cardCheckoutDeliveryForm != null
+                && cardCheckoutDeliveryForm.getVisibility() == View.VISIBLE;
+        if (useDeliveryForm) {
+            g.addressLine1 = textOrEmpty(etCheckoutDeliveryLine1);
+            g.addressLine2 = textOrEmpty(etCheckoutDeliveryLine2);
+            g.city = textOrEmpty(etCheckoutDeliveryCity);
+            g.province = provinceFromSpinner(spinnerCheckoutDeliveryProvince);
+            g.postalCode = textOrEmpty(etCheckoutDeliveryPostal);
+        } else {
+            GuestCustomerRequest d = sessionManager.getGuestProfileOrDraft();
+            g.addressLine1 = d.addressLine1 != null ? d.addressLine1 : "";
+            g.addressLine2 = d.addressLine2 != null ? d.addressLine2 : "";
+            g.city = d.city != null ? d.city : "";
+            g.province = d.province != null ? d.province : "";
+            g.postalCode = d.postalCode != null ? d.postalCode : "";
+        }
+        if (g.addressLine2 != null && g.addressLine2.trim().isEmpty()) {
+            g.addressLine2 = null;
+        }
+        return g;
+    }
+
+    private static String textOrEmpty(TextInputEditText et) {
+        if (et == null || et.getText() == null) {
+            return "";
+        }
+        return et.getText().toString().trim();
+    }
+
+    private static String provinceFromSpinner(Spinner spinner) {
+        if (spinner == null || spinner.getSelectedItem() == null) {
+            return "";
+        }
+        return spinner.getSelectedItem().toString().trim();
+    }
+
+    private void setProvinceSpinnerSelection(Spinner spinner, String province) {
+        if (spinner == null) {
+            return;
+        }
+        if (province == null || province.isEmpty()) {
+            spinner.setSelection(0);
+            return;
+        }
+        String normalized = normalizeProvince(province);
+        ArrayAdapter<?> adapter = (ArrayAdapter<?>) spinner.getAdapter();
+        if (adapter == null) {
+            return;
+        }
+        for (int i = 0; i < adapter.getCount(); i++) {
+            CharSequence item = (CharSequence) adapter.getItem(i);
+            if (item != null && normalized.equalsIgnoreCase(item.toString().trim())) {
+                spinner.setSelection(i);
+                return;
+            }
+        }
+        spinner.setSelection(0);
+    }
+
+    private static String normalizeProvince(String province) {
+        String p = province.trim();
+        String upper = p.toUpperCase(Locale.ROOT);
+        if ("AB".equals(upper)) {
+            return "Alberta";
+        }
+        if ("BC".equals(upper)) {
+            return "British Columbia";
+        }
+        if ("MB".equals(upper)) {
+            return "Manitoba";
+        }
+        if ("NB".equals(upper)) {
+            return "New Brunswick";
+        }
+        if ("NL".equals(upper) || "NF".equals(upper)) {
+            return "Newfoundland and Labrador";
+        }
+        if ("NS".equals(upper)) {
+            return "Nova Scotia";
+        }
+        if ("NT".equals(upper)) {
+            return "Northwest Territories";
+        }
+        if ("NU".equals(upper)) {
+            return "Nunavut";
+        }
+        if ("ON".equals(upper)) {
+            return "Ontario";
+        }
+        if ("PE".equals(upper) || "PEI".equals(upper)) {
+            return "Prince Edward Island";
+        }
+        if ("QC".equals(upper) || "PQ".equals(upper)) {
+            return "Quebec";
+        }
+        if ("SK".equals(upper)) {
+            return "Saskatchewan";
+        }
+        if ("YT".equals(upper) || "YK".equals(upper)) {
+            return "Yukon";
+        }
+        return p;
+    }
+
+    private void updateCheckoutSectionVisibility() {
+        if (tvCheckoutIntro == null) {
+            return;
+        }
+        boolean guest = sessionManager.isGuestMode();
+        boolean boot = !guest && customerBootstrapRequired;
+        boolean del = "delivery".equals(deliveryMethod);
+
+        if (guest) {
+            tvCheckoutIntro.setVisibility(View.GONE);
+        } else {
+            tvCheckoutIntro.setVisibility(View.VISIBLE);
+            if (boot) {
+                tvCheckoutIntro.setText(R.string.checkout_intro_profile_required);
+            } else {
+                String name = sessionManager.getUserName();
+                if (name == null || name.trim().isEmpty()) {
+                    name = getString(R.string.role_display_customer);
+                }
+                tvCheckoutIntro.setText(getString(R.string.checkout_intro_customer_signed_in, name.trim()));
+            }
+        }
+
+        cardCheckoutGuestContact.setVisibility(guest ? View.VISIBLE : View.GONE);
+        cardCheckoutProfileBootstrap.setVisibility(boot ? View.VISIBLE : View.GONE);
+
+        boolean needDeliveryForm = del && !boot && (guest || !hasServerSavedDeliveryAddress());
+        cardCheckoutDeliveryForm.setVisibility(needDeliveryForm ? View.VISIBLE : View.GONE);
+
+        if (!del) {
+            tvDeliveryAddress.setVisibility(View.GONE);
+        }
+    }
+
+    private boolean hasServerSavedDeliveryAddress() {
+        if (currentCustomer == null) {
+            return false;
+        }
+        if (currentCustomer.addressId == null || currentCustomer.addressId <= 0) {
+            return false;
+        }
+        AddressDto addr = currentCustomer.address;
+        return addr != null
+                && addr.line1 != null
+                && !addr.line1.trim().isEmpty();
+    }
+
     private void fetchRewardTiersForCheckout(CustomerDto c) {
+        fetchRewardTiersForCheckout(c, null);
+    }
+
+    private void fetchRewardTiersForCheckout(CustomerDto c, Runnable then) {
         api.getRewardTiers().enqueue(new Callback<List<RewardTierDto>>() {
             @Override
             public void onResponse(Call<List<RewardTierDto>> call, Response<List<RewardTierDto>> response) {
                 if (!response.isSuccessful() || response.body() == null) {
+                    runOnUiThread(() -> {
+                        if (then != null) {
+                            then.run();
+                        }
+                    });
                     return;
                 }
                 checkoutRewardTiers.clear();
@@ -410,13 +764,24 @@ public class CheckoutActivity extends AppCompatActivity {
                         checkoutRewardTiers, checkoutLoyaltyPoints, checkoutLoyaltyTierId);
                 applyAutomaticTierDiscount();
                 runOnUiThread(() -> {
+                    updateCheckoutSectionVisibility();
+                    loadUserAddressHint();
                     bindCheckoutLoyaltyPanel();
                     updateTotals();
+                    refreshSubmitButtonState();
+                    if (then != null) {
+                        then.run();
+                    }
                 });
             }
 
             @Override
             public void onFailure(Call<List<RewardTierDto>> call, Throwable t) {
+                runOnUiThread(() -> {
+                    if (then != null) {
+                        then.run();
+                    }
+                });
             }
         });
     }
@@ -466,58 +831,29 @@ public class CheckoutActivity extends AppCompatActivity {
     }
 
     private void loadUserAddressHint() {
-        if (sessionManager.isGuestMode()) {
-            runOnUiThread(() -> {
-                if (!hasDeliveryAddress()) {
-                    rbDelivery.setError(getString(R.string.error_no_address));
-                    openCustomerProfileForCheckout(false);
-                } else {
-                    rbDelivery.setError(null);
-                }
-                validateForm();
-            });
+        if (!"delivery".equals(deliveryMethod)) {
+            tvDeliveryAddress.setVisibility(View.GONE);
             return;
         }
-        api.getCustomerMe().enqueue(new Callback<CustomerDto>() {
-            @Override
-            public void onResponse(Call<CustomerDto> call, Response<CustomerDto> response) {
-                if (response.code() == 404) {
-                    runOnUiThread(() -> openCustomerProfileForCheckout());
-                    return;
-                }
-                if (response.isSuccessful() && response.body() != null) {
-                    currentCustomer = response.body();
-                }
-                runOnUiThread(() -> {
-                    if (currentCustomer == null || currentCustomer.addressId == null || currentCustomer.addressId <= 0) {
-                        rbDelivery.setError("Please add an address in your profile");
-                        tvDeliveryAddress.setVisibility(View.GONE);
-                    } else {
-                        rbDelivery.setError(null);
-                        AddressDto addr = currentCustomer.address;
-                        if (addr != null) {
-                            StringBuilder sb = new StringBuilder(addr.line1);
-                            if (addr.line2 != null && !addr.line2.isEmpty()) {
-                                sb.append(", ").append(addr.line2);
-                            }
-                            sb.append("\n").append(addr.city).append(", ")
-                              .append(addr.province).append("  ").append(addr.postalCode);
-                            tvDeliveryAddress.setText(sb.toString());
-                            tvDeliveryAddress.setVisibility(View.VISIBLE);
-                        }
-                    }
-                    validateForm();
-                });
-            }
-
-            @Override
-            public void onFailure(Call<CustomerDto> call, Throwable t) {
-                runOnUiThread(() -> {
-                    Toast.makeText(CheckoutActivity.this, "Error loading profile", Toast.LENGTH_SHORT).show();
-                    validateForm();
-                });
-            }
-        });
+        if (sessionManager.isGuestMode() || customerBootstrapRequired) {
+            tvDeliveryAddress.setVisibility(View.GONE);
+            return;
+        }
+        if (currentCustomer == null || !hasServerSavedDeliveryAddress()) {
+            tvDeliveryAddress.setVisibility(View.GONE);
+            return;
+        }
+        AddressDto addr = currentCustomer.address;
+        StringBuilder sb = new StringBuilder(addr.line1 != null ? addr.line1 : "");
+        if (addr.line2 != null && !addr.line2.isEmpty()) {
+            sb.append(", ").append(addr.line2);
+        }
+        String city = addr.city != null ? addr.city : "";
+        String prov = addr.province != null ? addr.province : "";
+        String pc = addr.postalCode != null ? addr.postalCode : "";
+        sb.append("\n").append(city).append(", ").append(prov).append("  ").append(pc);
+        tvDeliveryAddress.setText(sb.toString());
+        tvDeliveryAddress.setVisibility(View.VISIBLE);
     }
 
     private void loadBakeries() {
@@ -531,36 +867,7 @@ public class CheckoutActivity extends AppCompatActivity {
                 for (BakeryDto b : response.body()) {
                     bakeryList.add(BakeryLocationMapper.fromDto(b, ""));
                 }
-                runOnUiThread(() -> {
-                    String[] bakeryNames = new String[bakeryList.size()];
-                    for (int i = 0; i < bakeryList.size(); i++) {
-                        bakeryNames[i] = bakeryList.get(i).name + " - " + bakeryList.get(i).city;
-                    }
-                    ArrayAdapter<String> adapter = new ArrayAdapter<>(
-                            CheckoutActivity.this,
-                            android.R.layout.simple_spinner_item,
-                            bakeryNames
-                    );
-                    adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-                    spinnerBakery.setAdapter(adapter);
-                    selectedBakery = bakeryList.get(0);
-                    selectedBakeryId = selectedBakery.id;
-                    tvSelectedBakery.setText(selectedBakery.name);
-                    spinnerBakery.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
-                        @Override
-                        public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
-                            selectedBakery = bakeryList.get(position);
-                            selectedBakeryId = selectedBakery.id;
-                            tvSelectedBakery.setText(selectedBakery.name);
-                            updateTotals();
-                        }
-
-                        @Override
-                        public void onNothingSelected(AdapterView<?> parent) {
-                        }
-                    });
-                    updateTotals();
-                });
+                runOnUiThread(CheckoutActivity.this::applyUserLocationAndBindBakeryUi);
             }
 
             @Override
@@ -568,6 +875,219 @@ public class CheckoutActivity extends AppCompatActivity {
                 Toast.makeText(CheckoutActivity.this, R.string.login_error_no_connection, Toast.LENGTH_SHORT).show();
             }
         });
+    }
+
+    private boolean hasFineLocationPermission() {
+        return ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
+                == PackageManager.PERMISSION_GRANTED;
+    }
+
+    private void applyUserLocationAndBindBakeryUi() {
+        if (bakeryList == null || bakeryList.isEmpty()) {
+            return;
+        }
+        checkoutUserLat = null;
+        checkoutUserLng = null;
+        if (!hasFineLocationPermission() || fusedLocationClient == null) {
+            bindBakerySpinnerAfterSort(false);
+            return;
+        }
+        fusedLocationClient.getLastLocation().addOnCompleteListener(task -> {
+            Location loc = task.isSuccessful() ? task.getResult() : null;
+            final boolean hasFix = loc != null;
+            final double lat = hasFix ? loc.getLatitude() : 0d;
+            final double lng = hasFix ? loc.getLongitude() : 0d;
+            runOnUiThread(() -> {
+                if (hasFix) {
+                    checkoutUserLat = lat;
+                    checkoutUserLng = lng;
+                    sortBakeriesByDistance(lat, lng);
+                }
+                bindBakerySpinnerAfterSort(hasFix);
+            });
+        });
+    }
+
+    private static boolean hasBakeryCoordinates(BakeryLocationDetails b) {
+        if (b == null) {
+            return false;
+        }
+        return Math.abs(b.latitude) > 1e-5 || Math.abs(b.longitude) > 1e-5;
+    }
+
+    private void sortBakeriesByDistance(double userLat, double userLng) {
+        if (bakeryList == null) {
+            return;
+        }
+        Collections.sort(bakeryList, (a, b) -> {
+            boolean ca = hasBakeryCoordinates(a);
+            boolean cb = hasBakeryCoordinates(b);
+            if (ca && cb) {
+                float[] da = new float[1];
+                float[] db = new float[1];
+                Location.distanceBetween(userLat, userLng, a.latitude, a.longitude, da);
+                Location.distanceBetween(userLat, userLng, b.latitude, b.longitude, db);
+                return Float.compare(da[0], db[0]);
+            }
+            if (ca != cb) {
+                return ca ? -1 : 1;
+            }
+            return Integer.compare(a.id, b.id);
+        });
+    }
+
+    private void bindBakerySpinnerAfterSort(boolean usedDeviceLocation) {
+        if (bakeryList == null || bakeryList.isEmpty()) {
+            return;
+        }
+        int n = bakeryList.size();
+        String[] labels = new String[n];
+        for (int i = 0; i < n; i++) {
+            BakeryLocationDetails b = bakeryList.get(i);
+            String city = b.city != null ? b.city : "";
+            labels[i] = getString(R.string.checkout_fulfillment_spinner_line, b.name, city);
+        }
+        ArrayAdapter<String> adapter = new ArrayAdapter<>(
+                this,
+                android.R.layout.simple_spinner_item,
+                labels);
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        spinnerBakery.setAdapter(adapter);
+        spinnerBakery.setOnItemSelectedListener(null);
+        selectedBakery = bakeryList.get(0);
+        selectedBakeryId = selectedBakery.id;
+        spinnerBakery.setSelection(0, false);
+        spinnerBakery.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                selectedBakery = bakeryList.get(position);
+                selectedBakeryId = selectedBakery.id;
+                updateCheckoutFulfillmentDetailsText(false);
+                updateTotals();
+                refreshSubmitButtonState();
+            }
+
+            @Override
+            public void onNothingSelected(AdapterView<?> parent) {
+            }
+        });
+        enqueueBakeryReviewAverages();
+        updateCheckoutFulfillmentDetailsText(usedDeviceLocation);
+        updateTotals();
+        refreshSubmitButtonState();
+    }
+
+    private void enqueueBakeryReviewAverages() {
+        if (bakeryList == null) {
+            return;
+        }
+        for (BakeryLocationDetails loc : bakeryList) {
+            if (loc == null || loc.id <= 0) {
+                continue;
+            }
+            final int bakeryId = loc.id;
+            api.getBakeryReviewAverage(bakeryId).enqueue(new Callback<Double>() {
+                @Override
+                public void onResponse(Call<Double> call, Response<Double> response) {
+                    Double avg = response.isSuccessful() ? response.body() : null;
+                    runOnUiThread(() -> {
+                        for (BakeryLocationDetails b : bakeryList) {
+                            if (b.id == bakeryId) {
+                                b.averageRating = avg;
+                                break;
+                            }
+                        }
+                        if (selectedBakery != null && selectedBakery.id == bakeryId) {
+                            updateCheckoutFulfillmentDetailsText(false);
+                        }
+                    });
+                }
+
+                @Override
+                public void onFailure(Call<Double> call, Throwable t) {
+                    runOnUiThread(() -> {
+                        for (BakeryLocationDetails b : bakeryList) {
+                            if (b.id == bakeryId) {
+                                b.averageRating = null;
+                                break;
+                            }
+                        }
+                        if (selectedBakery != null && selectedBakery.id == bakeryId) {
+                            updateCheckoutFulfillmentDetailsText(false);
+                        }
+                    });
+                }
+            });
+        }
+    }
+
+    private void updateCheckoutFulfillmentDetailsText(boolean showNearestDefaultBanner) {
+        if (tvCheckoutFulfillmentDetails == null || selectedBakery == null) {
+            return;
+        }
+        String addressLine = formatOneLineBakeryAddress(selectedBakery);
+        StringBuilder sb = new StringBuilder();
+        if (!addressLine.isEmpty()) {
+            sb.append(addressLine);
+        }
+        if (showNearestDefaultBanner && hasBakeryCoordinates(selectedBakery)) {
+            if (sb.length() > 0) {
+                sb.append('\n');
+            }
+            sb.append(getString(R.string.checkout_fulfillment_nearest_applied));
+        }
+
+        String ratingPart = null;
+        if (selectedBakery.averageRating != null && !selectedBakery.averageRating.isNaN()) {
+            ratingPart = getString(R.string.location_list_rating_average, selectedBakery.averageRating);
+        }
+        String distPart = null;
+        if (checkoutUserLat != null && checkoutUserLng != null && hasBakeryCoordinates(selectedBakery)) {
+            float[] meters = new float[1];
+            Location.distanceBetween(
+                    checkoutUserLat, checkoutUserLng,
+                    selectedBakery.latitude, selectedBakery.longitude,
+                    meters);
+            distPart = getString(R.string.checkout_fulfillment_distance_km, meters[0] / 1000.0);
+        }
+        String metaLine = null;
+        if (ratingPart != null && distPart != null) {
+            metaLine = getString(R.string.checkout_fulfillment_meta_pair, ratingPart, distPart);
+        } else if (ratingPart != null) {
+            metaLine = ratingPart;
+        } else if (distPart != null) {
+            metaLine = distPart;
+        }
+        if (metaLine != null) {
+            if (sb.length() > 0) {
+                sb.append('\n');
+            }
+            sb.append(metaLine);
+        }
+        if (!hasFineLocationPermission()) {
+            if (sb.length() > 0) {
+                sb.append('\n');
+            }
+            sb.append(getString(R.string.checkout_fulfillment_location_hint));
+        }
+        tvCheckoutFulfillmentDetails.setText(sb.toString().trim());
+    }
+
+    private static String formatOneLineBakeryAddress(BakeryLocationDetails b) {
+        if (b == null) {
+            return "";
+        }
+        StringBuilder out = new StringBuilder();
+        if (b.address != null && !b.address.trim().isEmpty()) {
+            out.append(b.address.trim());
+        }
+        if (b.city != null && !b.city.trim().isEmpty()) {
+            if (out.length() > 0) {
+                out.append(", ");
+            }
+            out.append(b.city.trim());
+        }
+        return out.toString();
     }
 
     private Calendar computeDefaultTime() {
@@ -722,7 +1242,7 @@ public class CheckoutActivity extends AppCompatActivity {
                     selectedTimeIndex = pendingTime[0];
                     selectedDateTime  = slotsByDay.get(selectedDayIndex).get(selectedTimeIndex);
                     updateScheduledTimeDisplay();
-                    validateForm();
+                    refreshSubmitButtonState();
                 })
                 .setNegativeButton("Cancel", null)
                 .show();
@@ -798,39 +1318,295 @@ public class CheckoutActivity extends AppCompatActivity {
         tvTotal.setText(MoneyFormat.formatCad(currencyFormat, total));
     }
 
-    private boolean validateForm() {
+    /** Clears inline errors while typing; does not change Review Order enabled state. */
+    private void refreshSubmitButtonState() {
+        validateForm(false);
+    }
+
+    /**
+     * @param showFieldErrors when false, clears field errors only (no inline messages).
+     */
+    private boolean validateForm(boolean showFieldErrors) {
+        if (sessionManager.isGuestMode()) {
+            syncGuestModelFromFields();
+        }
+        if (!showFieldErrors) {
+            clearCheckoutFieldErrors();
+        }
         boolean valid = true;
 
+        if (sessionManager.isGuestMode()) {
+            valid &= validateGuestContactFields(showFieldErrors);
+        }
+        if (customerBootstrapRequired) {
+            valid &= validateBootstrapProfileFields(showFieldErrors);
+            valid &= validateBootstrapAddressFields(showFieldErrors);
+        }
         if ("delivery".equals(deliveryMethod)) {
-            if (!hasDeliveryAddress()) {
-                rbDelivery.setError(getString(R.string.error_no_address));
-                valid = false;
-            } else {
-                rbDelivery.setError(null);
+            if (!customerBootstrapRequired
+                    && (sessionManager.isGuestMode() || !hasServerSavedDeliveryAddress())) {
+                valid &= validateDeliveryFormFields(showFieldErrors);
             }
-        } else {
-            if (selectedBakery == null) {
-                valid = false;
-            }
+            rbDelivery.setError(null);
+        }
+        if (bakeryList != null && !bakeryList.isEmpty() && selectedBakery == null) {
+            valid = false;
         }
 
         Calendar minValid = Calendar.getInstance();
         minValid.add(Calendar.HOUR_OF_DAY, 2);
         if (selectedDateTime.before(minValid)) {
-            tvScheduledTime.setError(getString(R.string.error_past_time));
+            if (showFieldErrors) {
+                tvScheduledTime.setError(getString(R.string.error_past_time));
+            }
             valid = false;
-        } else {
+        } else if (showFieldErrors) {
             tvScheduledTime.setError(null);
         }
-
-        btnConfirmOrder.setEnabled(valid);
-        btnConfirmOrder.setAlpha(valid ? 1.0f : 0.5f);
 
         return valid;
     }
 
+    private void clearCheckoutFieldErrors() {
+        if (tilCheckoutGuestEmail != null) {
+            tilCheckoutGuestEmail.setError(null);
+            tilCheckoutGuestPhone.setError(null);
+        }
+        if (tilCheckoutBootstrapFirst != null) {
+            tilCheckoutBootstrapFirst.setError(null);
+            tilCheckoutBootstrapLast.setError(null);
+            tilCheckoutBootstrapPhone.setError(null);
+            tilCheckoutBootstrapAddr1.setError(null);
+            tilCheckoutBootstrapAddr2.setError(null);
+            tilCheckoutBootstrapCity.setError(null);
+            tilCheckoutBootstrapPostal.setError(null);
+            if (tvCheckoutBootstrapProvinceError != null) {
+                tvCheckoutBootstrapProvinceError.setVisibility(View.GONE);
+            }
+        }
+        if (tilCheckoutDeliveryLine1 != null) {
+            tilCheckoutDeliveryLine1.setError(null);
+            tilCheckoutDeliveryLine2.setError(null);
+            tilCheckoutDeliveryCity.setError(null);
+            tilCheckoutDeliveryPostal.setError(null);
+            if (tvCheckoutDeliveryProvinceError != null) {
+                tvCheckoutDeliveryProvinceError.setVisibility(View.GONE);
+            }
+        }
+        if (tvScheduledTime != null) {
+            tvScheduledTime.setError(null);
+        }
+    }
+
+    private boolean validateGuestContactFields(boolean showFieldErrors) {
+        String email = etCheckoutGuestEmail.getText() != null
+                ? etCheckoutGuestEmail.getText().toString().trim().toLowerCase(Locale.ROOT) : "";
+        String phoneRaw = etCheckoutGuestPhone.getText() != null
+                ? etCheckoutGuestPhone.getText().toString().replaceAll("\\D", "") : "";
+        boolean hasEmail = !email.isEmpty();
+        boolean hasPhone = !phoneRaw.isEmpty();
+        if (showFieldErrors) {
+            tilCheckoutGuestEmail.setError(null);
+            tilCheckoutGuestPhone.setError(null);
+        }
+        if (!hasEmail && !hasPhone) {
+            if (showFieldErrors) {
+                String msg = getString(R.string.guest_contact_required);
+                tilCheckoutGuestEmail.setError(msg);
+                tilCheckoutGuestPhone.setError(msg);
+            }
+            return false;
+        }
+        boolean ok = true;
+        if (hasEmail && !Validation.isEmailValid(email)) {
+            if (showFieldErrors) {
+                tilCheckoutGuestEmail.setError(getString(R.string.error_email_invalid));
+            }
+            ok = false;
+        } else if (showFieldErrors) {
+            tilCheckoutGuestEmail.setError(null);
+        }
+        if (hasPhone && !Validation.isPhoneNumberValid(phoneRaw)) {
+            if (showFieldErrors) {
+                tilCheckoutGuestPhone.setError(getString(R.string.error_phone_invalid));
+            }
+            ok = false;
+        } else if (showFieldErrors) {
+            tilCheckoutGuestPhone.setError(null);
+        }
+        return ok;
+    }
+
+    private boolean validateBootstrapProfileFields(boolean showFieldErrors) {
+        String first = textOrEmpty(etCheckoutBootstrapFirst);
+        String last = textOrEmpty(etCheckoutBootstrapLast);
+        String phoneRaw = etCheckoutBootstrapPhone.getText() != null
+                ? etCheckoutBootstrapPhone.getText().toString().replaceAll("\\D", "") : "";
+        boolean ok = true;
+        if (Validation.isEmpty(first)) {
+            if (showFieldErrors) {
+                tilCheckoutBootstrapFirst.setError(getString(R.string.error_name_required));
+            }
+            ok = false;
+        } else if (!Validation.isFullNameValid(first)) {
+            if (showFieldErrors) {
+                tilCheckoutBootstrapFirst.setError(getString(R.string.error_name_invalid));
+            }
+            ok = false;
+        } else if (showFieldErrors) {
+            tilCheckoutBootstrapFirst.setError(null);
+        }
+        if (Validation.isEmpty(last)) {
+            if (showFieldErrors) {
+                tilCheckoutBootstrapLast.setError(getString(R.string.error_name_required));
+            }
+            ok = false;
+        } else if (!Validation.isFullNameValid(last)) {
+            if (showFieldErrors) {
+                tilCheckoutBootstrapLast.setError(getString(R.string.error_name_invalid));
+            }
+            ok = false;
+        } else if (showFieldErrors) {
+            tilCheckoutBootstrapLast.setError(null);
+        }
+        if (Validation.isEmpty(phoneRaw)) {
+            if (showFieldErrors) {
+                tilCheckoutBootstrapPhone.setError(getString(R.string.error_phone_required));
+            }
+            ok = false;
+        } else if (!Validation.isPhoneNumberValid(phoneRaw)) {
+            if (showFieldErrors) {
+                tilCheckoutBootstrapPhone.setError(getString(R.string.error_phone_invalid));
+            }
+            ok = false;
+        } else if (showFieldErrors) {
+            tilCheckoutBootstrapPhone.setError(null);
+        }
+        return ok;
+    }
+
+    private boolean validateBootstrapAddressFields(boolean showFieldErrors) {
+        return validateAddressIntoLayouts(
+                tilCheckoutBootstrapAddr1,
+                tilCheckoutBootstrapAddr2,
+                tilCheckoutBootstrapCity,
+                spinnerCheckoutBootstrapProvince,
+                tvCheckoutBootstrapProvinceError,
+                tilCheckoutBootstrapPostal,
+                etCheckoutBootstrapAddr1,
+                etCheckoutBootstrapAddr2,
+                etCheckoutBootstrapCity,
+                etCheckoutBootstrapPostal,
+                showFieldErrors);
+    }
+
+    private boolean validateDeliveryFormFields(boolean showFieldErrors) {
+        return validateAddressIntoLayouts(
+                tilCheckoutDeliveryLine1,
+                tilCheckoutDeliveryLine2,
+                tilCheckoutDeliveryCity,
+                spinnerCheckoutDeliveryProvince,
+                tvCheckoutDeliveryProvinceError,
+                tilCheckoutDeliveryPostal,
+                etCheckoutDeliveryLine1,
+                etCheckoutDeliveryLine2,
+                etCheckoutDeliveryCity,
+                etCheckoutDeliveryPostal,
+                showFieldErrors);
+    }
+
+    private boolean validateAddressIntoLayouts(
+            TextInputLayout tilLine1,
+            TextInputLayout tilLine2,
+            TextInputLayout tilCity,
+            Spinner provinceSpinner,
+            TextView tvProvinceError,
+            TextInputLayout tilPostal,
+            TextInputEditText etLine1,
+            TextInputEditText etLine2,
+            TextInputEditText etCity,
+            TextInputEditText etPostal,
+            boolean showFieldErrors) {
+        String address1 = textOrEmpty(etLine1);
+        String address2 = textOrEmpty(etLine2);
+        String city = textOrEmpty(etCity);
+        String province = provinceSpinner != null && provinceSpinner.getSelectedItem() != null
+                ? provinceSpinner.getSelectedItem().toString().trim() : "";
+        int provincePos = provinceSpinner != null ? provinceSpinner.getSelectedItemPosition() : 0;
+        String postal = textOrEmpty(etPostal);
+        boolean ok = true;
+
+        if (Validation.isEmpty(address1)) {
+            if (showFieldErrors) {
+                tilLine1.setError(getString(R.string.error_address_required));
+            }
+            ok = false;
+        } else if (!Validation.isAddressLineValid(address1)) {
+            if (showFieldErrors) {
+                tilLine1.setError(getString(R.string.error_address_invalid));
+            }
+            ok = false;
+        } else if (showFieldErrors) {
+            tilLine1.setError(null);
+        }
+
+        if (!Validation.isEmpty(address2) && !Validation.isAddressLineValid(address2)) {
+            if (showFieldErrors) {
+                tilLine2.setError(getString(R.string.error_address_invalid));
+            }
+            ok = false;
+        } else if (showFieldErrors) {
+            tilLine2.setError(null);
+        }
+
+        if (Validation.isEmpty(city)) {
+            if (showFieldErrors) {
+                tilCity.setError(getString(R.string.error_city_required));
+            }
+            ok = false;
+        } else if (!Validation.isCityValid(city)) {
+            if (showFieldErrors) {
+                tilCity.setError(getString(R.string.error_city_required));
+            }
+            ok = false;
+        } else if (showFieldErrors) {
+            tilCity.setError(null);
+        }
+
+        if (Validation.isEmpty(province) || provincePos <= 0) {
+            if (showFieldErrors && tvProvinceError != null) {
+                tvProvinceError.setText(R.string.error_province_required);
+                tvProvinceError.setVisibility(View.VISIBLE);
+            }
+            ok = false;
+        } else if (!Validation.isProvinceValid(province)) {
+            if (showFieldErrors && tvProvinceError != null) {
+                tvProvinceError.setText(R.string.error_province_required);
+                tvProvinceError.setVisibility(View.VISIBLE);
+            }
+            ok = false;
+        } else if (showFieldErrors && tvProvinceError != null) {
+            tvProvinceError.setVisibility(View.GONE);
+        }
+
+        if (Validation.isEmpty(postal)) {
+            if (showFieldErrors) {
+                tilPostal.setError(getString(R.string.error_postal_required));
+            }
+            ok = false;
+        } else if (!Validation.isPostalCodeValid(postal)) {
+            if (showFieldErrors) {
+                tilPostal.setError(getString(R.string.error_postal_invalid));
+            }
+            ok = false;
+        } else if (showFieldErrors) {
+            tilPostal.setError(null);
+        }
+        return ok;
+    }
+
     private void showConfirmation() {
-        if (!validateForm()) {
+        if (!validateForm(true)) {
             Toast.makeText(this, R.string.error_complete_form, Toast.LENGTH_SHORT).show();
             return;
         }
@@ -867,10 +1643,35 @@ public class CheckoutActivity extends AppCompatActivity {
         confirmationText.append(getString(R.string.confirmation_delivery_method))
                 .append(": ").append(deliveryMethod).append("\n");
 
-        if ("pickup".equals(deliveryMethod) && selectedBakery != null) {
-            confirmationText.append("Bakery: ").append(selectedBakery.name).append("\n");
-            confirmationText.append("Address: ").append(selectedBakery.address)
-                    .append(", ").append(selectedBakery.city).append("\n");
+        if (sessionManager.isGuestMode()) {
+            GuestCustomerRequest g = buildGuestFromFields();
+            if (g.email != null && !g.email.trim().isEmpty()) {
+                confirmationText.append("Contact email: ").append(g.email.trim()).append("\n");
+            }
+            if (g.phone != null && !g.phone.trim().isEmpty()) {
+                confirmationText.append("Contact phone: ").append(g.phone.trim()).append("\n");
+            }
+        }
+
+        if ("delivery".equals(deliveryMethod) && currentCustomer != null && currentCustomer.address != null) {
+            AddressDto a = currentCustomer.address;
+            if (a.line1 != null && !a.line1.trim().isEmpty()) {
+                confirmationText.append("Deliver to: ").append(a.line1.trim());
+                if (a.line2 != null && !a.line2.trim().isEmpty()) {
+                    confirmationText.append(", ").append(a.line2.trim());
+                }
+                confirmationText.append("\n").append(a.city).append(", ")
+                        .append(a.province).append(" ").append(a.postalCode).append("\n");
+            }
+        }
+
+        if (selectedBakery != null) {
+            confirmationText.append(getString(R.string.checkout_confirm_fulfilling_bakery, selectedBakery.name))
+                    .append("\n");
+            String bakeryAddr = formatOneLineBakeryAddress(selectedBakery);
+            if (!bakeryAddr.isEmpty()) {
+                confirmationText.append(bakeryAddr).append("\n");
+            }
         }
 
         confirmationText.append(getString(R.string.confirmation_scheduled_time))
@@ -949,10 +1750,136 @@ public class CheckoutActivity extends AppCompatActivity {
     }
 
     private void placeOrder() {
+        if (!validateForm(true)) {
+            Toast.makeText(this, R.string.error_complete_form, Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        btnPlaceOrder.setEnabled(false);
+
+        if (sessionManager.isGuestMode()) {
+            sessionManager.saveGuestProfile(buildGuestFromFields());
+            syncGuestModelFromFields();
+            performCheckoutApi(buildCheckoutRequest());
+            return;
+        }
+
+        if (customerBootstrapRequired) {
+            submitBootstrapProfileThenCheckout();
+            return;
+        }
+
+        if ("delivery".equals(deliveryMethod) && !hasServerSavedDeliveryAddress()) {
+            submitDeliveryAddressPatchThenCheckout();
+            return;
+        }
+
+        performCheckoutApi(buildCheckoutRequest());
+    }
+
+    private void submitBootstrapProfileThenCheckout() {
+        CustomerBootstrapRequest body = new CustomerBootstrapRequest();
+        body.firstName = textOrEmpty(etCheckoutBootstrapFirst);
+        body.middleInitial = null;
+        body.lastName = textOrEmpty(etCheckoutBootstrapLast);
+        String phoneRaw = etCheckoutBootstrapPhone.getText() != null
+                ? etCheckoutBootstrapPhone.getText().toString().replaceAll("\\D", "") : "";
+        String phoneStored = Validation.formatPhoneForStorage(phoneRaw);
+        body.phone = phoneStored != null ? phoneStored : phoneRaw;
+        body.businessPhone = null;
+        body.addressLine1 = textOrEmpty(etCheckoutBootstrapAddr1);
+        String line2 = textOrEmpty(etCheckoutBootstrapAddr2);
+        body.addressLine2 = line2.isEmpty() ? null : line2;
+        body.city = textOrEmpty(etCheckoutBootstrapCity);
+        body.province = provinceFromSpinner(spinnerCheckoutBootstrapProvince);
+        body.postalCode = textOrEmpty(etCheckoutBootstrapPostal);
+
+        api.createCustomerProfile(body).enqueue(new Callback<CustomerDto>() {
+            @Override
+            public void onResponse(Call<CustomerDto> call, Response<CustomerDto> response) {
+                runOnUiThread(() -> {
+                    if (response.code() == 409) {
+                        Snackbar.make(findViewById(android.R.id.content),
+                                R.string.customer_profile_conflict, Snackbar.LENGTH_LONG).show();
+                        btnPlaceOrder.setEnabled(true);
+                        return;
+                    }
+                    if (!response.isSuccessful() || response.body() == null) {
+                        Snackbar.make(findViewById(android.R.id.content),
+                                R.string.customer_profile_error_unexpected, Snackbar.LENGTH_LONG).show();
+                        btnPlaceOrder.setEnabled(true);
+                        return;
+                    }
+                    currentCustomer = response.body();
+                    customerBootstrapRequired = false;
+                    updateCheckoutSectionVisibility();
+                    loadUserAddressHint();
+                    fetchRewardTiersForCheckout(currentCustomer,
+                            () -> performCheckoutApi(buildCheckoutRequest()));
+                });
+            }
+
+            @Override
+            public void onFailure(Call<CustomerDto> call, Throwable t) {
+                runOnUiThread(() -> {
+                    Snackbar.make(findViewById(android.R.id.content),
+                            R.string.login_error_no_connection, Snackbar.LENGTH_LONG).show();
+                    btnPlaceOrder.setEnabled(true);
+                });
+            }
+        });
+    }
+
+    private void submitDeliveryAddressPatchThenCheckout() {
+        AddressUpsertRequest addr = new AddressUpsertRequest();
+        addr.line1 = textOrEmpty(etCheckoutDeliveryLine1);
+        String line2 = textOrEmpty(etCheckoutDeliveryLine2);
+        addr.line2 = line2.isEmpty() ? null : line2;
+        addr.city = textOrEmpty(etCheckoutDeliveryCity);
+        addr.province = provinceFromSpinner(spinnerCheckoutDeliveryProvince);
+        addr.postalCode = textOrEmpty(etCheckoutDeliveryPostal);
+
+        CustomerPatchRequest patch = new CustomerPatchRequest();
+        patch.address = addr;
+        if (currentCustomer != null && currentCustomer.email != null) {
+            patch.email = currentCustomer.email;
+        }
+
+        api.patchCustomerMe(patch).enqueue(new Callback<CustomerDto>() {
+            @Override
+            public void onResponse(Call<CustomerDto> call, Response<CustomerDto> response) {
+                runOnUiThread(() -> {
+                    if (!response.isSuccessful() || response.body() == null) {
+                        Snackbar.make(findViewById(android.R.id.content),
+                                R.string.customer_profile_error_unexpected, Snackbar.LENGTH_LONG).show();
+                        btnPlaceOrder.setEnabled(true);
+                        return;
+                    }
+                    currentCustomer = response.body();
+                    updateCheckoutSectionVisibility();
+                    loadUserAddressHint();
+                    performCheckoutApi(buildCheckoutRequest());
+                });
+            }
+
+            @Override
+            public void onFailure(Call<CustomerDto> call, Throwable t) {
+                runOnUiThread(() -> {
+                    Snackbar.make(findViewById(android.R.id.content),
+                            R.string.login_error_no_connection, Snackbar.LENGTH_LONG).show();
+                    btnPlaceOrder.setEnabled(true);
+                });
+            }
+        });
+    }
+
+    private CheckoutRequest buildCheckoutRequest() {
         CheckoutRequest req = new CheckoutRequest();
         req.orderMethod = "delivery".equals(deliveryMethod) ? "delivery" : "pickup";
         req.paymentMethod = "credit_card";
-        req.bakeryId = "pickup".equals(deliveryMethod) ? selectedBakeryId : (bakeryList != null && !bakeryList.isEmpty() ? bakeryList.get(0).id : 1);
+        req.bakeryId = selectedBakeryId > 0
+                ? selectedBakeryId
+                : (bakeryList != null && !bakeryList.isEmpty() ? bakeryList.get(0).id : 1);
         req.comment = Validation.limitLength(orderComment, Validation.ORDER_COMMENT_MAX_LENGTH);
         req.scheduledAt = formatScheduledIso();
 
@@ -965,7 +1892,7 @@ public class CheckoutActivity extends AppCompatActivity {
         }
 
         if (sessionManager.isGuestMode()) {
-            req.guest = sessionManager.getGuestProfile();
+            req.guest = buildGuestFromFields();
         }
 
         double manualDiscountDollars = cart.getTodaySpecialSavingsTotal() + cart.getTierDiscountDollars();
@@ -981,7 +1908,10 @@ public class CheckoutActivity extends AppCompatActivity {
             lines.add(line);
         }
         req.items = lines;
+        return req;
+    }
 
+    private void performCheckoutApi(CheckoutRequest req) {
         api.checkout(req).enqueue(new Callback<CheckoutSessionResponse>() {
             @Override
             public void onResponse(Call<CheckoutSessionResponse> call, Response<CheckoutSessionResponse> response) {
@@ -1061,18 +1991,6 @@ public class CheckoutActivity extends AppCompatActivity {
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
         NavTransitions.startActivityWithForward(this, intent);
         finish();
-    }
-
-    private boolean hasDeliveryAddress() {
-        if (currentCustomer == null) {
-            return false;
-        }
-        if (sessionManager.isGuestMode()) {
-            return currentCustomer.address != null
-                    && currentCustomer.address.line1 != null
-                    && !currentCustomer.address.line1.trim().isEmpty();
-        }
-        return currentCustomer.addressId != null && currentCustomer.addressId > 0;
     }
 
     private CustomerDto toGuestCustomer(GuestCustomerRequest guest) {

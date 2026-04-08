@@ -20,7 +20,6 @@ import com.example.workshop6.util.NavTransitions;
 import com.example.workshop6.util.NetworkStatus;
 import com.example.workshop6.util.PhoneFormatTextWatcher;
 import com.example.workshop6.util.Validation;
-import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.textfield.TextInputEditText;
 import com.google.android.material.textfield.TextInputLayout;
 
@@ -46,7 +45,7 @@ public class RegisterActivity extends AppCompatActivity {
         sessionManager = new SessionManager(this);
         boolean allowGuestAuth = getIntent().getBooleanExtra(LoginActivity.EXTRA_ALLOW_GUEST_AUTH, false);
         if (sessionManager.isGuestMode() && !allowGuestAuth) {
-            goToMain();
+            goToMain(true);
             return;
         }
 
@@ -91,7 +90,7 @@ public class RegisterActivity extends AppCompatActivity {
                     () -> {
                         if (!isFinishing()) {
                             sessionManager.beginGuestSession();
-                            goToMain();
+                            goToMain(true);
                         }
                     }
             );
@@ -289,17 +288,14 @@ public class RegisterActivity extends AppCompatActivity {
                         "REGISTER",
                         "Account created via API"
                 );
-                if (Boolean.TRUE.equals(auth.priorGuestCheckout)
-                        && auth.guestProfileCompletionMessage != null
-                        && !auth.guestProfileCompletionMessage.trim().isEmpty()) {
-                    new MaterialAlertDialogBuilder(RegisterActivity.this)
-                            .setMessage(auth.guestProfileCompletionMessage)
-                            .setPositiveButton(android.R.string.ok, (d, w) -> goToMain())
-                            .setCancelable(false)
-                            .show();
-                } else {
-                    goToMain();
+                boolean linkedGuest = Boolean.TRUE.equals(auth.priorGuestCheckout);
+                if (linkedGuest) {
+                    Toast.makeText(
+                            RegisterActivity.this,
+                            R.string.register_toast_guest_orders_linked,
+                            Toast.LENGTH_LONG).show();
                 }
+                goToMain(!linkedGuest);
             }
 
             @Override
@@ -323,10 +319,13 @@ public class RegisterActivity extends AppCompatActivity {
         tvError.setVisibility(View.VISIBLE);
     }
 
-    private void goToMain() {
+    /**
+     * @param promptProfileOnMain shows a Me-tab profile hint on {@link MainActivity} (skip when guest data was linked).
+     */
+    private void goToMain(boolean promptProfileOnMain) {
         Intent intent = new Intent(this, MainActivity.class);
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
-        intent.putExtra(MainActivity.EXTRA_PROMPT_CUSTOMER_PROFILE, true);
+        intent.putExtra(MainActivity.EXTRA_PROMPT_CUSTOMER_PROFILE, promptProfileOnMain);
         NavTransitions.startActivityWithForward(this, intent);
         finish();
     }
