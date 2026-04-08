@@ -299,7 +299,6 @@
     <string name="checkout_need_customer_profile">Add your name and address under Me before checking out.</string>
     <string name="checkout_delivery_details_title">Delivery details</string>
     <string name="checkout_intro_guest">Guest checkout — add email or phone so we can reach you about this order. If you choose delivery, enter your full delivery address below.</string>
-    <string name="checkout_intro_customer_signed_in">Signed in as %1$s. Saved address and loyalty apply automatically; you can change details anytime from the Me tab.</string>
     <string name="checkout_intro_profile_required">Complete your bakery profile below (one time) so we can process your order.</string>
     <string name="checkout_guest_contact_hint">At least one of email or phone is required.</string>
     <string name="checkout_delivery_inline_hint">Required for delivery.</string>
@@ -318,8 +317,8 @@
     <string name="guest_contact_required">Enter an email or phone number</string>
     <string name="register_phone_optional">Mobile phone (optional)</string>
     <string name="register_phone_optional_help">If you checked out as a guest with this number, we can link your history when you register.</string>
+    <string name="toast_account_created">Account created.</string>
     <string name="register_toast_guest_orders_linked">Account created. Your previous guest orders are linked.</string>
-    <string name="me_add_customer_profile_prompt">Complete your delivery profile under Me to shop and check out.</string>
     <string name="account_label_username">Username</string>
     <string name="account_label_sign_email">Sign-in email</string>
     <string name="account_label_password">Password</string>

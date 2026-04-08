@@ -120,8 +120,9 @@ public class ProductsFragment extends Fragment {
 
         boolean isCustomer = "CUSTOMER".equalsIgnoreCase(sessionManager.getUserRole());
         if (!isCustomer) {
+            // Nav graph start destination is Browse; staff menus skip Shop entirely. Redirect without
+            // toasting — user did not choose to open products.
             setProductsPageLoading(false);
-            Toast.makeText(requireContext(), R.string.staff_purchase_blocked, Toast.LENGTH_SHORT).show();
             Navigation.findNavController(view).navigate(R.id.nav_me);
             return;
         }

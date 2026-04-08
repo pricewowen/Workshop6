@@ -123,7 +123,7 @@ public class MainActivity extends AppCompatActivity {
             bottomNav.post(() -> bottomNav.setSelectedItemId(R.id.nav_me));
         }
         if (intent.getBooleanExtra(EXTRA_PROMPT_CUSTOMER_PROFILE, false)) {
-            Toast.makeText(this, R.string.me_add_customer_profile_prompt, Toast.LENGTH_LONG).show();
+            Toast.makeText(this, R.string.toast_account_created, Toast.LENGTH_LONG).show();
         }
     }
 

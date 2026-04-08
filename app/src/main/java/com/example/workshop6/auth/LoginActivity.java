@@ -14,7 +14,6 @@ import com.example.workshop6.R;
 import com.example.workshop6.data.api.ApiClient;
 import com.example.workshop6.data.api.ApiService;
 import com.example.workshop6.data.api.dto.AuthResponse;
-import com.example.workshop6.data.api.dto.GuestCustomerRequest;
 import com.example.workshop6.data.api.dto.LoginRequest;
 import com.example.workshop6.logging.ActivityLogger;
 import com.example.workshop6.ui.MainActivity;
@@ -67,10 +66,6 @@ public class LoginActivity extends AppCompatActivity {
         etPassword  = findViewById(R.id.et_password);
         tvError     = findViewById(R.id.tv_error);
         btnLogin    = findViewById(R.id.btn_login);
-        GuestCustomerRequest guest = sessionManager.getGuestProfile();
-        if (guest != null && guest.email != null && !guest.email.trim().isEmpty()) {
-            etEmail.setText(guest.email.trim());
-        }
 
         etEmail.addTextChangedListener(new TextWatcher() {
             @Override

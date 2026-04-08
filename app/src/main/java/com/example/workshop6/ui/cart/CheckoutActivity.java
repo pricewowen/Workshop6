@@ -702,17 +702,11 @@ public class CheckoutActivity extends AppCompatActivity {
 
         if (guest) {
             tvCheckoutIntro.setVisibility(View.GONE);
-        } else {
+        } else if (boot) {
             tvCheckoutIntro.setVisibility(View.VISIBLE);
-            if (boot) {
-                tvCheckoutIntro.setText(R.string.checkout_intro_profile_required);
-            } else {
-                String name = sessionManager.getUserName();
-                if (name == null || name.trim().isEmpty()) {
-                    name = getString(R.string.role_display_customer);
-                }
-                tvCheckoutIntro.setText(getString(R.string.checkout_intro_customer_signed_in, name.trim()));
-            }
+            tvCheckoutIntro.setText(R.string.checkout_intro_profile_required);
+        } else {
+            tvCheckoutIntro.setVisibility(View.GONE);
         }
 
         cardCheckoutGuestContact.setVisibility(guest ? View.VISIBLE : View.GONE);
