@@ -16,6 +16,7 @@ import com.example.workshop6.data.api.ApiService;
 import com.example.workshop6.data.api.dto.AuthResponse;
 import com.example.workshop6.data.api.dto.LoginRequest;
 import com.example.workshop6.logging.ActivityLogger;
+import com.example.workshop6.payments.PendingStripeConfirm;
 import com.example.workshop6.ui.MainActivity;
 import com.example.workshop6.util.ApiReachability;
 import com.example.workshop6.util.NavTransitions;
@@ -156,6 +157,12 @@ public class LoginActivity extends AppCompatActivity {
                     }
             );
         });
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        PendingStripeConfirm.tryDrain(this);
     }
 
     private void attemptLogin() {

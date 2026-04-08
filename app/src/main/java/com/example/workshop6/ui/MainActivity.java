@@ -23,6 +23,7 @@ import com.example.workshop6.data.api.ApiClient;
 import com.example.workshop6.data.api.ApiService;
 import com.example.workshop6.data.api.dto.CustomerDto;
 import com.example.workshop6.data.api.dto.EmployeeDto;
+import com.example.workshop6.payments.PendingStripeConfirm;
 import com.example.workshop6.util.NavTransitions;
 import com.example.workshop6.util.NetworkStatus;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
@@ -171,6 +172,7 @@ public class MainActivity extends AppCompatActivity {
         if (sessionManager.isLoggedIn()) {
             connectivityHandler.post(connectivityPollRunnable);
         }
+        PendingStripeConfirm.tryDrain(this);
     }
 
     @Override

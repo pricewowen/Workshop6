@@ -317,7 +317,7 @@
     <string name="guest_minimal_contact_hint">* We use this to reach you about your order.</string>
     <string name="guest_contact_required">Enter an email or phone number</string>
     <string name="register_phone_optional">Mobile phone (optional)</string>
-    <string name="register_phone_optional_help">If you checked out as a guest with this number, we can link your history when you register.</string>
+    <string name="register_phone_optional_help">If you checked out as a guest, use the same email or phone you used at checkout so we can link your order history.</string>
     <string name="toast_account_created">Account created.</string>
     <string name="register_toast_guest_orders_linked">Account created. Your previous guest orders are linked.</string>
     <string name="account_label_username">Username</string>
@@ -381,6 +381,9 @@
     <string name="edit_order">Edit Order</string>
     <string name="place_order">Place Order</string>
     <string name="order_placed_success">Payment successful! Your order has been placed.</string>
+    <string name="confirming_order_payment">Confirming payment on server…</string>
+    <string name="order_confirm_failed">Could not confirm payment with the server. You can retry if your card was charged.</string>
+    <string name="action_retry">Retry</string>
     <string name="payment_cancelled">Payment cancelled. Your order was not placed.</string>
     <string name="redirecting_to_payment">Redirecting to secure payment...</string>
     <string name="error_placing_order">Error placing order, please try again</string>
@@ -413,6 +416,8 @@
     <string name="orders_admin_status_unchanged">Order is already in that status.</string>
     <string name="orders_admin_status_updated">Order status updated.</string>
     <string name="orders_admin_update_failed">Could not update order status.</string>
+    <string name="order_retry_payment">Complete payment</string>
+    <string name="order_payment_pending_hint">Payment did not finish. Tap below to pay securely.</string>
     <string name="order_accept_delivery">Accept Delivery</string>
     <string name="order_accept_delivery_prompt">Would you like to leave a review for this delivered order?</string>
     <string name="order_accept_without_review">No, finish order</string>

@@ -10,8 +10,8 @@ import com.example.workshop6.data.api.dto.ChatThreadDto;
 import com.example.workshop6.data.api.dto.ChangePasswordRequest;
 import com.example.workshop6.data.api.dto.CheckoutRequest;
 import com.example.workshop6.data.api.dto.CheckoutSessionResponse;
+import com.example.workshop6.data.api.dto.ConfirmStripePaymentRequest;
 import com.example.workshop6.data.api.dto.CustomerBootstrapRequest;
-import com.example.workshop6.data.api.dto.CheckoutSessionResponse;
 import com.example.workshop6.data.api.dto.CustomerDto;
 import com.example.workshop6.data.api.dto.CustomerPatchRequest;
 import com.example.workshop6.data.api.dto.ProfilePhotoResponse;
@@ -27,6 +27,7 @@ import com.example.workshop6.data.api.dto.RegisterRequest;
 import com.example.workshop6.data.api.dto.ReviewCreateRequest;
 import com.example.workshop6.data.api.dto.ReviewDto;
 import com.example.workshop6.data.api.dto.ReviewStatusPatchRequest;
+import com.example.workshop6.data.api.dto.ResumePaymentSessionResponse;
 import com.example.workshop6.data.api.dto.RewardTierDto;
 import com.example.workshop6.data.api.dto.TagDto;
 import com.example.workshop6.data.api.dto.UserActivePatchRequest;
@@ -114,6 +115,12 @@ public interface ApiService {
 
     @POST("api/v1/orders")
     Call<CheckoutSessionResponse> checkout(@Body CheckoutRequest body);
+
+    @POST("api/v1/orders/{id}/confirm-stripe-payment")
+    Call<OrderDto> confirmStripePayment(@Path("id") String orderId, @Body ConfirmStripePaymentRequest body);
+
+    @POST("api/v1/orders/{id}/resume-stripe-payment")
+    Call<ResumePaymentSessionResponse> resumeStripePayment(@Path("id") String orderId);
 
     @PATCH("api/v1/orders/{id}/status")
     Call<OrderDto> patchOrderStatus(@Path("id") String orderId, @Body OrderStatusPatchRequest body);

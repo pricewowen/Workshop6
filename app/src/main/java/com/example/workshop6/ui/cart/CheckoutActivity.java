@@ -47,11 +47,13 @@ import com.example.workshop6.data.api.dto.BakeryDto;
 import com.example.workshop6.data.api.dto.BakeryHourDto;
 import com.example.workshop6.data.api.dto.CheckoutRequest;
 import com.example.workshop6.data.api.dto.CheckoutSessionResponse;
+import com.example.workshop6.data.api.dto.ConfirmStripePaymentRequest;
 import com.example.workshop6.data.api.dto.CustomerBootstrapRequest;
 import com.example.workshop6.data.api.dto.CustomerDto;
 import com.example.workshop6.data.api.dto.CustomerPatchRequest;
 import com.example.workshop6.data.api.dto.GuestCustomerRequest;
 import com.example.workshop6.data.api.dto.ProductSpecialTodayDto;
+import com.example.workshop6.data.api.dto.OrderDto;
 import com.example.workshop6.data.api.dto.RewardTierDto;
 import com.example.workshop6.data.model.BakeryLocationDetails;
 import com.example.workshop6.data.model.CartItem;
@@ -66,6 +68,7 @@ import com.example.workshop6.util.ProductSpecialState;
 import com.example.workshop6.util.SensitiveActionAuthorizer;
 import com.example.workshop6.util.TodayDate;
 import com.example.workshop6.util.Validation;
+import com.example.workshop6.payments.PendingStripeConfirm;
 import com.google.android.material.snackbar.Snackbar;
 
 import java.math.BigDecimal;
@@ -125,6 +128,10 @@ public class CheckoutActivity extends AppCompatActivity {
     private TextView tvCheckoutTierLine;
 
     private PaymentSheet paymentSheet;
+    @Nullable
+    private String pendingCheckoutOrderId;
+    @Nullable
+    private String pendingPaymentIntentId;
 
     private com.example.workshop6.data.model.Cart cart;
     private CartManager cartManager;
@@ -1924,13 +1931,16 @@ public class CheckoutActivity extends AppCompatActivity {
                     mainLayout.setVisibility(View.VISIBLE);
                     return;
                 }
+                CheckoutSessionResponse session = response.body();
+                pendingCheckoutOrderId = session.orderId;
+                pendingPaymentIntentId = session.paymentIntentId;
                 ActivityLogger.log(
                         CheckoutActivity.this,
                         sessionManager,
                         "CREATE_ORDER",
                         "Order created, presenting Stripe payment sheet"
                 );
-                presentPaymentSheet(response.body().clientSecret);
+                presentPaymentSheet(session.clientSecret);
             }
 
             @Override
@@ -1954,19 +1964,17 @@ public class CheckoutActivity extends AppCompatActivity {
 
     private void onPaymentSheetResult(PaymentSheetResult result) {
         if (result instanceof PaymentSheetResult.Completed) {
-            ActivityLogger.log(this, sessionManager, "PAYMENT_SUCCESS", "Stripe payment sheet completed");
-            CartManager.getInstance(this).clearCart();
-            Toast.makeText(this, R.string.order_placed_success, Toast.LENGTH_LONG).show();
-            Intent intent = new Intent(this, com.example.workshop6.ui.MainActivity.class);
-            intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK | Intent.FLAG_ACTIVITY_NEW_TASK);
-            startActivity(intent);
+            ActivityLogger.log(this, sessionManager, "PAYMENT_SHEET_COMPLETED", "Stripe sheet completed; confirming with server");
+            confirmStripePaymentWithServer();
         } else if (result instanceof PaymentSheetResult.Canceled) {
+            clearPendingStripeSession();
             Toast.makeText(this, R.string.payment_cancelled, Toast.LENGTH_SHORT).show();
             btnPlaceOrder.setEnabled(true);
             btnPlaceOrder.setText(R.string.place_order);
             confirmationLayout.setVisibility(View.GONE);
             mainLayout.setVisibility(View.VISIBLE);
         } else if (result instanceof PaymentSheetResult.Failed) {
+            clearPendingStripeSession();
             String message = ((PaymentSheetResult.Failed) result).getError().getLocalizedMessage();
             if (message == null) message = getString(R.string.error_placing_order);
             Log.e("Checkout", "PaymentSheet failed: " + message);
@@ -1976,6 +1984,57 @@ public class CheckoutActivity extends AppCompatActivity {
             confirmationLayout.setVisibility(View.GONE);
             mainLayout.setVisibility(View.VISIBLE);
         }
+    }
+
+    private void clearPendingStripeSession() {
+        pendingCheckoutOrderId = null;
+        pendingPaymentIntentId = null;
+    }
+
+    private void confirmStripePaymentWithServer() {
+        if (pendingCheckoutOrderId == null || pendingPaymentIntentId == null) {
+            Log.w("Checkout", "Missing order or payment intent after sheet; finishing without server confirm");
+            finishCheckoutSuccessAfterPayment();
+            return;
+        }
+        PendingStripeConfirm.save(this, pendingCheckoutOrderId, pendingPaymentIntentId);
+        Toast.makeText(this, R.string.confirming_order_payment, Toast.LENGTH_LONG).show();
+
+        ConfirmStripePaymentRequest body = new ConfirmStripePaymentRequest();
+        body.paymentIntentId = pendingPaymentIntentId;
+        api.confirmStripePayment(pendingCheckoutOrderId, body).enqueue(new Callback<OrderDto>() {
+            @Override
+            public void onResponse(Call<OrderDto> call, Response<OrderDto> response) {
+                OrderDto order = response.body();
+                if (response.isSuccessful() && order != null && order.status != null
+                        && "paid".equalsIgnoreCase(order.status.trim())) {
+                    clearPendingStripeSession();
+                    finishCheckoutSuccessAfterPayment();
+                } else {
+                    Snackbar.make(findViewById(android.R.id.content), R.string.order_confirm_failed, Snackbar.LENGTH_LONG)
+                            .setAction(R.string.action_retry, v -> confirmStripePaymentWithServer())
+                            .show();
+                }
+            }
+
+            @Override
+            public void onFailure(Call<OrderDto> call, Throwable t) {
+                Log.e("Checkout", "confirm payment failed", t);
+                Snackbar.make(findViewById(android.R.id.content), R.string.order_confirm_failed, Snackbar.LENGTH_LONG)
+                        .setAction(R.string.action_retry, v -> confirmStripePaymentWithServer())
+                        .show();
+            }
+        });
+    }
+
+    private void finishCheckoutSuccessAfterPayment() {
+        PendingStripeConfirm.clear(this);
+        ActivityLogger.log(this, sessionManager, "PAYMENT_SUCCESS", "Order confirmed paid");
+        CartManager.getInstance(this).clearCart();
+        Toast.makeText(this, R.string.order_placed_success, Toast.LENGTH_LONG).show();
+        Intent intent = new Intent(this, com.example.workshop6.ui.MainActivity.class);
+        intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK | Intent.FLAG_ACTIVITY_NEW_TASK);
+        startActivity(intent);
     }
 
     private void redirectToLogin() {
