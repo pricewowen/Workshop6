@@ -427,12 +427,13 @@
     <string name="order_review_product_label">Product</string>
     <string name="order_review_rating_label">Rating</string>
     <string name="order_review_comment_label">Your experience</string>
-    <string name="order_review_comment_hint">Pickup or delivery, packaging, order accuracy, and how things went at this bakery—not individual items (optional)</string>
+    <string name="order_review_comment_hint">Share feedback about the bakery service such as pickup delivery packaging and staff. Optional.</string>
     <string name="order_review_submitted_pending">Review submitted and awaiting approval.</string>
     <string name="order_review_submit_failed">Could not submit review.</string>
     <string name="order_review_no_items">No reviewable items on this order.</string>
     <string name="review_name_required">First and last name are required in your profile before leaving a review.</string>
     <string name="btn_leave_review">Leave Review</string>
+    <string name="product_review_comment_hint">Share feedback about this product such as taste texture freshness and value. Optional.</string>
     <string name="product_review_requires_purchase">You can only review products you have purchased.</string>
     <string name="product_review_already_submitted">You already submitted a review for this product.</string>
     <string name="order_delivery_accepted">Delivery accepted. Order marked complete.</string>

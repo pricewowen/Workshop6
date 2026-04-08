@@ -434,7 +434,7 @@ public class ProductDetailsFragment extends Fragment {
         container.addView(tvComment);
 
         android.widget.EditText etComment = new android.widget.EditText(requireContext());
-        etComment.setHint(R.string.order_review_comment_hint);
+        etComment.setHint(R.string.product_review_comment_hint);
         etComment.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_MULTI_LINE);
         etComment.setMinLines(3);
         etComment.setMaxLines(5);
