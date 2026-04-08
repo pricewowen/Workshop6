@@ -1,5 +1,7 @@
 package com.example.workshop6.util;
 
+import androidx.annotation.Nullable;
+
 import com.example.workshop6.data.api.dto.ReviewDto;
 
 import java.util.ArrayList;
@@ -8,7 +10,7 @@ import java.util.Comparator;
 import java.util.List;
 
 /**
- * Picks up to {@code limit} newest <strong>approved</strong> reviews for the product detail strip.
+ * Approved-review filtering, ordering, and display averages for product and bakery review strips.
  */
 public final class ProductReviewListHelper {
 
@@ -36,6 +38,28 @@ public final class ProductReviewListHelper {
 
     public static List<ReviewDto> newestApprovedForDisplay(List<ReviewDto> raw) {
         return newestApprovedForDisplay(raw, DEFAULT_LIMIT);
+    }
+
+    /**
+     * Arithmetic mean of {@link ReviewDto#rating} for the given list (e.g. already-filtered approved rows).
+     * Matches the on-screen list so the title average cannot disagree with visible stars.
+     */
+    public static Double averageRating(@Nullable List<ReviewDto> reviews) {
+        if (reviews == null || reviews.isEmpty()) {
+            return null;
+        }
+        int sum = 0;
+        int n = 0;
+        for (ReviewDto r : reviews) {
+            if (r != null) {
+                sum += r.rating;
+                n++;
+            }
+        }
+        if (n == 0) {
+            return null;
+        }
+        return sum / (double) n;
     }
 
     /**

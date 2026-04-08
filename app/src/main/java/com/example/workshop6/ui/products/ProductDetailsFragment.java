@@ -1,17 +1,23 @@
 package com.example.workshop6.ui.products;
 
+import android.content.res.ColorStateList;
+import android.graphics.Typeface;
 import android.graphics.drawable.Drawable;
 import android.os.Bundle;
 import android.text.InputType;
+import android.util.TypedValue;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 import androidx.navigation.Navigation;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.google.android.material.appbar.MaterialToolbar;
+import com.google.android.material.chip.Chip;
+import com.google.android.material.chip.ChipGroup;
 
 import android.view.LayoutInflater;
 import android.view.View;
@@ -38,6 +44,7 @@ import com.example.workshop6.data.api.dto.ReviewCreateRequest;
 import com.example.workshop6.data.api.dto.ReviewDto;
 import com.example.workshop6.data.api.dto.OrderDto;
 import com.example.workshop6.data.api.dto.OrderItemDto;
+import com.example.workshop6.data.api.dto.TagDto;
 import com.example.workshop6.data.model.CartItem;
 import com.example.workshop6.data.model.Product;
 import com.example.workshop6.ui.cart.CartManager;
@@ -49,8 +56,10 @@ import com.example.workshop6.util.TodayDate;
 
 import java.text.NumberFormat;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
 import retrofit2.Call;
 import retrofit2.Callback;
@@ -64,6 +73,7 @@ public class ProductDetailsFragment extends Fragment {
     private TextView tvProductSpecialBadge;
     private TextView tvProductPrice;
     private TextView tvProductDescription;
+    private ChipGroup chipGroupProductTags;
     private TextView tvQuantity;
     private TextView tvReviewsTitle;
     private TextView tvReviewsEmpty;
@@ -121,6 +131,7 @@ public class ProductDetailsFragment extends Fragment {
         tvProductSpecialBadge = view.findViewById(R.id.tvProductSpecialBadge);
         tvProductPrice = view.findViewById(R.id.tvProductPrice);
         tvProductDescription = view.findViewById(R.id.tvProductDescription);
+        chipGroupProductTags = view.findViewById(R.id.chipGroupProductTags);
         tvQuantity = view.findViewById(R.id.tvQuantity);
         tvReviewsTitle = view.findViewById(R.id.tvReviewsTitle);
         tvReviewsEmpty = view.findViewById(R.id.tvReviewsEmpty);
@@ -185,6 +196,7 @@ public class ProductDetailsFragment extends Fragment {
                 revealSpecialPriceReady = false;
                 toolbarProduct.setTitle(loadedProduct.getProductName());
                 tvProductDescription.setText(loadedProduct.getProductDescription());
+                loadProductTags(response.body() != null ? response.body().tagIds : null);
                 applyTodaySpecialPricing(productId);
                 if (loadedProduct.getImageUrl() != null && !loadedProduct.getImageUrl().isEmpty()) {
                     Glide.with(requireContext())
@@ -251,6 +263,108 @@ public class ProductDetailsFragment extends Fragment {
                 Navigation.findNavController(view).navigateUp();
             }
         });
+    }
+
+    private void hideProductTags() {
+        if (chipGroupProductTags != null) {
+            chipGroupProductTags.removeAllViews();
+            chipGroupProductTags.setVisibility(View.GONE);
+        }
+    }
+
+    private void loadProductTags(@Nullable List<Integer> tagIds) {
+        if (!isUiReady()) {
+            return;
+        }
+        if (chipGroupProductTags == null) {
+            return;
+        }
+        chipGroupProductTags.removeAllViews();
+        if (tagIds == null || tagIds.isEmpty()) {
+            hideProductTags();
+            return;
+        }
+        api.getTags().enqueue(new Callback<List<TagDto>>() {
+            @Override
+            public void onResponse(@NonNull Call<List<TagDto>> call, @NonNull Response<List<TagDto>> response) {
+                if (!isUiReady() || chipGroupProductTags == null) {
+                    return;
+                }
+                chipGroupProductTags.removeAllViews();
+                if (!response.isSuccessful() || response.body() == null) {
+                    hideProductTags();
+                    return;
+                }
+                Map<Integer, String> byId = new HashMap<>();
+                for (TagDto tag : response.body()) {
+                    if (tag != null && tag.id != null && tag.name != null) {
+                        byId.put(tag.id, tag.name.trim());
+                    }
+                }
+                for (Integer tid : tagIds) {
+                    if (tid == null) {
+                        continue;
+                    }
+                    String label = byId.get(tid);
+                    if (label == null || label.isEmpty()) {
+                        continue;
+                    }
+                    Chip chip = new Chip(requireContext());
+                    chip.setText(label);
+                    chip.setCheckable(false);
+                    chip.setClickable(false);
+                    chip.setFocusable(false);
+                    chip.setCloseIconVisible(false);
+                    chip.setEnsureMinTouchTargetSize(false);
+                    styleProductTagLikeBrowseSelected(chip);
+                    chipGroupProductTags.addView(chip);
+                }
+                if (chipGroupProductTags.getChildCount() == 0) {
+                    hideProductTags();
+                } else {
+                    chipGroupProductTags.setVisibility(View.VISIBLE);
+                }
+            }
+
+            @Override
+            public void onFailure(@NonNull Call<List<TagDto>> call, @NonNull Throwable t) {
+                if (isUiReady()) {
+                    hideProductTags();
+                }
+            }
+        });
+    }
+
+    /** Same look as {@link CategoriesAdapter} selected row: gold pill, white bold text ({@code item_category} + {@code bg_category_chip_selected}). */
+    private void styleProductTagLikeBrowseSelected(Chip chip) {
+        float padH = TypedValue.applyDimension(
+                TypedValue.COMPLEX_UNIT_DIP,
+                20f,
+                getResources().getDisplayMetrics());
+        float padV = TypedValue.applyDimension(
+                TypedValue.COMPLEX_UNIT_DIP,
+                8f,
+                getResources().getDisplayMetrics());
+        float cornerPx = TypedValue.applyDimension(
+                TypedValue.COMPLEX_UNIT_DIP,
+                50f,
+                getResources().getDisplayMetrics());
+        int gold = ContextCompat.getColor(requireContext(), R.color.bakery_gold);
+        int textLight = ContextCompat.getColor(requireContext(), R.color.bakery_text_light);
+        chip.setChipBackgroundColor(ColorStateList.valueOf(gold));
+        chip.setChipStrokeWidth(0f);
+        chip.setChipCornerRadius(cornerPx);
+        chip.setTextColor(textLight);
+        chip.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f);
+        chip.setTypeface(Typeface.DEFAULT_BOLD);
+        chip.setChipStartPadding(padH);
+        chip.setChipEndPadding(padH);
+        chip.setTextStartPadding(0f);
+        chip.setTextEndPadding(0f);
+        int ph = Math.round(padH);
+        int pv = Math.round(padV);
+        chip.setPaddingRelative(ph, pv, ph, pv);
+        chip.setStateListAnimator(null);
     }
 
     private void loadProductReviewEligibility(int productId) {
@@ -463,24 +577,9 @@ public class ProductDetailsFragment extends Fragment {
     }
 
     /**
-     * Loads average (optional) and review list; shows up to three newest approved in a horizontal strip.
+     * Loads all approved product reviews (horizontal strip). Header average is derived from the same list.
      */
     private void loadProductReviewsSection(int productId) {
-        api.getProductReviewAverage(productId).enqueue(new Callback<Double>() {
-            @Override
-            public void onResponse(Call<Double> call, Response<Double> response) {
-                Double avg = response.isSuccessful() ? response.body() : null;
-                fetchProductReviewsList(productId, avg);
-            }
-
-            @Override
-            public void onFailure(Call<Double> call, Throwable t) {
-                fetchProductReviewsList(productId, null);
-            }
-        });
-    }
-
-    private void fetchProductReviewsList(int productId, @Nullable Double averageRating) {
         api.getProductReviews(productId).enqueue(new Callback<List<ReviewDto>>() {
             @Override
             public void onResponse(Call<List<ReviewDto>> call, Response<List<ReviewDto>> response) {
@@ -488,33 +587,36 @@ public class ProductDetailsFragment extends Fragment {
                     return;
                 }
                 if (!response.isSuccessful() || response.body() == null) {
-                    bindProductReviewsUi(averageRating, null);
+                    bindProductReviewsUi(null);
                     return;
                 }
-                List<ReviewDto> slice = ProductReviewListHelper.newestApprovedForDisplay(response.body());
-                bindProductReviewsUi(averageRating, slice);
+                List<ReviewDto> slice = ProductReviewListHelper.newestApprovedForDisplay(
+                        response.body(), Integer.MAX_VALUE);
+                bindProductReviewsUi(slice);
             }
 
             @Override
             public void onFailure(Call<List<ReviewDto>> call, Throwable t) {
                 if (isUiReady()) {
-                    bindProductReviewsUi(averageRating, null);
+                    bindProductReviewsUi(null);
                 }
             }
         });
     }
 
-    private void bindProductReviewsUi(@Nullable Double averageRating, @Nullable List<ReviewDto> displayedReviews) {
+    private void bindProductReviewsUi(@Nullable List<ReviewDto> displayedReviews) {
         if (tvReviewsTitle == null || tvReviewsEmpty == null || rvReviews == null) {
             return;
         }
+        boolean hasList = displayedReviews != null && !displayedReviews.isEmpty();
+        Double averageRating = ProductReviewListHelper.averageRating(displayedReviews);
         boolean hasAvg = averageRating != null && !averageRating.isNaN();
-        if (hasAvg) {
+        if (hasAvg && hasList) {
             tvReviewsTitle.setText(getString(R.string.product_reviews_with_average, averageRating));
         } else {
             tvReviewsTitle.setText(R.string.section_product_reviews);
         }
-        if (displayedReviews == null || displayedReviews.isEmpty()) {
+        if (!hasList) {
             tvReviewsEmpty.setVisibility(View.VISIBLE);
             rvReviews.setVisibility(View.GONE);
             rvReviews.setAdapter(null);

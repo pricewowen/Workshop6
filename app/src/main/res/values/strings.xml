@@ -147,6 +147,7 @@
     <string name="label_featured">TODAY\'S FEATURE</string>
     <string name="btn_view_featured_product">View product</string>
     <string name="featured_discount_today">%1$.0f%% off today</string>
+    <string name="label_bakeries">LOCATIONS</string>
     <string name="section_product_reviews">Reviews</string>
     <string name="product_reviews_with_average">Reviews (%1$.1f★ average)</string>
     <string name="location_list_rating_average">%1$.1f★ average</string>
@@ -420,8 +421,8 @@
     <string name="order_submit_review">Submit Review</string>
     <string name="order_review_product_label">Product</string>
     <string name="order_review_rating_label">Rating</string>
-    <string name="order_review_comment_label">Review</string>
-    <string name="order_review_comment_hint">Share your experience (optional)</string>
+    <string name="order_review_comment_label">Your experience</string>
+    <string name="order_review_comment_hint">Pickup or delivery, packaging, order accuracy, and how things went at this bakery—not individual items (optional)</string>
     <string name="order_review_submitted_pending">Review submitted and awaiting approval.</string>
     <string name="order_review_submit_failed">Could not submit review.</string>
     <string name="order_review_no_items">No reviewable items on this order.</string>

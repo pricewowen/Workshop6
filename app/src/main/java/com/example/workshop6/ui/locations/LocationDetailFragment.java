@@ -251,26 +251,6 @@ public class LocationDetailFragment extends Fragment {
             rvReviews.setHasFixedSize(true);
         }
 
-        api.getBakeryReviewAverage(bakeryId).enqueue(new Callback<Double>() {
-            @Override
-            public void onResponse(Call<Double> call, Response<Double> response) {
-                Double avg = response.isSuccessful() ? response.body() : null;
-                fetchBakeryReviewsList(bakeryId, avg, root, tvTitle, tvEmpty, rvReviews);
-            }
-
-            @Override
-            public void onFailure(Call<Double> call, Throwable t) {
-                fetchBakeryReviewsList(bakeryId, null, root, tvTitle, tvEmpty, rvReviews);
-            }
-        });
-    }
-
-    private void fetchBakeryReviewsList(int bakeryId,
-                                         @Nullable Double averageRating,
-                                         View root,
-                                         TextView tvTitle,
-                                         TextView tvEmpty,
-                                         RecyclerView rvReviews) {
         api.getBakeryReviews(bakeryId).enqueue(new Callback<List<ReviewDto>>() {
             @Override
             public void onResponse(Call<List<ReviewDto>> call, Response<List<ReviewDto>> response) {
@@ -278,11 +258,12 @@ public class LocationDetailFragment extends Fragment {
                     return;
                 }
                 if (!response.isSuccessful() || response.body() == null) {
-                    bindBakeryReviewsUi(tvTitle, tvEmpty, rvReviews, averageRating, null);
+                    bindBakeryReviewsUi(tvTitle, tvEmpty, rvReviews, null);
                     return;
                 }
-                List<ReviewDto> slice = ProductReviewListHelper.newestApprovedForDisplay(response.body());
-                bindBakeryReviewsUi(tvTitle, tvEmpty, rvReviews, averageRating, slice);
+                List<ReviewDto> slice = ProductReviewListHelper.newestApprovedForDisplay(
+                        response.body(), Integer.MAX_VALUE);
+                bindBakeryReviewsUi(tvTitle, tvEmpty, rvReviews, slice);
             }
 
             @Override
@@ -290,7 +271,7 @@ public class LocationDetailFragment extends Fragment {
                 if (!isAdded()) {
                     return;
                 }
-                bindBakeryReviewsUi(tvTitle, tvEmpty, rvReviews, averageRating, null);
+                bindBakeryReviewsUi(tvTitle, tvEmpty, rvReviews, null);
             }
         });
     }
@@ -298,15 +279,16 @@ public class LocationDetailFragment extends Fragment {
     private void bindBakeryReviewsUi(TextView tvTitle,
                                       TextView tvEmpty,
                                       RecyclerView rvReviews,
-                                      @Nullable Double averageRating,
                                       @Nullable List<ReviewDto> displayedReviews) {
+        boolean hasList = displayedReviews != null && !displayedReviews.isEmpty();
+        Double averageRating = ProductReviewListHelper.averageRating(displayedReviews);
         boolean hasAvg = averageRating != null && !averageRating.isNaN();
-        if (hasAvg) {
+        if (hasAvg && hasList) {
             tvTitle.setText(getString(R.string.product_reviews_with_average, averageRating));
         } else {
             tvTitle.setText(R.string.section_product_reviews);
         }
-        if (displayedReviews == null || displayedReviews.isEmpty()) {
+        if (!hasList) {
             tvEmpty.setVisibility(View.VISIBLE);
             rvReviews.setVisibility(View.GONE);
             rvReviews.setAdapter(null);
