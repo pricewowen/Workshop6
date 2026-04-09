@@ -7,6 +7,7 @@ import android.net.Network;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
@@ -26,7 +27,6 @@ import com.example.workshop6.data.api.dto.EmployeeDto;
 import com.example.workshop6.util.NavTransitions;
 import com.example.workshop6.util.NetworkStatus;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
-import android.widget.Toast;
 
 import retrofit2.Call;
 import retrofit2.Callback;
@@ -62,7 +62,7 @@ public class MainActivity extends AppCompatActivity {
         }
     };
 
-    /** Log out as soon as the default network drops (e.g. Wi‑Fi/cellular lost). */
+    /** Log out as soon as the default network drops (e.g. Wi-Fi/cellular lost). */
     private final ConnectivityManager.NetworkCallback networkDisconnectCallback = new ConnectivityManager.NetworkCallback() {
         @Override
         public void onLost(@NonNull Network network) {
@@ -314,11 +314,6 @@ public class MainActivity extends AppCompatActivity {
         bottomNav.setOnItemSelectedListener(item -> {
             if (!NetworkStatus.isOnline(MainActivity.this)) {
                 Toast.makeText(MainActivity.this, R.string.login_error_no_connection, Toast.LENGTH_SHORT).show();
-                return false;
-            }
-            // Chat is intentionally disabled for now (customer, staff, admin).
-            // Consume the click without navigating.
-            if (item.getItemId() == R.id.nav_staff_chat) {
                 return false;
             }
             boolean navigated = NavigationUI.onNavDestinationSelected(item, navController);

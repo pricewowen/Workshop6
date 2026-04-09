@@ -20,22 +20,47 @@ public class ChatMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHo
     private static final int TYPE_SENT = 1;
     private static final int TYPE_RECEIVED = 2;
 
+    private final List<ChatMessageDto> messages = new ArrayList<>();
     private final String currentUserUuid;
-    private List<ChatMessageDto> messages = new ArrayList<>();
 
     public ChatMessageAdapter(String currentUserUuid) {
-        this.currentUserUuid = currentUserUuid != null ? currentUserUuid : "";
+        this.currentUserUuid = currentUserUuid;
     }
 
-    public void setMessages(List<ChatMessageDto> messages) {
-        this.messages = messages != null ? messages : new ArrayList<>();
+    public void setMessages(List<ChatMessageDto> items) {
+        messages.clear();
+        if (items != null) {
+            messages.addAll(items);
+        }
         notifyDataSetChanged();
+    }
+
+    public void upsertMessage(ChatMessageDto item) {
+        if (item == null || item.id == null) {
+            return;
+        }
+
+        for (int i = 0; i < messages.size(); i++) {
+            ChatMessageDto existing = messages.get(i);
+            if (existing != null && Objects.equals(existing.id, item.id)) {
+                messages.set(i, item);
+                notifyItemChanged(i);
+                return;
+            }
+        }
+
+        messages.add(item);
+        notifyItemInserted(messages.size() - 1);
+    }
+
+    public int getMessageCount() {
+        return messages.size();
     }
 
     @Override
     public int getItemViewType(int position) {
         ChatMessageDto message = messages.get(position);
-        boolean sent = currentUserUuid != null
+        boolean sent = message != null
                 && message.senderUserId != null
                 && Objects.equals(message.senderUserId, currentUserUuid);
         return sent ? TYPE_SENT : TYPE_RECEIVED;
@@ -80,7 +105,7 @@ public class ChatMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHo
         }
 
         void bind(ChatMessageDto message) {
-            textMessage.setText(message.text != null ? message.text : "");
+            textMessage.setText(message != null && message.text != null ? message.text : "");
         }
     }
 
@@ -93,7 +118,7 @@ public class ChatMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHo
         }
 
         void bind(ChatMessageDto message) {
-            textMessage.setText(message.text != null ? message.text : "");
+            textMessage.setText(message != null && message.text != null ? message.text : "");
         }
     }
 }

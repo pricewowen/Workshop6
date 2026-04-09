@@ -18,12 +18,13 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.workshop6.R;
-import com.example.workshop6.util.NavTransitions;
 import com.example.workshop6.auth.SessionManager;
 import com.example.workshop6.data.api.ApiClient;
 import com.example.workshop6.data.api.ApiService;
 import com.example.workshop6.data.api.dto.ChatThreadDto;
+import com.example.workshop6.util.NavTransitions;
 
+import java.util.Collections;
 import java.util.List;
 
 import retrofit2.Call;
@@ -31,6 +32,8 @@ import retrofit2.Callback;
 import retrofit2.Response;
 
 public class StaffChatInboxFragment extends Fragment {
+
+    private static final long THREAD_REFRESH_INTERVAL_MS = 5000L;
 
     private RecyclerView recyclerThreads;
     private TextView textEmpty;
@@ -45,7 +48,7 @@ public class StaffChatInboxFragment extends Fragment {
         @Override
         public void run() {
             loadThreads();
-            handler.postDelayed(this, 1500);
+            handler.postDelayed(this, THREAD_REFRESH_INTERVAL_MS);
         }
     };
 
@@ -86,7 +89,7 @@ public class StaffChatInboxFragment extends Fragment {
 
         if (isCustomer) {
             buttonNewChat.setVisibility(View.VISIBLE);
-            buttonNewChat.setOnClickListener(v -> createAndOpenChat());
+            buttonNewChat.setOnClickListener(v -> openOrCreateCustomerChat());
             textEmpty.setText(R.string.customer_chat_empty_threads);
         } else {
             buttonNewChat.setVisibility(View.GONE);
@@ -132,23 +135,30 @@ public class StaffChatInboxFragment extends Fragment {
         String role = sessionManager.getUserRole();
         boolean isCustomer = "CUSTOMER".equalsIgnoreCase(role);
         boolean isStaff = "ADMIN".equalsIgnoreCase(role) || "EMPLOYEE".equalsIgnoreCase(role);
+
         if (!isCustomer && !isStaff) {
             return;
         }
+
         if (adapter == null) {
             return;
         }
+
+        if (isCustomer) {
+            loadCustomerThread();
+            return;
+        }
+
         api.getChatThreads().enqueue(new Callback<List<ChatThreadDto>>() {
             @Override
             public void onResponse(Call<List<ChatThreadDto>> call, Response<List<ChatThreadDto>> response) {
-                if (getActivity() == null) {
+                if (getActivity() == null || !response.isSuccessful() || response.body() == null) {
                     return;
                 }
-                if (!response.isSuccessful() || response.body() == null) {
-                    return;
-                }
+
                 List<ChatThreadDto> threads = response.body();
                 adapter.setThreads(threads);
+
                 boolean empty = threads.isEmpty();
                 recyclerThreads.setVisibility(empty ? View.GONE : View.VISIBLE);
                 textEmpty.setVisibility(empty ? View.VISIBLE : View.GONE);
@@ -160,17 +170,58 @@ public class StaffChatInboxFragment extends Fragment {
         });
     }
 
-    private void createAndOpenChat() {
-        api.createChatThread().enqueue(new Callback<ChatThreadDto>() {
+    private void loadCustomerThread() {
+        api.getMyOpenChatThread().enqueue(new Callback<ChatThreadDto>() {
             @Override
             public void onResponse(Call<ChatThreadDto> call, Response<ChatThreadDto> response) {
                 if (!isAdded()) {
                     return;
                 }
+
+                if (response.isSuccessful() && response.body() != null) {
+                    adapter.setThreads(Collections.singletonList(response.body()));
+                    recyclerThreads.setVisibility(View.VISIBLE);
+                    textEmpty.setVisibility(View.GONE);
+                    return;
+                }
+<<<<<<< Updated upstream
+                Toast.makeText(requireContext(), R.string.login_error_no_connection, Toast.LENGTH_SHORT).show();
+=======
+
+                adapter.setThreads(Collections.emptyList());
+                recyclerThreads.setVisibility(View.GONE);
+                textEmpty.setVisibility(View.VISIBLE);
+>>>>>>> Stashed changes
+            }
+
+            @Override
+            public void onFailure(Call<ChatThreadDto> call, Throwable t) {
+                if (!isAdded()) {
+                    return;
+                }
+<<<<<<< Updated upstream
+=======
+
+                adapter.setThreads(Collections.emptyList());
+                recyclerThreads.setVisibility(View.GONE);
+                textEmpty.setVisibility(View.VISIBLE);
+            }
+        });
+    }
+
+    private void openOrCreateCustomerChat() {
+        api.getMyOpenChatThread().enqueue(new Callback<ChatThreadDto>() {
+            @Override
+            public void onResponse(Call<ChatThreadDto> call, Response<ChatThreadDto> response) {
+                if (!isAdded()) {
+                    return;
+                }
+
                 if (response.isSuccessful() && response.body() != null && response.body().id != null) {
                     launchChat(response.body().id);
                     return;
                 }
+
                 Toast.makeText(requireContext(), R.string.login_error_no_connection, Toast.LENGTH_SHORT).show();
             }
 
@@ -179,6 +230,8 @@ public class StaffChatInboxFragment extends Fragment {
                 if (!isAdded()) {
                     return;
                 }
+
+>>>>>>> Stashed changes
                 Toast.makeText(requireContext(), R.string.login_error_no_connection, Toast.LENGTH_SHORT).show();
             }
         });
