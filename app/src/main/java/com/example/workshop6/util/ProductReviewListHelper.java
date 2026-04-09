@@ -63,7 +63,8 @@ public final class ProductReviewListHelper {
     }
 
     /**
-     * Prefer {@code approvalDate} (when moderated), else {@code submittedAt}; ISO strings sort chronologically.
+     * Prefer {@code approvalDate} when present (e.g. staff-approved), else {@code submittedAt};
+     * ISO strings sort chronologically.
      */
     private static String sortKeyForNewestFirst(ReviewDto r) {
         if (r.approvalDate != null && !r.approvalDate.trim().isEmpty()) {

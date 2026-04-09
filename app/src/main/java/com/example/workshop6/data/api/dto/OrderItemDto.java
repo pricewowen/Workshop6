@@ -15,4 +15,7 @@ public class OrderItemDto {
     public BigDecimal unitPrice;
     @SerializedName("lineTotal")
     public BigDecimal lineTotal;
+    /** True if customer already used their one product-detail review for this product. */
+    @SerializedName("productReviewSubmitted")
+    public boolean productReviewSubmitted;
 }

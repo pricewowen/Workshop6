@@ -258,9 +258,9 @@ public class ProductDetailsFragment extends Fragment {
         btnAddToCart.setOnClickListener(v -> {
             if (loadedProduct != null) {
                 CartItem cartItem = new CartItem(loadedProduct, quantCounter);
-                cartManager.getCart().addItem(cartItem);
+                    cartManager.getCart().addItem(cartItem);
                 Toast.makeText(requireContext(), R.string.added_to_cart, Toast.LENGTH_SHORT).show();
-                Navigation.findNavController(view).navigateUp();
+                        Navigation.findNavController(view).navigateUp();
             }
         });
     }
@@ -461,6 +461,32 @@ public class ProductDetailsFragment extends Fragment {
                             return;
                         }
                         if (response.isSuccessful()) {
+                            ReviewDto body = response.body();
+                            if (body != null && body.status != null) {
+                                String s = body.status.trim().toLowerCase();
+                                if ("rejected".equals(s)) {
+                                    String reason = body.moderationMessage;
+                                    if (reason != null && !reason.trim().isEmpty()) {
+                                        Toast.makeText(requireContext(),
+                                                getString(R.string.order_review_submitted_rejected_reason, reason.trim()),
+                                                Toast.LENGTH_LONG).show();
+                                    } else {
+                                        Toast.makeText(requireContext(), R.string.order_review_submitted_rejected, Toast.LENGTH_LONG).show();
+                                    }
+                                    if (btnLeaveReview != null) {
+                                        btnLeaveReview.setVisibility(View.GONE);
+                                    }
+                                    return;
+                                }
+                                if ("approved".equals(s)) {
+                                    Toast.makeText(requireContext(), R.string.order_review_submitted_approved, Toast.LENGTH_LONG).show();
+                                    loadProductReviewsSection(productId);
+                                    if (btnLeaveReview != null) {
+                                        btnLeaveReview.setVisibility(View.GONE);
+                                    }
+                                    return;
+                                }
+                            }
                             Toast.makeText(requireContext(), R.string.order_review_submitted_pending, Toast.LENGTH_LONG).show();
                             loadProductReviewsSection(productId);
                             if (btnLeaveReview != null) {

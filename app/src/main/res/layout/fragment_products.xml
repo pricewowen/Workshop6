@@ -23,7 +23,7 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent">
 
-        <!-- FEATURED CARD (hidden when no product_special row for today) -->
+        <!-- FEATURED CARD: product, loading, or “no special today” message -->
         <com.google.android.material.card.MaterialCardView
             android:id="@+id/card_featured"
             android:layout_width="match_parent"
@@ -39,6 +39,34 @@
             <FrameLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content">
+
+                <!-- No special configured for today (still show card) -->
+                <LinearLayout
+                    android:id="@+id/featured_empty_panel"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="20dp"
+                    android:visibility="gone">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:letterSpacing="0.1"
+                        android:text="@string/label_featured"
+                        android:textColor="@color/bakery_gold_bright"
+                        android:textSize="12sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="12dp"
+                        android:text="@string/featured_no_special_message"
+                        android:textColor="@android:color/white"
+                        android:textSize="16sp"
+                        android:lineSpacingMultiplier="1.15" />
+                </LinearLayout>
 
                 <!-- Compact loading state while product details are fetched -->
                 <LinearLayout

@@ -10,11 +10,14 @@ import android.view.ViewOutlineProvider;
 import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.ImageView;
+import android.widget.ProgressBar;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
 
 import com.bumptech.glide.Glide;
 import com.example.workshop6.R;
@@ -24,9 +27,12 @@ import com.example.workshop6.data.api.ApiClient;
 import com.example.workshop6.data.api.ApiService;
 import com.example.workshop6.data.api.dto.GuestCustomerRequest;
 import com.example.workshop6.data.api.dto.CustomerDto;
+import com.example.workshop6.data.api.dto.CustomerPreferenceDto;
 import com.example.workshop6.data.api.dto.EmployeeDto;
 import com.example.workshop6.data.api.dto.BakeryDto;
+import com.example.workshop6.data.api.dto.ProductRecommendationDto;
 import com.example.workshop6.logging.ActivityLogger;
+import com.example.workshop6.ui.MainActivity;
 import com.example.workshop6.ui.cart.CartManager;
 import com.example.workshop6.ui.loyalty.LoyaltyRewardsActivity;
 import com.example.workshop6.ui.orders.OrderHistoryActivity;
@@ -34,15 +40,25 @@ import com.example.workshop6.ui.profile.CustomerProfileSetupActivity;
 import com.example.workshop6.ui.profile.EditProfileActivity;
 import com.example.workshop6.util.NavTransitions;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
 
 public class MeFragment extends Fragment {
     private static final long ME_CACHE_TTL_MS = 30_000L;
+    /** Skip repeat {@code GET /recommendations} while Me is reopened; invalidated on prefs save / logout. */
+    private static final long AI_RECOMMENDATIONS_CACHE_TTL_MS = 5 * 60_000L;
     private static long meCacheAtMs = 0L;
     private static String cachedUserKey = null;
     private static MeSnapshot cachedMeSnapshot = null;
+    private static long recommendationsCachedAtMs = 0L;
+    private static String recommendationsCacheUserKey = null;
+    private static String recommendationsPreferencesFingerprint = null;
+    private static List<ProductRecommendationDto> recommendationsCacheSnapshot = null;
 
     private SessionManager sessionManager;
     private ApiService api;
@@ -56,6 +72,11 @@ public class MeFragment extends Fragment {
     private TextView tvPhotoStatus;
     private View meLoadingOverlay;
     private View meScrollContent;
+    private View cardAiRecommendations;
+    private RecyclerView rvRecommendations;
+    private ProgressBar recommendationsLoading;
+    private TextView tvRecommendationsPlaceholder;
+    private MeRecommendationAdapter recommendationAdapter;
 
     @Nullable
     @Override
@@ -88,27 +109,50 @@ public class MeFragment extends Fragment {
         tvPhotoStatus = view.findViewById(R.id.tv_me_photo_status);
         meLoadingOverlay = view.findViewById(R.id.me_loading_overlay);
         meScrollContent = view.findViewById(R.id.me_scroll_content);
+        cardAiRecommendations = view.findViewById(R.id.card_me_ai_recommendations);
+        rvRecommendations = view.findViewById(R.id.rv_me_recommendations);
+        recommendationsLoading = view.findViewById(R.id.me_recommendations_loading);
+        tvRecommendationsPlaceholder = view.findViewById(R.id.tv_me_recommendations_placeholder);
+        if (rvRecommendations != null) {
+            rvRecommendations.setLayoutManager(
+                    new LinearLayoutManager(requireContext(), LinearLayoutManager.HORIZONTAL, false));
+            recommendationAdapter = new MeRecommendationAdapter(productId -> {
+                if (productId > 0 && getActivity() instanceof MainActivity) {
+                    ((MainActivity) getActivity()).navigateBrowseToProduct(productId);
+                }
+            });
+            rvRecommendations.setAdapter(recommendationAdapter);
+        }
 
         applyMeRoleLabel();
 
         if (sessionManager.isGuestMode()) {
             view.findViewById(R.id.btn_edit_account).setVisibility(View.GONE);
             view.findViewById(R.id.btn_customer_details).setVisibility(View.GONE);
+            view.findViewById(R.id.btn_taste_preferences).setVisibility(View.GONE);
             view.findViewById(R.id.btn_loyalty_rewards).setVisibility(View.GONE);
             view.findViewById(R.id.btn_order_history).setVisibility(View.GONE);
+            hideAiRecommendationsCard();
         } else if ("CUSTOMER".equalsIgnoreCase(sessionManager.getUserRole())) {
             view.findViewById(R.id.btn_edit_account).setVisibility(View.VISIBLE);
             view.findViewById(R.id.btn_customer_details).setVisibility(View.VISIBLE);
+            view.findViewById(R.id.btn_taste_preferences).setVisibility(View.VISIBLE);
+            View btnTaste = view.findViewById(R.id.btn_taste_preferences);
             view.findViewById(R.id.btn_edit_account).setOnClickListener(v ->
                     NavTransitions.startActivityWithForward(requireActivity(),
                             new Intent(requireContext(), EditProfileActivity.class)));
             view.findViewById(R.id.btn_customer_details).setOnClickListener(v ->
                     NavTransitions.startActivityWithForward(requireActivity(),
                             new Intent(requireContext(), CustomerProfileSetupActivity.class)));
+            btnTaste.setOnClickListener(v ->
+                    NavTransitions.startActivityWithForward(requireActivity(),
+                            new Intent(requireContext(), CustomerPreferencesActivity.class)));
         } else {
             view.findViewById(R.id.btn_edit_account).setVisibility(View.GONE);
             view.findViewById(R.id.btn_customer_details).setVisibility(View.GONE);
+            view.findViewById(R.id.btn_taste_preferences).setVisibility(View.GONE);
             view.findViewById(R.id.btn_loyalty_rewards).setVisibility(View.GONE);
+            hideAiRecommendationsCard();
         }
 
         Button btnLogout = view.findViewById(R.id.btn_logout);
@@ -125,6 +169,7 @@ public class MeFragment extends Fragment {
             ActivityLogger.log(requireContext(), sessionManager, "LOGOUT", "User logged out");
             CartManager.getInstance(requireContext()).onLogout();
             sessionManager.logout();
+                invalidateAiRecommendationsCache();
                 ApiClient.getInstance().clearToken();
             Intent intent = new Intent(requireContext(), LoginActivity.class);
             intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
@@ -231,6 +276,7 @@ public class MeFragment extends Fragment {
                         return;
                     }
                     if (response.code() == 404) {
+                        hideAiRecommendationsCard();
                         String loginEmail = sessionManager.getLoginEmail();
                         String displayEmail = (loginEmail != null && !loginEmail.isEmpty())
                                 ? loginEmail
@@ -257,6 +303,7 @@ public class MeFragment extends Fragment {
                         return;
                     }
                     if (!response.isSuccessful() || response.body() == null) {
+                        hideAiRecommendationsCard();
                         setMeLoadingUi(false);
                         return;
                     }
@@ -288,16 +335,19 @@ public class MeFragment extends Fragment {
                             false,
                             true));
                     setMeLoadingUi(false);
+                    refreshAiRecommendationsIfEligible();
                 }
 
                 @Override
                 public void onFailure(Call<CustomerDto> call, Throwable t) {
                     if (getView() != null) {
+                        hideAiRecommendationsCard();
                         setMeLoadingUi(false);
                     }
                 }
             });
         } else {
+            hideAiRecommendationsCard();
             api.getEmployeeMe().enqueue(new Callback<EmployeeDto>() {
                 @Override
                 public void onResponse(Call<EmployeeDto> call, Response<EmployeeDto> response) {
@@ -475,6 +525,7 @@ public class MeFragment extends Fragment {
         }
         applyPhotoUI(null, false);
         setMeLoadingUi(false);
+        hideAiRecommendationsCard();
     }
 
     /** @return true if cached profile was applied to the UI */
@@ -506,18 +557,29 @@ public class MeFragment extends Fragment {
             }
         }
         setMeLoadingUi(false);
+        if ("CUSTOMER".equalsIgnoreCase(sessionManager.getUserRole()) && !sessionManager.isGuestMode()
+                && cachedMeSnapshot != null && cachedMeSnapshot.hasCustomerProfile) {
+            refreshAiRecommendationsIfEligible();
+        } else {
+            hideAiRecommendationsCard();
+        }
         return true;
     }
 
     private static void applyCustomerShoppingButtonsState(View root, boolean hasCustomerProfile) {
         Button order = root.findViewById(R.id.btn_order_history);
         Button rewards = root.findViewById(R.id.btn_loyalty_rewards);
+        Button taste = root.findViewById(R.id.btn_taste_preferences);
         order.setVisibility(View.VISIBLE);
         rewards.setVisibility(View.VISIBLE);
         order.setEnabled(hasCustomerProfile);
         rewards.setEnabled(hasCustomerProfile);
         order.setAlpha(hasCustomerProfile ? 1f : 0.45f);
         rewards.setAlpha(hasCustomerProfile ? 1f : 0.45f);
+        if (taste != null) {
+            taste.setEnabled(hasCustomerProfile);
+            taste.setAlpha(hasCustomerProfile ? 1f : 0.45f);
+        }
     }
 
     private boolean isMeCacheFreshForCurrentUser() {
@@ -574,6 +636,207 @@ public class MeFragment extends Fragment {
             this.showOrderHistory = showOrderHistory;
             this.showChatStaff = showChatStaff;
             this.hasCustomerProfile = hasCustomerProfile;
+        }
+    }
+
+    /** Clears client-side AI recommendations cache (e.g. after saving taste preferences). */
+    public static void invalidateAiRecommendationsCache() {
+        recommendationsCachedAtMs = 0L;
+        recommendationsCacheUserKey = null;
+        recommendationsPreferencesFingerprint = null;
+        recommendationsCacheSnapshot = null;
+    }
+
+    private static String fingerprintPreferences(List<CustomerPreferenceDto> prefs) {
+        if (prefs == null || prefs.isEmpty()) {
+            return "";
+        }
+        List<String> parts = new ArrayList<>(prefs.size());
+        for (CustomerPreferenceDto p : prefs) {
+            if (p == null) {
+                continue;
+            }
+            int tid = p.tagId != null ? p.tagId : 0;
+            String type = p.preferenceType != null ? p.preferenceType.name() : "";
+            short strength = p.preferenceStrength != null ? p.preferenceStrength : Short.MIN_VALUE;
+            parts.add(tid + ":" + type + ":" + strength);
+        }
+        Collections.sort(parts);
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < parts.size(); i++) {
+            if (i > 0) {
+                sb.append('|');
+            }
+            sb.append(parts.get(i));
+        }
+        return sb.toString();
+    }
+
+    private boolean isAiRecommendationsCacheFresh(String userKey, String prefsFingerprint) {
+        return recommendationsCacheSnapshot != null
+                && userKey.equals(recommendationsCacheUserKey)
+                && prefsFingerprint.equals(recommendationsPreferencesFingerprint)
+                && recommendationsCachedAtMs > 0
+                && (System.currentTimeMillis() - recommendationsCachedAtMs) <= AI_RECOMMENDATIONS_CACHE_TTL_MS;
+    }
+
+    private void storeAiRecommendationsCache(
+            String userKey,
+            String prefsFingerprint,
+            List<ProductRecommendationDto> fromApi) {
+        ArrayList<ProductRecommendationDto> copy = new ArrayList<>();
+        if (fromApi != null) {
+            for (ProductRecommendationDto p : fromApi) {
+                if (p == null) {
+                    continue;
+                }
+                ProductRecommendationDto c = new ProductRecommendationDto();
+                c.productId = p.productId;
+                c.productName = p.productName;
+                copy.add(c);
+            }
+        }
+        recommendationsCacheSnapshot = copy;
+        recommendationsCacheUserKey = userKey;
+        recommendationsPreferencesFingerprint = prefsFingerprint;
+        recommendationsCachedAtMs = System.currentTimeMillis();
+    }
+
+    private void applyCachedAiRecommendationsUi() {
+        recommendationsLoading.setVisibility(View.GONE);
+        if (recommendationsCacheSnapshot.isEmpty()) {
+            tvRecommendationsPlaceholder.setText(R.string.me_recommendations_none_yet);
+            tvRecommendationsPlaceholder.setVisibility(View.VISIBLE);
+            rvRecommendations.setVisibility(View.GONE);
+            recommendationAdapter.submit(null);
+            return;
+        }
+        tvRecommendationsPlaceholder.setVisibility(View.GONE);
+        rvRecommendations.setVisibility(View.VISIBLE);
+        ArrayList<ProductRecommendationDto> copy = new ArrayList<>(recommendationsCacheSnapshot.size());
+        for (ProductRecommendationDto p : recommendationsCacheSnapshot) {
+            ProductRecommendationDto c = new ProductRecommendationDto();
+            c.productId = p.productId;
+            c.productName = p.productName;
+            copy.add(c);
+        }
+        recommendationAdapter.submit(copy);
+    }
+
+    private void refreshAiRecommendationsIfEligible() {
+        if (cardAiRecommendations == null || rvRecommendations == null
+                || recommendationsLoading == null || tvRecommendationsPlaceholder == null
+                || recommendationAdapter == null || getView() == null) {
+            return;
+        }
+        if (!"CUSTOMER".equalsIgnoreCase(sessionManager.getUserRole()) || sessionManager.isGuestMode()) {
+            hideAiRecommendationsCard();
+            return;
+        }
+        if (cachedMeSnapshot == null || !cachedMeSnapshot.hasCustomerProfile) {
+            hideAiRecommendationsCard();
+            return;
+        }
+
+        cardAiRecommendations.setVisibility(View.VISIBLE);
+        recommendationsLoading.setVisibility(View.VISIBLE);
+        tvRecommendationsPlaceholder.setVisibility(View.GONE);
+        rvRecommendations.setVisibility(View.GONE);
+        recommendationAdapter.submit(null);
+
+        api.getMyPreferences().enqueue(new Callback<List<CustomerPreferenceDto>>() {
+            @Override
+            public void onResponse(Call<List<CustomerPreferenceDto>> call,
+                                   Response<List<CustomerPreferenceDto>> response) {
+                if (!isAdded() || getView() == null) {
+                    return;
+                }
+                if (!response.isSuccessful() || response.body() == null || response.body().isEmpty()) {
+                    recommendationsLoading.setVisibility(View.GONE);
+                    tvRecommendationsPlaceholder.setText(R.string.me_recommendations_set_preferences_hint);
+                    tvRecommendationsPlaceholder.setVisibility(View.VISIBLE);
+                    return;
+                }
+                final List<CustomerPreferenceDto> prefsList = response.body();
+                final String userKey = buildUserKey();
+                final String fp = fingerprintPreferences(prefsList);
+                if (isAiRecommendationsCacheFresh(userKey, fp)) {
+                    recommendationsLoading.setVisibility(View.GONE);
+                    tvRecommendationsPlaceholder.setVisibility(View.GONE);
+                    applyCachedAiRecommendationsUi();
+                    return;
+                }
+
+                recommendationsLoading.setVisibility(View.VISIBLE);
+                tvRecommendationsPlaceholder.setVisibility(View.GONE);
+
+                api.getRecommendations().enqueue(new Callback<List<ProductRecommendationDto>>() {
+                    @Override
+                    public void onResponse(Call<List<ProductRecommendationDto>> call,
+                                           Response<List<ProductRecommendationDto>> response) {
+                        if (!isAdded() || getView() == null) {
+                            return;
+                        }
+                        recommendationsLoading.setVisibility(View.GONE);
+                        if (!response.isSuccessful()) {
+                            tvRecommendationsPlaceholder.setText(R.string.me_recommendations_unavailable);
+                            tvRecommendationsPlaceholder.setVisibility(View.VISIBLE);
+                            rvRecommendations.setVisibility(View.GONE);
+                            recommendationAdapter.submit(null);
+                            return;
+                        }
+                        if (response.body() == null || response.body().isEmpty()) {
+                            storeAiRecommendationsCache(userKey, fp, response.body());
+                            tvRecommendationsPlaceholder.setText(R.string.me_recommendations_none_yet);
+                            tvRecommendationsPlaceholder.setVisibility(View.VISIBLE);
+                            rvRecommendations.setVisibility(View.GONE);
+                            recommendationAdapter.submit(null);
+                            return;
+                        }
+                        storeAiRecommendationsCache(userKey, fp, response.body());
+                        tvRecommendationsPlaceholder.setVisibility(View.GONE);
+                        rvRecommendations.setVisibility(View.VISIBLE);
+                        recommendationAdapter.submit(response.body());
+                    }
+
+                    @Override
+                    public void onFailure(Call<List<ProductRecommendationDto>> call, Throwable t) {
+                        if (isAdded() && getView() != null) {
+                            recommendationsLoading.setVisibility(View.GONE);
+                            tvRecommendationsPlaceholder.setText(R.string.me_recommendations_unavailable);
+                            tvRecommendationsPlaceholder.setVisibility(View.VISIBLE);
+                            rvRecommendations.setVisibility(View.GONE);
+                        }
+                    }
+                });
+            }
+
+            @Override
+            public void onFailure(Call<List<CustomerPreferenceDto>> call, Throwable t) {
+                if (isAdded() && getView() != null) {
+                    recommendationsLoading.setVisibility(View.GONE);
+                    tvRecommendationsPlaceholder.setText(R.string.me_recommendations_set_preferences_hint);
+                    tvRecommendationsPlaceholder.setVisibility(View.VISIBLE);
+                }
+            }
+        });
+    }
+
+    private void hideAiRecommendationsCard() {
+        if (cardAiRecommendations != null) {
+            cardAiRecommendations.setVisibility(View.GONE);
+        }
+        if (recommendationsLoading != null) {
+            recommendationsLoading.setVisibility(View.GONE);
+        }
+        if (rvRecommendations != null) {
+            rvRecommendations.setVisibility(View.GONE);
+        }
+        if (recommendationAdapter != null) {
+            recommendationAdapter.submit(null);
+        }
+        if (tvRecommendationsPlaceholder != null) {
+            tvRecommendationsPlaceholder.setVisibility(View.GONE);
         }
     }
 

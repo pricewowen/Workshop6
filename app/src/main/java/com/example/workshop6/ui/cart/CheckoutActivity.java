@@ -590,7 +590,7 @@ public class CheckoutActivity extends AppCompatActivity {
         if (hasPhone) {
             String phoneStored = Validation.formatPhoneForStorage(phoneRaw);
             g.phone = phoneStored != null ? phoneStored : phoneRaw;
-        } else {
+                        } else {
             g.phone = "";
         }
         g.businessPhone = null;
@@ -603,7 +603,7 @@ public class CheckoutActivity extends AppCompatActivity {
             g.city = textOrEmpty(etCheckoutDeliveryCity);
             g.province = provinceFromSpinner(spinnerCheckoutDeliveryProvince);
             g.postalCode = textOrEmpty(etCheckoutDeliveryPostal);
-        } else {
+                } else {
             GuestCustomerRequest d = sessionManager.getGuestProfileOrDraft();
             g.addressLine1 = d.addressLine1 != null ? d.addressLine1 : "";
             g.addressLine2 = d.addressLine2 != null ? d.addressLine2 : "";
@@ -948,27 +948,27 @@ public class CheckoutActivity extends AppCompatActivity {
             String city = b.city != null ? b.city : "";
             labels[i] = getString(R.string.checkout_fulfillment_spinner_line, b.name, city);
         }
-        ArrayAdapter<String> adapter = new ArrayAdapter<>(
+                    ArrayAdapter<String> adapter = new ArrayAdapter<>(
                 this,
-                android.R.layout.simple_spinner_item,
+                            android.R.layout.simple_spinner_item,
                 labels);
-        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-        spinnerBakery.setAdapter(adapter);
+                    adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+                    spinnerBakery.setAdapter(adapter);
         spinnerBakery.setOnItemSelectedListener(null);
-        selectedBakery = bakeryList.get(0);
-        selectedBakeryId = selectedBakery.id;
+                    selectedBakery = bakeryList.get(0);
+                    selectedBakeryId = selectedBakery.id;
         spinnerBakery.setSelection(0, false);
-        spinnerBakery.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
-            @Override
-            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
-                selectedBakery = bakeryList.get(position);
-                selectedBakeryId = selectedBakery.id;
+                    spinnerBakery.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+                        @Override
+                        public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                            selectedBakery = bakeryList.get(position);
+                            selectedBakeryId = selectedBakery.id;
                 updateCheckoutFulfillmentDetailsText(false);
                 updateTotals();
                 refreshSubmitButtonState();
-            }
+                        }
 
-            @Override
+                        @Override
             public void onNothingSelected(AdapterView<?> parent) {
             }
         });
@@ -1242,7 +1242,7 @@ public class CheckoutActivity extends AppCompatActivity {
                     selectedDayIndex  = pendingDay[0];
                     selectedTimeIndex = pendingTime[0];
                     selectedDateTime  = slotsByDay.get(selectedDayIndex).get(selectedTimeIndex);
-                    updateScheduledTimeDisplay();
+                                updateScheduledTimeDisplay();
                     refreshSubmitButtonState();
                 })
                 .setNegativeButton("Cancel", null)
@@ -1348,17 +1348,17 @@ public class CheckoutActivity extends AppCompatActivity {
                     && (sessionManager.isGuestMode() || !hasServerSavedDeliveryAddress())) {
                 valid &= validateDeliveryFormFields(showFieldErrors);
             }
-            rbDelivery.setError(null);
-        }
+                rbDelivery.setError(null);
+            }
         if (bakeryList != null && !bakeryList.isEmpty() && selectedBakery == null) {
-            valid = false;
+                valid = false;
         }
 
         Calendar minValid = Calendar.getInstance();
         minValid.add(Calendar.HOUR_OF_DAY, 2);
         if (selectedDateTime.before(minValid)) {
             if (showFieldErrors) {
-                tvScheduledTime.setError(getString(R.string.error_past_time));
+            tvScheduledTime.setError(getString(R.string.error_past_time));
             }
             valid = false;
         } else if (showFieldErrors) {
@@ -1854,8 +1854,8 @@ public class CheckoutActivity extends AppCompatActivity {
                         Snackbar.make(findViewById(android.R.id.content),
                                 R.string.customer_profile_error_unexpected, Snackbar.LENGTH_LONG).show();
                         btnPlaceOrder.setEnabled(true);
-                        return;
-                    }
+                    return;
+                }
                     currentCustomer = response.body();
                     updateCheckoutSectionVisibility();
                     loadUserAddressHint();

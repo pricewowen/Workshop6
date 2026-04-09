@@ -37,11 +37,18 @@ public class MainActivity extends AppCompatActivity {
 
     public static final String EXTRA_OPEN_ME_TAB = "open_me_tab";
     public static final String EXTRA_PROMPT_CUSTOMER_PROFILE = "prompt_customer_profile";
+    /** When > 0, switches to Browse and opens product detail (e.g. from Me tab recommendations). */
+    public static final String EXTRA_OPEN_PRODUCT_ID = "open_product_id";
 
     /** How often we re-verify the session against the API while this screen is visible. */
     private static final long API_SESSION_POLL_MS = 4_000L;
     /** Minimum spacing between staff-menu refresh calls when not forced. */
     private static final long STAFF_ACCESS_REFRESH_MS = 4_000L;
+    /**
+     * {@link ConnectivityManager.NetworkCallback#onLost} can fire during normal Wi‑Fi/cellular handoff.
+     * Wait before treating it as a real outage so we don't clear a valid session.
+     */
+    private static final long NETWORK_LOST_DEBOUNCE_MS = 2_500L;
 
     private SessionManager sessionManager;
     private NavController navController;
@@ -63,17 +70,33 @@ public class MainActivity extends AppCompatActivity {
         }
     };
 
-    /** Log out as soon as the default network drops (e.g. Wi‑Fi/cellular lost). */
+    private final Runnable networkLostConfirmRunnable = new Runnable() {
+        @Override
+        public void run() {
+            if (isFinishing() || sessionManager == null || !sessionManager.isLoggedIn()) {
+                return;
+            }
+            if (!NetworkStatus.isOnline(MainActivity.this)) {
+                handleConnectionLost();
+            }
+        }
+    };
+
+    /** After a debounced check, log out only if the device still has no usable network. */
     private final ConnectivityManager.NetworkCallback networkDisconnectCallback = new ConnectivityManager.NetworkCallback() {
+        @Override
+        public void onAvailable(@NonNull Network network) {
+            runOnUiThread(() -> connectivityHandler.removeCallbacks(networkLostConfirmRunnable));
+        }
+
         @Override
         public void onLost(@NonNull Network network) {
             runOnUiThread(() -> {
                 if (isFinishing() || sessionManager == null || !sessionManager.isLoggedIn()) {
                     return;
                 }
-                if (!NetworkStatus.isOnline(MainActivity.this)) {
-                    handleConnectionLost();
-                }
+                connectivityHandler.removeCallbacks(networkLostConfirmRunnable);
+                connectivityHandler.postDelayed(networkLostConfirmRunnable, NETWORK_LOST_DEBOUNCE_MS);
             });
         }
     };
@@ -125,6 +148,37 @@ public class MainActivity extends AppCompatActivity {
         }
         if (intent.getBooleanExtra(EXTRA_PROMPT_CUSTOMER_PROFILE, false)) {
             Toast.makeText(this, R.string.toast_account_created, Toast.LENGTH_LONG).show();
+        }
+        int productId = intent.getIntExtra(EXTRA_OPEN_PRODUCT_ID, -1);
+        if (productId > 0 && bottomNav != null && navController != null) {
+            final int pid = productId;
+            bottomNav.post(() -> navigateBrowseToProduct(pid));
+        }
+    }
+
+    /**
+     * Open product detail (e.g. Me tab AI recommendations). From {@link R.id#nav_me} this uses a
+     * direct graph action so the product opens immediately without switching to Browse first.
+     */
+    public void navigateBrowseToProduct(int productId) {
+        if (isFinishing() || navController == null || productId <= 0) {
+            return;
+        }
+        Bundle args = new Bundle();
+        args.putInt("productId", productId);
+        NavDestination dest = navController.getCurrentDestination();
+        int destId = dest != null ? dest.getId() : -1;
+        try {
+            if (destId == R.id.nav_me) {
+                navController.navigate(R.id.action_me_to_product_detail, args);
+                return;
+            }
+            if (destId == R.id.nav_browse) {
+                navController.navigate(R.id.action_products_to_details, args);
+                return;
+            }
+            navController.navigate(R.id.action_global_product_detail, args);
+        } catch (Exception ignored) {
         }
     }
 
@@ -178,6 +232,7 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onPause() {
         connectivityHandler.removeCallbacks(connectivityPollRunnable);
+        connectivityHandler.removeCallbacks(networkLostConfirmRunnable);
         super.onPause();
     }
 
@@ -223,14 +278,14 @@ public class MainActivity extends AppCompatActivity {
                     if (response.isSuccessful() || response.code() == 404) {
                         applyStaffNavigation(bottomNav, role);
                     } else {
-                        handleSessionCheckHttpFailure(response.code());
+                        handleSessionCheckHttpFailure(bottomNav, response.code());
                     }
                 }
 
                 @Override
                 public void onFailure(Call<CustomerDto> call, Throwable t) {
                     staffAccessCheckInFlight = false;
-                    handleConnectionLost();
+                    applyStaffNavigation(bottomNav, role);
                 }
             });
         } else {
@@ -241,23 +296,24 @@ public class MainActivity extends AppCompatActivity {
                     if (response.isSuccessful()) {
                         applyStaffNavigation(bottomNav, role);
                     } else {
-                        handleSessionCheckHttpFailure(response.code());
+                        handleSessionCheckHttpFailure(bottomNav, response.code());
                     }
                 }
 
                 @Override
                 public void onFailure(Call<EmployeeDto> call, Throwable t) {
                     staffAccessCheckInFlight = false;
-                    handleConnectionLost();
+                    applyStaffNavigation(bottomNav, role);
                 }
             });
         }
     }
 
     /**
-     * After a failed /me call, clear the session when the token is invalid or the server is unavailable.
+     * After a non-success /me response: only treat clear auth errors as logout.
+     * Other codes (5xx, 404 for staff, etc.) keep the session — transient issues must not wipe the JWT.
      */
-    private void handleSessionCheckHttpFailure(int httpCode) {
+    private void handleSessionCheckHttpFailure(BottomNavigationView bottomNav, int httpCode) {
         if (isFinishing() || sessionManager == null || !sessionManager.isLoggedIn()) {
             return;
         }
@@ -265,11 +321,9 @@ public class MainActivity extends AppCompatActivity {
             redirectToLogin(getString(R.string.session_expired));
             return;
         }
-        if (httpCode >= 500) {
-            handleConnectionLost();
-            return;
+        if (bottomNav != null) {
+            applyStaffNavigation(bottomNav, sessionManager.getUserRole());
         }
-        redirectToLogin(getString(R.string.lost_connection_logout));
     }
 
     private void handleConnectionLost() {

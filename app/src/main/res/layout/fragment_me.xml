@@ -151,6 +151,80 @@
                 android:text="@string/order_history"
                 android:textColor="@color/bakery_text_light" />
 
+            <Button
+                android:id="@+id/btn_taste_preferences"
+                android:layout_width="match_parent"
+                android:layout_height="56dp"
+                android:layout_marginTop="8dp"
+                android:visibility="gone"
+                android:backgroundTint="@color/bakery_primary"
+                android:text="@string/btn_taste_preferences"
+                android:textColor="@color/bakery_text_light" />
+
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/card_me_ai_recommendations"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:visibility="gone"
+                app:cardBackgroundColor="@color/bakery_card_white"
+                app:cardCornerRadius="16dp"
+                app:cardElevation="3dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="16dp">
+
+                    <TextView
+                        android:id="@+id/tv_me_ai_rec_title"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="@string/me_ai_recommendations_title"
+                        android:textColor="@color/bakery_primary"
+                        android:textSize="16sp"
+                        android:textStyle="bold" />
+
+                    <FrameLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="168dp"
+                        android:layout_marginTop="12dp"
+                        android:minHeight="168dp">
+
+                        <androidx.recyclerview.widget.RecyclerView
+                            android:id="@+id/rv_me_recommendations"
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:clipToPadding="false"
+                            android:overScrollMode="never"
+                            android:paddingVertical="4dp"
+                            android:visibility="gone" />
+
+                        <ProgressBar
+                            android:id="@+id/me_recommendations_loading"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_gravity="center"
+                            android:indeterminate="true"
+                            android:indeterminateTint="@color/bakery_gold_bright"
+                            android:visibility="gone" />
+
+                        <TextView
+                            android:id="@+id/tv_me_recommendations_placeholder"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_gravity="center_vertical"
+                            android:gravity="center"
+                            android:paddingHorizontal="12dp"
+                            android:text="@string/me_recommendations_set_preferences_hint"
+                            android:textColor="@color/bakery_text_secondary"
+                            android:textSize="14sp"
+                            android:visibility="visible" />
+                    </FrameLayout>
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btn_logout"
                 style="@style/Widget.MaterialComponents.Button.OutlinedButton"

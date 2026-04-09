@@ -31,7 +31,12 @@
         android:id="@+id/nav_me"
         android:name="com.example.workshop6.ui.me.MeFragment"
         android:label="@string/nav_me"
-        tools:layout="@layout/fragment_me" />
+        tools:layout="@layout/fragment_me">
+
+        <action
+            android:id="@+id/action_me_to_product_detail"
+            app:destination="@id/productDetailFragment" />
+    </fragment>
 
     <fragment
         android:id="@+id/nav_cart"
@@ -56,12 +61,6 @@
         android:name="com.example.workshop6.ui.approvals.OrdersAdminFragment"
         android:label="@string/nav_order_admin"
         tools:layout="@layout/fragment_orders_admin" />
-
-    <fragment
-        android:id="@+id/nav_review_approvals"
-        android:name="com.example.workshop6.ui.approvals.ReviewApprovalsFragment"
-        android:label="@string/nav_review_approvals"
-        tools:layout="@layout/fragment_review_approvals" />
 
     <fragment
         android:id="@+id/nav_staff_chat"
@@ -96,5 +95,9 @@
             android:defaultValue="-1"
             app:argType="integer" />
     </fragment>
+
+    <action
+        android:id="@+id/action_global_product_detail"
+        app:destination="@id/productDetailFragment" />
 
 </navigation>

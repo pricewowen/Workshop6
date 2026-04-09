@@ -83,7 +83,7 @@ public class OrderHistoryActivity extends AppCompatActivity implements OrderHist
         setSupportActionBar(toolbar);
         if (getSupportActionBar() != null) {
             getSupportActionBar().setDisplayHomeAsUpEnabled(true);
-            getSupportActionBar().setTitle("My Orders");
+            getSupportActionBar().setTitle(R.string.order_history_title);
         }
         toolbar.setNavigationOnClickListener(v -> {
             finish();
@@ -407,10 +407,38 @@ public class OrderHistoryActivity extends AppCompatActivity implements OrderHist
                         Toast.makeText(OrderHistoryActivity.this, R.string.review_name_required, Toast.LENGTH_LONG).show();
                         return;
                     }
+                    if (response.code() == 409) {
+                        Toast.makeText(OrderHistoryActivity.this, R.string.order_review_already_submitted_order, Toast.LENGTH_LONG).show();
+                        loadOrders();
+                        return;
+                    }
                     Toast.makeText(OrderHistoryActivity.this, R.string.order_review_submit_failed, Toast.LENGTH_SHORT).show();
                     return;
                 }
-                Toast.makeText(OrderHistoryActivity.this, R.string.order_review_submitted_pending, Toast.LENGTH_LONG).show();
+                ReviewDto body = response.body();
+                if (body != null && body.status != null) {
+                    String s = body.status.trim().toLowerCase();
+                    if ("approved".equals(s)) {
+                        Toast.makeText(OrderHistoryActivity.this, R.string.order_review_submitted_approved, Toast.LENGTH_LONG).show();
+                    } else if ("rejected".equals(s)) {
+                        String reason = body.moderationMessage;
+                        if (reason != null && !reason.trim().isEmpty()) {
+                            String shortReason = reason.trim();
+                            if (shortReason.length() > 100) {
+                                shortReason = shortReason.substring(0, 99).trim() + "…";
+                            }
+                            Toast.makeText(OrderHistoryActivity.this,
+                                    getString(R.string.order_review_submitted_rejected_reason, shortReason),
+                                    Toast.LENGTH_LONG).show();
+                        } else {
+                            Toast.makeText(OrderHistoryActivity.this, R.string.order_review_submitted_rejected, Toast.LENGTH_LONG).show();
+                        }
+                    } else {
+                        Toast.makeText(OrderHistoryActivity.this, R.string.order_review_submitted_pending, Toast.LENGTH_LONG).show();
+                    }
+                } else {
+                    Toast.makeText(OrderHistoryActivity.this, R.string.order_review_submitted_pending, Toast.LENGTH_LONG).show();
+                }
                 loadOrders();
             }
 

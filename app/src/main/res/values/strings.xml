@@ -97,7 +97,6 @@
     <string name="nav_photo_approvals">Approvals</string>
     <string name="nav_account_admin">Deactivation</string>
     <string name="nav_order_admin">Orders</string>
-    <string name="nav_review_approvals">Reviews</string>
     <string name="staff_chat">Staff Chat</string>
     <string name="nav_chat_short">Chat</string>
     <string name="chat_new">New chat</string>
@@ -147,6 +146,7 @@
     <string name="label_featured">TODAY\'S FEATURE</string>
     <string name="btn_view_featured_product">View product</string>
     <string name="featured_discount_today">%1$.0f%% off today</string>
+    <string name="featured_no_special_message">No special is available today. Check back another day!</string>
     <string name="label_bakeries">LOCATIONS</string>
     <string name="section_product_reviews">Reviews</string>
     <string name="product_reviews_with_average">Reviews (%1$.1f★ average)</string>
@@ -290,8 +290,19 @@
     <string name="register_error_unexpected">Unable to create account right now, please try again</string>
     <string name="customer_profile_title">Personal information</string>
     <string name="btn_your_details">Edit Personal Info</string>
+    <string name="btn_taste_preferences">Edit preferences</string>
+    <string name="title_taste_preferences">Preferences</string>
+    <string name="btn_save_preferences">Save preferences</string>
+    <string name="preferences_saved">Preferences saved</string>
+    <string name="preferences_need_customer_profile">Create your customer profile first.</string>
+    <string name="preferences_no_tags">No product tags are available yet.</string>
+    <string name="me_ai_recommendations_title">AI-powered recommendations</string>
+    <string name="me_recommendations_set_preferences_hint">Add preferences to see personalized product picks.</string>
+    <string name="me_recommendations_none_yet">No suggestions right now. Try updating your preferences or ordering something new.</string>
+    <string name="me_recommendations_unavailable">Suggestions couldn’t load. Check your connection or try again in a moment.</string>
+    <string name="order_review_submitted_rejected_reason">Couldn\'t post that review: %1$s</string>
     <string name="btn_edit_account">Edit Account</string>
-    <string name="title_edit_account">Edit Account</string>
+    <string name="title_edit_account">Account</string>
     <string name="btn_update_account">Update Account</string>
     <string name="btn_save_customer_profile">Update Personal Info</string>
     <string name="customer_profile_saved">Your details were saved</string>
@@ -339,6 +350,7 @@
     <string name="stub_me_address">Address</string>
     <string name="no_address_on_file">No address on file. Tap Edit to add one.</string>
     <string name="order_history">View Order History</string>
+    <string name="order_history_title">Order History</string>
     <string name="loyalty_rewards_title">Rewards</string>
     <string name="btn_loyalty_rewards">View Rewards</string>
     <string name="loyalty_rewards_checkout_hint">You can redeem your tier discount with points when you check out.</string>
@@ -428,7 +440,10 @@
     <string name="order_review_rating_label">Rating</string>
     <string name="order_review_comment_label">Your experience</string>
     <string name="order_review_comment_hint">Share feedback about the bakery service such as pickup delivery packaging and staff. Optional.</string>
-    <string name="order_review_submitted_pending">Review submitted and awaiting approval.</string>
+    <string name="order_review_submitted_pending">Your review is being checked and will appear if approved.</string>
+    <string name="order_review_submitted_approved">Thanks! Your review was posted.</string>
+    <string name="order_review_submitted_rejected">We couldn\'t post that review. Try different wording.</string>
+    <string name="order_review_already_submitted_order">You already submitted a review for this order.</string>
     <string name="order_review_submit_failed">Could not submit review.</string>
     <string name="order_review_no_items">No reviewable items on this order.</string>
     <string name="review_name_required">First and last name are required in your profile before leaving a review.</string>

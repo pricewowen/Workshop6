@@ -14,6 +14,8 @@ import com.example.workshop6.data.api.dto.ConfirmStripePaymentRequest;
 import com.example.workshop6.data.api.dto.CustomerBootstrapRequest;
 import com.example.workshop6.data.api.dto.CustomerDto;
 import com.example.workshop6.data.api.dto.CustomerPatchRequest;
+import com.example.workshop6.data.api.dto.CustomerPreferenceDto;
+import com.example.workshop6.data.api.dto.CustomerPreferenceSaveRequest;
 import com.example.workshop6.data.api.dto.ProfilePhotoResponse;
 import com.example.workshop6.data.api.dto.EmployeeDto;
 import com.example.workshop6.data.api.dto.EmployeePatchRequest;
@@ -22,11 +24,11 @@ import com.example.workshop6.data.api.dto.OrderDto;
 import com.example.workshop6.data.api.dto.OrderStatusPatchRequest;
 import com.example.workshop6.data.api.dto.PostChatMessageRequest;
 import com.example.workshop6.data.api.dto.ProductDto;
+import com.example.workshop6.data.api.dto.ProductRecommendationDto;
 import com.example.workshop6.data.api.dto.ProductSpecialTodayDto;
 import com.example.workshop6.data.api.dto.RegisterRequest;
 import com.example.workshop6.data.api.dto.ReviewCreateRequest;
 import com.example.workshop6.data.api.dto.ReviewDto;
-import com.example.workshop6.data.api.dto.ReviewStatusPatchRequest;
 import com.example.workshop6.data.api.dto.ResumePaymentSessionResponse;
 import com.example.workshop6.data.api.dto.RewardTierDto;
 import com.example.workshop6.data.api.dto.TagDto;
@@ -73,6 +75,15 @@ public interface ApiService {
 
     @PATCH("api/v1/customers/me")
     Call<CustomerDto> patchCustomerMe(@Body CustomerPatchRequest body);
+
+    @GET("api/v1/customers/me/preferences")
+    Call<List<CustomerPreferenceDto>> getMyPreferences();
+
+    @PUT("api/v1/customers/me/preferences")
+    Call<List<CustomerPreferenceDto>> saveMyPreferences(@Body CustomerPreferenceSaveRequest body);
+
+    @GET("api/v1/recommendations")
+    Call<List<ProductRecommendationDto>> getRecommendations();
 
     @GET("api/v1/employee/me")
     Call<EmployeeDto> getEmployeeMe();
@@ -145,12 +156,6 @@ public interface ApiService {
 
     @POST("api/v1/orders/{orderId}/reviews")
     Call<ReviewDto> createOrderReview(@Path("orderId") String orderId, @Body ReviewCreateRequest body);
-
-    @GET("api/v1/reviews/pending")
-    Call<List<ReviewDto>> getPendingReviews();
-
-    @PATCH("api/v1/reviews/{reviewId}/status")
-    Call<ReviewDto> patchReviewStatus(@Path("reviewId") String reviewId, @Body ReviewStatusPatchRequest body);
 
     @GET("api/v1/bakeries/{bakeryId}/batches")
     Call<List<BatchDto>> getBatchesByBakery(
