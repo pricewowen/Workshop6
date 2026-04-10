@@ -15,10 +15,11 @@
             android:id="@+id/toolbar"
             android:layout_width="match_parent"
             android:layout_height="?attr/actionBarSize"
-            android:background="@color/bakery_primary"
+            android:background="@color/bakery_background"
             app:navigationIcon="@drawable/ic_arrow_back"
+            app:navigationIconTint="@color/bakery_text_dark"
             app:title="@string/customer_profile_title"
-            app:titleTextColor="@color/bakery_text_light" />
+            app:titleTextColor="@color/bakery_text_dark" />
 
         <androidx.core.widget.NestedScrollView
             android:layout_width="match_parent"
@@ -337,7 +338,6 @@
                             android:textStyle="bold"
                             android:textColor="@color/bakery_text_secondary"
                             android:letterSpacing="0.08"
-                            android:textAllCaps="true"
                             android:layout_marginBottom="4dp" />
                         <Spinner
                             android:id="@+id/spinner_province"

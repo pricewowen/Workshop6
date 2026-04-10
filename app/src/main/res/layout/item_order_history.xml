@@ -367,6 +367,36 @@
                 android:textStyle="bold" />
         </LinearLayout>
 
+        <TextView
+            android:id="@+id/tvPendingPaymentHint"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:text="@string/order_payment_pending_hint"
+            android:textColor="@color/bakery_text_secondary"
+            android:textSize="13sp"
+            android:visibility="gone" />
+
+        <LinearLayout
+            android:id="@+id/llPendingPaymentActions"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:gravity="end"
+            android:orientation="horizontal"
+            android:visibility="gone">
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnRetryPayment"
+                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                android:layout_width="wrap_content"
+                android:layout_height="40dp"
+                android:text="@string/order_retry_payment"
+                android:textColor="@color/bakery_primary_dark"
+                app:cornerRadius="20dp"
+                app:strokeColor="@color/bakery_primary" />
+        </LinearLayout>
+
         <LinearLayout
             android:id="@+id/llDeliveredActions"
             android:layout_width="match_parent"

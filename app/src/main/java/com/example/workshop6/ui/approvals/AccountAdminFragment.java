@@ -128,7 +128,7 @@ public class AccountAdminFragment extends Fragment {
             public void onFailure(Call<List<UserSummaryDto>> call, Throwable t) {
                 if (isAdded()) {
                     setLoadingUi(false);
-                    // Toast.makeText(requireContext(), R.string.login_error_no_connection, Toast.LENGTH_SHORT).show();
+                    Toast.makeText(requireContext(), R.string.login_error_no_connection, Toast.LENGTH_SHORT).show();
                 }
             }
         });
@@ -148,7 +148,7 @@ public class AccountAdminFragment extends Fragment {
                 }
                 setLoadingUi(false);
                 if (!response.isSuccessful()) {
-                    // Toast.makeText(requireContext(), R.string.account_admin_permission_denied, Toast.LENGTH_SHORT).show();
+                    Toast.makeText(requireContext(), R.string.account_admin_permission_denied, Toast.LENGTH_SHORT).show();
                     return;
                 }
                 ActivityLogger.log(
@@ -157,11 +157,9 @@ public class AccountAdminFragment extends Fragment {
                         nextState ? "REACTIVATE_ACCOUNT" : "DEACTIVATE_ACCOUNT",
                         "userId=" + row.userId
                 );
-                // Toast.makeText(
-                //         requireContext(),
-                //         nextState ? R.string.account_reactivated : R.string.account_deactivated,
-                //         Toast.LENGTH_SHORT
-                // ).show();
+                Toast.makeText(requireContext(),
+                        nextState ? R.string.account_reactivated : R.string.account_deactivated,
+                        Toast.LENGTH_SHORT).show();
                 loadAccounts();
             }
 
@@ -171,7 +169,7 @@ public class AccountAdminFragment extends Fragment {
                     return;
                 }
                 setLoadingUi(false);
-                // Toast.makeText(requireContext(), R.string.login_error_no_connection, Toast.LENGTH_SHORT).show();
+                Toast.makeText(requireContext(), R.string.login_error_no_connection, Toast.LENGTH_SHORT).show();
             }
         });
     }

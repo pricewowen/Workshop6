@@ -17,18 +17,13 @@
         android:title="@string/nav_order_admin" />
 
     <item
-        android:id="@+id/nav_review_approvals"
-        android:icon="@android:drawable/ic_menu_edit"
-        android:title="@string/nav_review_approvals" />
+        android:id="@+id/nav_staff_chat"
+        android:icon="@android:drawable/ic_dialog_email"
+        android:title="@string/nav_chat_short" />
 
     <item
         android:id="@+id/nav_me"
         android:icon="@android:drawable/ic_menu_myplaces"
-        android:title="@string/nav_account" />
-
-    <item
-        android:id="@+id/nav_me"
-        android:icon="@android:drawable/ic_menu_myplaces"
-        android:title="@string/nav_account" />
+        android:title="@string/nav_me" />
 
 </menu>

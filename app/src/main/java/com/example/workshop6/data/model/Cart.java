@@ -7,6 +7,8 @@ public class Cart {
     private List<CartItem> items;
     private int customerId;
     private double discountPercent = 0.0;
+    /** Fraction (0–1) applied after tier discount; 0.20 for eligible employee-linked customers. */
+    private double employeeDiscountFraction = 0.0;
 
     public Cart(int customerId) {
         this.customerId = customerId;
@@ -52,6 +54,7 @@ public class Cart {
     public void clear() {
         items.clear();
         discountPercent = 0.0;
+        employeeDiscountFraction = 0.0;
     }
 
     public int getTotalItems() {
@@ -59,11 +62,11 @@ public class Cart {
     }
 
     public double getTotalPrice() {
-        double total = 0;
-        for (CartItem item : items) {
-            total += item.getTotalPrice();
+        double afterTier = getMerchandiseSubtotal() - getTierDiscountDollars();
+        if (afterTier < 0) {
+            afterTier = 0;
         }
-        return total * (1.0 - discountPercent);
+        return afterTier - getEmployeeDiscountDollars();
     }
 
     public boolean isEmpty() {
@@ -73,6 +76,10 @@ public class Cart {
     // Methods for discounted prices
     public void applyDiscount(double percent) {
         this.discountPercent = percent;
+    }
+
+    public void applyEmployeeDiscountFraction(double fraction) {
+        this.employeeDiscountFraction = Math.max(0, fraction);
     }
 
     public boolean hasDiscount() {
@@ -117,5 +124,19 @@ public class Cart {
             return 0;
         }
         return getMerchandiseSubtotal() * discountPercent;
+    }
+
+    /** Merchandise after today’s special and tier discount (before employee discount). */
+    public double getSubtotalAfterTierDiscount() {
+        double v = getMerchandiseSubtotal() - getTierDiscountDollars();
+        return Math.max(0, v);
+    }
+
+    /** Employee discount in dollars (20% of {@link #getSubtotalAfterTierDiscount()} when eligible). */
+    public double getEmployeeDiscountDollars() {
+        if (employeeDiscountFraction <= 0) {
+            return 0;
+        }
+        return getSubtotalAfterTierDiscount() * employeeDiscountFraction;
     }
 }

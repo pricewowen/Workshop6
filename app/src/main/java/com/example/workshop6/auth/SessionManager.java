@@ -283,6 +283,13 @@ public class SessionManager {
         if (!hasMinimalGuestContact()) {
             return null;
         }
+        return getGuestProfileOrDraft();
+    }
+
+    /**
+     * Guest fields from prefs even when minimal contact is not satisfied yet (e.g. checkout form in progress).
+     */
+    public GuestCustomerRequest getGuestProfileOrDraft() {
         GuestCustomerRequest guest = new GuestCustomerRequest();
         guest.firstName = prefs.getString(KEY_GUEST_FIRST_NAME, "");
         guest.middleInitial = prefs.getString(KEY_GUEST_MIDDLE_INITIAL, "");

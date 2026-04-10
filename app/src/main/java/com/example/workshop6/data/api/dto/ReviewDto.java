@@ -24,4 +24,7 @@ public class ReviewDto {
     /** From API: first name + last initial (e.g. {@code James R.}). */
     @SerializedName("reviewerDisplayName")
     public String reviewerDisplayName;
+    /** Only on non-persisted moderation rejection responses; not stored in DB. */
+    @SerializedName("moderationMessage")
+    public String moderationMessage;
 }

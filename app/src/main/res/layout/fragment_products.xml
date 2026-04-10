@@ -3,14 +3,14 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#F5F5F5">
+    android:background="@color/bakery_background">
 
 <androidx.core.widget.NestedScrollView
     android:id="@+id/products_content"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:layout_marginTop="8dp"
-    android:background="#F5F5F5"
+    android:background="@color/bakery_background"
     android:fillViewport="true">
 
     <LinearLayout
@@ -23,7 +23,7 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent">
 
-        <!-- FEATURED CARD (hidden when no product_special row for today) -->
+        <!-- FEATURED CARD -->
         <com.google.android.material.card.MaterialCardView
             android:id="@+id/card_featured"
             android:layout_width="match_parent"
@@ -32,15 +32,43 @@
             android:clickable="true"
             android:focusable="true"
             android:visibility="gone"
-            app:cardBackgroundColor="@color/bakery_primary"
-            app:cardCornerRadius="24dp"
-            app:cardElevation="8dp">
+            app:cardBackgroundColor="@color/bakery_card_featured"
+            app:cardCornerRadius="20dp"
+            app:cardElevation="4dp"
+            app:strokeColor="@color/bakery_divider"
+            app:strokeWidth="1dp">
 
             <FrameLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content">
 
-                <!-- Compact loading state while product details are fetched -->
+                <LinearLayout
+                    android:id="@+id/featured_empty_panel"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="20dp"
+                    android:visibility="gone">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:letterSpacing="0.1"
+                        android:text="@string/label_featured"
+                        android:textColor="@color/bakery_gold_bright"
+                        android:textSize="12sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="12dp"
+                        android:lineSpacingMultiplier="1.2"
+                        android:text="@string/featured_no_special_message"
+                        android:textColor="@color/bakery_text_secondary"
+                        android:textSize="16sp" />
+                </LinearLayout>
+
                 <LinearLayout
                     android:id="@+id/featured_loading_panel"
                     android:layout_width="match_parent"
@@ -89,8 +117,9 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="8dp"
+                        android:fontFamily="serif"
                         android:text=""
-                        android:textColor="@android:color/white"
+                        android:textColor="@color/bakery_text_dark"
                         android:textSize="22sp"
                         android:textStyle="bold" />
 
@@ -101,7 +130,8 @@
                         android:layout_marginTop="8dp"
                         android:text=""
                         android:textColor="@color/bakery_gold_bright"
-                        android:textSize="17sp" />
+                        android:textSize="17sp"
+                        android:textStyle="bold" />
 
                     <TextView
                         android:id="@+id/tvFeatureDiscountPercent"
@@ -109,7 +139,7 @@
                         android:layout_height="wrap_content"
                         android:layout_marginTop="4dp"
                         android:text=""
-                        android:textColor="@color/bakery_gold_bright"
+                        android:textColor="@color/bakery_primary"
                         android:textSize="14sp"
                         android:textStyle="bold"
                         android:visibility="gone" />
@@ -125,28 +155,29 @@
                             android:id="@+id/btnViewFeaturedProduct"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:backgroundTint="@color/bakery_gold_bright"
                             android:text="@string/btn_view_featured_product"
-                            android:textColor="@android:color/black"
-                            app:cornerRadius="16dp" />
+                            android:textAllCaps="false"
+                            android:textColor="@color/bakery_text_light"
+                            app:backgroundTint="@color/bakery_primary"
+                            app:cornerRadius="24dp" />
                     </LinearLayout>
                 </LinearLayout>
             </FrameLayout>
         </com.google.android.material.card.MaterialCardView>
 
-        <!-- SEARCH BAR-->
         <com.google.android.material.textfield.TextInputLayout
             android:id="@+id/searchLayout"
             style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginBottom="14dp"
-            app:boxCornerRadiusBottomEnd="16dp"
-            app:boxCornerRadiusBottomStart="16dp"
-            app:boxCornerRadiusTopEnd="16dp"
-            app:boxCornerRadiusTopStart="16dp"
+            app:boxCornerRadiusBottomEnd="20dp"
+            app:boxCornerRadiusBottomStart="20dp"
+            app:boxCornerRadiusTopEnd="20dp"
+            app:boxCornerRadiusTopStart="20dp"
             app:hintEnabled="true"
-            app:startIconDrawable="@android:drawable/ic_menu_search">
+            app:startIconDrawable="@android:drawable/ic_menu_search"
+            app:startIconTint="@color/bakery_text_tertiary">
 
             <com.google.android.material.textfield.TextInputEditText
                 android:id="@+id/etSearch"
@@ -159,18 +190,15 @@
 
         </com.google.android.material.textfield.TextInputLayout>
 
-        <!-- CATEGORY TITLE -->
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginBottom="8dp"
             android:text="@string/label_categories"
-            android:textColor="#888888"
-            android:textSize="12sp"
+            android:textColor="@color/bakery_text_tertiary"
+            android:textSize="11sp"
             android:textStyle="bold" />
 
-
-        <!-- CATEGORY LIST -->
         <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/rvCategories"
             android:layout_width="match_parent"
@@ -178,19 +206,16 @@
             android:layout_marginBottom="16dp"
             android:overScrollMode="never" />
 
-
-        <!-- PRODUCT TITLE -->
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginBottom="8dp"
+            android:fontFamily="serif"
             android:text="@string/label_products"
-            android:textColor="#888888"
-            android:textSize="12sp"
+            android:textColor="@color/bakery_text_dark"
+            android:textSize="20sp"
             android:textStyle="bold" />
 
-
-        <!-- PRODUCT LIST -->
         <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/rvProducts"
             android:layout_width="match_parent"

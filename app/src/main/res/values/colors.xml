@@ -1,31 +1,35 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Primary: Brown -->
-    <color name="bakery_primary">#4E342E</color>
-    <color name="bakery_primary_dark">#3E2723</color>
+    <!-- Primary: chocolate brown (mockup headings, primary buttons) -->
+    <color name="bakery_primary">#3C2A21</color>
+    <color name="bakery_primary_dark">#2A1A14</color>
 
-    <!-- Accent: Gold -->
-    <color name="bakery_gold">#C49A22</color>
-    <color name="bakery_gold_bright">#E8B400</color>
+    <!-- Accent: terracotta (was gold — links, prices, active nav, progress) -->
+    <color name="bakery_gold">#C86D4E</color>
+    <color name="bakery_gold_bright">#E07A5F</color>
 
-    <!-- Backgrounds -->
-    <color name="bakery_background">#F5F5F5</color>
-    <color name="bakery_card_white">#FFFFFF</color>
+    <!-- Surfaces -->
+    <color name="bakery_background">#EAE7E2</color>
+    <color name="bakery_card_white">#FAF8F5</color>
+    <color name="bakery_card_featured">#EDE4D8</color>
+    <color name="bakery_surface_nav">#F2EFEA</color>
+    <color name="bakery_input_fill">#F0EDEA</color>
 
     <!-- Text -->
-    <color name="bakery_text_dark">#4E342E</color>
+    <color name="bakery_text_dark">#3C2A21</color>
     <color name="bakery_text_light">#FFFFFF</color>
-    <color name="bakery_text_secondary">#8D6E63</color>
-    <color name="bakery_divider">#D7CCC8</color>
+    <color name="bakery_text_secondary">#6E625C</color>
+    <color name="bakery_text_tertiary">#8A8078</color>
+    <color name="bakery_divider">#D4CEC7</color>
 
     <!-- Status -->
     <color name="bakery_status_open">#4CAF50</color>
-    <color name="bakery_status_closed">#F44336</color>
+    <color name="bakery_status_closed">#C45C4A</color>
 
     <!-- Standard -->
     <color name="white">#FFFFFFFF</color>
     <color name="black">#FF000000</color>
 
-    <!-- Bottom nav icon tints -->
-    <color name="bakery_nav_icon_inactive">#80FFFFFF</color>
+    <!-- Bottom nav: inactive icons on light pill -->
+    <color name="bakery_nav_icon_inactive">#9A918A</color>
 </resources>

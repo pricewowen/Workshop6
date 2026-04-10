@@ -17,16 +17,25 @@ import java.util.List;
 public class ReviewAdapter extends RecyclerView.Adapter<ReviewAdapter.ReviewViewHolder> {
 
     private final List<ReviewDto> reviews;
+    private final int itemLayoutResId;
 
     public ReviewAdapter(List<ReviewDto> reviews) {
+        this(reviews, R.layout.item_review);
+    }
+
+    /**
+     * @param itemLayoutResId row layout, typically {@code R.layout.item_review}
+     */
+    public ReviewAdapter(List<ReviewDto> reviews, int itemLayoutResId) {
         this.reviews = reviews;
+        this.itemLayoutResId = itemLayoutResId;
     }
 
     @NonNull
     @Override
     public ReviewViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
         View view = LayoutInflater.from(parent.getContext())
-                .inflate(R.layout.item_review, parent, false);
+                .inflate(itemLayoutResId, parent, false);
         return new ReviewViewHolder(view);
     }
 

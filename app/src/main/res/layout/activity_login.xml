@@ -2,200 +2,225 @@
 <ScrollView
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:fillViewport="true"
-    android:background="@color/bakery_card_white">
+    android:background="@color/bakery_background">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="vertical">
+        android:orientation="vertical"
+        android:paddingBottom="32dp">
 
-        <!-- ===== Brown Header with Logo (top) and Text (bottom) ===== -->
-        <FrameLayout
-            android:layout_width="match_parent"
-            android:layout_height="300dp"
-            android:background="@color/bakery_primary">
-
-            <!-- Full logo centered near the top -->
-            <ImageView
-                android:layout_width="220dp"
-                android:layout_height="wrap_content"
-                android:layout_gravity="center_horizontal|top"
-                android:layout_marginTop="40dp"
-                android:adjustViewBounds="true"
-                android:scaleType="fitCenter"
-                android:src="@drawable/bakery_logo"
-                android:contentDescription="@string/app_brand" />
-
-            <!-- Heading and subtitle pinned at bottom-left -->
-            <LinearLayout
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:layout_gravity="bottom|start"
-                android:layout_marginStart="28dp"
-                android:layout_marginBottom="28dp">
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="@string/login_heading"
-                    android:textSize="28sp"
-                    android:textStyle="bold"
-                    android:textColor="@color/bakery_text_light"
-                    android:lineSpacingExtra="-4sp"
-                    android:fontFamily="serif" />
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="@string/login_subtitle"
-                    android:textSize="14sp"
-                    android:textColor="#C7B8A8"
-                    android:layout_marginTop="4dp" />
-
-            </LinearLayout>
-
-        </FrameLayout>
-
-        <!-- ===== White Form Section ===== -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:gravity="center_horizontal"
             android:orientation="vertical"
             android:paddingHorizontal="28dp"
-            android:paddingTop="28dp"
+            android:paddingTop="48dp"
             android:paddingBottom="24dp">
 
-            <!-- Email or username -->
-            <com.google.android.material.textfield.TextInputLayout
-                android:id="@+id/til_email"
-                style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:hint="@string/hint_email_or_username">
+            <FrameLayout
+                android:layout_width="96dp"
+                android:layout_height="96dp"
+                android:background="@drawable/login_logo_circle_bg">
 
-                <com.google.android.material.textfield.TextInputEditText
-                    android:id="@+id/et_email"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:inputType="text|textNoSuggestions"
-                    android:maxLength="128"
-                    android:maxLines="1"
-                    android:imeOptions="actionNext" />
-            </com.google.android.material.textfield.TextInputLayout>
+                <ImageView
+                    android:layout_width="72dp"
+                    android:layout_height="72dp"
+                    android:layout_gravity="center"
+                    android:adjustViewBounds="true"
+                    android:contentDescription="@string/app_brand"
+                    android:scaleType="fitCenter"
+                    android:src="@drawable/bakery_logo" />
+            </FrameLayout>
 
-            <!-- Password -->
-            <com.google.android.material.textfield.TextInputLayout
-                android:id="@+id/til_password"
-                style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:hint="@string/hint_password"
-                android:layout_marginTop="12dp"
-                app:passwordToggleEnabled="true">
-
-                <com.google.android.material.textfield.TextInputEditText
-                    android:id="@+id/et_password"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:inputType="textPassword"
-                    android:maxLength="72"
-                    android:maxLines="1"
-                    android:imeOptions="actionDone" />
-            </com.google.android.material.textfield.TextInputLayout>
-
-            <!-- Error message -->
             <TextView
-                android:id="@+id/tv_error"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:textColor="@color/bakery_status_closed"
-                android:textSize="13sp"
-                android:visibility="gone"
-                android:layout_marginTop="8dp" />
-
-            <!-- Primary: Sign In -->
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btn_login"
-                android:layout_width="match_parent"
-                android:layout_height="56dp"
-                android:text="@string/btn_login"
-                android:textSize="16sp"
-                android:textStyle="bold"
-                android:textAllCaps="false"
-                android:textColor="@color/bakery_text_light"
                 android:layout_marginTop="20dp"
-                app:backgroundTint="@color/bakery_primary"
-                app:cornerRadius="16dp" />
+                android:fontFamily="serif"
+                android:text="@string/app_brand"
+                android:textColor="@color/bakery_text_dark"
+                android:textSize="28sp"
+                android:textStyle="bold" />
 
-            <!-- Secondary row: register prompt | divider | skip as guest -->
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:gravity="center"
+                android:lineSpacingMultiplier="1.25"
+                android:text="@string/login_subtitle"
+                android:textColor="@color/bakery_text_secondary"
+                android:textSize="15sp" />
+        </LinearLayout>
+
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginHorizontal="20dp"
+            app:cardBackgroundColor="@color/bakery_card_white"
+            app:cardCornerRadius="24dp"
+            app:cardElevation="3dp"
+            app:strokeColor="@color/bakery_divider"
+            app:strokeWidth="1dp">
+
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:layout_marginTop="20dp"
-                android:gravity="center_vertical"
-                android:minHeight="72dp">
+                android:orientation="vertical"
+                android:paddingHorizontal="24dp"
+                android:paddingTop="28dp"
+                android:paddingBottom="24dp">
+
+                <com.google.android.material.textfield.TextInputLayout
+                    android:id="@+id/til_email"
+                    style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:hint="@string/hint_email_or_username"
+                    app:boxCornerRadiusBottomEnd="12dp"
+                    app:boxCornerRadiusBottomStart="12dp"
+                    app:boxCornerRadiusTopEnd="12dp"
+                    app:boxCornerRadiusTopStart="12dp">
+
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/et_email"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:imeOptions="actionNext"
+                        android:inputType="text|textNoSuggestions"
+                        android:maxLength="128"
+                        android:maxLines="1" />
+                </com.google.android.material.textfield.TextInputLayout>
+
+                <com.google.android.material.textfield.TextInputLayout
+                    android:id="@+id/til_password"
+                    style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="14dp"
+                    android:hint="@string/hint_password"
+                    app:boxCornerRadiusBottomEnd="12dp"
+                    app:boxCornerRadiusBottomStart="12dp"
+                    app:boxCornerRadiusTopEnd="12dp"
+                    app:boxCornerRadiusTopStart="12dp"
+                    app:passwordToggleEnabled="true">
+
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/et_password"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:imeOptions="actionDone"
+                        android:inputType="textPassword"
+                        android:maxLength="72"
+                        android:maxLines="1" />
+                </com.google.android.material.textfield.TextInputLayout>
+
+                <TextView
+                    android:id="@+id/tv_forgot_password"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="end"
+                    android:layout_marginTop="8dp"
+                    android:background="?attr/selectableItemBackground"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:paddingVertical="4dp"
+                    android:paddingStart="8dp"
+                    android:paddingEnd="4dp"
+                    android:text="@string/link_forgot_password"
+                    android:textColor="@color/bakery_gold_bright"
+                    android:textSize="14sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/tv_error"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="10dp"
+                    android:textColor="@color/bakery_status_closed"
+                    android:textSize="13sp"
+                    android:visibility="gone" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btn_login"
+                    android:layout_width="match_parent"
+                    android:layout_height="56dp"
+                    android:layout_marginTop="20dp"
+                    android:text="@string/btn_login"
+                    android:textAllCaps="false"
+                    android:textColor="@color/bakery_text_light"
+                    android:textSize="16sp"
+                    android:textStyle="bold"
+                    app:backgroundTint="@color/bakery_primary"
+                    app:cornerRadius="28dp" />
 
                 <LinearLayout
-                    android:layout_width="0dp"
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:orientation="vertical"
-                    android:gravity="center"
-                    android:paddingHorizontal="8dp">
+                    android:layout_marginTop="22dp"
+                    android:gravity="center_vertical"
+                    android:minHeight="72dp"
+                    android:orientation="horizontal">
 
-                    <TextView
-                        android:layout_width="wrap_content"
+                    <LinearLayout
+                        android:layout_width="0dp"
                         android:layout_height="wrap_content"
-                        android:text="@string/auth_prompt_new_here"
-                        android:textSize="13sp"
-                        android:textColor="@color/bakery_text_secondary" />
+                        android:layout_weight="1"
+                        android:gravity="center"
+                        android:orientation="vertical"
+                        android:paddingHorizontal="8dp">
 
-                    <TextView
-                        android:id="@+id/tv_register_link"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="4dp"
-                        android:text="@string/link_register_short"
-                        android:textSize="15sp"
-                        android:textStyle="bold"
-                        android:textColor="@color/bakery_primary"
-                        android:clickable="true"
-                        android:focusable="true" />
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/auth_prompt_new_here"
+                            android:textColor="@color/bakery_text_secondary"
+                            android:textSize="13sp" />
+
+                        <TextView
+                            android:id="@+id/tv_register_link"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="4dp"
+                            android:clickable="true"
+                            android:focusable="true"
+                            android:text="@string/link_register_short"
+                            android:textColor="@color/bakery_gold_bright"
+                            android:textSize="15sp"
+                            android:textStyle="bold" />
+                    </LinearLayout>
+
+                    <View
+                        android:layout_width="1dp"
+                        android:layout_height="48dp"
+                        android:background="@color/bakery_divider" />
+
+                    <FrameLayout
+                        android:layout_width="0dp"
+                        android:layout_height="match_parent"
+                        android:layout_weight="1">
+
+                        <TextView
+                            android:id="@+id/tv_guest_link"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_gravity="center"
+                            android:clickable="true"
+                            android:focusable="true"
+                            android:paddingHorizontal="12dp"
+                            android:paddingVertical="8dp"
+                            android:text="@string/link_skip_for_now"
+                            android:textColor="@color/bakery_gold_bright"
+                            android:textSize="15sp" />
+                    </FrameLayout>
                 </LinearLayout>
-
-                <View
-                    android:layout_width="1dp"
-                    android:layout_height="48dp"
-                    android:background="@color/bakery_divider" />
-
-                <FrameLayout
-                    android:layout_width="0dp"
-                    android:layout_height="match_parent"
-                    android:layout_weight="1">
-
-                    <TextView
-                        android:id="@+id/tv_guest_link"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_gravity="center"
-                        android:paddingHorizontal="12dp"
-                        android:paddingVertical="8dp"
-                        android:clickable="true"
-                        android:focusable="true"
-                        android:text="@string/link_skip_for_now"
-                        android:textColor="@color/bakery_text_secondary"
-                        android:textSize="15sp" />
-                </FrameLayout>
             </LinearLayout>
-
-        </LinearLayout>
-
+        </com.google.android.material.card.MaterialCardView>
     </LinearLayout>
 
 </ScrollView>
