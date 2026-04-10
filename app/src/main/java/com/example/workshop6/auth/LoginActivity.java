@@ -1,20 +1,15 @@
 package com.example.workshop6.auth;
 
 import android.content.Intent;
-import android.net.Uri;
 import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.view.View;
 import android.widget.TextView;
-import android.widget.Toast;
 import android.text.format.DateUtils;
 
-import androidx.activity.result.ActivityResultLauncher;
-import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
 
-import com.example.workshop6.BuildConfig;
 import com.example.workshop6.R;
 import com.example.workshop6.data.api.ApiClient;
 import com.example.workshop6.data.api.ApiService;
@@ -41,29 +36,10 @@ public class LoginActivity extends AppCompatActivity {
     private TextView tvError;
     private SessionManager sessionManager;
     private View btnLogin;
-    private View btnOauthGoogle;
-    private View btnOauthMicrosoft;
-    private boolean oauthClaimInFlight;
-    private ActivityResultLauncher<Intent> oauthWebLauncher;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-
-        oauthWebLauncher = registerForActivityResult(
-                new ActivityResultContracts.StartActivityForResult(),
-                result -> {
-                    if (isFinishing() || isDestroyed()) {
-                        return;
-                    }
-                    if (result.getResultCode() != RESULT_OK || result.getData() == null) {
-                        return;
-                    }
-                    String ticket = result.getData().getStringExtra(OAuthWebViewActivity.EXTRA_TICKET);
-                    if (ticket != null && !ticket.isEmpty()) {
-                        claimOAuthTicket(ticket);
-                    }
-                });
 
         sessionManager = new SessionManager(this);
 
@@ -134,12 +110,6 @@ public class LoginActivity extends AppCompatActivity {
 
         btnLogin.setOnClickListener(v -> attemptLogin());
 
-        btnOauthGoogle = findViewById(R.id.btn_oauth_google);
-        btnOauthMicrosoft = findViewById(R.id.btn_oauth_microsoft);
-        btnOauthGoogle.setOnClickListener(v -> startOAuthLogin("google"));
-        btnOauthMicrosoft.setOnClickListener(v -> startOAuthLogin("microsoft"));
-        handleOAuthIntent(getIntent());
-
         // Register link — device online + API reachable before opening registration.
         findViewById(R.id.tv_register_link).setOnClickListener(v -> {
             if (!NetworkStatus.isOnline(this)) {
@@ -190,148 +160,9 @@ public class LoginActivity extends AppCompatActivity {
     }
 
     @Override
-    protected void onNewIntent(Intent intent) {
-        super.onNewIntent(intent);
-        setIntent(intent);
-        handleOAuthIntent(intent);
-    }
-
-    @Override
     protected void onResume() {
         super.onResume();
         PendingStripeConfirm.tryDrain(this);
-    }
-
-    private void startOAuthLogin(String provider) {
-        tvError.setVisibility(View.GONE);
-        if (!NetworkStatus.isOnline(this)) {
-            tvError.setText(R.string.login_error_no_connection);
-            tvError.setVisibility(View.VISIBLE);
-            return;
-        }
-        ApiReachability.checkThen(
-                () -> {
-                    if (!isFinishing()) {
-                        tvError.setText(R.string.login_error_no_connection);
-                        tvError.setVisibility(View.VISIBLE);
-                    }
-                },
-                () -> {
-                    if (isFinishing()) {
-                        return;
-                    }
-                    String url = BuildConfig.API_BASE_URL + "api/v1/auth/oauth2/mobile-begin/" + provider;
-                    Intent i = new Intent(LoginActivity.this, OAuthWebViewActivity.class);
-                    i.putExtra(OAuthWebViewActivity.EXTRA_START_URL, url);
-                    oauthWebLauncher.launch(i);
-                }
-        );
-    }
-
-    private void handleOAuthIntent(Intent intent) {
-        if (intent == null) {
-            return;
-        }
-        Uri data = intent.getData();
-        if (data == null) {
-            return;
-        }
-        if (!BuildConfig.OAUTH_REDIRECT_SCHEME.equalsIgnoreCase(data.getScheme())) {
-            return;
-        }
-        if (!"oauth".equalsIgnoreCase(data.getHost())) {
-            return;
-        }
-        String ticket = data.getQueryParameter("ticket");
-        if (ticket == null || ticket.isEmpty()) {
-            return;
-        }
-        intent.setData(null);
-        claimOAuthTicket(ticket);
-    }
-
-    private void claimOAuthTicket(String ticket) {
-        if (oauthClaimInFlight) {
-            return;
-        }
-        oauthClaimInFlight = true;
-        setOauthBusy(true);
-        tvError.setVisibility(View.GONE);
-        ApiService api = ApiClient.getInstance().getService();
-        api.claimOAuthMobileTicket(ticket).enqueue(new Callback<AuthResponse>() {
-            @Override
-            public void onResponse(Call<AuthResponse> call, Response<AuthResponse> response) {
-                oauthClaimInFlight = false;
-                if (isFinishing() || isDestroyed()) {
-                    return;
-                }
-                setOauthBusy(false);
-                if (response.isSuccessful() && response.body() != null) {
-                    AuthResponse auth = response.body();
-                    if (auth.token == null || auth.token.trim().isEmpty()
-                            || auth.role == null || auth.role.trim().isEmpty()
-                            || auth.username == null || auth.username.trim().isEmpty()) {
-                        tvError.setText(R.string.login_oauth_claim_failed);
-                        tvError.setVisibility(View.VISIBLE);
-                        ActivityLogger.logFailure(LoginActivity.this, null, "LOGIN", "OAuth claim malformed body");
-                        return;
-                    }
-                    ApiClient.getInstance().setToken(auth.token);
-                    String ident = auth.email != null && !auth.email.trim().isEmpty()
-                            ? auth.email.trim()
-                            : auth.username;
-                    sessionManager.clearLoginFailures(ident);
-                    String uid = auth.userId != null ? auth.userId : "";
-                    String sessionEmail = (auth.email != null && !auth.email.trim().isEmpty())
-                            ? auth.email.trim()
-                            : auth.username;
-                    sessionManager.persistLoginSession(
-                            auth.token,
-                            uid,
-                            auth.role.toUpperCase(),
-                            auth.username,
-                            sessionEmail
-                    );
-                    if (Boolean.TRUE.equals(auth.employeeDiscountLinkEstablished)) {
-                        String empMsg = auth.employeeDiscountLinkMessage;
-                        if (empMsg != null && !empMsg.trim().isEmpty()) {
-                            Toast.makeText(LoginActivity.this, empMsg.trim(), Toast.LENGTH_LONG).show();
-                        } else {
-                            Toast.makeText(
-                                    LoginActivity.this,
-                                    R.string.register_toast_employee_discount_linked,
-                                    Toast.LENGTH_LONG).show();
-                        }
-                    }
-                    ActivityLogger.log(LoginActivity.this, "USER@" + auth.username, "LOGIN", "OAuth login succeeded");
-                    goToMain();
-                } else if (response.code() == 410) {
-                    tvError.setText(R.string.login_oauth_claim_failed);
-                    tvError.setVisibility(View.VISIBLE);
-                } else {
-                    tvError.setText(getString(R.string.login_error_server, response.code()));
-                    tvError.setVisibility(View.VISIBLE);
-                }
-            }
-
-            @Override
-            public void onFailure(Call<AuthResponse> call, Throwable t) {
-                oauthClaimInFlight = false;
-                if (isFinishing() || isDestroyed()) {
-                    return;
-                }
-                setOauthBusy(false);
-                tvError.setText(R.string.login_error_no_connection);
-                tvError.setVisibility(View.VISIBLE);
-                ActivityLogger.logFailure(LoginActivity.this, null, "LOGIN", "OAuth claim network: " + t.getMessage());
-            }
-        });
-    }
-
-    private void setOauthBusy(boolean busy) {
-        btnLogin.setEnabled(!busy);
-        btnOauthGoogle.setEnabled(!busy);
-        btnOauthMicrosoft.setEnabled(!busy);
     }
 
     private void attemptLogin() {
@@ -443,7 +274,7 @@ public class LoginActivity extends AppCompatActivity {
                     );
 
                     ActivityLogger.log(LoginActivity.this, "USER@" + auth.username, "LOGIN", "Login succeeded");
-            goToMain();
+                    goToMain();
 
                 } else if (response.code() == 401 || response.code() == 403) {
                     sessionManager.recordFailedLogin(email);
