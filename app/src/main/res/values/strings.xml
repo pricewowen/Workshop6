@@ -104,7 +104,7 @@
     <string name="error_password_mismatch">Passwords do not match</string>
 
     <!-- Navigation -->
-    <string name="nav_browse">Browse</string>
+    <string name="nav_browse">Menu</string>
     <string name="nav_map">Locations</string>
     <string name="nav_me">Me</string>
     <string name="nav_account">Account</string>
@@ -312,14 +312,16 @@
     <string name="preferences_need_customer_profile">Create your customer profile first.</string>
     <string name="preferences_no_tags">No product tags are available yet.</string>
     <string name="me_ai_recommendations_title">AI-powered recommendations</string>
+    <string name="me_ai_recommendations_subtitle">Set your taste preferences first, then we can suggest products tailored to you.</string>
     <string name="me_recommendations_set_preferences_hint">Add preferences to see personalized product picks.</string>
     <string name="me_recommendations_none_yet">No suggestions right now. Try updating your preferences or ordering something new.</string>
     <string name="me_recommendations_unavailable">Suggestions couldn’t load. Check your connection or try again in a moment.</string>
     <string name="order_review_submitted_rejected_reason">Couldn\'t post that review: %1$s</string>
-    <string name="me_employee_discount_badge">20% employee discount</string>
+    <string name="me_employee_discount_title">20% employee discount</string>
+    <string name="me_employee_discount_badge">You are eligible at checkout. This applies after today\'s specials and your loyalty tier discount.</string>
     <string name="me_guest_card_title">Sign in for the full experience</string>
     <string name="me_guest_card_body">Create an account or sign in to save orders, earn rewards, and keep your details in sync.</string>
-    <string name="me_section_account_hub">Account hub</string>
+    <string name="me_section_account_hub">Manage profile</string>
     <string name="me_deactivate_account">Deactivate account</string>
     <string name="me_deactivate_dialog_title">Deactivate your account?</string>
     <string name="me_deactivate_dialog_message">You will be signed out. Contact support if you need your account reactivated. Enter your password to confirm.</string>

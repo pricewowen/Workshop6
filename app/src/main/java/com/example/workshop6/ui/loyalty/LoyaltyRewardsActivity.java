@@ -44,6 +44,7 @@ public class LoyaltyRewardsActivity extends AppCompatActivity {
     private TextView tvNextTier;
     private TextView tvPointsNeeded;
     private ProgressBar progressLoyalty;
+    private View cardEmployeeDiscount;
     private final NumberFormat pointsFormat = NumberFormat.getNumberInstance(Locale.US);
     private final List<RewardTierDto> rewardTiers = new ArrayList<>();
 
@@ -84,6 +85,7 @@ public class LoyaltyRewardsActivity extends AppCompatActivity {
         tvNextTier = findViewById(R.id.tv_loyalty_next_tier);
         tvPointsNeeded = findViewById(R.id.tv_loyalty_points_needed);
         progressLoyalty = findViewById(R.id.progress_loyalty);
+        cardEmployeeDiscount = findViewById(R.id.card_loyalty_employee_discount);
     }
 
     @Override
@@ -119,6 +121,9 @@ public class LoyaltyRewardsActivity extends AppCompatActivity {
                     return;
                 }
                 CustomerDto c = response.body();
+                if (cardEmployeeDiscount != null) {
+                    cardEmployeeDiscount.setVisibility(c.employeeDiscountEligible ? View.VISIBLE : View.GONE);
+                }
                 api.getRewardTiers().enqueue(new Callback<List<RewardTierDto>>() {
                     @Override
                     public void onResponse(Call<List<RewardTierDto>> call2, Response<List<RewardTierDto>> response2) {

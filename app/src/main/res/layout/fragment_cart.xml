@@ -10,7 +10,6 @@
         android:id="@+id/tvEmptyCart"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:fontFamily="serif"
         android:gravity="center"
         android:padding="32dp"
         android:text="@string/cart_empty"
@@ -77,8 +76,8 @@
                 android:textAllCaps="false"
                 android:textColor="@color/bakery_text_light"
                 android:textSize="16sp"
-                android:textStyle="bold"
-                app:backgroundTint="@color/bakery_primary"
+                android:textStyle="normal"
+                app:backgroundTint="@color/bakery_gold"
                 app:cornerRadius="28dp" />
         </LinearLayout>
     </com.google.android.material.card.MaterialCardView>

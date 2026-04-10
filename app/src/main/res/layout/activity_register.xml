@@ -272,8 +272,8 @@
                             android:textAllCaps="false"
                             android:textColor="@color/bakery_text_light"
                             android:textSize="16sp"
-                            android:textStyle="bold"
-                            app:backgroundTint="@color/bakery_primary"
+                            android:textStyle="normal"
+                            app:backgroundTint="@color/bakery_gold"
                             app:cornerRadius="16dp" />
 
                         <LinearLayout
@@ -425,8 +425,8 @@
                             android:textAllCaps="false"
                             android:textColor="@color/bakery_text_light"
                             android:textSize="16sp"
-                            android:textStyle="bold"
-                            app:backgroundTint="@color/bakery_primary"
+                            android:textStyle="normal"
+                            app:backgroundTint="@color/bakery_gold"
                             app:cornerRadius="16dp" />
                     </LinearLayout>
                 </com.google.android.material.card.MaterialCardView>

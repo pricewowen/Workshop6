@@ -5,8 +5,8 @@
     <color name="bakery_primary_dark">#2A1A14</color>
 
     <!-- Accent: terracotta (was gold — links, prices, active nav, progress) -->
-    <color name="bakery_gold">#C86D4E</color>
-    <color name="bakery_gold_bright">#E07A5F</color>
+    <color name="bakery_gold">#C25F1A</color>
+    <color name="bakery_gold_bright">#C25F1A</color>
 
     <!-- Surfaces -->
     <color name="bakery_background">#EAE7E2</color>

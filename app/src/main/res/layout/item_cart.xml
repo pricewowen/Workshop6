@@ -104,7 +104,7 @@
                 android:text="+"
                 android:textColor="@color/bakery_text_light"
                 android:textSize="18sp"
-                app:backgroundTint="@color/bakery_primary"
+                app:backgroundTint="@color/bakery_gold"
                 app:cornerRadius="12dp" />
 
             <TextView
