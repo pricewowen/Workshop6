@@ -23,8 +23,8 @@
     <string name="forgot_password_success">If an account exists with that email, a recovery link has been sent.</string>
     <string name="forgot_password_error_validation">Enter a valid email address.</string>
     <string name="forgot_password_error_generic">Could not send recovery email. Try again.</string>
-    <string name="register_toast_welcome_email">Check your email — we sent a welcome message to the address you registered.</string>
-    <string name="register_toast_guest_and_welcome_email">Account created. Your previous guest orders are linked. Check your email — we sent a welcome message.</string>
+    <string name="register_toast_welcome_email">Check your email. We sent a welcome message to the address you registered.</string>
+    <string name="register_toast_guest_and_welcome_email">Account created. Your previous guest orders are linked. Check your email. We sent a welcome message.</string>
     <string name="link_no_account">No account? </string>
     <string name="link_register_here">Register here</string>
     <string name="link_continue_as_guest_prompt">Prefer not to sign in?</string>
@@ -40,14 +40,14 @@
 
     <!-- Auth — Register -->
     <string name="register_heading">Create\naccount.</string>
-    <string name="register_step1_label">Step 1 of 2 — Account</string>
-    <string name="register_step2_label">Step 2 of 2 — Your details</string>
+    <string name="register_step1_label">Step 1 of 2: Account</string>
+    <string name="register_step2_label">Step 2 of 2: Your details</string>
     <string name="register_step1_title">Sign-in and password</string>
     <string name="register_step2_title">Personal details</string>
     <string name="btn_continue">Continue</string>
     <string name="btn_complete_registration">Complete registration</string>
-    <string name="register_step2_employee_linked_body">We matched this account to your employee profile. Your name, contact information, and address from your employee record have been copied to your customer profile. Tap below to finish — you do not need to fill in this form.</string>
-    <string name="register_step2_guest_link_body">You previously checked out as a guest. Confirm or update your details below; your guest orders and contact information will be linked to this new customer account.</string>
+    <string name="register_step2_employee_linked_body">We matched this account to your employee profile. Your name, contact information, and address from your employee record have been copied to your customer profile. Tap below to finish. You do not need to fill in this form.</string>
+    <string name="register_step2_guest_link_body">You previously checked out as a guest. Confirm or update your details below. Your guest orders and contact information will be linked to this new customer account.</string>
     <string name="label_photo">Photo</string>
     <string name="social_divider_register">or manually</string>
     <string name="label_full_name">Full name</string>
@@ -342,7 +342,7 @@
     <string name="customer_profile_conflict">Your profile is already set up</string>
     <string name="checkout_need_customer_profile">Add your name and address under Me before checking out.</string>
     <string name="checkout_delivery_details_title">Delivery details</string>
-    <string name="checkout_intro_guest">Guest checkout — add email or phone so we can reach you about this order. If you choose delivery, enter your full delivery address below.</string>
+    <string name="checkout_intro_guest">Guest checkout. Add email or phone so we can reach you about this order. If you choose delivery, enter your full delivery address below.</string>
     <string name="checkout_intro_profile_required">Complete your bakery profile below (one time) so we can process your order.</string>
     <string name="checkout_guest_contact_hint">At least one of email or phone is required.</string>
     <string name="checkout_delivery_inline_hint">Required for delivery.</string>
@@ -353,7 +353,7 @@
     <string name="checkout_fulfillment_meta_pair">%1$s · %2$s</string>
     <string name="checkout_fulfillment_location_hint">Allow location access to see distance and sort locations by nearest.</string>
     <string name="checkout_fulfillment_nearest_applied">Defaulted to the nearest location.</string>
-    <string name="checkout_fulfillment_spinner_line">%1$s — %2$s</string>
+    <string name="checkout_fulfillment_spinner_line">%1$s - %2$s</string>
     <string name="checkout_confirm_fulfilling_bakery">Fulfilling bakery: %1$s</string>
     <string name="btn_proceed_with_order">Proceed with order</string>
     <string name="guest_checkout_contact_title">Contact details</string>
