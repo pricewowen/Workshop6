@@ -152,13 +152,15 @@ public class MeFragment extends Fragment {
                     NavTransitions.startActivityWithForward(requireActivity(),
                             new Intent(requireContext(), CustomerPreferencesActivity.class)));
         } else {
-            // Employees and admins use the same Edit Profile screen as customers (name, phones, address,
-            // work email, account username/email/password, photo) via getEmployeeMe / patch APIs.
+            // Staff: same two-entry pattern as customers — account (credentials, photo) vs personal info.
             view.findViewById(R.id.btn_edit_account).setVisibility(View.VISIBLE);
+            view.findViewById(R.id.btn_customer_details).setVisibility(View.VISIBLE);
             view.findViewById(R.id.btn_edit_account).setOnClickListener(v ->
                     NavTransitions.startActivityWithForward(requireActivity(),
                             new Intent(requireContext(), EditProfileActivity.class)));
-            view.findViewById(R.id.btn_customer_details).setVisibility(View.GONE);
+            view.findViewById(R.id.btn_customer_details).setOnClickListener(v ->
+                    NavTransitions.startActivityWithForward(requireActivity(),
+                            new Intent(requireContext(), CustomerProfileSetupActivity.class)));
             view.findViewById(R.id.btn_taste_preferences).setVisibility(View.GONE);
             view.findViewById(R.id.btn_loyalty_rewards).setVisibility(View.GONE);
             hideAiRecommendationsCard();
