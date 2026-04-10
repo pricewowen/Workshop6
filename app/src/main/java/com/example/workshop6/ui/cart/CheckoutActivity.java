@@ -71,8 +71,6 @@ import com.example.workshop6.util.Validation;
 import com.example.workshop6.payments.PendingStripeConfirm;
 import com.google.android.material.snackbar.Snackbar;
 
-import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.text.NumberFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -123,9 +121,11 @@ public class CheckoutActivity extends AppCompatActivity {
     private View checkoutRowRegular;
     private View checkoutRowSpecial;
     private View checkoutRowTier;
+    private View checkoutRowEmployee;
     private TextView tvCheckoutRegularMerch;
     private TextView tvCheckoutSpecialLine;
     private TextView tvCheckoutTierLine;
+    private TextView tvCheckoutEmployeeLine;
 
     private PaymentSheet paymentSheet;
     @Nullable
@@ -316,9 +316,11 @@ public class CheckoutActivity extends AppCompatActivity {
         checkoutRowRegular = findViewById(R.id.checkout_row_regular);
         checkoutRowSpecial = findViewById(R.id.checkout_row_special);
         checkoutRowTier = findViewById(R.id.checkout_row_tier);
+        checkoutRowEmployee = findViewById(R.id.checkout_row_employee);
         tvCheckoutRegularMerch = findViewById(R.id.tvCheckoutRegularMerch);
         tvCheckoutSpecialLine = findViewById(R.id.tvCheckoutSpecialLine);
         tvCheckoutTierLine = findViewById(R.id.tvCheckoutTierLine);
+        tvCheckoutEmployeeLine = findViewById(R.id.tvCheckoutEmployeeLine);
 
         tvCheckoutIntro = findViewById(R.id.tv_checkout_intro);
         cardCheckoutGuestContact = findViewById(R.id.card_checkout_guest_contact);
@@ -497,6 +499,7 @@ public class CheckoutActivity extends AppCompatActivity {
             checkoutLoyaltyTierId = null;
             checkoutResolvedTier = null;
             cart.applyDiscount(0d);
+            cart.applyEmployeeDiscountFraction(0d);
             runOnUiThread(() -> {
                 updateCheckoutSectionVisibility();
                 loadUserAddressHint();
@@ -514,9 +517,12 @@ public class CheckoutActivity extends AppCompatActivity {
                     currentCustomer = null;
                     customerBootstrapRequired = true;
                     clearBootstrapFields();
+                    cart.applyDiscount(0d);
+                    cart.applyEmployeeDiscountFraction(0d);
                     runOnUiThread(() -> {
                         updateCheckoutSectionVisibility();
                         loadUserAddressHint();
+                        updateTotals();
                         refreshSubmitButtonState();
                     });
                     return;
@@ -822,6 +828,7 @@ public class CheckoutActivity extends AppCompatActivity {
     private void applyAutomaticTierDiscount() {
         if (sessionManager.isGuestMode()) {
             cart.applyDiscount(0d);
+            cart.applyEmployeeDiscountFraction(0d);
             return;
         }
         double discountFraction = LoyaltyTierUi.redeemDiscountFraction(checkoutResolvedTier);
@@ -829,6 +836,8 @@ public class CheckoutActivity extends AppCompatActivity {
             discountFraction = 0d;
         }
         cart.applyDiscount(discountFraction);
+        double empFrac = (currentCustomer != null && currentCustomer.employeeDiscountEligible) ? 0.20 : 0.0;
+        cart.applyEmployeeDiscountFraction(empFrac);
     }
 
     private void loadUserAddressHint() {
@@ -1307,6 +1316,15 @@ public class CheckoutActivity extends AppCompatActivity {
         }
         if (showTier && tvCheckoutTierLine != null) {
             tvCheckoutTierLine.setText("-" + MoneyFormat.formatCad(currencyFormat, tierSave));
+        }
+
+        double empSave = cart.getEmployeeDiscountDollars();
+        boolean showEmp = empSave > 0.005;
+        if (checkoutRowEmployee != null) {
+            checkoutRowEmployee.setVisibility(showEmp ? View.VISIBLE : View.GONE);
+        }
+        if (showEmp && tvCheckoutEmployeeLine != null) {
+            tvCheckoutEmployeeLine.setText("-" + MoneyFormat.formatCad(currencyFormat, empSave));
         }
 
         if (tvTaxLabel != null) {
@@ -1896,10 +1914,8 @@ public class CheckoutActivity extends AppCompatActivity {
             req.guest = buildGuestFromFields();
         }
 
-        double manualDiscountDollars = cart.getTodaySpecialSavingsTotal() + cart.getTierDiscountDollars();
-        if (manualDiscountDollars > 0.0001) {
-            req.manualDiscount = BigDecimal.valueOf(manualDiscountDollars).setScale(2, RoundingMode.HALF_UP);
-        }
+        // Server applies today’s special, tier, then employee discount in that order; do not send manualDiscount.
+        req.pricingLocalDate = TodayDate.isoLocal();
 
         List<CheckoutRequest.CheckoutLineRequest> lines = new ArrayList<>();
         for (CartItem item : cart.getItems()) {

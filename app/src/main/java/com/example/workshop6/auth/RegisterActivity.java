@@ -295,6 +295,17 @@ public class RegisterActivity extends AppCompatActivity {
                             R.string.register_toast_guest_orders_linked,
                             Toast.LENGTH_LONG).show();
                 }
+                if (Boolean.TRUE.equals(auth.employeeDiscountLinkEstablished)) {
+                    String empMsg = auth.employeeDiscountLinkMessage;
+                    if (empMsg != null && !empMsg.trim().isEmpty()) {
+                        Toast.makeText(RegisterActivity.this, empMsg.trim(), Toast.LENGTH_LONG).show();
+                    } else {
+                        Toast.makeText(
+                                RegisterActivity.this,
+                                R.string.register_toast_employee_discount_linked,
+                                Toast.LENGTH_LONG).show();
+                    }
+                }
                 goToMain(!linkedGuest);
             }
 

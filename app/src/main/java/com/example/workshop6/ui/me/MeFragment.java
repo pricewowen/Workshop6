@@ -70,6 +70,8 @@ public class MeFragment extends Fragment {
     private TextView tvBakery;
     private TextView tvPosition;
     private TextView tvPhotoStatus;
+    @Nullable
+    private TextView tvMeEmployeeDiscount;
     private View meLoadingOverlay;
     private View meScrollContent;
     private View cardAiRecommendations;
@@ -107,6 +109,7 @@ public class MeFragment extends Fragment {
         tvBakery = view.findViewById(R.id.tv_me_bakery);
         tvPosition = view.findViewById(R.id.tv_me_position);
         tvPhotoStatus = view.findViewById(R.id.tv_me_photo_status);
+        tvMeEmployeeDiscount = view.findViewById(R.id.tv_me_employee_discount);
         meLoadingOverlay = view.findViewById(R.id.me_loading_overlay);
         meScrollContent = view.findViewById(R.id.me_scroll_content);
         cardAiRecommendations = view.findViewById(R.id.card_me_ai_recommendations);
@@ -133,6 +136,7 @@ public class MeFragment extends Fragment {
             view.findViewById(R.id.btn_loyalty_rewards).setVisibility(View.GONE);
             view.findViewById(R.id.btn_order_history).setVisibility(View.GONE);
             hideAiRecommendationsCard();
+            applyEmployeeDiscountUi(false);
         } else if ("CUSTOMER".equalsIgnoreCase(sessionManager.getUserRole())) {
             view.findViewById(R.id.btn_edit_account).setVisibility(View.VISIBLE);
             view.findViewById(R.id.btn_customer_details).setVisibility(View.VISIBLE);
@@ -148,11 +152,17 @@ public class MeFragment extends Fragment {
                     NavTransitions.startActivityWithForward(requireActivity(),
                             new Intent(requireContext(), CustomerPreferencesActivity.class)));
         } else {
-            view.findViewById(R.id.btn_edit_account).setVisibility(View.GONE);
+            // Employees and admins use the same Edit Profile screen as customers (name, phones, address,
+            // work email, account username/email/password, photo) via getEmployeeMe / patch APIs.
+            view.findViewById(R.id.btn_edit_account).setVisibility(View.VISIBLE);
+            view.findViewById(R.id.btn_edit_account).setOnClickListener(v ->
+                    NavTransitions.startActivityWithForward(requireActivity(),
+                            new Intent(requireContext(), EditProfileActivity.class)));
             view.findViewById(R.id.btn_customer_details).setVisibility(View.GONE);
             view.findViewById(R.id.btn_taste_preferences).setVisibility(View.GONE);
             view.findViewById(R.id.btn_loyalty_rewards).setVisibility(View.GONE);
             hideAiRecommendationsCard();
+            applyEmployeeDiscountUi(false);
         }
 
         Button btnLogout = view.findViewById(R.id.btn_logout);
@@ -288,6 +298,7 @@ public class MeFragment extends Fragment {
                         if (root != null) {
                             applyCustomerShoppingButtonsState(root, false);
                         }
+                        applyEmployeeDiscountUi(false);
                         cacheMeSnapshot(new MeSnapshot(sessionManager.getUserName(),
                                 displayEmail,
                                 null,
@@ -297,6 +308,7 @@ public class MeFragment extends Fragment {
                                 "",
                                 false,
                                 true,
+                                false,
                                 false,
                                 false));
                         setMeLoadingUi(false);
@@ -323,6 +335,7 @@ public class MeFragment extends Fragment {
                     if (root != null) {
                         applyCustomerShoppingButtonsState(root, true);
                     }
+                    applyEmployeeDiscountUi(c.employeeDiscountEligible);
                     cacheMeSnapshot(new MeSnapshot(nameText,
                             c.email != null ? c.email : sessionManager.getUserName(),
                             photoPath,
@@ -333,7 +346,8 @@ public class MeFragment extends Fragment {
                             false,
                             true,
                             false,
-                            true));
+                            true,
+                            c.employeeDiscountEligible));
                     setMeLoadingUi(false);
                     refreshAiRecommendationsIfEligible();
                 }
@@ -369,6 +383,7 @@ public class MeFragment extends Fragment {
                             root.findViewById(R.id.btn_order_history).setVisibility(View.GONE);
                             root.findViewById(R.id.btn_loyalty_rewards).setVisibility(View.GONE);
                         }
+                        applyEmployeeDiscountUi(false);
                         cacheMeSnapshot(new MeSnapshot(sessionManager.getUserName(),
                                 sessionManager.getUserName(),
                                 null,
@@ -376,6 +391,7 @@ public class MeFragment extends Fragment {
                                 "",
                                 false,
                                 "",
+                                false,
                                 false,
                                 false,
                                 false,
@@ -387,6 +403,7 @@ public class MeFragment extends Fragment {
                         setMeLoadingUi(false);
                         return;
                     }
+                    applyEmployeeDiscountUi(false);
                     EmployeeDto e = response.body();
                     String first = e.firstName != null ? e.firstName : "";
                     String last = e.lastName != null ? e.lastName : "";
@@ -447,6 +464,7 @@ public class MeFragment extends Fragment {
                                         showPosition,
                                         false,
                                         false,
+                                        false,
                                         false));
                                 setMeLoadingUi(false);
                             }
@@ -469,6 +487,7 @@ public class MeFragment extends Fragment {
                                         showPosition,
                                         false,
                                         false,
+                                        false,
                                         false));
                                 setMeLoadingUi(false);
                             }
@@ -485,6 +504,7 @@ public class MeFragment extends Fragment {
                                 false,
                                 positionText,
                                 showPosition,
+                                false,
                                 false,
                                 false,
                                 false));
@@ -524,8 +544,19 @@ public class MeFragment extends Fragment {
             tvPosition.setVisibility(View.GONE);
         }
         applyPhotoUI(null, false);
+        applyEmployeeDiscountUi(false);
         setMeLoadingUi(false);
         hideAiRecommendationsCard();
+    }
+
+    private void applyEmployeeDiscountUi(boolean eligible) {
+        if (tvMeEmployeeDiscount == null) {
+            return;
+        }
+        boolean show = eligible
+                && "CUSTOMER".equalsIgnoreCase(sessionManager.getUserRole())
+                && !sessionManager.isGuestMode();
+        tvMeEmployeeDiscount.setVisibility(show ? View.VISIBLE : View.GONE);
     }
 
     /** @return true if cached profile was applied to the UI */
@@ -544,6 +575,11 @@ public class MeFragment extends Fragment {
             tvPosition.setVisibility(cachedMeSnapshot.showPosition ? View.VISIBLE : View.GONE);
         }
         applyPhotoUI(cachedMeSnapshot.photoPath, cachedMeSnapshot.photoPending);
+        if ("CUSTOMER".equalsIgnoreCase(sessionManager.getUserRole()) && !sessionManager.isGuestMode()) {
+            applyEmployeeDiscountUi(cachedMeSnapshot.employeeDiscountEligible);
+        } else {
+            applyEmployeeDiscountUi(false);
+        }
         View root = getView();
         if (root != null) {
             if ("CUSTOMER".equalsIgnoreCase(sessionManager.getUserRole())) {
@@ -613,6 +649,8 @@ public class MeFragment extends Fragment {
         final boolean showChatStaff;
         /** Customer: rewards / order history allowed. Ignored for staff. */
         final boolean hasCustomerProfile;
+        /** Customer: linked employee discount active (both accounts active). */
+        final boolean employeeDiscountEligible;
 
         MeSnapshot(String name,
                    String email,
@@ -624,7 +662,8 @@ public class MeFragment extends Fragment {
                    boolean showPosition,
                    boolean showOrderHistory,
                    boolean showChatStaff,
-                   boolean hasCustomerProfile) {
+                   boolean hasCustomerProfile,
+                   boolean employeeDiscountEligible) {
             this.name = name;
             this.email = email;
             this.photoPath = photoPath;
@@ -636,6 +675,7 @@ public class MeFragment extends Fragment {
             this.showOrderHistory = showOrderHistory;
             this.showChatStaff = showChatStaff;
             this.hasCustomerProfile = hasCustomerProfile;
+            this.employeeDiscountEligible = employeeDiscountEligible;
         }
     }
 

@@ -90,6 +90,18 @@
                         android:textSize="14sp" />
 
                     <TextView
+                        android:id="@+id/tv_me_employee_discount"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:paddingVertical="4dp"
+                        android:text="@string/me_employee_discount_badge"
+                        android:textColor="@color/bakery_primary"
+                        android:textSize="13sp"
+                        android:textStyle="bold"
+                        android:visibility="gone" />
+
+                    <TextView
                         android:id="@+id/tv_me_bakery"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"

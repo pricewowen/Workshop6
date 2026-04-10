@@ -824,6 +824,30 @@
                     </LinearLayout>
 
                     <LinearLayout
+                        android:id="@+id/checkout_row_employee"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:paddingVertical="4dp"
+                        android:visibility="gone">
+
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="@string/checkout_employee_discount_line"
+                            android:textColor="@color/bakery_text_secondary" />
+
+                        <TextView
+                            android:id="@+id/tvCheckoutEmployeeLine"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="-$0.00 CAD"
+                            android:textColor="@color/bakery_text_secondary"
+                            android:textStyle="bold" />
+                    </LinearLayout>
+
+                    <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:orientation="horizontal"

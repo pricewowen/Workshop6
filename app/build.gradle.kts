@@ -9,12 +9,23 @@ val localProperties = Properties().apply {
     if (f.exists()) load(f.inputStream())
 }
 
-/** Dev API base URL; override in local.properties as api.base.url= */
-val apiBaseUrl = (localProperties.getProperty("api.base.url") ?: "http://10.0.2.2:8080/")
+/**
+ * Dev API base URL; override in local.properties as api.base.url=
+ * Default 127.0.0.1 matches backend OAuth redirect (localhost) when you run:
+ *   adb reverse tcp:8080 tcp:8080
+ * (emulator or USB device). Same Google Console entry as the web app.
+ * For Wi‑Fi-only device without adb reverse, set api.base.url to your PC LAN IP and use a non-dev
+ * server profile or register that redirect URI in Google Cloud.
+ */
+val apiBaseUrl = (localProperties.getProperty("api.base.url") ?: "http://127.0.0.1:8080/")
     .trim()
     .let { if (it.endsWith("/")) it else "$it/" }
 
 val stripePublishableKey = (localProperties.getProperty("stripe.publishable.key") ?: "")
+
+/** Must match server {@code APP_MOBILE_OAUTH_SCHEME} (default {@code workshop6}). */
+val oauthRedirectScheme =
+    (localProperties.getProperty("oauth.redirect.scheme") ?: "workshop6").trim()
 
 android {
     buildFeatures {
@@ -35,6 +46,8 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         buildConfigField("String", "API_BASE_URL", "\"${apiBaseUrl.replace("\"", "\\\"")}\"")
         buildConfigField("String", "STRIPE_PUBLISHABLE_KEY", "\"${stripePublishableKey.replace("\"", "\\\"")}\"")
+        buildConfigField("String", "OAUTH_REDIRECT_SCHEME", "\"${oauthRedirectScheme.replace("\"", "\\\"")}\"")
+        manifestPlaceholders["oauthRedirectScheme"] = oauthRedirectScheme
     }
 
     buildTypes {

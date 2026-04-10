@@ -11,4 +11,6 @@ public class AuthResponse {
 
     public Boolean priorGuestCheckout;
     public String guestProfileCompletionMessage;
+    public Boolean employeeDiscountLinkEstablished;
+    public String employeeDiscountLinkMessage;
 }

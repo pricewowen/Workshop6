@@ -57,6 +57,9 @@ public interface ApiService {
     @POST("api/v1/auth/register")
     Call<AuthResponse> register(@Body RegisterRequest request);
 
+    @GET("api/v1/auth/oauth2/mobile-claim")
+    Call<AuthResponse> claimOAuthMobileTicket(@Query("ticket") String ticket);
+
     @PUT("api/v1/account/password")
     Call<Void> changePassword(@Body ChangePasswordRequest body);
 

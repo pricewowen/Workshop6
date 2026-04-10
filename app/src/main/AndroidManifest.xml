@@ -30,13 +30,28 @@
 
         <activity
             android:name=".auth.LoginActivity"
-            android:exported="true">
+            android:exported="true"
+            android:launchMode="singleTop">
 
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data
+                    android:host="oauth"
+                    android:scheme="${oauthRedirectScheme}" />
+            </intent-filter>
         </activity>
+
+        <activity
+            android:name=".auth.OAuthWebViewActivity"
+            android:exported="false"
+            android:label="@string/login_oauth_toolbar_title" />
 
         <activity
             android:name=".auth.RegisterActivity"

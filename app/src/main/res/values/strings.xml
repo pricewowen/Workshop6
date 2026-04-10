@@ -18,6 +18,12 @@
     <string name="social_divider_login">or continue with</string>
     <string name="btn_google">Google</string>
     <string name="btn_microsoft">Microsoft</string>
+    <string name="login_continue_with_google">Continue with Google</string>
+    <string name="login_continue_with_microsoft">Continue with Microsoft</string>
+    <string name="login_oauth_claim_failed">Could not finish sign-in. The link may have expired — try again.</string>
+    <string name="login_oauth_no_browser">Install or enable a web browser to sign in with Google or Microsoft.</string>
+    <string name="login_oauth_toolbar_title">Sign in</string>
+    <string name="login_oauth_webview_error">Sign-in page failed to load. Check your connection and API address, then try again.</string>
     <string name="link_no_account">No account? </string>
     <string name="link_register_here">Register here</string>
     <string name="link_continue_as_guest_prompt">Prefer not to sign in?</string>
@@ -301,6 +307,10 @@
     <string name="me_recommendations_none_yet">No suggestions right now. Try updating your preferences or ordering something new.</string>
     <string name="me_recommendations_unavailable">Suggestions couldn’t load. Check your connection or try again in a moment.</string>
     <string name="order_review_submitted_rejected_reason">Couldn\'t post that review: %1$s</string>
+    <string name="me_employee_discount_badge">20% employee discount applies at checkout (after today\'s specials and loyalty tier).</string>
+    <string name="register_toast_employee_discount_linked">Your account is linked to your employee profile. You get 20% off eligible orders at checkout (after today\'s specials and your loyalty tier).</string>
+    <string name="checkout_employee_discount_line">Employee discount (20%)</string>
+
     <string name="btn_edit_account">Edit Account</string>
     <string name="title_edit_account">Account</string>
     <string name="btn_update_account">Update Account</string>
