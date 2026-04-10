@@ -22,10 +22,10 @@
             android:id="@+id/iv_location_thumb"
             android:layout_width="56dp"
             android:layout_height="56dp"
-            android:background="@drawable/bg_hero_bakery"
+            android:background="@drawable/bg_thumb_square"
+            android:clipToOutline="true"
             android:contentDescription="@string/cd_location_thumbnail"
-            android:padding="10dp"
-            android:scaleType="fitCenter"
+            android:scaleType="centerCrop"
             android:src="@drawable/location_thumb_placeholder" />
 
         <!-- Info: name, distance/rating, open + directions, address -->

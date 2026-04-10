@@ -10,10 +10,11 @@
         android:id="@+id/toolbar"
         android:layout_width="match_parent"
         android:layout_height="?attr/actionBarSize"
-        android:background="@color/bakery_primary"
+        android:background="@color/bakery_background"
         app:navigationIcon="@drawable/ic_arrow_back"
+        app:navigationIconTint="@color/bakery_text_dark"
         app:title="@string/checkout_title"
-        app:titleTextColor="@color/bakery_text_light" />
+        app:titleTextColor="@color/bakery_text_dark" />
 
     <ScrollView
         android:layout_width="match_parent"
@@ -235,7 +236,6 @@
                                 android:textStyle="bold"
                                 android:textColor="@color/bakery_text_secondary"
                                 android:letterSpacing="0.08"
-                                android:textAllCaps="true"
                                 android:layout_marginBottom="4dp" />
                             <Spinner
                                 android:id="@+id/spinner_checkout_bootstrap_province"
@@ -502,7 +502,6 @@
                                 android:textStyle="bold"
                                 android:textColor="@color/bakery_text_secondary"
                                 android:letterSpacing="0.08"
-                                android:textAllCaps="true"
                                 android:layout_marginBottom="4dp" />
                             <Spinner
                                 android:id="@+id/spinner_checkout_delivery_province"
@@ -896,7 +895,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="1dp"
                         android:layout_marginVertical="8dp"
-                        android:background="@color/bakery_primary" />
+                        android:background="@color/bakery_divider" />
 
                     <LinearLayout
                         android:layout_width="match_parent"

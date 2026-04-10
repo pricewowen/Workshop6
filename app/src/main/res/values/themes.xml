@@ -5,9 +5,12 @@
         <item name="colorOnPrimary">@color/bakery_text_light</item>
         <item name="colorSecondary">@color/bakery_gold_bright</item>
         <item name="colorSecondaryVariant">@color/bakery_gold</item>
-        <item name="colorOnSecondary">@color/bakery_text_dark</item>
+        <item name="colorOnSecondary">@color/bakery_text_light</item>
         <item name="android:colorBackground">@color/bakery_background</item>
-        <item name="android:statusBarColor">@color/bakery_primary_dark</item>
-        <item name="android:windowLightStatusBar">false</item>
+        <item name="colorSurface">@color/bakery_card_white</item>
+        <item name="android:statusBarColor">@color/bakery_background</item>
+        <item name="android:navigationBarColor">@color/bakery_background</item>
+        <item name="android:windowLightStatusBar">true</item>
+        <item name="android:windowLightNavigationBar">true</item>
     </style>
 </resources>

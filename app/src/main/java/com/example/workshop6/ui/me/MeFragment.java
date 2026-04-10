@@ -8,13 +8,17 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewOutlineProvider;
 import android.view.ViewGroup;
+import android.content.res.ColorStateList;
 import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.ProgressBar;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.appcompat.app.AlertDialog;
+import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
@@ -30,6 +34,7 @@ import com.example.workshop6.data.api.dto.CustomerDto;
 import com.example.workshop6.data.api.dto.CustomerPreferenceDto;
 import com.example.workshop6.data.api.dto.EmployeeDto;
 import com.example.workshop6.data.api.dto.BakeryDto;
+import com.example.workshop6.data.api.dto.DeactivateAccountRequest;
 import com.example.workshop6.data.api.dto.ProductRecommendationDto;
 import com.example.workshop6.logging.ActivityLogger;
 import com.example.workshop6.ui.MainActivity;
@@ -39,6 +44,11 @@ import com.example.workshop6.ui.orders.OrderHistoryActivity;
 import com.example.workshop6.ui.profile.CustomerProfileSetupActivity;
 import com.example.workshop6.ui.profile.EditProfileActivity;
 import com.example.workshop6.util.NavTransitions;
+import com.example.workshop6.util.ProfileInitialsAvatar;
+import com.google.android.material.button.MaterialButton;
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
+import com.google.android.material.textfield.TextInputEditText;
+import com.google.android.material.textfield.TextInputLayout;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -79,6 +89,10 @@ public class MeFragment extends Fragment {
     private ProgressBar recommendationsLoading;
     private TextView tvRecommendationsPlaceholder;
     private MeRecommendationAdapter recommendationAdapter;
+
+    private View cardGuestPrompt;
+    private View cardActions;
+    private TextView tvDeactivateAccount;
 
     @Nullable
     @Override
@@ -127,7 +141,12 @@ public class MeFragment extends Fragment {
             rvRecommendations.setAdapter(recommendationAdapter);
         }
 
+        cardGuestPrompt = view.findViewById(R.id.card_me_guest_prompt);
+        cardActions = view.findViewById(R.id.card_me_actions);
+        tvDeactivateAccount = view.findViewById(R.id.tv_deactivate_account);
+
         applyMeRoleLabel();
+        setupMeShell(view);
 
         if (sessionManager.isGuestMode()) {
             view.findViewById(R.id.btn_edit_account).setVisibility(View.GONE);
@@ -167,28 +186,6 @@ public class MeFragment extends Fragment {
             applyEmployeeDiscountUi(false);
         }
 
-        Button btnLogout = view.findViewById(R.id.btn_logout);
-        if (sessionManager.isGuestMode()) {
-            btnLogout.setText(R.string.btn_sign_in_or_create_account);
-            btnLogout.setOnClickListener(v -> {
-                Intent intent = new Intent(requireContext(), LoginActivity.class);
-                intent.putExtra(LoginActivity.EXTRA_ALLOW_GUEST_AUTH, true);
-                NavTransitions.startActivityWithBackward(requireActivity(), intent);
-            });
-        } else {
-            btnLogout.setText(R.string.btn_logout);
-            btnLogout.setOnClickListener(v -> {
-            ActivityLogger.log(requireContext(), sessionManager, "LOGOUT", "User logged out");
-            CartManager.getInstance(requireContext()).onLogout();
-            sessionManager.logout();
-                invalidateAiRecommendationsCache();
-                ApiClient.getInstance().clearToken();
-            Intent intent = new Intent(requireContext(), LoginActivity.class);
-            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
-                NavTransitions.startActivityWithForward(requireActivity(), intent);
-            });
-        }
-
         view.findViewById(R.id.btn_order_history).setOnClickListener(v ->
                 NavTransitions.startActivityWithForward(requireActivity(),
                         new Intent(requireContext(), OrderHistoryActivity.class)));
@@ -211,6 +208,10 @@ public class MeFragment extends Fragment {
     public void onResume() {
         super.onResume();
         applyMeRoleLabel();
+        View root = getView();
+        if (root != null) {
+            setupMeShell(root);
+        }
         // Force refresh after returning from Edit Profile so pending-photo state is not stale.
         meCacheAtMs = 0L;
         boolean showedCache = renderCachedMeIfPresent();
@@ -545,7 +546,7 @@ public class MeFragment extends Fragment {
         if (tvPosition != null) {
             tvPosition.setVisibility(View.GONE);
         }
-        applyPhotoUI(null, false);
+        applyMeInitialsAvatar();
         applyEmployeeDiscountUi(false);
         setMeLoadingUi(false);
         hideAiRecommendationsCard();
@@ -894,11 +895,157 @@ public class MeFragment extends Fragment {
                         ivPhoto.setImageAlpha(255);
                         tvPhotoStatus.setVisibility(View.GONE);
                     } else {
-                        ivPhoto.setImageResource(R.drawable.ic_person_placeholder);
+                        applyMeInitialsAvatar();
                         ivPhoto.clearColorFilter();
                         ivPhoto.setImageAlpha(255);
                         tvPhotoStatus.setVisibility(View.GONE);
                     }
+    }
+
+    private int meAvatarSizePx() {
+        return (int) (80f * getResources().getDisplayMetrics().density + 0.5f);
+    }
+
+    private void setupMeShell(View view) {
+        if (cardGuestPrompt == null || cardActions == null || tvDeactivateAccount == null) {
+            return;
+        }
+        MaterialButton btnLogout = view.findViewById(R.id.btn_logout);
+        if (sessionManager.isGuestMode()) {
+            cardGuestPrompt.setVisibility(View.VISIBLE);
+            cardActions.setVisibility(View.GONE);
+            tvDeactivateAccount.setVisibility(View.GONE);
+            btnLogout.setText(R.string.btn_sign_in_or_create_account);
+            styleGuestSignInButton(btnLogout);
+            btnLogout.setOnClickListener(v -> {
+                Intent intent = new Intent(requireContext(), LoginActivity.class);
+                intent.putExtra(LoginActivity.EXTRA_ALLOW_GUEST_AUTH, true);
+                NavTransitions.startActivityWithBackward(requireActivity(), intent);
+            });
+        } else {
+            cardGuestPrompt.setVisibility(View.GONE);
+            cardActions.setVisibility(View.VISIBLE);
+            tvDeactivateAccount.setVisibility(View.VISIBLE);
+            btnLogout.setText(R.string.btn_logout);
+            styleSignedInLogoutButton(btnLogout);
+            btnLogout.setOnClickListener(v -> performFullLogout());
+            tvDeactivateAccount.setOnClickListener(v -> showDeactivateAccountDialog());
+        }
+    }
+
+    private void styleGuestSignInButton(MaterialButton mb) {
+        int orange = ContextCompat.getColor(requireContext(), R.color.bakery_gold_bright);
+        int card = ContextCompat.getColor(requireContext(), R.color.bakery_card_white);
+        mb.setBackgroundTintList(ColorStateList.valueOf(card));
+        mb.setStrokeColor(ColorStateList.valueOf(orange));
+        mb.setStrokeWidth((int) (1.5f * getResources().getDisplayMetrics().density + 0.5f));
+        mb.setTextColor(ColorStateList.valueOf(orange));
+        mb.setIconResource(R.drawable.ic_me_login);
+        mb.setIconTint(ColorStateList.valueOf(orange));
+        mb.setIconGravity(MaterialButton.ICON_GRAVITY_TEXT_START);
+    }
+
+    private void styleSignedInLogoutButton(MaterialButton mb) {
+        int primary = ContextCompat.getColor(requireContext(), R.color.bakery_primary);
+        int surface = ContextCompat.getColor(requireContext(), R.color.bakery_surface_nav);
+        mb.setStrokeWidth(0);
+        mb.setStrokeColor(ColorStateList.valueOf(surface));
+        mb.setBackgroundTintList(ColorStateList.valueOf(surface));
+        mb.setTextColor(ColorStateList.valueOf(primary));
+        mb.setIconResource(R.drawable.ic_me_logout);
+        mb.setIconTint(ColorStateList.valueOf(primary));
+        mb.setIconGravity(MaterialButton.ICON_GRAVITY_TEXT_START);
+    }
+
+    private void performFullLogout() {
+        ActivityLogger.log(requireContext(), sessionManager, "LOGOUT", "User logged out");
+        CartManager.getInstance(requireContext()).onLogout();
+        sessionManager.logout();
+        invalidateAiRecommendationsCache();
+        ApiClient.getInstance().clearToken();
+        Intent intent = new Intent(requireContext(), LoginActivity.class);
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+        NavTransitions.startActivityWithForward(requireActivity(), intent);
+    }
+
+    private void showDeactivateAccountDialog() {
+        if (!sessionManager.isLoggedIn() || sessionManager.isGuestMode() || getContext() == null) {
+            return;
+        }
+        View dlgView = LayoutInflater.from(requireContext()).inflate(R.layout.dialog_deactivate_account, null);
+        TextInputLayout til = dlgView.findViewById(R.id.til_deactivate_password);
+        TextInputEditText et = dlgView.findViewById(R.id.et_deactivate_password);
+
+        AlertDialog dialog = new MaterialAlertDialogBuilder(requireContext())
+                .setTitle(R.string.me_deactivate_dialog_title)
+                .setMessage(R.string.me_deactivate_dialog_message)
+                .setView(dlgView)
+                .setPositiveButton(R.string.me_deactivate_confirm, null)
+                .setNegativeButton(android.R.string.cancel, null)
+                .create();
+
+        dialog.setOnShowListener(d -> {
+            Button positive = dialog.getButton(AlertDialog.BUTTON_POSITIVE);
+            if (positive != null) {
+                positive.setOnClickListener(v -> {
+                    String pass = et.getText() != null ? et.getText().toString() : "";
+                    if (pass.isEmpty()) {
+                        til.setError(getString(R.string.error_password_required));
+                        return;
+                    }
+                    til.setError(null);
+                    dialog.dismiss();
+                    submitAccountDeactivation(pass);
+                });
+            }
+        });
+        dialog.show();
+    }
+
+    private void submitAccountDeactivation(String password) {
+        if (!isAdded()) {
+            return;
+        }
+        setMeLoadingUi(true);
+        api.deactivateAccount(new DeactivateAccountRequest(password)).enqueue(new Callback<Void>() {
+            @Override
+            public void onResponse(@NonNull Call<Void> call, @NonNull Response<Void> response) {
+                if (!isAdded()) {
+                    return;
+                }
+                setMeLoadingUi(false);
+                if (response.isSuccessful()) {
+                    Toast.makeText(requireContext(), R.string.account_deactivated, Toast.LENGTH_LONG).show();
+                    ActivityLogger.log(requireContext(), sessionManager, "DEACTIVATE_ACCOUNT", "Self-service deactivation");
+                    performFullLogout();
+                    return;
+                }
+                if (response.code() == 400) {
+                    Toast.makeText(requireContext(), R.string.me_deactivate_error_password, Toast.LENGTH_LONG).show();
+                    return;
+                }
+                Toast.makeText(requireContext(), R.string.me_deactivate_error_generic, Toast.LENGTH_LONG).show();
+            }
+
+            @Override
+            public void onFailure(@NonNull Call<Void> call, @NonNull Throwable t) {
+                if (isAdded()) {
+                    setMeLoadingUi(false);
+                    Toast.makeText(requireContext(), R.string.me_deactivate_error_network, Toast.LENGTH_LONG).show();
+                }
+            }
+        });
+    }
+
+    private void applyMeInitialsAvatar() {
+        if (ivPhoto == null) {
+            return;
+        }
+        String name = tvName.getText() != null ? tvName.getText().toString() : "";
+        String email = tvEmail.getText() != null ? tvEmail.getText().toString() : "";
+        String initials = ProfileInitialsAvatar.initialsFrom(name, email, sessionManager.getUserName());
+        ivPhoto.setBackground(null);
+        ivPhoto.setImageDrawable(ProfileInitialsAvatar.create(requireContext(), meAvatarSizePx(), initials));
     }
 
     private void applyPendingPhotoStyle(ImageView imageView) {
@@ -919,20 +1066,25 @@ public class MeFragment extends Fragment {
 
     private void loadRemotePhoto(String photoPath) {
         if (photoPath == null || photoPath.trim().isEmpty()) {
-            ivPhoto.setImageResource(R.drawable.ic_person_placeholder);
+            applyMeInitialsAvatar();
             return;
         }
+        ivPhoto.setBackgroundResource(R.drawable.me_avatar_ring);
+        String name = tvName.getText() != null ? tvName.getText().toString() : "";
+        String email = tvEmail.getText() != null ? tvEmail.getText().toString() : "";
+        String initials = ProfileInitialsAvatar.initialsFrom(name, email, sessionManager.getUserName());
+        android.graphics.drawable.Drawable ph = ProfileInitialsAvatar.create(requireContext(), meAvatarSizePx(), initials);
         String originFallback = cdnToOriginUrl(photoPath);
         Glide.with(this)
                 .load(photoPath)
                 .circleCrop()
-                .placeholder(R.drawable.ic_person_placeholder)
+                .placeholder(ph)
                 .error(
                         Glide.with(this)
                                 .load(originFallback != null ? originFallback : photoPath)
                                 .circleCrop()
-                                .placeholder(R.drawable.ic_person_placeholder)
-                                .error(R.drawable.ic_person_placeholder)
+                                .placeholder(ph)
+                                .error(ph)
                 )
                 .into(ivPhoto);
     }

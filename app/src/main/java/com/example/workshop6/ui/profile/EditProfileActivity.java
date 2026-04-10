@@ -42,6 +42,7 @@ import com.example.workshop6.data.api.dto.EmployeeDto;
 import com.example.workshop6.logging.ActivityLogger;
 import com.example.workshop6.ui.MainActivity;
 import com.example.workshop6.util.ImageUtils;
+import com.example.workshop6.util.ProfileInitialsAvatar;
 import com.example.workshop6.util.NavTransitions;
 import com.example.workshop6.util.PhoneFormatTextWatcher;
 import com.example.workshop6.util.PostalCodeFormatTextWatcher;
@@ -570,7 +571,7 @@ public class EditProfileActivity extends AppCompatActivity {
             btnChoosePhoto.setEnabled(true);
             btnChoosePhoto.setAlpha(1f);
         } else {
-            ivPhoto.setImageResource(R.drawable.ic_person_placeholder);
+            applyProfileInitialsAvatar();
             ivPhoto.clearColorFilter();
             ivPhoto.setImageAlpha(255);
             tvPhotoStatus.setVisibility(View.GONE);
@@ -968,22 +969,65 @@ public class EditProfileActivity extends AppCompatActivity {
         return MultipartBody.Part.createFormData("photo", "profile.jpg", body);
     }
 
-    private void loadRemotePhoto(String photoPath) {
-        if (photoPath == null || photoPath.trim().isEmpty()) {
-            ivPhoto.setImageResource(R.drawable.ic_person_placeholder);
+    private int profileAvatarInnerPx() {
+        float outer = 112f * getResources().getDisplayMetrics().density;
+        float pad = 4f * getResources().getDisplayMetrics().density;
+        return Math.max(1, (int) (outer - 2 * pad + 0.5f));
+    }
+
+    private void applyProfileInitialsAvatar() {
+        if (ivPhoto == null) {
             return;
         }
+        String name = "";
+        String email = "";
+        if (loadedCustomer != null) {
+            String fn = loadedCustomer.firstName != null ? loadedCustomer.firstName : "";
+            String ln = loadedCustomer.lastName != null ? loadedCustomer.lastName : "";
+            name = (fn + " " + ln).trim();
+            email = loadedCustomer.email != null ? loadedCustomer.email : "";
+        } else if (loadedEmployee != null) {
+            String fn = loadedEmployee.firstName != null ? loadedEmployee.firstName : "";
+            String ln = loadedEmployee.lastName != null ? loadedEmployee.lastName : "";
+            name = (fn + " " + ln).trim();
+            email = loadedEmployee.workEmail != null ? loadedEmployee.workEmail : "";
+        }
+        String initials = ProfileInitialsAvatar.initialsFrom(name, email, sessionManager.getUserName());
+        ivPhoto.setImageDrawable(ProfileInitialsAvatar.create(this, profileAvatarInnerPx(), initials));
+    }
+
+    private void loadRemotePhoto(String photoPath) {
+        if (photoPath == null || photoPath.trim().isEmpty()) {
+            applyProfileInitialsAvatar();
+            return;
+        }
+        String name = "";
+        String email = "";
+        if (loadedCustomer != null) {
+            String fn = loadedCustomer.firstName != null ? loadedCustomer.firstName : "";
+            String ln = loadedCustomer.lastName != null ? loadedCustomer.lastName : "";
+            name = (fn + " " + ln).trim();
+            email = loadedCustomer.email != null ? loadedCustomer.email : "";
+        } else if (loadedEmployee != null) {
+            String fn = loadedEmployee.firstName != null ? loadedEmployee.firstName : "";
+            String ln = loadedEmployee.lastName != null ? loadedEmployee.lastName : "";
+            name = (fn + " " + ln).trim();
+            email = loadedEmployee.workEmail != null ? loadedEmployee.workEmail : "";
+        }
+        android.graphics.drawable.Drawable ph = ProfileInitialsAvatar.create(
+                this, profileAvatarInnerPx(),
+                ProfileInitialsAvatar.initialsFrom(name, email, sessionManager.getUserName()));
         String originFallback = cdnToOriginUrl(photoPath);
         Glide.with(this)
                 .load(photoPath)
                 .circleCrop()
-                .placeholder(R.drawable.ic_person_placeholder)
+                .placeholder(ph)
                 .error(
                         Glide.with(this)
                                 .load(originFallback != null ? originFallback : photoPath)
                                 .circleCrop()
-                                .placeholder(R.drawable.ic_person_placeholder)
-                                .error(R.drawable.ic_person_placeholder)
+                                .placeholder(ph)
+                                .error(ph)
                 )
                 .into(ivPhoto);
     }

@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Serif display (mockup headings) -->
+    <style name="TextAppearance.Bakery.Display" parent="TextAppearance.AppCompat">
+        <item name="android:fontFamily">serif</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:textColor">@color/bakery_text_dark</item>
+    </style>
+
+    <style name="TextAppearance.Bakery.Title" parent="TextAppearance.AppCompat.Medium">
+        <item name="android:fontFamily">serif</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:textColor">@color/bakery_text_dark</item>
+    </style>
+
+    <style name="TextAppearance.Bakery.Overline" parent="TextAppearance.AppCompat.Small">
+        <item name="android:textAllCaps">false</item>
+        <item name="android:letterSpacing">0.04</item>
+        <item name="android:textColor">@color/bakery_gold_bright</item>
+        <item name="android:textStyle">bold</item>
+    </style>
+</resources>

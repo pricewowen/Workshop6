@@ -9,11 +9,11 @@
         android:id="@+id/toolbar_product"
         android:layout_width="match_parent"
         android:layout_height="?attr/actionBarSize"
-        android:background="@color/bakery_primary"
+        android:background="@color/bakery_background"
         app:navigationContentDescription="@string/cd_navigate_up"
         app:navigationIcon="@drawable/ic_arrow_back"
-        app:navigationIconTint="@color/white"
-        app:titleTextColor="@color/white" />
+        app:navigationIconTint="@color/bakery_text_dark"
+        app:titleTextColor="@color/bakery_text_dark" />
 
     <androidx.core.widget.NestedScrollView
         android:id="@+id/product_details_content"
@@ -68,8 +68,8 @@
                     android:layout_height="wrap_content"
                     android:layout_marginTop="8dp"
                     android:text=""
-                    android:textColor="@color/bakery_gold"
-                    android:textSize="18sp"
+                    android:textColor="@color/bakery_gold_bright"
+                    android:textSize="20sp"
                     android:textStyle="bold" />
 
                 <TextView
@@ -78,8 +78,9 @@
                     android:layout_height="wrap_content"
                     android:layout_marginTop="12dp"
                     android:text=""
-                    android:textColor="#666666"
-                    android:textSize="14sp" />
+                    android:textColor="@color/bakery_text_secondary"
+                    android:textSize="15sp"
+                    android:lineSpacingMultiplier="1.15" />
 
                 <com.google.android.material.chip.ChipGroup
                     android:id="@+id/chipGroupProductTags"
@@ -97,9 +98,10 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="20dp"
+                    android:fontFamily="serif"
                     android:text="@string/section_product_reviews"
                     android:textColor="@color/bakery_text_dark"
-                    android:textSize="18sp"
+                    android:textSize="20sp"
                     android:textStyle="bold" />
 
                 <TextView
@@ -163,15 +165,16 @@
 
                         <com.google.android.material.button.MaterialButton
                             android:id="@+id/btnDecrease"
+                            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
                             android:layout_width="40dp"
                             android:layout_height="40dp"
-                            android:backgroundTint="@color/bakery_gold"
                             android:insetTop="0dp"
                             android:insetBottom="0dp"
                             android:text="@string/btn_decrease"
-                            android:textColor="@android:color/black"
+                            android:textColor="@color/bakery_primary"
                             android:textSize="18sp"
-                            app:cornerRadius="12dp" />
+                            app:cornerRadius="12dp"
+                            app:strokeColor="@color/bakery_divider" />
 
                         <TextView
                             android:id="@+id/tvQuantity"
@@ -187,11 +190,11 @@
                             android:id="@+id/btnIncrease"
                             android:layout_width="40dp"
                             android:layout_height="40dp"
-                            android:backgroundTint="@color/bakery_gold"
+                            android:backgroundTint="@color/bakery_primary"
                             android:insetTop="0dp"
                             android:insetBottom="0dp"
                             android:text="@string/btn_increase"
-                            android:textColor="@android:color/black"
+                            android:textColor="@color/bakery_text_light"
                             android:textSize="18sp"
                             app:cornerRadius="12dp" />
                     </LinearLayout>
@@ -202,12 +205,13 @@
                     android:layout_width="match_parent"
                     android:layout_height="56dp"
                     android:layout_marginTop="24dp"
-                    android:backgroundTint="@color/bakery_gold"
+                    android:backgroundTint="@color/bakery_primary"
                     android:text="@string/btn_add_to_cart"
-                    android:textColor="@android:color/black"
+                    android:textAllCaps="false"
+                    android:textColor="@color/bakery_text_light"
                     android:textSize="16sp"
                     android:textStyle="bold"
-                    app:cornerRadius="20dp" />
+                    app:cornerRadius="28dp" />
             </LinearLayout>
         </LinearLayout>
     </androidx.core.widget.NestedScrollView>
@@ -227,7 +231,7 @@
             android:layout_height="wrap_content"
             android:layout_gravity="center"
             android:indeterminate="true"
-            android:indeterminateTint="@color/bakery_gold" />
+            android:indeterminateTint="@color/bakery_gold_bright" />
     </FrameLayout>
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

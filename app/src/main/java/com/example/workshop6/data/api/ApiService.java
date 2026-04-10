@@ -8,6 +8,7 @@ import com.example.workshop6.data.api.dto.BatchDto;
 import com.example.workshop6.data.api.dto.ChatMessageDto;
 import com.example.workshop6.data.api.dto.ChatThreadDto;
 import com.example.workshop6.data.api.dto.ChangePasswordRequest;
+import com.example.workshop6.data.api.dto.DeactivateAccountRequest;
 import com.example.workshop6.data.api.dto.CheckoutRequest;
 import com.example.workshop6.data.api.dto.CheckoutSessionResponse;
 import com.example.workshop6.data.api.dto.ConfirmStripePaymentRequest;
@@ -19,6 +20,7 @@ import com.example.workshop6.data.api.dto.CustomerPreferenceSaveRequest;
 import com.example.workshop6.data.api.dto.ProfilePhotoResponse;
 import com.example.workshop6.data.api.dto.EmployeeDto;
 import com.example.workshop6.data.api.dto.EmployeePatchRequest;
+import com.example.workshop6.data.api.dto.ForgotPasswordRequest;
 import com.example.workshop6.data.api.dto.LoginRequest;
 import com.example.workshop6.data.api.dto.OrderDto;
 import com.example.workshop6.data.api.dto.OrderStatusPatchRequest;
@@ -54,11 +56,17 @@ public interface ApiService {
     @POST("api/v1/auth/login")
     Call<AuthResponse> login(@Body LoginRequest request);
 
+    @POST("api/v1/auth/forgot-password")
+    Call<Void> forgotPassword(@Body ForgotPasswordRequest request);
+
     @POST("api/v1/auth/register")
     Call<AuthResponse> register(@Body RegisterRequest request);
 
     @PUT("api/v1/account/password")
     Call<Void> changePassword(@Body ChangePasswordRequest body);
+
+    @POST("api/v1/account/deactivate")
+    Call<Void> deactivateAccount(@Body DeactivateAccountRequest body);
 
     @PATCH("api/v1/account/profile")
     Call<AuthResponse> patchAccountProfile(@Body AccountProfilePatchRequest body);

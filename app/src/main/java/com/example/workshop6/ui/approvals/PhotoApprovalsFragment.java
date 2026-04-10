@@ -23,6 +23,7 @@ import com.example.workshop6.data.api.ApiClient;
 import com.example.workshop6.data.api.ApiService;
 import com.example.workshop6.data.api.dto.CustomerDto;
 import com.example.workshop6.logging.ActivityLogger;
+import com.example.workshop6.util.ProfileInitialsAvatar;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -204,22 +205,27 @@ public class PhotoApprovalsFragment extends Fragment {
             holder.tvName.setText(fullName);
             holder.tvEmail.setText(c.email != null ? c.email : "");
 
+            int avPx = (int) (72f * holder.itemView.getResources().getDisplayMetrics().density + 0.5f);
+            android.graphics.drawable.Drawable initialsDrawable = ProfileInitialsAvatar.create(
+                    holder.itemView.getContext(),
+                    avPx,
+                    ProfileInitialsAvatar.initialsFrom(fullName, c.email, ""));
             if (c.profilePhotoPath != null && !c.profilePhotoPath.trim().isEmpty()) {
                 String originFallback = cdnToOriginUrl(c.profilePhotoPath);
                 Glide.with(holder.itemView)
                         .load(c.profilePhotoPath)
                         .circleCrop()
-                        .placeholder(R.drawable.ic_person_placeholder)
+                        .placeholder(initialsDrawable)
                         .error(
                                 Glide.with(holder.itemView)
                                         .load(originFallback != null ? originFallback : c.profilePhotoPath)
                                         .circleCrop()
-                                        .placeholder(R.drawable.ic_person_placeholder)
-                                        .error(R.drawable.ic_person_placeholder)
+                                        .placeholder(initialsDrawable)
+                                        .error(initialsDrawable)
                         )
                         .into(holder.ivPhoto);
             } else {
-                holder.ivPhoto.setImageResource(R.drawable.ic_person_placeholder);
+                holder.ivPhoto.setImageDrawable(initialsDrawable);
             }
             applyPendingPhotoStyle(holder.ivPhoto);
 

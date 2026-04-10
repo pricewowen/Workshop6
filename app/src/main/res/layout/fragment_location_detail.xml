@@ -9,11 +9,11 @@
         android:id="@+id/toolbar_detail"
         android:layout_width="match_parent"
         android:layout_height="?attr/actionBarSize"
-        android:background="@color/bakery_primary"
+        android:background="@color/bakery_background"
         app:navigationContentDescription="@string/cd_navigate_up"
         app:navigationIcon="@drawable/ic_arrow_back"
-        app:navigationIconTint="@color/white"
-        app:titleTextColor="@color/white" />
+        app:navigationIconTint="@color/bakery_text_dark"
+        app:titleTextColor="@color/bakery_text_dark" />
 
     <androidx.core.widget.NestedScrollView
         android:id="@+id/location_detail_scroll"

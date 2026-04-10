@@ -14,10 +14,11 @@
             android:id="@+id/toolbar"
             android:layout_width="match_parent"
             android:layout_height="?attr/actionBarSize"
-            android:background="@color/bakery_primary"
+            android:background="@color/bakery_background"
             app:navigationIcon="@drawable/ic_arrow_back"
+            app:navigationIconTint="@color/bakery_text_dark"
             app:title="@string/title_taste_preferences"
-            app:titleTextColor="@color/bakery_text_light" />
+            app:titleTextColor="@color/bakery_text_dark" />
 
         <ScrollView
             android:id="@+id/scroll_preferences"
