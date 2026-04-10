@@ -289,6 +289,14 @@
     <string name="send">Send</string>
     <string name="chat_empty_state">No messages yet</string>
     <string name="staff_chat_empty_threads">No customer chats yet</string>
+    <string name="chat_inbox_subtitle_staff">Open customer conversations and continue the latest thread</string>
+    <string name="chat_inbox_subtitle_customer">Message bakery staff about your order or account</string>
+    <string name="chat_subtitle_default">Conversation details will appear here</string>
+    <string name="chat_subtitle_customer_waiting">You are chatting with bakery staff</string>
+    <string name="chat_subtitle_staff_view">Customer support thread</string>
+    <string name="chat_empty_state_customer">Your conversation with bakery staff will appear here once messages are sent.</string>
+    <string name="chat_empty_state_staff">No messages in this thread yet. The customer has not sent anything yet.</string>
+    <string name="chat_open_existing_thread">Opened your current support conversation</string>
     <string name="staff_chat_disabled_for_staff">Staff accounts manage customer chats from the Chat tab only</string>
     <string name="staff_purchase_blocked">Admin and employee accounts cannot purchase products</string>
 
