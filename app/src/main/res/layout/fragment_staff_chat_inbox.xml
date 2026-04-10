@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <Button
+        android:id="@+id/button_new_chat"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="top|end"
+        android:layout_margin="12dp"
+        android:text="@string/chat_new" />
+
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/recycler_staff_threads"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:padding="12dp"
+        android:paddingTop="64dp" />
+
+    <TextView
+        android:id="@+id/text_staff_chat_empty"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:text="@string/staff_chat_empty_threads"
+        android:textColor="@color/bakery_text_secondary"
+        android:textSize="16sp"
+        android:visibility="gone" />
+
+</FrameLayout>

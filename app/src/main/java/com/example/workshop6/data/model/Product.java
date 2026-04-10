@@ -1,21 +1,25 @@
 package com.example.workshop6.data.model;
 
-import androidx.room.Entity;
-import androidx.room.PrimaryKey;
-
-@Entity
+/** In-memory / API-mapped product for cart and catalog UI. */
 public class Product {
-    @PrimaryKey
     private int productId;
     private String productName;
     private String productDescription;
     private Double productBasePrice;
+    private int imgUrl;
+    private String imageUrl;
 
-    public Product(int productId, String productName, String productDescription, Double productBasePrice) {
+    public Product(int productId, String productName, String productDescription, Double productBasePrice, int imgUrl) {
         this.productId = productId;
         this.productName = productName;
         this.productDescription = productDescription;
         this.productBasePrice = productBasePrice;
+        this.imgUrl = imgUrl;
+    }
+
+    public Product(int productId, String productName, String productDescription, Double productBasePrice, int imgUrl, String imageUrl) {
+        this(productId, productName, productDescription, productBasePrice, imgUrl);
+        this.imageUrl = imageUrl;
     }
 
     public int getProductId() {
@@ -48,5 +52,21 @@ public class Product {
 
     public void setProductBasePrice(Double productBasePrice) {
         this.productBasePrice = productBasePrice;
+    }
+
+    public int getImgUrl() {
+        return imgUrl;
+    }
+
+    public void setImgUrl(int imgUrl) {
+        this.imgUrl = imgUrl;
+    }
+
+    public String getImageUrl() {
+        return imageUrl;
+    }
+
+    public void setImageUrl(String imageUrl) {
+        this.imageUrl = imageUrl;
     }
 }

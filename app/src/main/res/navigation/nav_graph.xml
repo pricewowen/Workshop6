@@ -3,26 +3,25 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/nav_graph"
-    app:startDestination="@id/nav_home">
-
-    <!-- Bottom nav destinations — IDs MUST match bottom_nav_menu.xml item IDs -->
-    <fragment
-        android:id="@+id/nav_home"
-        android:name="com.example.workshop6.ui.home.HomeFragment"
-        android:label="@string/nav_home"
-        tools:layout="@layout/fragment_home" />
+    app:startDestination="@id/nav_me">
 
     <fragment
         android:id="@+id/nav_browse"
-        android:name="com.example.workshop6.ui.browse.BrowseFragment"
+        android:name="com.example.workshop6.ui.products.ProductsFragment"
         android:label="@string/nav_browse"
-        tools:layout="@layout/fragment_browse" />
+        tools:layout="@layout/fragment_products">
+
+        <action
+            android:id="@+id/action_products_to_details"
+            app:destination="@id/productDetailFragment" />
+    </fragment>
 
     <fragment
         android:id="@+id/nav_map"
         android:name="com.example.workshop6.ui.locations.MapFragment"
         android:label="@string/nav_map"
         tools:layout="@layout/fragment_map">
+
         <action
             android:id="@+id/action_map_to_detail"
             app:destination="@id/locationDetailFragment" />
@@ -34,16 +33,56 @@
         android:label="@string/nav_me"
         tools:layout="@layout/fragment_me" />
 
-    <!-- Location detail — reached from Map tab -->
+    <fragment
+        android:id="@+id/nav_cart"
+        android:name="com.example.workshop6.ui.cart.CartFragment"
+        android:label="@string/title_cart"
+        tools:layout="@layout/fragment_cart" />
+
+    <fragment
+        android:id="@+id/nav_photo_approvals"
+        android:name="com.example.workshop6.ui.approvals.PhotoApprovalsFragment"
+        android:label="@string/nav_photo_approvals"
+        tools:layout="@layout/fragment_photo_approvals" />
+
+    <fragment
+        android:id="@+id/nav_account_admin"
+        android:name="com.example.workshop6.ui.approvals.AccountAdminFragment"
+        android:label="@string/nav_account_admin"
+        tools:layout="@layout/fragment_account_admin" />
+
+    <fragment
+        android:id="@+id/nav_staff_chat"
+        android:name="com.example.workshop6.ui.chat.StaffChatInboxFragment"
+        android:label="@string/staff_chat"
+        tools:layout="@layout/fragment_staff_chat_inbox" />
+
     <fragment
         android:id="@+id/locationDetailFragment"
         android:name="com.example.workshop6.ui.locations.LocationDetailFragment"
         android:label="@string/location_details"
         tools:layout="@layout/fragment_location_detail">
+
         <argument
             android:name="locationId"
-            app:argType="integer"
-            android:defaultValue="-1" />
+            android:defaultValue="-1"
+            app:argType="integer" />
+
+        <action
+            android:id="@+id/action_location_to_product"
+            app:destination="@id/productDetailFragment" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/productDetailFragment"
+        android:name="com.example.workshop6.ui.products.ProductDetailsFragment"
+        android:label="@string/product_details"
+        tools:layout="@layout/fragment_product_details">
+
+        <argument
+            android:name="productId"
+            android:defaultValue="-1"
+            app:argType="integer" />
     </fragment>
 
 </navigation>

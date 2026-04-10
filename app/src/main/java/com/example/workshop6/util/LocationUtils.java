@@ -1,6 +1,6 @@
 package com.example.workshop6.util;
 
-import com.example.workshop6.data.model.BakeryLocation;
+import com.example.workshop6.data.model.BakeryLocationDetails;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -26,9 +26,9 @@ public class LocationUtils {
      * Returns a new list sorted by ascending distance from (userLat, userLon).
      * Locations with lat=0 AND lon=0 (no coordinates set) are pushed to the end.
      */
-    public static List<BakeryLocation> sortByDistance(List<BakeryLocation> locations,
-                                                       double userLat, double userLon) {
-        List<BakeryLocation> sorted = new ArrayList<>(locations);
+    public static List<BakeryLocationDetails> sortByDistance(List<BakeryLocationDetails> locations,
+                                                              double userLat, double userLon) {
+        List<BakeryLocationDetails> sorted = new ArrayList<>(locations);
         sorted.sort((a, b) -> {
             boolean aHasCoords = (a.latitude != 0.0 || a.longitude != 0.0);
             boolean bHasCoords = (b.latitude != 0.0 || b.longitude != 0.0);

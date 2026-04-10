@@ -12,38 +12,41 @@ import androidx.recyclerview.widget.DiffUtil;
 import androidx.recyclerview.widget.ListAdapter;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.bumptech.glide.Glide;
+import com.bumptech.glide.request.RequestOptions;
 import com.example.workshop6.R;
-import com.example.workshop6.data.model.BakeryLocation;
+import com.example.workshop6.data.model.BakeryLocationDetails;
 import com.example.workshop6.util.LocationUtils;
 import com.google.android.material.chip.Chip;
 
 import java.util.Objects;
 
-public class LocationAdapter extends ListAdapter<BakeryLocation, LocationAdapter.VH> {
+public class LocationAdapter extends ListAdapter<BakeryLocationDetails, LocationAdapter.VH> {
 
     public interface OnClickListener {
-        void onClick(BakeryLocation location);
+        void onClick(BakeryLocationDetails location);
     }
 
-    private static final DiffUtil.ItemCallback<BakeryLocation> DIFF_CALLBACK =
-            new DiffUtil.ItemCallback<BakeryLocation>() {
+    private static final DiffUtil.ItemCallback<BakeryLocationDetails> DIFF_CALLBACK =
+            new DiffUtil.ItemCallback<BakeryLocationDetails>() {
                 @Override
-                public boolean areItemsTheSame(@NonNull BakeryLocation oldItem,
-                                               @NonNull BakeryLocation newItem) {
+                public boolean areItemsTheSame(@NonNull BakeryLocationDetails oldItem,
+                                               @NonNull BakeryLocationDetails newItem) {
                     return oldItem.id == newItem.id;
                 }
 
                 @Override
-                public boolean areContentsTheSame(@NonNull BakeryLocation oldItem,
-                                                  @NonNull BakeryLocation newItem) {
+                public boolean areContentsTheSame(@NonNull BakeryLocationDetails oldItem,
+                                                  @NonNull BakeryLocationDetails newItem) {
                     return oldItem.id == newItem.id
                             && Objects.equals(oldItem.name, newItem.name)
                             && Objects.equals(oldItem.address, newItem.address)
                             && Objects.equals(oldItem.city, newItem.city)
                             && Objects.equals(oldItem.status, newItem.status)
-                            && Objects.equals(oldItem.openingHours, newItem.openingHours)
-                            && Double.compare(oldItem.latitude, newItem.latitude) == 0
-                            && Double.compare(oldItem.longitude, newItem.longitude) == 0;
+                    && Objects.equals(oldItem.openingHours, newItem.openingHours)
+                    && Objects.equals(oldItem.bakeryImageUrl, newItem.bakeryImageUrl)
+                    && Double.compare(oldItem.latitude, newItem.latitude) == 0
+                    && Double.compare(oldItem.longitude, newItem.longitude) == 0;
                 }
             };
 
@@ -92,7 +95,7 @@ public class LocationAdapter extends ListAdapter<BakeryLocation, LocationAdapter
             chipStatus   = itemView.findViewById(R.id.chip_status);
         }
 
-        void bind(BakeryLocation loc,
+        void bind(BakeryLocationDetails loc,
                   boolean nearbyMode, double userLat, double userLon,
                   @Nullable OnClickListener listener) {
 
@@ -125,8 +128,18 @@ public class LocationAdapter extends ListAdapter<BakeryLocation, LocationAdapter
                 dotSeparator.setVisibility(View.GONE);
             }
 
-            // Thumbnail placeholder
-            thumbnail.setImageResource(android.R.drawable.ic_menu_mapmode);
+            String img = loc.bakeryImageUrl;
+            if (img != null && !img.trim().isEmpty()) {
+                Glide.with(itemView.getContext())
+                        .load(img.trim())
+                        .apply(RequestOptions.centerCropTransform())
+                        .placeholder(R.drawable.location_thumb_placeholder)
+                        .error(R.drawable.location_thumb_placeholder)
+                        .into(thumbnail);
+            } else {
+                Glide.with(itemView.getContext()).clear(thumbnail);
+                thumbnail.setImageResource(R.drawable.location_thumb_placeholder);
+            }
 
             itemView.setOnClickListener(v -> {
                 if (listener != null) listener.onClick(loc);
