@@ -3,27 +3,27 @@
 
     <item
         android:id="@+id/nav_photo_approvals"
-        android:icon="@android:drawable/ic_menu_gallery"
+        android:icon="@drawable/ic_nav_photo_library"
         android:title="@string/nav_photo_approvals" />
 
     <item
         android:id="@+id/nav_account_admin"
-        android:icon="@android:drawable/ic_menu_manage"
+        android:icon="@drawable/ic_me_id_card"
         android:title="@string/nav_account_admin" />
 
     <item
         android:id="@+id/nav_order_admin"
-        android:icon="@android:drawable/ic_menu_agenda"
+        android:icon="@drawable/ic_me_receipt"
         android:title="@string/nav_order_admin" />
 
     <item
         android:id="@+id/nav_staff_chat"
-        android:icon="@android:drawable/ic_dialog_email"
-        android:title="@string/staff_chat" />
+        android:icon="@drawable/ic_nav_chat_bubble"
+        android:title="@string/nav_chat_short" />
 
     <item
         android:id="@+id/nav_me"
-        android:icon="@android:drawable/ic_menu_myplaces"
-        android:title="@string/nav_account" />
+        android:icon="@drawable/ic_me_account"
+        android:title="@string/nav_me" />
 
 </menu>

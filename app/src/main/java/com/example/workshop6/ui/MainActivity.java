@@ -7,6 +7,7 @@ import android.net.Network;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.view.View;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
@@ -24,6 +25,7 @@ import com.example.workshop6.data.api.ApiClient;
 import com.example.workshop6.data.api.ApiService;
 import com.example.workshop6.data.api.dto.CustomerDto;
 import com.example.workshop6.data.api.dto.EmployeeDto;
+import com.example.workshop6.payments.PendingStripeConfirm;
 import com.example.workshop6.util.NavTransitions;
 import com.example.workshop6.util.NetworkStatus;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
@@ -36,17 +38,26 @@ public class MainActivity extends AppCompatActivity {
 
     public static final String EXTRA_OPEN_ME_TAB = "open_me_tab";
     public static final String EXTRA_PROMPT_CUSTOMER_PROFILE = "prompt_customer_profile";
+    /** When > 0, switches to Browse and opens product detail (e.g. from Me tab recommendations). */
+    public static final String EXTRA_OPEN_PRODUCT_ID = "open_product_id";
 
     /** How often we re-verify the session against the API while this screen is visible. */
     private static final long API_SESSION_POLL_MS = 4_000L;
     /** Minimum spacing between staff-menu refresh calls when not forced. */
     private static final long STAFF_ACCESS_REFRESH_MS = 4_000L;
+    /**
+     * {@link ConnectivityManager.NetworkCallback#onLost} can fire during normal Wi-Fi/cellular handoff.
+     * Wait before treating it as a real outage so we don't clear a valid session.
+     */
+    private static final long NETWORK_LOST_DEBOUNCE_MS = 2_500L;
 
     private SessionManager sessionManager;
     private NavController navController;
     private int currentBottomNavMenuResId = 0;
     private long lastStaffAccessCheckAt = 0L;
     private boolean staffAccessCheckInFlight = false;
+    /** While a review is being moderated, bottom navigation is disabled so the user cannot switch tabs. */
+    private boolean reviewSubmissionBlocksBottomNav;
     private final Handler connectivityHandler = new Handler(Looper.getMainLooper());
     private final Runnable connectivityPollRunnable = new Runnable() {
         @Override
@@ -62,17 +73,33 @@ public class MainActivity extends AppCompatActivity {
         }
     };
 
-    /** Log out as soon as the default network drops (e.g. Wi-Fi/cellular lost). */
+    private final Runnable networkLostConfirmRunnable = new Runnable() {
+        @Override
+        public void run() {
+            if (isFinishing() || sessionManager == null || !sessionManager.isLoggedIn()) {
+                return;
+            }
+            if (!NetworkStatus.isOnline(MainActivity.this)) {
+                handleConnectionLost();
+            }
+        }
+    };
+
+    /** After a debounced check, log out only if the device still has no usable network. */
     private final ConnectivityManager.NetworkCallback networkDisconnectCallback = new ConnectivityManager.NetworkCallback() {
+        @Override
+        public void onAvailable(@NonNull Network network) {
+            runOnUiThread(() -> connectivityHandler.removeCallbacks(networkLostConfirmRunnable));
+        }
+
         @Override
         public void onLost(@NonNull Network network) {
             runOnUiThread(() -> {
                 if (isFinishing() || sessionManager == null || !sessionManager.isLoggedIn()) {
                     return;
                 }
-                if (!NetworkStatus.isOnline(MainActivity.this)) {
-                    handleConnectionLost();
-                }
+                connectivityHandler.removeCallbacks(networkLostConfirmRunnable);
+                connectivityHandler.postDelayed(networkLostConfirmRunnable, NETWORK_LOST_DEBOUNCE_MS);
             });
         }
     };
@@ -87,6 +114,15 @@ public class MainActivity extends AppCompatActivity {
             NavTransitions.startActivityWithForward(this, new Intent(this, LoginActivity.class));
             finish();
             return;
+        }
+
+        if (sessionManager.isLoggedIn()) {
+            String token = sessionManager.getToken();
+            if (token != null && !token.trim().isEmpty()) {
+                ApiClient.getInstance().setToken(token);
+            }
+        } else {
+            ApiClient.getInstance().clearToken();
         }
 
         setContentView(R.layout.activity_main);
@@ -123,7 +159,38 @@ public class MainActivity extends AppCompatActivity {
             bottomNav.post(() -> bottomNav.setSelectedItemId(R.id.nav_me));
         }
         if (intent.getBooleanExtra(EXTRA_PROMPT_CUSTOMER_PROFILE, false)) {
-            Toast.makeText(this, R.string.me_add_customer_profile_prompt, Toast.LENGTH_LONG).show();
+            Toast.makeText(this, R.string.toast_account_created, Toast.LENGTH_LONG).show();
+        }
+        int productId = intent.getIntExtra(EXTRA_OPEN_PRODUCT_ID, -1);
+        if (productId > 0 && bottomNav != null && navController != null) {
+            final int pid = productId;
+            bottomNav.post(() -> navigateBrowseToProduct(pid));
+        }
+    }
+
+    /**
+     * Open product detail (e.g. Me tab AI recommendations). From {@link R.id#nav_me} this uses a
+     * direct graph action so the product opens immediately without switching to Browse first.
+     */
+    public void navigateBrowseToProduct(int productId) {
+        if (isFinishing() || navController == null || productId <= 0) {
+            return;
+        }
+        Bundle args = new Bundle();
+        args.putInt("productId", productId);
+        NavDestination dest = navController.getCurrentDestination();
+        int destId = dest != null ? dest.getId() : -1;
+        try {
+            if (destId == R.id.nav_me) {
+                navController.navigate(R.id.action_me_to_product_detail, args);
+                return;
+            }
+            if (destId == R.id.nav_browse) {
+                navController.navigate(R.id.action_products_to_details, args);
+                return;
+            }
+            navController.navigate(R.id.action_global_product_detail, args);
+        } catch (Exception ignored) {
         }
     }
 
@@ -171,11 +238,13 @@ public class MainActivity extends AppCompatActivity {
         if (sessionManager.isLoggedIn()) {
             connectivityHandler.post(connectivityPollRunnable);
         }
+        PendingStripeConfirm.tryDrain(this);
     }
 
     @Override
     protected void onPause() {
         connectivityHandler.removeCallbacks(connectivityPollRunnable);
+        connectivityHandler.removeCallbacks(networkLostConfirmRunnable);
         super.onPause();
     }
 
@@ -221,14 +290,14 @@ public class MainActivity extends AppCompatActivity {
                     if (response.isSuccessful() || response.code() == 404) {
                         applyStaffNavigation(bottomNav, role);
                     } else {
-                        handleSessionCheckHttpFailure(response.code());
+                        handleSessionCheckHttpFailure(bottomNav, response.code());
                     }
                 }
 
                 @Override
                 public void onFailure(Call<CustomerDto> call, Throwable t) {
                     staffAccessCheckInFlight = false;
-                    handleConnectionLost();
+                    applyStaffNavigation(bottomNav, role);
                 }
             });
         } else {
@@ -239,23 +308,24 @@ public class MainActivity extends AppCompatActivity {
                     if (response.isSuccessful()) {
                         applyStaffNavigation(bottomNav, role);
                     } else {
-                        handleSessionCheckHttpFailure(response.code());
+                        handleSessionCheckHttpFailure(bottomNav, response.code());
                     }
                 }
 
                 @Override
                 public void onFailure(Call<EmployeeDto> call, Throwable t) {
                     staffAccessCheckInFlight = false;
-                    handleConnectionLost();
+                    applyStaffNavigation(bottomNav, role);
                 }
             });
         }
     }
 
     /**
-     * After a failed /me call, clear the session when the token is invalid or the server is unavailable.
+     * After a non-success /me response: only treat clear auth errors as logout.
+     * Other codes (5xx, 404 for staff, etc.) keep the session — transient issues must not wipe the JWT.
      */
-    private void handleSessionCheckHttpFailure(int httpCode) {
+    private void handleSessionCheckHttpFailure(BottomNavigationView bottomNav, int httpCode) {
         if (isFinishing() || sessionManager == null || !sessionManager.isLoggedIn()) {
             return;
         }
@@ -263,11 +333,9 @@ public class MainActivity extends AppCompatActivity {
             redirectToLogin(getString(R.string.session_expired));
             return;
         }
-        if (httpCode >= 500) {
-            handleConnectionLost();
-            return;
+        if (bottomNav != null) {
+            applyStaffNavigation(bottomNav, sessionManager.getUserRole());
         }
-        redirectToLogin(getString(R.string.lost_connection_logout));
     }
 
     private void handleConnectionLost() {
@@ -312,6 +380,9 @@ public class MainActivity extends AppCompatActivity {
         currentBottomNavMenuResId = menuResId;
         NavigationUI.setupWithNavController(bottomNav, navController);
         bottomNav.setOnItemSelectedListener(item -> {
+            if (reviewSubmissionBlocksBottomNav) {
+                return false;
+            }
             if (!NetworkStatus.isOnline(MainActivity.this)) {
                 Toast.makeText(MainActivity.this, R.string.login_error_no_connection, Toast.LENGTH_SHORT).show();
                 return false;
@@ -326,6 +397,9 @@ public class MainActivity extends AppCompatActivity {
             return navigated;
         });
         bottomNav.setOnItemReselectedListener(item -> {
+            if (reviewSubmissionBlocksBottomNav) {
+                return;
+            }
             if (item.getItemId() == R.id.nav_browse) {
                 popBrowseToProductListIfNeeded();
             }
@@ -333,6 +407,7 @@ public class MainActivity extends AppCompatActivity {
                 popMapStackIfNeeded();
             }
         });
+        bottomNav.setEnabled(!reviewSubmissionBlocksBottomNav);
     }
 
     /** If the browse tab stack is showing product details from the catalog, pop to the product list. */
@@ -395,5 +470,20 @@ public class MainActivity extends AppCompatActivity {
 
     public NavController getNavController() {
         return navController;
+    }
+
+    /**
+     * Full-screen overlay above the bottom nav plus disabled tab bar while a review is submitting.
+     */
+    public void setReviewModerationInProgress(boolean inProgress) {
+        reviewSubmissionBlocksBottomNav = inProgress;
+        View overlay = findViewById(R.id.main_review_moderation_overlay);
+        if (overlay != null) {
+            overlay.setVisibility(inProgress ? View.VISIBLE : View.GONE);
+        }
+        BottomNavigationView bottomNav = findViewById(R.id.bottom_nav);
+        if (bottomNav != null) {
+            bottomNav.setEnabled(!inProgress);
+        }
     }
 }

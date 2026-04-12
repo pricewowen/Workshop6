@@ -4,9 +4,10 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:layout_marginBottom="10dp"
-    app:cardCornerRadius="14dp"
+    app:cardCornerRadius="22dp"
     app:cardBackgroundColor="@color/bakery_card_white"
-    app:strokeColor="@color/bakery_text_secondary"
+    app:cardElevation="4dp"
+    app:strokeColor="@color/bakery_divider"
     app:strokeWidth="1dp">
 
     <LinearLayout
@@ -51,18 +52,21 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
+                android:minHeight="48dp"
+                android:popupBackground="@color/bakery_card_white"
                 android:spinnerMode="dropdown" />
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btn_order_admin_update"
-                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
                 android:layout_width="wrap_content"
-                android:layout_height="40dp"
+                android:layout_height="wrap_content"
                 android:layout_marginStart="10dp"
+                android:minHeight="48dp"
                 android:text="@string/orders_admin_update_status"
-                android:textColor="@color/bakery_text_dark"
-                app:cornerRadius="20dp"
-                app:strokeColor="@color/bakery_text_dark" />
+                android:textAllCaps="false"
+                android:textColor="@color/bakery_text_light"
+                app:backgroundTint="@color/bakery_gold_bright"
+                app:cornerRadius="24dp" />
         </LinearLayout>
 
     </LinearLayout>

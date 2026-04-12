@@ -18,6 +18,9 @@ import retrofit2.converter.gson.GsonConverterFactory;
 public class ApiClient {
 
     private static final String BASE_URL = BuildConfig.API_BASE_URL;
+    /** LLM-backed endpoints can exceed default read timeouts (retries + provider latency). */
+    private static final int READ_TIMEOUT_SEC = 90;
+    private static final int CALL_TIMEOUT_SEC = 90;
 
     private static ApiClient instance;
     private final ApiService service;
@@ -95,10 +98,10 @@ public class ApiClient {
         logging.setLevel(HttpLoggingInterceptor.Level.BODY);
 
         return new OkHttpClient.Builder()
-                .connectTimeout(5, TimeUnit.SECONDS)
-                .readTimeout(8, TimeUnit.SECONDS)
+                .connectTimeout(10, TimeUnit.SECONDS)
+                .readTimeout(READ_TIMEOUT_SEC, TimeUnit.SECONDS)
                 .writeTimeout(45, TimeUnit.SECONDS)
-                .callTimeout(25, TimeUnit.SECONDS)
+                .callTimeout(CALL_TIMEOUT_SEC, TimeUnit.SECONDS)
                 .addInterceptor(logging)
                 .addInterceptor(chain -> {
                     Request original = chain.request();

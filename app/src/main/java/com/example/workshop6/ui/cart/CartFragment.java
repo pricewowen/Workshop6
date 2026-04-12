@@ -9,8 +9,6 @@ import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import androidx.activity.result.ActivityResultLauncher;
-import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
@@ -21,9 +19,7 @@ import com.example.workshop6.R;
 import com.example.workshop6.auth.SessionManager;
 import com.example.workshop6.data.api.ApiClient;
 import com.example.workshop6.data.api.ApiService;
-import com.example.workshop6.data.api.dto.CustomerDto;
 import com.example.workshop6.data.api.dto.ProductSpecialTodayDto;
-import com.example.workshop6.ui.profile.CustomerProfileSetupActivity;
 import com.example.workshop6.data.model.Cart;
 import com.example.workshop6.util.MoneyFormat;
 import com.example.workshop6.util.NavTransitions;
@@ -48,21 +44,6 @@ public class CartFragment extends Fragment implements CartAdapter.OnCartItemList
     private CartManager cartManager;
     private ApiService api;
     private NumberFormat currencyFormat = NumberFormat.getCurrencyInstance(Locale.CANADA);
-
-    private ActivityResultLauncher<Intent> customerProfileLauncher;
-
-    @Override
-    public void onCreate(@Nullable Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        customerProfileLauncher = registerForActivityResult(
-                new ActivityResultContracts.StartActivityForResult(),
-                result -> {
-                    if (!isAdded()) {
-                        return;
-                    }
-                    restoreCheckoutButtonEnabledState();
-                });
-    }
 
     @Nullable
     @Override
@@ -115,79 +96,12 @@ public class CartFragment extends Fragment implements CartAdapter.OnCartItemList
         if (api == null || cart == null || cart.isEmpty()) {
             return;
         }
-        SessionManager sessionManager = new SessionManager(requireContext());
-        if (sessionManager.isGuestMode()) {
-            if (!sessionManager.hasGuestProfile()) {
-                Intent i = new Intent(requireContext(), CustomerProfileSetupActivity.class);
-                i.putExtra(CustomerProfileSetupActivity.EXTRA_LAUNCHED_FOR_CHECKOUT, true);
-                i.putExtra(CustomerProfileSetupActivity.EXTRA_GUEST_MODE, true);
-                customerProfileLauncher.launch(
-                        i,
-                        NavTransitions.forwardLaunchOptions(requireActivity()));
-                return;
-            }
-            startCheckoutActivity();
-            return;
-        }
-        setCheckoutLoading(true);
-        api.getCustomerMe().enqueue(new Callback<CustomerDto>() {
-            @Override
-            public void onResponse(Call<CustomerDto> call, Response<CustomerDto> response) {
-                if (!isAdded()) {
-                    return;
-                }
-                requireActivity().runOnUiThread(() -> {
-                    if (!isAdded()) {
-                        return;
-                    }
-                    if (response.code() == 404) {
-                        Intent i = new Intent(requireContext(), CustomerProfileSetupActivity.class);
-                        i.putExtra(CustomerProfileSetupActivity.EXTRA_LAUNCHED_FOR_CHECKOUT, true);
-                        customerProfileLauncher.launch(
-                                i,
-                                NavTransitions.forwardLaunchOptions(requireActivity()));
-                        return;
-                    }
-                    setCheckoutLoading(false);
-                    if (response.isSuccessful() && response.body() != null) {
-                        startCheckoutActivity();
-                        return;
-                    }
-                    Toast.makeText(requireContext(), R.string.error_user_not_found, Toast.LENGTH_SHORT).show();
-                });
-            }
-
-            @Override
-            public void onFailure(Call<CustomerDto> call, Throwable t) {
-                if (!isAdded()) {
-                    return;
-                }
-                requireActivity().runOnUiThread(() -> {
-                    if (!isAdded()) {
-                        return;
-                    }
-                    setCheckoutLoading(false);
-                    Toast.makeText(requireContext(), R.string.login_error_no_connection, Toast.LENGTH_SHORT).show();
-                });
-            }
-        });
+        startCheckoutActivity();
     }
 
     private void startCheckoutActivity() {
         NavTransitions.startActivityWithForward(requireActivity(),
                 new Intent(requireContext(), CheckoutActivity.class));
-    }
-
-    private void setCheckoutLoading(boolean loading) {
-        if (btnCheckout == null) {
-            return;
-        }
-        btnCheckout.setEnabled(!loading && cart != null && !cart.isEmpty());
-        btnCheckout.setAlpha(loading ? 0.5f : (cart != null && !cart.isEmpty() ? 1f : 0.5f));
-    }
-
-    private void restoreCheckoutButtonEnabledState() {
-        setCheckoutLoading(false);
     }
 
     @Override
@@ -206,7 +120,13 @@ public class CartFragment extends Fragment implements CartAdapter.OnCartItemList
                 if (response.isSuccessful() && response.body() != null) {
                     ProductSpecialState.updateFromDto(response.body(), TodayDate.isoLocal());
                 }
+                if (!isAdded()) {
+                    return;
+                }
                 requireActivity().runOnUiThread(() -> {
+                    if (!isAdded()) {
+                        return;
+                    }
                     adapter.updateItems(cart.getItems());
                     updateUI();
                 });
@@ -214,7 +134,13 @@ public class CartFragment extends Fragment implements CartAdapter.OnCartItemList
 
             @Override
             public void onFailure(Call<ProductSpecialTodayDto> call, Throwable t) {
+                if (!isAdded()) {
+                    return;
+                }
                 requireActivity().runOnUiThread(() -> {
+                    if (!isAdded()) {
+                        return;
+                    }
                     adapter.updateItems(cart.getItems());
                     updateUI();
                 });

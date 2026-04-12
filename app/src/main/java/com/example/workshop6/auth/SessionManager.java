@@ -3,6 +3,7 @@ package com.example.workshop6.auth;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.content.pm.ApplicationInfo;
+import android.util.Patterns;
 
 import androidx.security.crypto.EncryptedSharedPreferences;
 import androidx.security.crypto.MasterKey;
@@ -279,9 +280,16 @@ public class SessionManager {
     }
 
     public GuestCustomerRequest getGuestProfile() {
-        if (!hasGuestProfile()) {
+        if (!hasMinimalGuestContact()) {
             return null;
         }
+        return getGuestProfileOrDraft();
+    }
+
+    /**
+     * Guest fields from prefs even when minimal contact is not satisfied yet (e.g. checkout form in progress).
+     */
+    public GuestCustomerRequest getGuestProfileOrDraft() {
         GuestCustomerRequest guest = new GuestCustomerRequest();
         guest.firstName = prefs.getString(KEY_GUEST_FIRST_NAME, "");
         guest.middleInitial = prefs.getString(KEY_GUEST_MIDDLE_INITIAL, "");
@@ -297,14 +305,44 @@ public class SessionManager {
         return guest;
     }
 
+    /**
+     * True when guest has saved enough contact info to start checkout (email and/or phone).
+     */
     public boolean hasGuestProfile() {
-        return !prefs.getString(KEY_GUEST_FIRST_NAME, "").isEmpty()
-                && !prefs.getString(KEY_GUEST_LAST_NAME, "").isEmpty()
-                && !prefs.getString(KEY_GUEST_EMAIL, "").isEmpty()
-                && !prefs.getString(KEY_GUEST_ADDRESS1, "").isEmpty()
-                && !prefs.getString(KEY_GUEST_CITY, "").isEmpty()
-                && !prefs.getString(KEY_GUEST_PROVINCE, "").isEmpty()
-                && !prefs.getString(KEY_GUEST_POSTAL, "").isEmpty();
+        return hasMinimalGuestContact();
+    }
+
+    public boolean hasMinimalGuestContact() {
+        String email = prefs.getString(KEY_GUEST_EMAIL, "").trim();
+        if (!email.isEmpty() && Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
+            return true;
+        }
+        String phone = prefs.getString(KEY_GUEST_PHONE, "");
+        return countDigits(phone) >= 10;
+    }
+
+    /**
+     * Guest delivery needs a full address on file (name fields may still be empty until backend profile exists).
+     */
+    public boolean hasGuestDeliveryDetails() {
+        return hasMinimalGuestContact()
+                && !prefs.getString(KEY_GUEST_ADDRESS1, "").trim().isEmpty()
+                && !prefs.getString(KEY_GUEST_CITY, "").trim().isEmpty()
+                && !prefs.getString(KEY_GUEST_PROVINCE, "").trim().isEmpty()
+                && !prefs.getString(KEY_GUEST_POSTAL, "").trim().isEmpty();
+    }
+
+    private static int countDigits(String s) {
+        if (s == null) {
+            return 0;
+        }
+        int n = 0;
+        for (int i = 0; i < s.length(); i++) {
+            if (Character.isDigit(s.codePointAt(i))) {
+                n++;
+            }
+        }
+        return n;
     }
 
     public void clearGuestProfile() {
