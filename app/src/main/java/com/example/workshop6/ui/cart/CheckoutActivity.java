@@ -122,6 +122,9 @@ public class CheckoutActivity extends AppCompatActivity {
     private View checkoutRowSpecial;
     private View checkoutRowTier;
     private View checkoutRowEmployee;
+    private View checkoutRowDelivery;
+    private TextView tvCheckoutDeliveryFee;
+    private TextView tvCheckoutDeliveryFeeHint;
     private TextView tvCheckoutRegularMerch;
     private TextView tvCheckoutSpecialLine;
     private TextView tvCheckoutTierLine;
@@ -142,6 +145,11 @@ public class CheckoutActivity extends AppCompatActivity {
     private final NumberFormat currencyFormat = NumberFormat.getCurrencyInstance(Locale.CANADA);
     private final NumberFormat loyaltyPointsFormat = NumberFormat.getNumberInstance(Locale.US);
     private static final double HIGH_VALUE_ORDER_THRESHOLD = 100.0;
+    /** Matches {@code OrderService} / web checkout: flat delivery charge when subtotal is under the threshold. */
+    private static final double DELIVERY_FEE_AMOUNT = 7.0;
+    private static final double DELIVERY_FREE_THRESHOLD = 50.0;
+    /** Backend {@code OrderService.TAX_RATE_PERCENT} — tax on merchandise only (delivery is not taxed). */
+    private static final double CHECKOUT_TAX_RATE_PERCENT = 5.0;
 
     private String deliveryMethod = "pickup";
     private String orderComment = "";
@@ -317,6 +325,9 @@ public class CheckoutActivity extends AppCompatActivity {
         checkoutRowSpecial = findViewById(R.id.checkout_row_special);
         checkoutRowTier = findViewById(R.id.checkout_row_tier);
         checkoutRowEmployee = findViewById(R.id.checkout_row_employee);
+        checkoutRowDelivery = findViewById(R.id.checkout_row_delivery);
+        tvCheckoutDeliveryFee = findViewById(R.id.tvCheckoutDeliveryFee);
+        tvCheckoutDeliveryFeeHint = findViewById(R.id.tvCheckoutDeliveryFeeHint);
         tvCheckoutRegularMerch = findViewById(R.id.tvCheckoutRegularMerch);
         tvCheckoutSpecialLine = findViewById(R.id.tvCheckoutSpecialLine);
         tvCheckoutTierLine = findViewById(R.id.tvCheckoutTierLine);
@@ -1291,8 +1302,9 @@ public class CheckoutActivity extends AppCompatActivity {
         double specSave = cart.getTodaySpecialSavingsTotal();
         double tierSave = cart.getTierDiscountDollars();
         double paySub = cart.getTotalPrice();
+        double deliveryFee = computeDeliveryFee(paySub);
         double tax = calculateTaxAmount(paySub);
-        double total = paySub + tax;
+        double total = paySub + tax + deliveryFee;
 
         boolean showSpec = specSave > 0.005;
         if (checkoutRowRegular != null) {
@@ -1330,11 +1342,49 @@ public class CheckoutActivity extends AppCompatActivity {
         if (tvTaxLabel != null) {
             tvTaxLabel.setText(getString(
                     R.string.tax_with_percent,
-                    CanadianTaxRates.formatTaxPercent(getCurrentTaxRatePercent())));
+                    CanadianTaxRates.formatTaxPercent(CHECKOUT_TAX_RATE_PERCENT)));
+        }
+        if (checkoutRowDelivery != null) {
+            boolean showDelivery = "delivery".equals(deliveryMethod);
+            checkoutRowDelivery.setVisibility(showDelivery ? View.VISIBLE : View.GONE);
+            if (showDelivery && tvCheckoutDeliveryFee != null) {
+                if (deliveryFee <= 0.005) {
+                    tvCheckoutDeliveryFee.setText(R.string.checkout_delivery_free);
+                    tvCheckoutDeliveryFee.setTextColor(
+                            ContextCompat.getColor(this, R.color.bakery_status_open));
+                } else {
+                    tvCheckoutDeliveryFee.setText(MoneyFormat.formatCad(currencyFormat, deliveryFee));
+                    tvCheckoutDeliveryFee.setTextColor(
+                            ContextCompat.getColor(this, R.color.bakery_text_secondary));
+                }
+            }
+            if (tvCheckoutDeliveryFeeHint != null) {
+                boolean hint = showDelivery && deliveryFee > 0.005;
+                tvCheckoutDeliveryFeeHint.setVisibility(hint ? View.VISIBLE : View.GONE);
+                if (hint) {
+                    String threshold = MoneyFormat.formatCad(currencyFormat, DELIVERY_FREE_THRESHOLD);
+                    tvCheckoutDeliveryFeeHint.setText(
+                            getString(R.string.checkout_delivery_free_hint, threshold));
+                }
+            }
         }
         tvSubtotal.setText(MoneyFormat.formatCad(currencyFormat, paySub));
         tvTax.setText(MoneyFormat.formatCad(currencyFormat, tax));
         tvTotal.setText(MoneyFormat.formatCad(currencyFormat, total));
+    }
+
+    /**
+     * Same rule as backend {@code OrderService}: delivery orders under {@link #DELIVERY_FREE_THRESHOLD}
+     * (merchandise after specials, tier, and employee discounts) pay {@link #DELIVERY_FEE_AMOUNT}.
+     */
+    private double computeDeliveryFee(double merchandiseTotalAfterDiscounts) {
+        if (!"delivery".equals(deliveryMethod)) {
+            return 0d;
+        }
+        if (merchandiseTotalAfterDiscounts < DELIVERY_FREE_THRESHOLD - 1e-6) {
+            return DELIVERY_FEE_AMOUNT;
+        }
+        return 0d;
     }
 
     /** Clears inline errors while typing; does not change Review Order enabled state. */
@@ -1641,16 +1691,26 @@ public class CheckoutActivity extends AppCompatActivity {
         }
 
         double subtotal = cart.getTotalPrice();
+        double deliveryFee = computeDeliveryFee(subtotal);
         double tax = calculateTaxAmount(subtotal);
-        double total = subtotal + tax;
+        double total = subtotal + tax + deliveryFee;
         // Points stay based on the pre-tax subtotal to match backend reward earning logic.
         int estimatedPointsEarned = Math.max(1, (int) Math.floor(subtotal * 1000.0));
 
         confirmationText.append("\n").append(getString(R.string.confirmation_subtotal))
                 .append(": ").append(MoneyFormat.formatCad(currencyFormat, subtotal)).append("\n");
+        if ("delivery".equals(deliveryMethod)) {
+            confirmationText.append(getString(R.string.confirmation_delivery_fee)).append(": ");
+            if (deliveryFee <= 0.005) {
+                confirmationText.append(getString(R.string.checkout_delivery_free));
+            } else {
+                confirmationText.append(MoneyFormat.formatCad(currencyFormat, deliveryFee));
+            }
+            confirmationText.append("\n");
+        }
         confirmationText.append(getString(
                         R.string.tax_with_percent,
-                        CanadianTaxRates.formatTaxPercent(getCurrentTaxRatePercent())))
+                        CanadianTaxRates.formatTaxPercent(CHECKOUT_TAX_RATE_PERCENT)))
                 .append(": ").append(MoneyFormat.formatCad(currencyFormat, tax)).append("\n");
         confirmationText.append(getString(R.string.confirmation_total))
                 .append(": ").append(MoneyFormat.formatCad(currencyFormat, total)).append("\n\n");
@@ -1709,57 +1769,13 @@ public class CheckoutActivity extends AppCompatActivity {
 
     private double getOrderTotal() {
         double subtotal = cart.getTotalPrice();
+        double deliveryFee = computeDeliveryFee(subtotal);
         double tax = calculateTaxAmount(subtotal);
-        return subtotal + tax;
+        return subtotal + tax + deliveryFee;
     }
 
-    private double calculateTaxAmount(double subtotal) {
-        return subtotal * getCurrentTaxRatePercent() / 100.0;
-    }
-
-    /**
-     * Pickup: tax matches the selected bakery’s province (same idea as the API: pickup site address).
-     * Delivery: customer’s delivery address province.
-     * If the resolved rate is still 0 (unknown province / not loaded yet), uses Ontario as a display fallback.
-     */
-    private double getCurrentTaxRatePercent() {
-        String provinceRaw = null;
-        if ("pickup".equals(deliveryMethod)) {
-            provinceRaw = provinceFromBakery(selectedBakery);
-            if (provinceRaw == null) {
-                provinceRaw = provinceFromFirstListedBakery();
-            }
-        } else {
-            if (currentCustomer != null && currentCustomer.address != null) {
-                provinceRaw = currentCustomer.address.province;
-            }
-        }
-        double pct = CanadianTaxRates.getTaxPercent(provinceRaw);
-        if (pct <= 0) {
-            pct = CanadianTaxRates.getTaxPercent("ON");
-        }
-        return pct;
-    }
-
-    private static String provinceFromBakery(BakeryLocationDetails bakery) {
-        if (bakery == null || bakery.province == null) {
-            return null;
-        }
-        String p = bakery.province.trim();
-        return p.isEmpty() ? null : p;
-    }
-
-    private String provinceFromFirstListedBakery() {
-        if (bakeryList == null) {
-            return null;
-        }
-        for (BakeryLocationDetails b : bakeryList) {
-            String p = provinceFromBakery(b);
-            if (p != null) {
-                return p;
-            }
-        }
-        return null;
+    private double calculateTaxAmount(double merchandiseAfterDiscounts) {
+        return merchandiseAfterDiscounts * CHECKOUT_TAX_RATE_PERCENT / 100.0;
     }
 
     private String formatScheduledIso() {

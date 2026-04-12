@@ -46,6 +46,10 @@
     <color name="white">#FFFFFFFF</color>
     <color name="black">#FF000000</color>
 
+    <!-- Login / auth tagline (reference typography) -->
+    <color name="login_tagline_primary">#2D201A</color>
+    <color name="login_tagline_accent">#BD5F1E</color>
+
     <!-- Bottom nav: inactive icons on light pill -->
     <color name="bakery_nav_icon_inactive">#9A918A</color>
     <!-- Subtle terracotta ripple on nav pill (customer + staff share one bar) -->

@@ -3,6 +3,9 @@
 
     <!-- Auth — Login -->
     <string name="app_brand">Peelin\' Good</string>
+    <string name="login_tagline_line1">Made from</string>
+    <string name="login_tagline_line2">scratch.</string>
+    <string name="login_tagline_line3">Always.</string>
     <string name="content_desc_remove_cart_item">Remove from cart</string>
     <string name="login_title">Welcome Back</string>
     <string name="login_heading">Welcome\nback.</string>
@@ -224,6 +227,10 @@
     <string name="checkout_special_line">Today\'s special</string>
     <string name="checkout_tier_line">Tier reward</string>
     <string name="checkout_subtotal_after_discounts">Subtotal</string>
+    <string name="checkout_delivery_fee">Delivery fee</string>
+    <string name="checkout_delivery_free">Free</string>
+    <string name="checkout_delivery_free_hint">Free delivery on orders of %1$s or more</string>
+    <string name="confirmation_delivery_fee">Delivery fee</string>
     <string name="product_special_badge">Today\'s special · %1$.0f%% off</string>
 
     <!-- Profile / photos -->
