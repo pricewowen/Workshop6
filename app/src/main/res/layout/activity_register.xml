@@ -57,12 +57,12 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginHorizontal="24dp"
-                    android:layout_marginTop="12dp"
-                    android:fontFamily="serif"
+                    android:layout_marginTop="10dp"
+                    android:gravity="center"
+                    android:lineSpacingMultiplier="1.25"
                     android:text="@string/register_step1_title"
-                    android:textColor="@color/bakery_text_dark"
-                    android:textSize="22sp"
-                    android:textStyle="bold" />
+                    android:textColor="@color/bakery_text_secondary"
+                    android:textSize="15sp" />
 
                 <com.google.android.material.card.MaterialCardView
                     android:layout_width="match_parent"
@@ -372,12 +372,12 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginHorizontal="24dp"
-                    android:layout_marginTop="12dp"
-                    android:fontFamily="serif"
+                    android:layout_marginTop="10dp"
+                    android:gravity="center"
+                    android:lineSpacingMultiplier="1.25"
                     android:text="@string/register_step2_title"
-                    android:textColor="@color/bakery_text_dark"
-                    android:textSize="22sp"
-                    android:textStyle="bold" />
+                    android:textColor="@color/bakery_text_secondary"
+                    android:textSize="15sp" />
 
                 <com.google.android.material.card.MaterialCardView
                     android:layout_width="match_parent"
