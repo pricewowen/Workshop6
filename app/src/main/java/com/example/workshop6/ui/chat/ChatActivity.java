@@ -1,16 +1,14 @@
 package com.example.workshop6.ui.chat;
 
 import android.content.Intent;
+import android.net.Uri;
 import android.os.Bundle;
-import android.os.Handler;
-import android.os.Looper;
 import android.text.TextUtils;
-import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageButton;
-import android.widget.LinearLayout;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
@@ -23,15 +21,21 @@ import com.example.workshop6.auth.SessionManager;
 import com.example.workshop6.data.api.ApiClient;
 import com.example.workshop6.data.api.ApiService;
 import com.example.workshop6.data.api.dto.ChatMessageDto;
-import com.example.workshop6.data.api.dto.PostChatMessageRequest;
 import com.example.workshop6.util.NavTransitions;
-import com.example.workshop6.util.Validation;
+import com.google.gson.Gson;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 
 import java.util.List;
 
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.Response;
+import okhttp3.WebSocket;
+import okhttp3.WebSocketListener;
 import retrofit2.Call;
 import retrofit2.Callback;
-import retrofit2.Response;
 
 public class ChatActivity extends AppCompatActivity {
 
@@ -41,23 +45,20 @@ public class ChatActivity extends AppCompatActivity {
     private EditText editMessage;
     private Button buttonSend;
     private ImageButton buttonBack;
-    private TextView textEmpty;
-    private LinearLayout layoutChatInput;
+    private TextView textChatTitle;
 
     private SessionManager sessionManager;
     private ApiService api;
     private ChatMessageAdapter adapter;
+
     private int threadId = -1;
     private String userUuid;
 
-    private final Handler handler = new Handler(Looper.getMainLooper());
-    private final Runnable refreshRunnable = new Runnable() {
-        @Override
-        public void run() {
-            loadMessages();
-            handler.postDelayed(this, 1500);
-        }
-    };
+    private final Gson gson = new Gson();
+
+    private OkHttpClient webSocketClient;
+    private WebSocket webSocket;
+    private boolean socketConnected = false;
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
@@ -68,8 +69,7 @@ public class ChatActivity extends AppCompatActivity {
         editMessage = findViewById(R.id.edit_message);
         buttonSend = findViewById(R.id.button_send);
         buttonBack = findViewById(R.id.button_back);
-        textEmpty = findViewById(R.id.text_chat_empty);
-        layoutChatInput = findViewById(R.id.layout_chat_input);
+        textChatTitle = findViewById(R.id.text_chat_title);
 
         buttonBack.setOnClickListener(v -> {
             finish();
@@ -92,11 +92,6 @@ public class ChatActivity extends AppCompatActivity {
             return;
         }
 
-        adapter = new ChatMessageAdapter(userUuid);
-        recyclerMessages.setLayoutManager(new LinearLayoutManager(this));
-        recyclerMessages.setAdapter(adapter);
-        layoutChatInput.setVisibility(View.VISIBLE);
-
         threadId = getIntent().getIntExtra(EXTRA_THREAD_ID, -1);
         if (threadId == -1) {
             finish();
@@ -104,25 +99,35 @@ public class ChatActivity extends AppCompatActivity {
             return;
         }
 
+        adapter = new ChatMessageAdapter(userUuid);
+        recyclerMessages.setLayoutManager(new LinearLayoutManager(this));
+        recyclerMessages.setAdapter(adapter);
+
+        webSocketClient = ApiClient.getInstance().newWebSocketClient();
+
         buttonSend.setOnClickListener(v -> sendMessage());
-        loadMessages();
+
+        updateConnectionUi(false, "Loading");
+        loadMessages(true);
     }
 
     @Override
     protected void onResume() {
         super.onResume();
+
         if (!sessionManager.isLoggedIn()) {
             redirectToLogin();
             return;
         }
+
         sessionManager.touch();
-        handler.post(refreshRunnable);
+        connectSocket();
     }
 
     @Override
     protected void onPause() {
+        disconnectSocket();
         super.onPause();
-        handler.removeCallbacks(refreshRunnable);
     }
 
     @Override
@@ -133,64 +138,188 @@ public class ChatActivity extends AppCompatActivity {
         }
     }
 
-    private void loadMessages() {
+    private void loadMessages(boolean scrollToBottom) {
         if (threadId == -1) {
             return;
         }
-        api.markChatThreadRead(threadId).enqueue(new Callback<Void>() {
-            @Override
-            public void onResponse(Call<Void> call, Response<Void> response) {
-            }
-
-            @Override
-            public void onFailure(Call<Void> call, Throwable t) {
-            }
-        });
 
         api.getChatMessages(threadId).enqueue(new Callback<List<ChatMessageDto>>() {
             @Override
-            public void onResponse(Call<List<ChatMessageDto>> call, Response<List<ChatMessageDto>> response) {
+            public void onResponse(Call<List<ChatMessageDto>> call, retrofit2.Response<List<ChatMessageDto>> response) {
                 if (!response.isSuccessful() || response.body() == null) {
                     return;
                 }
-                List<ChatMessageDto> messages = response.body();
-                adapter.setMessages(messages);
-                boolean hasMessages = messages != null && !messages.isEmpty();
-                textEmpty.setVisibility(hasMessages ? View.GONE : View.VISIBLE);
-                if (hasMessages) {
-                    recyclerMessages.scrollToPosition(messages.size() - 1);
-                }
+
+                runOnUiThread(() -> {
+                    adapter.setMessages(response.body());
+                    if (scrollToBottom) {
+                        scrollToBottom();
+                    }
+                });
             }
 
             @Override
             public void onFailure(Call<List<ChatMessageDto>> call, Throwable t) {
+                t.printStackTrace();
             }
         });
     }
 
     private void sendMessage() {
-        if (threadId == -1) {
+        String text = editMessage.getText() != null ? editMessage.getText().toString().trim() : "";
+        if (TextUtils.isEmpty(text)) {
             return;
         }
 
-        String text = editMessage.getText().toString().trim();
-        String bounded = Validation.limitLength(text, Validation.CHAT_MESSAGE_MAX_LENGTH);
-        final String boundedText = bounded != null ? bounded : "";
-        if (TextUtils.isEmpty(boundedText)) {
+        if (webSocket == null || !socketConnected) {
+            Toast.makeText(this, "Live connection not ready", Toast.LENGTH_SHORT).show();
             return;
         }
 
-        api.postChatMessage(threadId, new PostChatMessageRequest(boundedText)).enqueue(new Callback<ChatMessageDto>() {
+        JsonObject payload = new JsonObject();
+        payload.addProperty("type", "message");
+        payload.addProperty("text", text);
+
+        try {
+            webSocket.send(gson.toJson(payload));
+            editMessage.setText("");
+        } catch (Exception e) {
+            e.printStackTrace();
+            Toast.makeText(this, "Send failed", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    private void connectSocket() {
+        if (threadId == -1 || !sessionManager.isLoggedIn()) {
+            return;
+        }
+
+        if (webSocket != null) {
+            return;
+        }
+
+        String token = sessionManager.getToken();
+        if (token == null || token.trim().isEmpty()) {
+            updateConnectionUi(false, "Offline");
+            return;
+        }
+
+        String wsUrl = ApiClient.getInstance().getWebSocketBaseUrl()
+                + "/ws/chat?threadId=" + threadId
+                + "&token=" + Uri.encode(token);
+
+        Request request = new Request.Builder()
+                .url(wsUrl)
+                .build();
+
+        updateConnectionUi(false, "Connecting");
+
+        webSocket = webSocketClient.newWebSocket(request, new WebSocketListener() {
             @Override
-            public void onResponse(Call<ChatMessageDto> call, Response<ChatMessageDto> response) {
-                editMessage.setText("");
-                loadMessages();
+            public void onOpen(WebSocket webSocket, Response response) {
+                runOnUiThread(() -> updateConnectionUi(true, "Live"));
             }
 
             @Override
-            public void onFailure(Call<ChatMessageDto> call, Throwable t) {
+            public void onMessage(WebSocket webSocket, String text) {
+                runOnUiThread(() -> handleSocketMessage(text));
+            }
+
+            @Override
+            public void onClosed(WebSocket webSocket, int code, String reason) {
+                runOnUiThread(() -> updateConnectionUi(false, "Offline"));
+            }
+
+            @Override
+            public void onClosing(WebSocket webSocket, int code, String reason) {
+                webSocket.close(code, reason);
+            }
+
+            @Override
+            public void onFailure(WebSocket webSocket, Throwable t, Response response) {
+                t.printStackTrace();
+                runOnUiThread(() -> updateConnectionUi(false, "Offline"));
             }
         });
+    }
+
+    private void disconnectSocket() {
+        socketConnected = false;
+        if (webSocket != null) {
+            try {
+                webSocket.close(1000, "pause");
+            } catch (Exception ignored) {
+            }
+            webSocket = null;
+        }
+    }
+
+    private void handleSocketMessage(String rawText) {
+        try {
+            JsonObject json = JsonParser.parseString(rawText).getAsJsonObject();
+            String type = json.has("type") && !json.get("type").isJsonNull()
+                    ? json.get("type").getAsString()
+                    : "";
+
+            if ("connected".equalsIgnoreCase(type)) {
+                sendReadEvent();
+                return;
+            }
+
+            if ("message".equalsIgnoreCase(type) && json.has("message") && json.get("message").isJsonObject()) {
+                ChatMessageDto message = gson.fromJson(json.getAsJsonObject("message"), ChatMessageDto.class);
+                if (message != null && message.id != null) {
+                    adapter.upsertMessage(message);
+                    scrollToBottom();
+                    sendReadEvent();
+                }
+                return;
+            }
+
+            if ("read".equalsIgnoreCase(type) && json.has("messages") && json.get("messages").isJsonArray()) {
+                JsonArray array = json.getAsJsonArray("messages");
+                ChatMessageDto[] items = gson.fromJson(array, ChatMessageDto[].class);
+                if (items != null) {
+                    adapter.setMessages(java.util.Arrays.asList(items));
+                }
+                return;
+            }
+
+            // Backward-compatible fallback in case a raw ChatMessageDto ever arrives.
+            ChatMessageDto message = gson.fromJson(json, ChatMessageDto.class);
+            if (message != null && message.id != null) {
+                adapter.upsertMessage(message);
+                scrollToBottom();
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            Toast.makeText(this, "Socket parse failed", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    private void sendReadEvent() {
+        if (webSocket == null || !socketConnected) {
+            return;
+        }
+
+        try {
+            JsonObject payload = new JsonObject();
+            payload.addProperty("type", "read");
+            webSocket.send(gson.toJson(payload));
+        } catch (Exception ignored) {
+        }
+    }
+
+    private void scrollToBottom() {
+        int count = adapter.getItemCount();
+        if (count > 0) {
+            recyclerMessages.scrollToPosition(count - 1);
+        }
+    }
+
+    private void updateConnectionUi(boolean connected, String state) {
+        socketConnected = connected;
+        textChatTitle.setText("Support Chat • " + state);
     }
 
     private void redirectToLogin() {

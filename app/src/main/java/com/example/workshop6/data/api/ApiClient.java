@@ -27,30 +27,9 @@ public class ApiClient {
     private String jwtToken;
 
     private ApiClient() {
-        HttpLoggingInterceptor logging = new HttpLoggingInterceptor();
-        logging.setLevel(HttpLoggingInterceptor.Level.BODY);
-
-        OkHttpClient httpClient = new OkHttpClient.Builder()
-                .connectTimeout(10, TimeUnit.SECONDS)
-                .readTimeout(READ_TIMEOUT_SEC, TimeUnit.SECONDS)
-                .writeTimeout(45, TimeUnit.SECONDS)
-                .callTimeout(CALL_TIMEOUT_SEC, TimeUnit.SECONDS)
-                .addInterceptor(logging)
-                .addInterceptor(chain -> {
-                    Request original = chain.request();
-                    if (jwtToken == null) {
-                        return chain.proceed(original);
-                    }
-                    Request authenticated = original.newBuilder()
-                            .header("Authorization", "Bearer " + jwtToken)
-                            .build();
-                    return chain.proceed(authenticated);
-                })
-                .build();
-
         Retrofit retrofit = new Retrofit.Builder()
                 .baseUrl(BASE_URL)
-                .client(httpClient)
+                .client(buildHttpClient())
                 .addConverterFactory(GsonConverterFactory.create())
                 .build();
 
@@ -76,11 +55,49 @@ public class ApiClient {
         this.jwtToken = null;
     }
 
+    public String getBaseUrl() {
+        return BASE_URL;
+    }
+
+    public String getWebSocketBaseUrl() {
+        String trimmed = BASE_URL.endsWith("/") ? BASE_URL.substring(0, BASE_URL.length() - 1) : BASE_URL;
+
+        if (trimmed.startsWith("https://")) {
+            return "wss://" + trimmed.substring("https://".length());
+        }
+
+        if (trimmed.startsWith("http://")) {
+            return "ws://" + trimmed.substring("http://".length());
+        }
+
+        return trimmed;
+    }
+
+    public OkHttpClient newWebSocketClient() {
+        return new OkHttpClient.Builder()
+                .connectTimeout(8, TimeUnit.SECONDS)
+                .readTimeout(0, TimeUnit.MILLISECONDS)
+                .writeTimeout(15, TimeUnit.SECONDS)
+                .retryOnConnectionFailure(true)
+                .pingInterval(20, TimeUnit.SECONDS)
+                .build();
+    }
+
     public <T> T createService(Class<T> serviceClass) {
+        Retrofit retrofit = new Retrofit.Builder()
+                .baseUrl(BASE_URL)
+                .client(buildHttpClient())
+                .addConverterFactory(GsonConverterFactory.create())
+                .build();
+
+        return retrofit.create(serviceClass);
+    }
+
+    private OkHttpClient buildHttpClient() {
         HttpLoggingInterceptor logging = new HttpLoggingInterceptor();
         logging.setLevel(HttpLoggingInterceptor.Level.BODY);
 
-        OkHttpClient httpClient = new OkHttpClient.Builder()
+        return new OkHttpClient.Builder()
                 .connectTimeout(10, TimeUnit.SECONDS)
                 .readTimeout(READ_TIMEOUT_SEC, TimeUnit.SECONDS)
                 .writeTimeout(45, TimeUnit.SECONDS)
@@ -88,7 +105,7 @@ public class ApiClient {
                 .addInterceptor(logging)
                 .addInterceptor(chain -> {
                     Request original = chain.request();
-                    if (jwtToken == null) {
+                    if (jwtToken == null || jwtToken.trim().isEmpty()) {
                         return chain.proceed(original);
                     }
                     Request authenticated = original.newBuilder()
@@ -97,13 +114,5 @@ public class ApiClient {
                     return chain.proceed(authenticated);
                 })
                 .build();
-
-        Retrofit retrofit = new Retrofit.Builder()
-                .baseUrl(BASE_URL)
-                .client(httpClient)
-                .addConverterFactory(GsonConverterFactory.create())
-                .build();
-
-        return retrofit.create(serviceClass);
     }
 }
