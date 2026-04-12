@@ -68,6 +68,7 @@ public class StaffChatInboxFragment extends Fragment {
         recyclerThreads = view.findViewById(R.id.recycler_staff_threads);
         textEmpty = view.findViewById(R.id.text_staff_chat_empty);
         buttonNewChat = view.findViewById(R.id.button_new_chat);
+
         recyclerThreads.setLayoutManager(new LinearLayoutManager(requireContext()));
 
         sessionManager = new SessionManager(requireContext().getApplicationContext());
@@ -97,6 +98,10 @@ public class StaffChatInboxFragment extends Fragment {
         }
 
         adapter = new StaffThreadAdapter(item -> {
+            if (item == null || item.id == null) {
+                return;
+            }
+
             if (isCustomer) {
                 launchChat(item.id);
                 return;
@@ -152,7 +157,11 @@ public class StaffChatInboxFragment extends Fragment {
         api.getChatThreads().enqueue(new Callback<List<ChatThreadDto>>() {
             @Override
             public void onResponse(Call<List<ChatThreadDto>> call, Response<List<ChatThreadDto>> response) {
-                if (getActivity() == null || !response.isSuccessful() || response.body() == null) {
+                if (!isAdded()) {
+                    return;
+                }
+
+                if (!response.isSuccessful() || response.body() == null) {
                     return;
                 }
 
@@ -166,6 +175,7 @@ public class StaffChatInboxFragment extends Fragment {
 
             @Override
             public void onFailure(Call<List<ChatThreadDto>> call, Throwable t) {
+                // Keep the current UI state on refresh failure.
             }
         });
     }
@@ -184,14 +194,10 @@ public class StaffChatInboxFragment extends Fragment {
                     textEmpty.setVisibility(View.GONE);
                     return;
                 }
-<<<<<<< Updated upstream
-                Toast.makeText(requireContext(), R.string.login_error_no_connection, Toast.LENGTH_SHORT).show();
-=======
 
                 adapter.setThreads(Collections.emptyList());
                 recyclerThreads.setVisibility(View.GONE);
                 textEmpty.setVisibility(View.VISIBLE);
->>>>>>> Stashed changes
             }
 
             @Override
@@ -199,8 +205,6 @@ public class StaffChatInboxFragment extends Fragment {
                 if (!isAdded()) {
                     return;
                 }
-<<<<<<< Updated upstream
-=======
 
                 adapter.setThreads(Collections.emptyList());
                 recyclerThreads.setVisibility(View.GONE);
@@ -231,7 +235,6 @@ public class StaffChatInboxFragment extends Fragment {
                     return;
                 }
 
->>>>>>> Stashed changes
                 Toast.makeText(requireContext(), R.string.login_error_no_connection, Toast.LENGTH_SHORT).show();
             }
         });
@@ -241,6 +244,7 @@ public class StaffChatInboxFragment extends Fragment {
         if (!isAdded()) {
             return;
         }
+
         Intent intent = new Intent(requireContext(), ChatActivity.class);
         intent.putExtra(ChatActivity.EXTRA_THREAD_ID, threadId);
         NavTransitions.startActivityWithForward(requireActivity(), intent);
