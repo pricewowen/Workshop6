@@ -27,4 +27,9 @@ public class ReviewDto {
     /** Only on non-persisted moderation rejection responses; not stored in DB. */
     @SerializedName("moderationMessage")
     public String moderationMessage;
+    @SerializedName("verifiedPurchase")
+    public Boolean verifiedPurchase;
+    /** {@code true} when the reviewer is linked to a registered account. */
+    @SerializedName("verifiedAccount")
+    public Boolean verifiedAccount;
 }

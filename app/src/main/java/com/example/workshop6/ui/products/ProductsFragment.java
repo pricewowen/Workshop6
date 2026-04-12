@@ -139,8 +139,8 @@ public class ProductsFragment extends Fragment {
                 if (productAdapter == null) {
                     return;
                 }
-                String rawQuery = s.toString().trim();
-                String query = SearchUtils.normalizeUserSearch(rawQuery);
+                        String rawQuery = s.toString().trim();
+                        String query = SearchUtils.normalizeUserSearch(rawQuery);
                 api.getProducts(rawQuery.isEmpty() ? null : query, null).enqueue(new Callback<List<ProductDto>>() {
                     @Override
                     public void onResponse(Call<List<ProductDto>> call, Response<List<ProductDto>> response) {
@@ -180,7 +180,7 @@ public class ProductsFragment extends Fragment {
         if (isCacheFresh(featuredCachedAtMs) && today.equals(cachedFeaturedForDate)) {
             if (cachedFeaturedProduct != null) {
                 featured = cachedFeaturedProduct;
-                featuredProductId = featured.getProductId();
+                        featuredProductId = featured.getProductId();
                 ProductSpecialState.applyForToday(featured.getProductId(), cachedFeaturedDiscountPercent, today);
                 showFeaturedCard(featured, cachedFeaturedDiscountPercent);
             } else {

@@ -162,6 +162,9 @@ public interface ApiService {
     @POST("api/v1/products/{productId}/reviews")
     Call<ReviewDto> createProductReview(@Path("productId") int productId, @Body ReviewCreateRequest body);
 
+    @POST("api/v1/bakeries/{bakeryId}/reviews")
+    Call<ReviewDto> createBakeryReview(@Path("bakeryId") int bakeryId, @Body ReviewCreateRequest body);
+
     @POST("api/v1/orders/{orderId}/reviews")
     Call<ReviewDto> createOrderReview(@Path("orderId") String orderId, @Body ReviewCreateRequest body);
 

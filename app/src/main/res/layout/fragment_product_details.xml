@@ -93,52 +93,6 @@
                     app:singleLine="false"
                     app:singleSelection="false" />
 
-                <TextView
-                    android:id="@+id/tvReviewsTitle"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="20dp"
-                    android:fontFamily="serif"
-                    android:text="@string/section_product_reviews"
-                    android:textColor="@color/bakery_text_dark"
-                    android:textSize="20sp"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:id="@+id/tvReviewsEmpty"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
-                    android:text="@string/product_reviews_none_yet"
-                    android:textColor="@color/bakery_text_secondary"
-                    android:textSize="14sp"
-                    android:visibility="gone" />
-
-                <FrameLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
-                    android:minHeight="148dp">
-
-                    <androidx.recyclerview.widget.RecyclerView
-                        android:id="@+id/rvReviews"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:clipToPadding="false"
-                        android:nestedScrollingEnabled="false"
-                        android:overScrollMode="never"
-                        android:paddingEnd="4dp"
-                        android:visibility="gone" />
-                </FrameLayout>
-
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/btnLeaveReview"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
-                    android:text="@string/btn_leave_review"
-                    android:visibility="gone" />
-
                 <com.google.android.material.card.MaterialCardView
                     android:layout_width="match_parent"
                     android:layout_height="80dp"
@@ -212,6 +166,82 @@
                     android:textSize="16sp"
                     android:textStyle="bold"
                     app:cornerRadius="28dp" />
+
+                <TextView
+                    android:id="@+id/tvReviewsTitle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/review_section_title_margin_top"
+                    android:text="@string/section_product_reviews"
+                    android:textAppearance="@style/TextAppearance.Bakery.ReviewSectionTitle" />
+
+                <TextView
+                    android:id="@+id/tvReviewsEmpty"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/review_section_stack_spacing"
+                    android:text="@string/product_reviews_none_yet"
+                    android:textAppearance="@style/TextAppearance.Bakery.ReviewSectionEmpty"
+                    android:visibility="gone" />
+
+                <HorizontalScrollView
+                    android:id="@+id/hsv_product_review_filters"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/review_section_stack_spacing"
+                    android:scrollbars="none"
+                    android:visibility="gone">
+
+                    <com.google.android.material.chip.ChipGroup
+                        android:id="@+id/chip_group_product_review_filter"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        app:selectionRequired="true"
+                        app:singleLine="true"
+                        app:singleSelection="true">
+
+                        <com.google.android.material.chip.Chip
+                            android:id="@+id/chip_product_review_all"
+                            style="@style/Widget.MaterialComponents.Chip.Choice"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:checked="true"
+                            android:text="@string/review_filter_all"
+                            android:textColor="@color/bakery_text_dark" />
+
+                        <com.google.android.material.chip.Chip
+                            android:id="@+id/chip_product_review_verified"
+                            style="@style/Widget.MaterialComponents.Chip.Choice"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/review_filter_verified"
+                            android:textColor="@color/bakery_text_dark" />
+
+                        <com.google.android.material.chip.Chip
+                            android:id="@+id/chip_product_review_purchased"
+                            style="@style/Widget.MaterialComponents.Chip.Choice"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/review_filter_purchased"
+                            android:textColor="@color/bakery_text_dark" />
+                    </com.google.android.material.chip.ChipGroup>
+                </HorizontalScrollView>
+
+                <FrameLayout
+                    style="@style/Widget.Bakery.ReviewListFrame"
+                    android:layout_marginTop="@dimen/review_section_stack_spacing">
+
+                    <androidx.recyclerview.widget.RecyclerView
+                        android:id="@+id/rvReviews"
+                        style="@style/Widget.Bakery.ReviewsRecyclerView"
+                        android:visibility="gone" />
+                </FrameLayout>
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnLeaveReview"
+                    style="@style/Widget.Bakery.LeaveReviewButton"
+                    android:layout_marginTop="@dimen/review_section_stack_spacing"
+                    android:text="@string/btn_leave_review" />
             </LinearLayout>
         </LinearLayout>
     </androidx.core.widget.NestedScrollView>

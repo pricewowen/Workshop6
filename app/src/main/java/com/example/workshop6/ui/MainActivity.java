@@ -27,6 +27,7 @@ import com.example.workshop6.payments.PendingStripeConfirm;
 import com.example.workshop6.util.NavTransitions;
 import com.example.workshop6.util.NetworkStatus;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
+import android.view.View;
 import android.widget.Toast;
 
 import retrofit2.Call;
@@ -55,6 +56,8 @@ public class MainActivity extends AppCompatActivity {
     private int currentBottomNavMenuResId = 0;
     private long lastStaffAccessCheckAt = 0L;
     private boolean staffAccessCheckInFlight = false;
+    /** While a review is being moderated, bottom navigation is disabled so the user cannot switch tabs. */
+    private boolean reviewSubmissionBlocksBottomNav;
     private final Handler connectivityHandler = new Handler(Looper.getMainLooper());
     private final Runnable connectivityPollRunnable = new Runnable() {
         @Override
@@ -111,6 +114,15 @@ public class MainActivity extends AppCompatActivity {
             NavTransitions.startActivityWithForward(this, new Intent(this, LoginActivity.class));
             finish();
             return;
+        }
+
+        if (sessionManager.isLoggedIn()) {
+            String token = sessionManager.getToken();
+            if (token != null && !token.trim().isEmpty()) {
+                ApiClient.getInstance().setToken(token);
+            }
+        } else {
+            ApiClient.getInstance().clearToken();
         }
 
         setContentView(R.layout.activity_main);
@@ -368,6 +380,9 @@ public class MainActivity extends AppCompatActivity {
         currentBottomNavMenuResId = menuResId;
         NavigationUI.setupWithNavController(bottomNav, navController);
         bottomNav.setOnItemSelectedListener(item -> {
+            if (reviewSubmissionBlocksBottomNav) {
+                return false;
+            }
             if (!NetworkStatus.isOnline(MainActivity.this)) {
                 Toast.makeText(MainActivity.this, R.string.login_error_no_connection, Toast.LENGTH_SHORT).show();
                 return false;
@@ -387,6 +402,9 @@ public class MainActivity extends AppCompatActivity {
             return navigated;
         });
         bottomNav.setOnItemReselectedListener(item -> {
+            if (reviewSubmissionBlocksBottomNav) {
+                return;
+            }
             if (item.getItemId() == R.id.nav_browse) {
                 popBrowseToProductListIfNeeded();
             }
@@ -394,6 +412,7 @@ public class MainActivity extends AppCompatActivity {
                 popMapStackIfNeeded();
             }
         });
+        bottomNav.setEnabled(!reviewSubmissionBlocksBottomNav);
     }
 
     /** If the browse tab stack is showing product details from the catalog, pop to the product list. */
@@ -456,5 +475,20 @@ public class MainActivity extends AppCompatActivity {
 
     public NavController getNavController() {
         return navController;
+    }
+
+    /**
+     * Full-screen overlay above the bottom nav plus disabled tab bar while a review is submitting.
+     */
+    public void setReviewModerationInProgress(boolean inProgress) {
+        reviewSubmissionBlocksBottomNav = inProgress;
+        View overlay = findViewById(R.id.main_review_moderation_overlay);
+        if (overlay != null) {
+            overlay.setVisibility(inProgress ? View.VISIBLE : View.GONE);
+        }
+        BottomNavigationView bottomNav = findViewById(R.id.bottom_nav);
+        if (bottomNav != null) {
+            bottomNav.setEnabled(!inProgress);
+        }
     }
 }

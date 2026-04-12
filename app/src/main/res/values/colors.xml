@@ -22,6 +22,22 @@
     <color name="bakery_text_tertiary">#8A8078</color>
     <color name="bakery_divider">#D4CEC7</color>
 
+    <!-- Review list chips (align with web menu) -->
+    <color name="review_badge_verified">#15803D</color>
+    <color name="review_badge_purchased">#B45309</color>
+
+    <!-- AI recommendations panel (green — distinct from warm bakery browns/orange) -->
+    <color name="ai_recommendations_panel">#DCFCE7</color>
+    <color name="ai_recommendations_border">#059669</color>
+    <color name="ai_recommendations_title">#064E3B</color>
+    <color name="ai_recommendations_body">#047857</color>
+    <color name="ai_recommendations_muted">#0D9488</color>
+    <color name="ai_recommendations_disclaimer">#047857</color>
+    <color name="ai_recommendations_accent">#059669</color>
+    <color name="ai_recommendation_item_bg">#ECFDF5</color>
+    <color name="ai_recommendation_item_stroke">#6EE7B7</color>
+    <color name="ai_recommendation_item_text">#065F46</color>
+
     <!-- Status -->
     <color name="bakery_status_open">#4CAF50</color>
     <color name="bakery_status_closed">#C45C4A</color>
@@ -32,4 +48,6 @@
 
     <!-- Bottom nav: inactive icons on light pill -->
     <color name="bakery_nav_icon_inactive">#9A918A</color>
+    <!-- Subtle terracotta ripple on nav pill (customer + staff share one bar) -->
+    <color name="bakery_nav_ripple">#33C25F1A</color>
 </resources>

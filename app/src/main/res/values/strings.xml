@@ -35,6 +35,8 @@
     <string name="login_error_locked_out">Too many failed attempts. Try again in %1$s.</string>
     <string name="login_error_server">Server error (%1$d). Please try again.</string>
     <string name="login_error_no_connection">Cannot connect to server.</string>
+    <string name="login_role_choice_title">How do you want to sign in?</string>
+    <string name="login_role_choice_body">Your sign-in matches both your employee and customer accounts. Choose one to continue.</string>
     <string name="lost_connection_logout">Lost connection to server. Please sign in again.</string>
     <string name="session_expired">Your session expired. Please sign in again.</string>
 
@@ -244,6 +246,7 @@
     <string name="photo_approvals_subtitle">Review customer photos waiting for approval</string>
     <string name="photo_approvals_none_pending">No pending profile photos</string>
     <string name="photo_approvals_access_denied">You do not have access to this page</string>
+    <string name="photo_approvals_load_failed">Could not load pending photos. Try again.</string>
     <string name="photo_approve">Approve</string>
     <string name="photo_not_approve">Not approve</string>
     <string name="photo_approved">Photo approved</string>
@@ -304,8 +307,8 @@
     <string name="register_error_duplicate_account">An account already exists with those details</string>
     <string name="register_error_unexpected">Unable to create account right now, please try again</string>
     <string name="customer_profile_title">Personal information</string>
-    <string name="btn_your_details">Edit Personal Info</string>
-    <string name="btn_taste_preferences">Edit preferences</string>
+    <string name="btn_your_details">Personal Info</string>
+    <string name="btn_taste_preferences">Preferences</string>
     <string name="title_taste_preferences">Preferences</string>
     <string name="btn_save_preferences">Save preferences</string>
     <string name="preferences_saved">Preferences saved</string>
@@ -313,6 +316,9 @@
     <string name="preferences_no_tags">No product tags are available yet.</string>
     <string name="me_ai_recommendations_title">AI-powered recommendations</string>
     <string name="me_ai_recommendations_subtitle">Set your taste preferences first, then we can suggest products tailored to you.</string>
+    <string name="me_ai_recommendations_disclaimer_label">Disclaimer</string>
+    <string name="me_ai_recommendations_disclaimer_body">Suggestions use AI and may be inaccurate. Not dietary or medical advice.</string>
+    <string name="me_ai_zone_label">AI suggestions</string>
     <string name="me_recommendations_set_preferences_hint">Add preferences to see personalized product picks.</string>
     <string name="me_recommendations_none_yet">No suggestions right now. Try updating your preferences or ordering something new.</string>
     <string name="me_recommendations_unavailable">Suggestions couldn’t load. Check your connection or try again in a moment.</string>
@@ -321,7 +327,7 @@
     <string name="me_employee_discount_badge">You are eligible at checkout. This applies after today\'s specials and your loyalty tier discount.</string>
     <string name="me_guest_card_title">Sign in for the full experience</string>
     <string name="me_guest_card_body">Create an account or sign in to save orders, earn rewards, and keep your details in sync.</string>
-    <string name="me_section_account_hub">Manage profile</string>
+    <string name="me_section_account_hub">Profile</string>
     <string name="me_deactivate_account">Deactivate account</string>
     <string name="me_deactivate_dialog_title">Deactivate your account?</string>
     <string name="me_deactivate_dialog_message">You will be signed out. Contact support if you need your account reactivated. Enter your password to confirm.</string>
@@ -333,7 +339,7 @@
     <string name="register_toast_employee_discount_linked">Your account is linked to your employee profile. You get 20% off eligible orders at checkout (after today\'s specials and your loyalty tier).</string>
     <string name="checkout_employee_discount_line">Employee discount (20%)</string>
 
-    <string name="btn_edit_account">Edit Account</string>
+    <string name="btn_edit_account">Account</string>
     <string name="title_edit_account">Account</string>
     <string name="btn_update_account">Update Account</string>
     <string name="btn_save_customer_profile">Update Personal Info</string>
@@ -379,10 +385,10 @@
     <string name="stub_me_email">you@example.com</string>
     <string name="stub_me_address">Address</string>
     <string name="no_address_on_file">No address on file. Tap Edit to add one.</string>
-    <string name="order_history">View Order History</string>
+    <string name="order_history">Order History</string>
     <string name="order_history_title">Order History</string>
     <string name="loyalty_rewards_title">Rewards</string>
-    <string name="btn_loyalty_rewards">View Rewards</string>
+    <string name="btn_loyalty_rewards">Rewards</string>
     <string name="loyalty_rewards_checkout_hint">You can redeem your tier discount with points when you check out.</string>
     <string name="type_a_message">Type a message</string>
     <string name="send">Send</string>
@@ -476,8 +482,18 @@
     <string name="order_review_already_submitted_order">You already submitted a review for this order.</string>
     <string name="order_review_submit_failed">Could not submit review.</string>
     <string name="order_review_no_items">No reviewable items on this order.</string>
+    <string name="review_moderation_overlay_message">Checking your review…</string>
+    <string name="review_moderation_overlay_subtitle">Please wait while we process your feedback.</string>
     <string name="review_name_required">First and last name are required in your profile before leaving a review.</string>
     <string name="btn_leave_review">Leave Review</string>
+    <string name="review_badge_verified">✓ Verified</string>
+    <string name="review_badge_purchased">✓ Purchased</string>
+    <string name="review_filter_all">All</string>
+    <string name="review_filter_verified">Verified</string>
+    <string name="review_filter_purchased">Purchased</string>
+    <string name="review_filter_no_matches">No reviews match this filter.</string>
+    <string name="review_guest_name_label">Your name (optional)</string>
+    <string name="review_guest_name_hint">How you\'d like to appear</string>
     <string name="product_review_comment_hint">Share feedback about this product such as taste texture freshness and value. Optional.</string>
     <string name="product_review_requires_purchase">You can only review products you have purchased.</string>
     <string name="product_review_already_submitted">You already submitted a review for this product.</string>

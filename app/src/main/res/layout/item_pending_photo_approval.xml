@@ -4,9 +4,10 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:layout_marginBottom="10dp"
-    app:cardCornerRadius="14dp"
+    app:cardCornerRadius="22dp"
     app:cardBackgroundColor="@color/bakery_card_white"
-    app:strokeColor="@color/bakery_text_secondary"
+    app:cardElevation="4dp"
+    app:strokeColor="@color/bakery_divider"
     app:strokeWidth="1dp">
 
     <LinearLayout
@@ -64,22 +65,30 @@
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btn_approve_photo"
                 android:layout_width="0dp"
-                android:layout_height="42dp"
+                android:layout_height="wrap_content"
                 android:layout_weight="1"
+                android:minHeight="48dp"
                 android:text="@string/photo_approve"
-                app:cornerRadius="21dp" />
+                android:textAllCaps="false"
+                android:textColor="@color/bakery_text_light"
+                app:backgroundTint="@color/bakery_gold_bright"
+                app:cornerRadius="24dp" />
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btn_reject_photo"
-                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                style="@style/Widget.MaterialComponents.Button.UnelevatedButton"
                 android:layout_width="0dp"
-                android:layout_height="42dp"
+                android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:layout_marginStart="10dp"
+                android:minHeight="48dp"
                 android:text="@string/photo_not_approve"
-                android:textColor="@color/bakery_text_dark"
-                app:cornerRadius="21dp"
-                app:strokeColor="@color/bakery_text_dark" />
+                android:textAllCaps="false"
+                android:textColor="@color/bakery_gold_bright"
+                app:backgroundTint="@color/bakery_card_white"
+                app:cornerRadius="24dp"
+                app:strokeColor="@color/bakery_gold_bright"
+                app:strokeWidth="2dp" />
         </LinearLayout>
     </LinearLayout>
 </com.google.android.material.card.MaterialCardView>

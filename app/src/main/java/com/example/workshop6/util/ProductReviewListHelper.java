@@ -16,7 +16,40 @@ public final class ProductReviewListHelper {
 
     private static final int DEFAULT_LIMIT = 3;
 
+    /** Review strip filter: verified account vs verified purchase vs all. */
+    public enum ReviewBadgeFilter {
+        ALL,
+        VERIFIED,
+        PURCHASED
+    }
+
     private ProductReviewListHelper() {
+    }
+
+    /**
+     * Returns a copy of {@code approvedSorted} filtered by badge (order preserved).
+     */
+    public static List<ReviewDto> filterByBadge(
+            @Nullable List<ReviewDto> approvedSorted,
+            ReviewBadgeFilter filter) {
+        if (approvedSorted == null || approvedSorted.isEmpty() || filter == ReviewBadgeFilter.ALL) {
+            if (approvedSorted == null || approvedSorted.isEmpty()) {
+                return Collections.emptyList();
+            }
+            return new ArrayList<>(approvedSorted);
+        }
+        List<ReviewDto> out = new ArrayList<>();
+        for (ReviewDto r : approvedSorted) {
+            if (r == null) {
+                continue;
+            }
+            if (filter == ReviewBadgeFilter.VERIFIED && Boolean.TRUE.equals(r.verifiedAccount)) {
+                out.add(r);
+            } else if (filter == ReviewBadgeFilter.PURCHASED && Boolean.TRUE.equals(r.verifiedPurchase)) {
+                out.add(r);
+            }
+        }
+        return out;
     }
 
     public static List<ReviewDto> newestApprovedForDisplay(List<ReviewDto> raw, int limit) {

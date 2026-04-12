@@ -20,6 +20,8 @@ import com.example.workshop6.data.api.ApiService;
 import com.example.workshop6.data.api.dto.AuthResponse;
 import com.example.workshop6.data.api.dto.ForgotPasswordRequest;
 import com.example.workshop6.data.api.dto.LoginRequest;
+import com.example.workshop6.data.api.dto.LoginRoleChoiceErrorBody;
+import com.google.gson.Gson;
 import com.example.workshop6.logging.ActivityLogger;
 import com.example.workshop6.payments.PendingStripeConfirm;
 import com.example.workshop6.ui.MainActivity;
@@ -30,6 +32,8 @@ import com.example.workshop6.util.Validation;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.textfield.TextInputEditText;
 import com.google.android.material.textfield.TextInputLayout;
+import okhttp3.ResponseBody;
+
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
@@ -212,7 +216,7 @@ public class LoginActivity extends AppCompatActivity {
                         return;
                     }
                     tvError.setVisibility(View.GONE);
-                    submitLoginRequest(email, pass);
+                    submitLoginRequest(new LoginRequest(email, pass), email);
                 }
         );
     }
@@ -245,10 +249,13 @@ public class LoginActivity extends AppCompatActivity {
         return valid;
     }
 
-    private void submitLoginRequest(String email, String pass) {
+    /**
+     * @param lockoutIdentifier email or username the user typed (for rate-limit tracking)
+     */
+    private void submitLoginRequest(LoginRequest loginRequest, String lockoutIdentifier) {
         btnLogin.setEnabled(false);
         ApiService api = ApiClient.getInstance().getService();
-        api.login(new LoginRequest(email, pass)).enqueue(new Callback<AuthResponse>() {
+        api.login(loginRequest).enqueue(new Callback<AuthResponse>() {
             @Override
             public void onResponse(Call<AuthResponse> call, Response<AuthResponse> response) {
                 if (isFinishing() || isDestroyed()) {
@@ -268,11 +275,11 @@ public class LoginActivity extends AppCompatActivity {
                     }
 
                     ApiClient.getInstance().setToken(auth.token);
-                    sessionManager.clearLoginFailures(email);
+                    sessionManager.clearLoginFailures(lockoutIdentifier);
                     String uid = auth.userId != null ? auth.userId : "";
                     String sessionEmail = (auth.email != null && !auth.email.trim().isEmpty())
                             ? auth.email.trim()
-                            : email;
+                            : lockoutIdentifier;
                     sessionManager.persistLoginSession(
                             auth.token,
                             uid,
@@ -284,9 +291,25 @@ public class LoginActivity extends AppCompatActivity {
                     ActivityLogger.log(LoginActivity.this, "USER@" + auth.username, "LOGIN", "Login succeeded");
                     goToMain();
 
+                } else if (response.code() == 409) {
+                    try (ResponseBody err = response.errorBody()) {
+                        if (err != null) {
+                            String json = err.string();
+                            LoginRoleChoiceErrorBody parsed = new Gson().fromJson(json, LoginRoleChoiceErrorBody.class);
+                            if (parsed != null && parsed.choices != null && !parsed.choices.isEmpty()) {
+                                showLinkedAccountRoleDialog(lockoutIdentifier, loginRequest.password, parsed);
+                                return;
+                            }
+                        }
+                    } catch (Exception ignored) {
+                        // fall through
+                    }
+                    tvError.setText(R.string.login_error_invalid_username_or_email);
+                    tvError.setVisibility(View.VISIBLE);
+
                 } else if (response.code() == 401 || response.code() == 403) {
-                    sessionManager.recordFailedLogin(email);
-                    long nextRemainingLockoutMs = sessionManager.getRemainingLockoutMs(email);
+                    sessionManager.recordFailedLogin(lockoutIdentifier);
+                    long nextRemainingLockoutMs = sessionManager.getRemainingLockoutMs(lockoutIdentifier);
                     ActivityLogger.logFailure(LoginActivity.this, null, "LOGIN", "Login failed");
 
                     if (nextRemainingLockoutMs > 0) {
@@ -316,6 +339,35 @@ public class LoginActivity extends AppCompatActivity {
                 ActivityLogger.logFailure(LoginActivity.this, null, "LOGIN", "Network error: " + t.getMessage());
             }
         });
+    }
+
+    private void showLinkedAccountRoleDialog(
+            String lockoutIdentifier,
+            String password,
+            LoginRoleChoiceErrorBody body) {
+        int n = body.choices.size();
+        String[] items = new String[n];
+        for (int i = 0; i < n; i++) {
+            LoginRoleChoiceErrorBody.Choice c = body.choices.get(i);
+            String label = (c.label != null && !c.label.trim().isEmpty()) ? c.label.trim() : c.role;
+            items[i] = label != null ? label : c.username;
+        }
+        String msg = (body.message != null && !body.message.trim().isEmpty())
+                ? body.message.trim()
+                : getString(R.string.login_role_choice_body);
+        new MaterialAlertDialogBuilder(this)
+                .setTitle(R.string.login_role_choice_title)
+                .setMessage(msg)
+                .setItems(items, (d, which) -> {
+                    LoginRoleChoiceErrorBody.Choice chosen = body.choices.get(which);
+                    if (chosen != null && chosen.username != null && !chosen.username.trim().isEmpty()) {
+                        submitLoginRequest(
+                                LoginRequest.forResolvedUsername(chosen.username.trim(), password),
+                                lockoutIdentifier);
+                    }
+                })
+                .setNegativeButton(android.R.string.cancel, null)
+                .show();
     }
 
     private void goToMain() {

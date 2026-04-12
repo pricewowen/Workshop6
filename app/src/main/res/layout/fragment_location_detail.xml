@@ -20,6 +20,7 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:layout_marginTop="?attr/actionBarSize"
+        android:background="@color/bakery_background"
         android:clipToPadding="false"
         android:fillViewport="true"
         android:visibility="gone">
@@ -197,20 +198,24 @@
                         android:layout_marginEnd="8dp"
                         android:layout_weight="1"
                         android:text="@string/btn_get_directions"
-                        android:textColor="@color/bakery_text_dark"
+                        android:textAllCaps="false"
+                        android:textColor="@color/bakery_text_light"
                         app:backgroundTint="@color/bakery_gold_bright"
                         app:cornerRadius="24dp" />
 
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/btn_call"
-                        style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                        style="@style/Widget.MaterialComponents.Button.UnelevatedButton"
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
                         android:text="@string/btn_call"
+                        android:textAllCaps="false"
                         android:textColor="@color/bakery_gold_bright"
+                        app:backgroundTint="@color/bakery_card_white"
                         app:cornerRadius="24dp"
-                        app:strokeColor="@color/bakery_gold_bright" />
+                        app:strokeColor="@color/bakery_gold_bright"
+                        app:strokeWidth="2dp" />
                 </LinearLayout>
 
                 <TextView
@@ -235,7 +240,7 @@
                 <FrameLayout
                     android:layout_width="match_parent"
                     android:layout_height="168dp"
-                    android:layout_marginBottom="20dp"
+                    android:layout_marginBottom="8dp"
                     android:minHeight="168dp">
 
                     <androidx.recyclerview.widget.RecyclerView
@@ -263,37 +268,77 @@
                     android:id="@+id/tv_bakery_reviews_title"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginBottom="8dp"
+                    android:layout_marginTop="@dimen/review_section_title_margin_top"
                     android:text="@string/section_product_reviews"
-                    android:textColor="@color/bakery_text_dark"
-                    android:textSize="18sp"
-                    android:textStyle="bold" />
+                    android:textAppearance="@style/TextAppearance.Bakery.ReviewSectionTitle" />
 
                 <TextView
                     android:id="@+id/tv_bakery_reviews_empty"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginBottom="12dp"
+                    android:layout_marginTop="@dimen/review_section_stack_spacing"
                     android:text="@string/product_reviews_none_yet"
-                    android:textColor="@color/bakery_text_secondary"
-                    android:textSize="14sp"
+                    android:textAppearance="@style/TextAppearance.Bakery.ReviewSectionEmpty"
                     android:visibility="gone" />
 
-                <FrameLayout
+                <HorizontalScrollView
+                    android:id="@+id/hsv_bakery_review_filters"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:minHeight="148dp">
+                    android:layout_marginTop="@dimen/review_section_stack_spacing"
+                    android:scrollbars="none"
+                    android:visibility="gone">
+
+                    <com.google.android.material.chip.ChipGroup
+                        android:id="@+id/chip_group_bakery_review_filter"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        app:selectionRequired="true"
+                        app:singleLine="true"
+                        app:singleSelection="true">
+
+                        <com.google.android.material.chip.Chip
+                            android:id="@+id/chip_bakery_review_all"
+                            style="@style/Widget.MaterialComponents.Chip.Choice"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:checked="true"
+                            android:text="@string/review_filter_all"
+                            android:textColor="@color/bakery_text_dark" />
+
+                        <com.google.android.material.chip.Chip
+                            android:id="@+id/chip_bakery_review_verified"
+                            style="@style/Widget.MaterialComponents.Chip.Choice"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/review_filter_verified"
+                            android:textColor="@color/bakery_text_dark" />
+
+                        <com.google.android.material.chip.Chip
+                            android:id="@+id/chip_bakery_review_purchased"
+                            style="@style/Widget.MaterialComponents.Chip.Choice"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/review_filter_purchased"
+                            android:textColor="@color/bakery_text_dark" />
+                    </com.google.android.material.chip.ChipGroup>
+                </HorizontalScrollView>
+
+                <FrameLayout
+                    style="@style/Widget.Bakery.ReviewListFrame"
+                    android:layout_marginTop="@dimen/review_section_stack_spacing">
 
                     <androidx.recyclerview.widget.RecyclerView
                         android:id="@+id/rv_bakery_reviews"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:clipToPadding="false"
-                        android:nestedScrollingEnabled="false"
-                        android:overScrollMode="never"
-                        android:paddingEnd="4dp"
+                        style="@style/Widget.Bakery.ReviewsRecyclerView"
                         android:visibility="gone" />
                 </FrameLayout>
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btn_leave_bakery_review"
+                    style="@style/Widget.Bakery.LeaveReviewButton"
+                    android:layout_marginTop="@dimen/review_section_stack_spacing"
+                    android:text="@string/btn_leave_review" />
 
             </LinearLayout>
 

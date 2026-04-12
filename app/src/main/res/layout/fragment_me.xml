@@ -168,13 +168,17 @@
             </com.google.android.material.card.MaterialCardView>
 
             <!-- Account hub -->
-            <LinearLayout
+            <com.google.android.material.card.MaterialCardView
                 android:id="@+id/card_me_actions"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="14dp"
                 android:visibility="gone"
-                android:orientation="vertical">
+                app:cardBackgroundColor="@color/bakery_card_white"
+                app:cardCornerRadius="18dp"
+                app:cardElevation="3dp"
+                app:strokeColor="@color/bakery_divider"
+                app:strokeWidth="1dp">
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -313,7 +317,7 @@
                         app:iconPadding="14dp"
                         app:iconTint="@color/white" />
                 </LinearLayout>
-            </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
 
             <com.google.android.material.card.MaterialCardView
                 android:id="@+id/card_me_ai_recommendations"
@@ -321,11 +325,11 @@
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="12dp"
                 android:visibility="gone"
-                app:cardBackgroundColor="@color/bakery_card_white"
+                app:cardBackgroundColor="@color/ai_recommendations_panel"
                 app:cardCornerRadius="18dp"
-                app:cardElevation="3dp"
-                app:strokeColor="@color/bakery_divider"
-                app:strokeWidth="1dp">
+                app:cardElevation="4dp"
+                app:strokeColor="@color/ai_recommendations_border"
+                app:strokeWidth="2dp">
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -333,76 +337,118 @@
                     android:orientation="vertical"
                     android:padding="16dp">
 
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:gravity="center_vertical"
-                        android:orientation="horizontal">
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:gravity="center_vertical"
+                            android:orientation="horizontal">
 
-                        <ImageView
-                            android:layout_width="22dp"
-                            android:layout_height="22dp"
-                            android:contentDescription="@null"
-                            android:src="@drawable/ic_me_star"
-                            app:tint="@color/bakery_gold_bright" />
+                            <ImageView
+                                android:layout_width="22dp"
+                                android:layout_height="22dp"
+                                android:contentDescription="@null"
+                                android:src="@drawable/ic_me_star"
+                                app:tint="@color/ai_recommendations_title" />
+
+                            <TextView
+                                android:id="@+id/tv_me_ai_rec_title"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_marginStart="8dp"
+                                android:layout_weight="1"
+                                android:text="@string/me_ai_recommendations_title"
+                                android:textColor="@color/ai_recommendations_title"
+                                android:textSize="16sp"
+                                android:textStyle="bold" />
+                        </LinearLayout>
 
                         <TextView
-                            android:id="@+id/tv_me_ai_rec_title"
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_marginStart="8dp"
-                            android:layout_weight="1"
-                            android:text="@string/me_ai_recommendations_title"
-                            android:textColor="@color/bakery_primary"
-                            android:textSize="16sp"
-                            android:textStyle="bold" />
-                    </LinearLayout>
-
-                    <TextView
-                        android:id="@+id/tv_me_ai_rec_subtitle"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="6dp"
-                        android:text="@string/me_ai_recommendations_subtitle"
-                        android:textColor="@color/bakery_text_secondary"
-                        android:textSize="13sp" />
-
-                    <FrameLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="168dp"
-                        android:layout_marginTop="12dp"
-                        android:minHeight="168dp">
-
-                        <androidx.recyclerview.widget.RecyclerView
-                            android:id="@+id/rv_me_recommendations"
-                            android:layout_width="match_parent"
-                            android:layout_height="match_parent"
-                            android:clipToPadding="false"
-                            android:overScrollMode="never"
-                            android:paddingVertical="4dp"
-                            android:visibility="gone" />
-
-                        <ProgressBar
-                            android:id="@+id/me_recommendations_loading"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:layout_gravity="center"
-                            android:indeterminate="true"
-                            android:indeterminateTint="@color/bakery_gold_bright"
-                            android:visibility="gone" />
+                            android:layout_marginTop="4dp"
+                            android:text="@string/me_ai_zone_label"
+                            android:textAllCaps="true"
+                            android:letterSpacing="0.08"
+                            android:textColor="@color/ai_recommendations_accent"
+                            android:textSize="10sp"
+                            android:textStyle="bold" />
 
                         <TextView
-                            android:id="@+id/tv_me_recommendations_placeholder"
+                            android:id="@+id/tv_me_ai_rec_subtitle"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:layout_gravity="center_vertical"
-                            android:gravity="center"
-                            android:paddingHorizontal="12dp"
-                            android:text="@string/me_recommendations_set_preferences_hint"
-                            android:textColor="@color/bakery_text_secondary"
-                            android:textSize="14sp"
-                            android:visibility="visible" />
-                    </FrameLayout>
+                            android:layout_marginTop="4dp"
+                            android:text="@string/me_ai_recommendations_subtitle"
+                            android:textColor="@color/ai_recommendations_body"
+                            android:textSize="13sp"
+                            android:alpha="0.92" />
+
+                        <FrameLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="168dp"
+                            android:layout_marginTop="12dp"
+                            android:minHeight="168dp">
+
+                            <androidx.recyclerview.widget.RecyclerView
+                                android:id="@+id/rv_me_recommendations"
+                                android:layout_width="match_parent"
+                                android:layout_height="match_parent"
+                                android:clipToPadding="false"
+                                android:overScrollMode="never"
+                                android:paddingVertical="4dp"
+                                android:visibility="gone" />
+
+                            <ProgressBar
+                                android:id="@+id/me_recommendations_loading"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_gravity="center"
+                                android:indeterminate="true"
+                                android:indeterminateTint="@color/ai_recommendations_accent"
+                                android:visibility="gone" />
+
+                            <TextView
+                                android:id="@+id/tv_me_recommendations_placeholder"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_gravity="center_vertical"
+                                android:gravity="center"
+                                android:paddingHorizontal="12dp"
+                                android:text="@string/me_recommendations_set_preferences_hint"
+                                android:textColor="@color/ai_recommendations_body"
+                                android:textSize="14sp"
+                                android:alpha="0.88"
+                                android:visibility="visible" />
+                        </FrameLayout>
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="10dp"
+                            android:gravity="center_horizontal"
+                            android:orientation="vertical">
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="@string/me_ai_recommendations_disclaimer_label"
+                                android:textAllCaps="true"
+                                android:letterSpacing="0.06"
+                                android:textColor="@color/ai_recommendations_title"
+                                android:textSize="10sp"
+                                android:textStyle="bold" />
+
+                            <TextView
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="4dp"
+                                android:gravity="center"
+                                android:text="@string/me_ai_recommendations_disclaimer_body"
+                                android:textColor="@color/ai_recommendations_disclaimer"
+                                android:textSize="10sp"
+                                android:alpha="0.9"
+                                android:lineSpacingMultiplier="1.2" />
+                        </LinearLayout>
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
@@ -414,15 +460,17 @@
                 android:layout_marginTop="4dp"
                 android:text="@string/btn_logout"
                 android:textAllCaps="false"
-                android:textColor="@color/bakery_primary"
+                android:textColor="@color/bakery_gold_bright"
                 android:textSize="15sp"
                 android:textStyle="bold"
-                app:backgroundTint="@color/bakery_surface_nav"
+                app:backgroundTint="@color/bakery_card_white"
                 app:cornerRadius="28dp"
                 app:icon="@drawable/ic_me_logout"
                 app:iconGravity="textStart"
                 app:iconPadding="12dp"
-                app:iconTint="@color/bakery_primary" />
+                app:iconTint="@color/bakery_gold_bright"
+                app:strokeColor="@color/bakery_gold_bright"
+                app:strokeWidth="2dp" />
 
             <TextView
                 android:id="@+id/tv_deactivate_account"

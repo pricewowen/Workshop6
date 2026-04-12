@@ -4,9 +4,11 @@
     android:layout_width="152dp"
     android:layout_height="wrap_content"
     android:layout_marginEnd="10dp"
-    app:cardBackgroundColor="@color/bakery_card_white"
+    app:cardBackgroundColor="@color/ai_recommendation_item_bg"
     app:cardCornerRadius="12dp"
-    app:cardElevation="2dp">
+    app:cardElevation="2dp"
+    app:strokeColor="@color/ai_recommendation_item_stroke"
+    app:strokeWidth="1dp">
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -20,7 +22,7 @@
             android:layout_height="wrap_content"
             android:ellipsize="end"
             android:maxLines="3"
-            android:textColor="@color/bakery_text_dark"
+            android:textColor="@color/ai_recommendation_item_text"
             android:textSize="14sp"
             android:textStyle="bold" />
 
@@ -29,7 +31,8 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="6dp"
             android:text="@string/location_tap_product_hint"
-            android:textColor="@color/bakery_text_secondary"
-            android:textSize="11sp" />
+            android:textColor="@color/ai_recommendations_muted"
+            android:textSize="11sp"
+            android:alpha="0.9" />
     </LinearLayout>
 </com.google.android.material.card.MaterialCardView>

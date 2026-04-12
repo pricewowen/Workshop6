@@ -51,5 +51,7 @@
                 android:indeterminate="true"
                 android:indeterminateTint="@color/bakery_gold_bright" />
         </FrameLayout>
+
+        <include layout="@layout/overlay_review_moderation_loading" />
     </FrameLayout>
 </LinearLayout>

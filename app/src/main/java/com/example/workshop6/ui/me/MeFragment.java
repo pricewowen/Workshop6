@@ -891,7 +891,7 @@ public class MeFragment extends Fragment {
             cardActions.setVisibility(View.GONE);
             tvDeactivateAccount.setVisibility(View.GONE);
             btnLogout.setText(R.string.btn_sign_in_or_create_account);
-            styleGuestSignInButton(btnLogout);
+            styleMeOutlinedAccentButton(btnLogout, R.drawable.ic_me_login);
             btnLogout.setOnClickListener(v -> {
                 Intent intent = new Intent(requireContext(), LoginActivity.class);
                 intent.putExtra(LoginActivity.EXTRA_ALLOW_GUEST_AUTH, true);
@@ -902,33 +902,24 @@ public class MeFragment extends Fragment {
             cardActions.setVisibility(View.VISIBLE);
             tvDeactivateAccount.setVisibility(View.VISIBLE);
             btnLogout.setText(R.string.btn_logout);
-            styleSignedInLogoutButton(btnLogout);
+            styleMeOutlinedAccentButton(btnLogout, R.drawable.ic_me_logout);
             btnLogout.setOnClickListener(v -> performFullLogout());
             tvDeactivateAccount.setOnClickListener(v -> showDeactivateAccountDialog());
         }
     }
 
-    private void styleGuestSignInButton(MaterialButton mb) {
-        int orange = ContextCompat.getColor(requireContext(), R.color.bakery_gold_bright);
+    /**
+     * Guest “Sign in” and signed-in “Log out” share the same pill: cream fill, terracotta border/text/icon.
+     */
+    private void styleMeOutlinedAccentButton(MaterialButton mb, int iconRes) {
+        int accent = ContextCompat.getColor(requireContext(), R.color.bakery_gold_bright);
         int card = ContextCompat.getColor(requireContext(), R.color.bakery_card_white);
         mb.setBackgroundTintList(ColorStateList.valueOf(card));
-        mb.setStrokeColor(ColorStateList.valueOf(orange));
+        mb.setStrokeColor(ColorStateList.valueOf(accent));
         mb.setStrokeWidth((int) (1.5f * getResources().getDisplayMetrics().density + 0.5f));
-        mb.setTextColor(ColorStateList.valueOf(orange));
-        mb.setIconResource(R.drawable.ic_me_login);
-        mb.setIconTint(ColorStateList.valueOf(orange));
-        mb.setIconGravity(MaterialButton.ICON_GRAVITY_TEXT_START);
-    }
-
-    private void styleSignedInLogoutButton(MaterialButton mb) {
-        int primary = ContextCompat.getColor(requireContext(), R.color.bakery_primary);
-        int surface = ContextCompat.getColor(requireContext(), R.color.bakery_surface_nav);
-        mb.setStrokeWidth(0);
-        mb.setStrokeColor(ColorStateList.valueOf(surface));
-        mb.setBackgroundTintList(ColorStateList.valueOf(surface));
-        mb.setTextColor(ColorStateList.valueOf(primary));
-        mb.setIconResource(R.drawable.ic_me_logout);
-        mb.setIconTint(ColorStateList.valueOf(primary));
+        mb.setTextColor(ColorStateList.valueOf(accent));
+        mb.setIconResource(iconRes);
+        mb.setIconTint(ColorStateList.valueOf(accent));
         mb.setIconGravity(MaterialButton.ICON_GRAVITY_TEXT_START);
     }
 

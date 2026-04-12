@@ -111,7 +111,7 @@
                     android:paddingEnd="12dp"
                     android:text="@string/btn_get_directions"
                     android:textAllCaps="false"
-                    android:textColor="@color/bakery_text_dark"
+                    android:textColor="@color/bakery_text_light"
                     android:textSize="11sp"
                     android:contentDescription="@string/btn_get_directions"
                     app:backgroundTint="@color/bakery_gold_bright"

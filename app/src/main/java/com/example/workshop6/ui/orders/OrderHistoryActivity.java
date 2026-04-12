@@ -37,6 +37,7 @@ import com.example.workshop6.data.api.dto.ReviewDto;
 import com.example.workshop6.payments.PendingStripeConfirm;
 import com.example.workshop6.util.MoneyFormat;
 import com.example.workshop6.util.NavTransitions;
+import com.example.workshop6.util.ReviewModerationUi;
 import com.google.android.material.snackbar.Snackbar;
 import com.stripe.android.paymentsheet.PaymentSheet;
 import com.stripe.android.paymentsheet.PaymentSheetResult;
@@ -57,6 +58,7 @@ public class OrderHistoryActivity extends AppCompatActivity implements OrderHist
     private RecyclerView rvOrders;
     private TextView tvEmptyOrders;
     private View loadingView;
+    private View reviewModerationOverlay;
     private OrderHistoryAdapter adapter;
     private SessionManager sessionManager;
     private ApiService api;
@@ -93,6 +95,7 @@ public class OrderHistoryActivity extends AppCompatActivity implements OrderHist
         rvOrders = findViewById(R.id.rvOrders);
         tvEmptyOrders = findViewById(R.id.tvEmptyOrders);
         loadingView = findViewById(R.id.loadingView);
+        reviewModerationOverlay = findViewById(R.id.review_moderation_overlay);
 
         rvOrders.setLayoutManager(new LinearLayoutManager(this));
         adapter = new OrderHistoryAdapter(new ArrayList<>(), this);
@@ -399,52 +402,59 @@ public class OrderHistoryActivity extends AppCompatActivity implements OrderHist
 
     private void submitReview(String orderId, short rating, String comment) {
         ReviewCreateRequest req = new ReviewCreateRequest(rating, comment, orderId);
+        ReviewModerationUi.beginSubmission(reviewModerationOverlay);
         api.createOrderReview(orderId, req).enqueue(new Callback<ReviewDto>() {
             @Override
             public void onResponse(Call<ReviewDto> call, Response<ReviewDto> response) {
-                if (!response.isSuccessful()) {
-                    if (response.code() == 400) {
-                        Toast.makeText(OrderHistoryActivity.this, R.string.review_name_required, Toast.LENGTH_LONG).show();
+                try {
+                    if (!response.isSuccessful()) {
+                        if (response.code() == 400) {
+                            Toast.makeText(OrderHistoryActivity.this, R.string.review_name_required, Toast.LENGTH_LONG).show();
+                            return;
+                        }
+                        if (response.code() == 409) {
+                            Toast.makeText(OrderHistoryActivity.this, R.string.order_review_submit_failed, Toast.LENGTH_LONG).show();
+                            loadOrders();
+                            return;
+                        }
+                        Toast.makeText(OrderHistoryActivity.this, R.string.order_review_submit_failed, Toast.LENGTH_SHORT).show();
                         return;
                     }
-                    if (response.code() == 409) {
-                        Toast.makeText(OrderHistoryActivity.this, R.string.order_review_already_submitted_order, Toast.LENGTH_LONG).show();
-                        loadOrders();
-                        return;
-                    }
-                    Toast.makeText(OrderHistoryActivity.this, R.string.order_review_submit_failed, Toast.LENGTH_SHORT).show();
-                    return;
-                }
-                ReviewDto body = response.body();
-                if (body != null && body.status != null) {
-                    String s = body.status.trim().toLowerCase();
-                    if ("approved".equals(s)) {
-                        Toast.makeText(OrderHistoryActivity.this, R.string.order_review_submitted_approved, Toast.LENGTH_LONG).show();
-                    } else if ("rejected".equals(s)) {
-                        String reason = body.moderationMessage;
-                        if (reason != null && !reason.trim().isEmpty()) {
-                            String shortReason = reason.trim();
-                            if (shortReason.length() > 100) {
-                                shortReason = shortReason.substring(0, 99).trim() + "…";
+                    ReviewDto body = response.body();
+                    if (body != null && body.status != null) {
+                        String s = body.status.trim().toLowerCase();
+                        if ("approved".equals(s)) {
+                            Toast.makeText(OrderHistoryActivity.this, R.string.order_review_submitted_approved, Toast.LENGTH_LONG).show();
+                        } else if ("rejected".equals(s)) {
+                            String shortReason = ReviewModerationUi.ellipsizeModerationReason(
+                                    body.moderationMessage);
+                            if (shortReason != null) {
+                                Toast.makeText(OrderHistoryActivity.this,
+                                        getString(R.string.order_review_submitted_rejected_reason, shortReason),
+                                        Toast.LENGTH_LONG).show();
+                            } else {
+                                Toast.makeText(OrderHistoryActivity.this, R.string.order_review_submitted_rejected,
+                                        Toast.LENGTH_LONG).show();
                             }
-                            Toast.makeText(OrderHistoryActivity.this,
-                                    getString(R.string.order_review_submitted_rejected_reason, shortReason),
-                                    Toast.LENGTH_LONG).show();
                         } else {
-                            Toast.makeText(OrderHistoryActivity.this, R.string.order_review_submitted_rejected, Toast.LENGTH_LONG).show();
+                            Toast.makeText(OrderHistoryActivity.this, R.string.order_review_submitted_pending, Toast.LENGTH_LONG).show();
                         }
                     } else {
                         Toast.makeText(OrderHistoryActivity.this, R.string.order_review_submitted_pending, Toast.LENGTH_LONG).show();
                     }
-                } else {
-                    Toast.makeText(OrderHistoryActivity.this, R.string.order_review_submitted_pending, Toast.LENGTH_LONG).show();
+                    loadOrders();
+                } finally {
+                    ReviewModerationUi.endSubmission(reviewModerationOverlay);
                 }
-                loadOrders();
             }
 
             @Override
             public void onFailure(Call<ReviewDto> call, Throwable t) {
-                Toast.makeText(OrderHistoryActivity.this, R.string.login_error_no_connection, Toast.LENGTH_SHORT).show();
+                try {
+                    Toast.makeText(OrderHistoryActivity.this, R.string.login_error_no_connection, Toast.LENGTH_SHORT).show();
+                } finally {
+                    ReviewModerationUi.endSubmission(reviewModerationOverlay);
+                }
             }
         });
     }
