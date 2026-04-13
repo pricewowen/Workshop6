@@ -1,16 +1,23 @@
 package com.example.workshop6.ui.products;
 
+import android.content.res.ColorStateList;
+import android.graphics.Typeface;
 import android.graphics.drawable.Drawable;
 import android.os.Bundle;
+import android.text.InputType;
+import android.util.TypedValue;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 import androidx.navigation.Navigation;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.google.android.material.appbar.MaterialToolbar;
+import com.google.android.material.chip.Chip;
+import com.google.android.material.chip.ChipGroup;
 
 import android.view.LayoutInflater;
 import android.view.View;
@@ -33,19 +40,27 @@ import com.example.workshop6.data.api.ApiService;
 import com.example.workshop6.data.api.ProductMapper;
 import com.example.workshop6.data.api.dto.ProductDto;
 import com.example.workshop6.data.api.dto.ProductSpecialTodayDto;
+import com.example.workshop6.data.api.dto.ReviewCreateRequest;
 import com.example.workshop6.data.api.dto.ReviewDto;
+import com.example.workshop6.data.api.dto.TagDto;
 import com.example.workshop6.data.model.CartItem;
 import com.example.workshop6.data.model.Product;
+import com.example.workshop6.ui.MainActivity;
 import com.example.workshop6.ui.cart.CartManager;
 import com.example.workshop6.util.MoneyFormat;
 import com.example.workshop6.util.ProductReviewListHelper;
 import com.example.workshop6.util.ProductSpecialState;
+import com.example.workshop6.util.ReviewModerationUi;
 import com.example.workshop6.util.SpecialPriceSpan;
 import com.example.workshop6.util.TodayDate;
 
 import java.text.NumberFormat;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
 import retrofit2.Call;
 import retrofit2.Callback;
@@ -59,6 +74,7 @@ public class ProductDetailsFragment extends Fragment {
     private TextView tvProductSpecialBadge;
     private TextView tvProductPrice;
     private TextView tvProductDescription;
+    private ChipGroup chipGroupProductTags;
     private TextView tvQuantity;
     private TextView tvReviewsTitle;
     private TextView tvReviewsEmpty;
@@ -66,20 +82,29 @@ public class ProductDetailsFragment extends Fragment {
     private Button btnIncrease;
     private Button btnDecrease;
     private Button btnAddToCart;
+    private Button btnLeaveReview;
 
     private ImageView ivProductImage;
 
     private RecyclerView rvReviews;
+    private View hsvProductReviewFilters;
+    private ChipGroup chipGroupProductReviewFilter;
     private View productDetailsLoadingOverlay;
     private View productDetailsContent;
+
+    @Nullable
+    private List<ReviewDto> productReviewsApprovedAll;
+    @Nullable
+    private ReviewAdapter productReviewAdapter;
 
     private CartManager cartManager;
     private ApiService api;
     private Product loadedProduct;
     private final NumberFormat currency = NumberFormat.getCurrencyInstance(Locale.CANADA);
-    /** Overlay stays until today's special price + hero image are both ready. */
+    /** Overlay stays until hero image, today's special price, and reviews have finished loading. */
     private boolean revealImageReady;
     private boolean revealSpecialPriceReady;
+    private boolean revealReviewsReady;
 
     public ProductDetailsFragment() {
     }
@@ -115,6 +140,7 @@ public class ProductDetailsFragment extends Fragment {
         tvProductSpecialBadge = view.findViewById(R.id.tvProductSpecialBadge);
         tvProductPrice = view.findViewById(R.id.tvProductPrice);
         tvProductDescription = view.findViewById(R.id.tvProductDescription);
+        chipGroupProductTags = view.findViewById(R.id.chipGroupProductTags);
         tvQuantity = view.findViewById(R.id.tvQuantity);
         tvReviewsTitle = view.findViewById(R.id.tvReviewsTitle);
         tvReviewsEmpty = view.findViewById(R.id.tvReviewsEmpty);
@@ -133,12 +159,17 @@ public class ProductDetailsFragment extends Fragment {
         rvReviews.setNestedScrollingEnabled(false);
         rvReviews.setHasFixedSize(true);
 
-        // Reviews are now displayed on the bakery/location page, not on product details.
-        tvReviewsTitle.setVisibility(View.GONE);
-        tvReviewsEmpty.setVisibility(View.GONE);
-        if (rvReviews.getParent() instanceof View) {
-            ((View) rvReviews.getParent()).setVisibility(View.GONE);
+        hsvProductReviewFilters = view.findViewById(R.id.hsv_product_review_filters);
+        chipGroupProductReviewFilter = view.findViewById(R.id.chip_group_product_review_filter);
+        if (chipGroupProductReviewFilter != null) {
+            chipGroupProductReviewFilter.setOnCheckedStateChangeListener((group, checkedIds) -> {
+                if (isUiReady() && productReviewsApprovedAll != null) {
+                    applyProductReviewFilter();
+                }
+            });
         }
+
+        btnLeaveReview = view.findViewById(R.id.btnLeaveReview);
 
         tvQuantity.setText(String.valueOf(quantCounter));
 
@@ -159,6 +190,9 @@ public class ProductDetailsFragment extends Fragment {
         }
 
         setProductDetailsLoading(true);
+        revealImageReady = false;
+        revealSpecialPriceReady = false;
+        revealReviewsReady = false;
 
         api.getProduct(productId).enqueue(new Callback<ProductDto>() {
             @Override
@@ -183,6 +217,7 @@ public class ProductDetailsFragment extends Fragment {
                 revealSpecialPriceReady = false;
                 toolbarProduct.setTitle(loadedProduct.getProductName());
                 tvProductDescription.setText(loadedProduct.getProductDescription());
+                loadProductTags(response.body() != null ? response.body().tagIds : null);
                 applyTodaySpecialPricing(productId);
                 if (loadedProduct.getImageUrl() != null && !loadedProduct.getImageUrl().isEmpty()) {
                     Glide.with(requireContext())
@@ -226,7 +261,8 @@ public class ProductDetailsFragment extends Fragment {
             }
         });
 
-        // No product reviews section on this screen anymore.
+        loadProductReviewsSection(productId);
+        btnLeaveReview.setOnClickListener(v -> showProductReviewDialog(productId));
 
         btnIncrease.setOnClickListener(v -> {
             quantCounter++;
@@ -243,15 +279,247 @@ public class ProductDetailsFragment extends Fragment {
         btnAddToCart.setOnClickListener(v -> {
             if (loadedProduct != null) {
                 CartItem cartItem = new CartItem(loadedProduct, quantCounter);
-                cartManager.getCart().addItem(cartItem);
-                Toast.makeText(
-                        requireContext(),
-                        R.string.added_to_cart,
-                        Toast.LENGTH_SHORT
-                ).show();
-                Navigation.findNavController(view).navigateUp();
+                    cartManager.getCart().addItem(cartItem);
+                Toast.makeText(requireContext(), R.string.added_to_cart, Toast.LENGTH_SHORT).show();
+                        Navigation.findNavController(view).navigateUp();
             }
         });
+    }
+
+    private void hideProductTags() {
+        if (chipGroupProductTags != null) {
+            chipGroupProductTags.removeAllViews();
+            chipGroupProductTags.setVisibility(View.GONE);
+        }
+    }
+
+    private void loadProductTags(@Nullable List<Integer> tagIds) {
+        if (!isUiReady()) {
+            return;
+        }
+        if (chipGroupProductTags == null) {
+            return;
+        }
+        chipGroupProductTags.removeAllViews();
+        if (tagIds == null || tagIds.isEmpty()) {
+            hideProductTags();
+            return;
+        }
+        api.getTags().enqueue(new Callback<List<TagDto>>() {
+            @Override
+            public void onResponse(@NonNull Call<List<TagDto>> call, @NonNull Response<List<TagDto>> response) {
+                if (!isUiReady() || chipGroupProductTags == null) {
+                    return;
+                }
+                chipGroupProductTags.removeAllViews();
+                if (!response.isSuccessful() || response.body() == null) {
+                    hideProductTags();
+                    return;
+                }
+                Map<Integer, String> byId = new HashMap<>();
+                for (TagDto tag : response.body()) {
+                    if (tag != null && tag.id != null && tag.name != null) {
+                        byId.put(tag.id, tag.name.trim());
+                    }
+                }
+                for (Integer tid : tagIds) {
+                    if (tid == null) {
+                        continue;
+                    }
+                    String label = byId.get(tid);
+                    if (label == null || label.isEmpty()) {
+                        continue;
+                    }
+                    Chip chip = new Chip(requireContext());
+                    chip.setText(label);
+                    chip.setCheckable(false);
+                    chip.setClickable(false);
+                    chip.setFocusable(false);
+                    chip.setCloseIconVisible(false);
+                    chip.setEnsureMinTouchTargetSize(false);
+                    styleProductTagLikeBrowseSelected(chip);
+                    chipGroupProductTags.addView(chip);
+                }
+                if (chipGroupProductTags.getChildCount() == 0) {
+                    hideProductTags();
+                } else {
+                    chipGroupProductTags.setVisibility(View.VISIBLE);
+                }
+            }
+
+            @Override
+            public void onFailure(@NonNull Call<List<TagDto>> call, @NonNull Throwable t) {
+                if (isUiReady()) {
+                    hideProductTags();
+                }
+            }
+        });
+    }
+
+    /** Same look as {@link CategoriesAdapter} selected row: gold pill, white bold text ({@code item_category} + {@code bg_category_chip_selected}). */
+    private void styleProductTagLikeBrowseSelected(Chip chip) {
+        float padH = TypedValue.applyDimension(
+                TypedValue.COMPLEX_UNIT_DIP,
+                20f,
+                getResources().getDisplayMetrics());
+        float padV = TypedValue.applyDimension(
+                TypedValue.COMPLEX_UNIT_DIP,
+                8f,
+                getResources().getDisplayMetrics());
+        float cornerPx = TypedValue.applyDimension(
+                TypedValue.COMPLEX_UNIT_DIP,
+                50f,
+                getResources().getDisplayMetrics());
+        int gold = ContextCompat.getColor(requireContext(), R.color.bakery_gold);
+        int textLight = ContextCompat.getColor(requireContext(), R.color.bakery_text_light);
+        chip.setChipBackgroundColor(ColorStateList.valueOf(gold));
+        chip.setChipStrokeWidth(0f);
+        chip.setChipCornerRadius(cornerPx);
+        chip.setTextColor(textLight);
+        chip.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f);
+        chip.setTypeface(Typeface.DEFAULT_BOLD);
+        chip.setChipStartPadding(padH);
+        chip.setChipEndPadding(padH);
+        chip.setTextStartPadding(0f);
+        chip.setTextEndPadding(0f);
+        int ph = Math.round(padH);
+        int pv = Math.round(padV);
+        chip.setPaddingRelative(ph, pv, ph, pv);
+        chip.setStateListAnimator(null);
+    }
+
+    private void showProductReviewDialog(int productId) {
+        if (!isUiReady()) {
+            return;
+        }
+        SessionManager session = new SessionManager(requireContext());
+        android.widget.LinearLayout container = new android.widget.LinearLayout(requireContext());
+        container.setOrientation(android.widget.LinearLayout.VERTICAL);
+        int pad = (int) (16 * getResources().getDisplayMetrics().density);
+        container.setPadding(pad, pad, pad, 0);
+
+        android.widget.TextView tvRating = new android.widget.TextView(requireContext());
+        tvRating.setText(R.string.order_review_rating_label);
+        container.addView(tvRating);
+
+        View ratingView = LayoutInflater.from(requireContext())
+                .inflate(R.layout.view_dialog_review_rating_bar, container, false);
+        android.widget.RatingBar ratingBar = ratingView.findViewById(R.id.ratingBarDialog);
+        container.addView(ratingView);
+
+        android.widget.EditText etGuestName = null;
+        if (!session.isLoggedIn()) {
+            android.widget.TextView tvGuest = new android.widget.TextView(requireContext());
+            tvGuest.setText(R.string.review_guest_name_label);
+            tvGuest.setPadding(0, pad, 0, 0);
+            container.addView(tvGuest);
+            etGuestName = new android.widget.EditText(requireContext());
+            etGuestName.setHint(R.string.review_guest_name_hint);
+            etGuestName.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_CAP_WORDS);
+            container.addView(etGuestName);
+        }
+
+        android.widget.TextView tvComment = new android.widget.TextView(requireContext());
+        tvComment.setText(R.string.order_review_comment_label);
+        tvComment.setPadding(0, pad, 0, 0);
+        container.addView(tvComment);
+
+        android.widget.EditText etComment = new android.widget.EditText(requireContext());
+        etComment.setHint(R.string.product_review_comment_hint);
+        etComment.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_MULTI_LINE);
+        etComment.setMinLines(3);
+        etComment.setMaxLines(5);
+        container.addView(etComment);
+
+        final android.widget.EditText guestField = etGuestName;
+        new androidx.appcompat.app.AlertDialog.Builder(requireContext())
+                .setTitle(R.string.btn_leave_review)
+                .setView(container)
+                .setNegativeButton(android.R.string.cancel, null)
+                .setPositiveButton(R.string.order_submit_review, (d, w) -> {
+                    short rating = (short) Math.max(1, Math.min(5, Math.round(ratingBar.getRating())));
+                    String comment = etComment.getText() != null ? etComment.getText().toString().trim() : "";
+                    String guestName = null;
+                    if (guestField != null && guestField.getText() != null) {
+                        String g = guestField.getText().toString().trim();
+                        guestName = g.isEmpty() ? null : g;
+                    }
+                    submitProductReview(productId, rating, comment, guestName);
+                })
+                .show();
+    }
+
+    private void submitProductReview(int productId, short rating, String comment, @Nullable String guestName) {
+        ReviewCreateRequest req = new ReviewCreateRequest(rating, comment);
+        if (guestName != null && !guestName.isEmpty()) {
+            req.guestName = guestName;
+        }
+        final MainActivity mainForReview =
+                getActivity() instanceof MainActivity ? (MainActivity) getActivity() : null;
+        if (mainForReview != null) {
+            mainForReview.setReviewModerationInProgress(true);
+        }
+        api.createProductReview(productId, req)
+                .enqueue(new Callback<ReviewDto>() {
+                    @Override
+                    public void onResponse(Call<ReviewDto> call, Response<ReviewDto> response) {
+                        try {
+                            if (!isUiReady()) {
+                                return;
+                            }
+                            if (response.isSuccessful()) {
+                                ReviewDto body = response.body();
+                                if (body != null && body.status != null) {
+                                    String s = body.status.trim().toLowerCase();
+                                    if ("rejected".equals(s)) {
+                                        String shortReason = ReviewModerationUi.ellipsizeModerationReason(
+                                                body.moderationMessage);
+                                        if (shortReason != null) {
+                                            Toast.makeText(requireContext(),
+                                                    getString(R.string.order_review_submitted_rejected_reason,
+                                                            shortReason),
+                                                    Toast.LENGTH_LONG).show();
+                                        } else {
+                                            Toast.makeText(requireContext(), R.string.order_review_submitted_rejected,
+                                                    Toast.LENGTH_LONG).show();
+                                        }
+                                        return;
+                                    }
+                                    if ("approved".equals(s)) {
+                                        Toast.makeText(requireContext(), R.string.order_review_submitted_approved, Toast.LENGTH_LONG).show();
+                                        loadProductReviewsSection(productId);
+                                        return;
+                                    }
+                                }
+                                Toast.makeText(requireContext(), R.string.order_review_submitted_pending, Toast.LENGTH_LONG).show();
+                                loadProductReviewsSection(productId);
+                                return;
+                            }
+                            if (response.code() == 409 || response.code() == 400) {
+                                Toast.makeText(requireContext(), R.string.order_review_submit_failed, Toast.LENGTH_SHORT).show();
+                                return;
+                            }
+                            Toast.makeText(requireContext(), R.string.order_review_submit_failed, Toast.LENGTH_SHORT).show();
+                        } finally {
+                            if (mainForReview != null) {
+                                mainForReview.setReviewModerationInProgress(false);
+                            }
+                        }
+                    }
+
+                    @Override
+                    public void onFailure(Call<ReviewDto> call, Throwable t) {
+                        try {
+                            if (isUiReady()) {
+                                Toast.makeText(requireContext(), R.string.login_error_no_connection, Toast.LENGTH_SHORT).show();
+                            }
+                        } finally {
+                            if (mainForReview != null) {
+                                mainForReview.setReviewModerationInProgress(false);
+                            }
+                        }
+                    }
+                });
     }
 
     private boolean isUiReady() {
@@ -317,11 +585,16 @@ public class ProductDetailsFragment extends Fragment {
         tryRevealProductDetailsUi();
     }
 
+    private void markReviewsReadyAndTryRevealProductUi() {
+        revealReviewsReady = true;
+        tryRevealProductDetailsUi();
+    }
+
     private void tryRevealProductDetailsUi() {
         if (!isUiReady() || loadedProduct == null) {
             return;
         }
-        if (!revealImageReady || !revealSpecialPriceReady) {
+        if (!revealImageReady || !revealSpecialPriceReady || !revealReviewsReady) {
             return;
         }
         setProductDetailsLoading(false);
@@ -337,66 +610,114 @@ public class ProductDetailsFragment extends Fragment {
     }
 
     /**
-     * Loads average (optional) and review list; shows up to three newest approved in a horizontal strip.
+     * Loads all approved product reviews (horizontal strip). Header average is derived from the same list.
      */
     private void loadProductReviewsSection(int productId) {
-        api.getProductReviewAverage(productId).enqueue(new Callback<Double>() {
-            @Override
-            public void onResponse(Call<Double> call, Response<Double> response) {
-                Double avg = response.isSuccessful() ? response.body() : null;
-                fetchProductReviewsList(productId, avg);
-            }
-
-            @Override
-            public void onFailure(Call<Double> call, Throwable t) {
-                fetchProductReviewsList(productId, null);
-            }
-        });
-    }
-
-    private void fetchProductReviewsList(int productId, @Nullable Double averageRating) {
         api.getProductReviews(productId).enqueue(new Callback<List<ReviewDto>>() {
             @Override
             public void onResponse(Call<List<ReviewDto>> call, Response<List<ReviewDto>> response) {
-                if (!isUiReady()) {
-                    return;
+                if (isUiReady()) {
+                    if (!response.isSuccessful() || response.body() == null) {
+                        bindProductReviewsUi(null);
+                    } else {
+                        List<ReviewDto> slice = ProductReviewListHelper.newestApprovedForDisplay(
+                                response.body(), Integer.MAX_VALUE);
+                        bindProductReviewsUi(slice);
+                    }
                 }
-                if (!response.isSuccessful() || response.body() == null) {
-                    bindProductReviewsUi(averageRating, null);
-                    return;
-                }
-                List<ReviewDto> slice = ProductReviewListHelper.newestApprovedForDisplay(response.body());
-                bindProductReviewsUi(averageRating, slice);
+                markReviewsReadyAndTryRevealProductUi();
             }
 
             @Override
             public void onFailure(Call<List<ReviewDto>> call, Throwable t) {
                 if (isUiReady()) {
-                    bindProductReviewsUi(averageRating, null);
+                    bindProductReviewsUi(null);
                 }
+                markReviewsReadyAndTryRevealProductUi();
             }
         });
     }
 
-    private void bindProductReviewsUi(@Nullable Double averageRating, @Nullable List<ReviewDto> displayedReviews) {
+    private void bindProductReviewsUi(@Nullable List<ReviewDto> fullApprovedSorted) {
+        if (fullApprovedSorted == null || fullApprovedSorted.isEmpty()) {
+            productReviewsApprovedAll = null;
+            if (hsvProductReviewFilters != null) {
+                hsvProductReviewFilters.setVisibility(View.GONE);
+            }
+        } else {
+            productReviewsApprovedAll = new ArrayList<>(fullApprovedSorted);
+            if (hsvProductReviewFilters != null) {
+                hsvProductReviewFilters.setVisibility(View.VISIBLE);
+            }
+            if (chipGroupProductReviewFilter != null) {
+                chipGroupProductReviewFilter.check(R.id.chip_product_review_all);
+            }
+        }
+        applyProductReviewFilter();
+    }
+
+    private ProductReviewListHelper.ReviewBadgeFilter resolveProductReviewFilter() {
+        if (chipGroupProductReviewFilter == null) {
+            return ProductReviewListHelper.ReviewBadgeFilter.ALL;
+        }
+        int id = chipGroupProductReviewFilter.getCheckedChipId();
+        if (id == R.id.chip_product_review_verified) {
+            return ProductReviewListHelper.ReviewBadgeFilter.VERIFIED;
+        }
+        if (id == R.id.chip_product_review_purchased) {
+            return ProductReviewListHelper.ReviewBadgeFilter.PURCHASED;
+        }
+        return ProductReviewListHelper.ReviewBadgeFilter.ALL;
+    }
+
+    private void applyProductReviewFilter() {
         if (tvReviewsTitle == null || tvReviewsEmpty == null || rvReviews == null) {
             return;
         }
+        if (productReviewsApprovedAll == null || productReviewsApprovedAll.isEmpty()) {
+            tvReviewsTitle.setText(R.string.section_product_reviews);
+            tvReviewsEmpty.setText(R.string.product_reviews_none_yet);
+            tvReviewsEmpty.setVisibility(View.VISIBLE);
+            rvReviews.setVisibility(View.GONE);
+            rvReviews.setAdapter(null);
+            productReviewAdapter = null;
+            return;
+        }
+        List<ReviewDto> filtered = ProductReviewListHelper.filterByBadge(
+                productReviewsApprovedAll, resolveProductReviewFilter());
+        Double averageRating = ProductReviewListHelper.averageRating(filtered);
         boolean hasAvg = averageRating != null && !averageRating.isNaN();
-        if (hasAvg) {
+        if (hasAvg && !filtered.isEmpty()) {
             tvReviewsTitle.setText(getString(R.string.product_reviews_with_average, averageRating));
         } else {
             tvReviewsTitle.setText(R.string.section_product_reviews);
         }
-        if (displayedReviews == null || displayedReviews.isEmpty()) {
+        if (filtered.isEmpty()) {
+            tvReviewsEmpty.setText(R.string.review_filter_no_matches);
             tvReviewsEmpty.setVisibility(View.VISIBLE);
             rvReviews.setVisibility(View.GONE);
-            rvReviews.setAdapter(null);
-        } else {
-            tvReviewsEmpty.setVisibility(View.GONE);
-            rvReviews.setVisibility(View.VISIBLE);
-            rvReviews.setAdapter(new ReviewAdapter(displayedReviews));
-            rvReviews.scrollToPosition(0);
+            if (productReviewAdapter != null) {
+                productReviewAdapter.replaceReviews(Collections.emptyList());
+            } else {
+                rvReviews.setAdapter(null);
+            }
+            return;
         }
+        tvReviewsEmpty.setVisibility(View.GONE);
+        rvReviews.setVisibility(View.VISIBLE);
+        if (productReviewAdapter == null) {
+            productReviewAdapter = new ReviewAdapter(filtered);
+            rvReviews.setAdapter(productReviewAdapter);
+        } else {
+            productReviewAdapter.replaceReviews(filtered);
+        }
+        rvReviews.scrollToPosition(0);
+    }
+
+    @Override
+    public void onDestroyView() {
+        productReviewsApprovedAll = null;
+        productReviewAdapter = null;
+        super.onDestroyView();
     }
 }

@@ -3,7 +3,6 @@ package com.example.workshop6.ui.cart;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.Button;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
@@ -64,9 +63,9 @@ public class CartAdapter extends RecyclerView.Adapter<CartAdapter.CartViewHolder
         TextView tvUnitPrice;
         TextView tvQuantity;
         TextView tvTotal;
-        Button btnDecrease;
-        Button btnIncrease;
-        Button btnRemove;
+        View btnDecrease;
+        View btnIncrease;
+        View btnRemove;
 
         CartViewHolder(@NonNull View itemView) {
             super(itemView);
