@@ -4,24 +4,30 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextWatcher;
+import android.view.LayoutInflater;
 import android.view.View;
+import android.widget.Button;
 import android.widget.TextView;
+import android.widget.Toast;
 import android.text.format.DateUtils;
-import android.util.Log;
-import com.example.workshop6.BuildConfig;
 
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.example.workshop6.R;
 import com.example.workshop6.data.api.ApiClient;
 import com.example.workshop6.data.api.ApiService;
 import com.example.workshop6.data.api.dto.AuthResponse;
+import com.example.workshop6.data.api.dto.ForgotPasswordRequest;
 import com.example.workshop6.data.api.dto.LoginRequest;
 import com.example.workshop6.logging.ActivityLogger;
+import com.example.workshop6.payments.PendingStripeConfirm;
 import com.example.workshop6.ui.MainActivity;
 import com.example.workshop6.util.ApiReachability;
+import com.example.workshop6.util.NavTransitions;
 import com.example.workshop6.util.NetworkStatus;
 import com.example.workshop6.util.Validation;
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.textfield.TextInputEditText;
 import com.google.android.material.textfield.TextInputLayout;
 import retrofit2.Call;
@@ -29,6 +35,7 @@ import retrofit2.Callback;
 import retrofit2.Response;
 
 public class LoginActivity extends AppCompatActivity {
+    public static final String EXTRA_ALLOW_GUEST_AUTH = "allow_guest_auth";
 
     private TextInputLayout tilEmail, tilPassword;
     private TextInputEditText etEmail, etPassword;
@@ -41,6 +48,12 @@ public class LoginActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
 
         sessionManager = new SessionManager(this);
+
+        boolean allowGuestAuth = getIntent().getBooleanExtra(EXTRA_ALLOW_GUEST_AUTH, false);
+        if (sessionManager.isGuestMode() && !allowGuestAuth) {
+            goToMain();
+            return;
+        }
 
         if (sessionManager.isLoggedIn()) {
             String token = sessionManager.getToken();
@@ -103,6 +116,8 @@ public class LoginActivity extends AppCompatActivity {
 
         btnLogin.setOnClickListener(v -> attemptLogin());
 
+        findViewById(R.id.tv_forgot_password).setOnClickListener(v -> showForgotPasswordDialog());
+
         // Register link — device online + API reachable before opening registration.
         findViewById(R.id.tv_register_link).setOnClickListener(v -> {
             if (!NetworkStatus.isOnline(this)) {
@@ -119,11 +134,43 @@ public class LoginActivity extends AppCompatActivity {
                     },
                     () -> {
                         if (!isFinishing()) {
-                            startActivity(new Intent(this, RegisterActivity.class));
+                            Intent intent = new Intent(LoginActivity.this, RegisterActivity.class);
+                            intent.putExtra(EXTRA_ALLOW_GUEST_AUTH, sessionManager.isGuestMode());
+                            NavTransitions.startActivityWithForward(
+                                    LoginActivity.this,
+                                    intent);
                         }
                     }
             );
         });
+        // Skip for now — same online + API check as register link before starting guest session.
+        findViewById(R.id.tv_guest_link).setOnClickListener(v -> {
+            if (!NetworkStatus.isOnline(this)) {
+                tvError.setText(R.string.login_error_no_connection);
+                tvError.setVisibility(View.VISIBLE);
+                return;
+            }
+            ApiReachability.checkThen(
+                    () -> {
+                        if (!isFinishing()) {
+                            tvError.setText(R.string.login_error_no_connection);
+                            tvError.setVisibility(View.VISIBLE);
+                        }
+                    },
+                    () -> {
+                        if (!isFinishing()) {
+                            sessionManager.beginGuestSession();
+                            goToMain();
+                        }
+                    }
+            );
+        });
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        PendingStripeConfirm.tryDrain(this);
     }
 
     private void attemptLogin() {
@@ -200,9 +247,6 @@ public class LoginActivity extends AppCompatActivity {
 
     private void submitLoginRequest(String email, String pass) {
         btnLogin.setEnabled(false);
-
-        Log.d("API_DEBUG", "BASE URL = " + BuildConfig.API_BASE_URL);
-
         ApiService api = ApiClient.getInstance().getService();
         api.login(new LoginRequest(email, pass)).enqueue(new Callback<AuthResponse>() {
             @Override
@@ -226,16 +270,19 @@ public class LoginActivity extends AppCompatActivity {
                     ApiClient.getInstance().setToken(auth.token);
                     sessionManager.clearLoginFailures(email);
                     String uid = auth.userId != null ? auth.userId : "";
+                    String sessionEmail = (auth.email != null && !auth.email.trim().isEmpty())
+                            ? auth.email.trim()
+                            : email;
                     sessionManager.persistLoginSession(
                             auth.token,
                             uid,
                             auth.role.toUpperCase(),
                             auth.username,
-                            email
+                            sessionEmail
                     );
 
                     ActivityLogger.log(LoginActivity.this, "USER@" + auth.username, "LOGIN", "Login succeeded");
-            goToMain();
+                    goToMain();
 
                 } else if (response.code() == 401 || response.code() == 403) {
                     sessionManager.recordFailedLogin(email);
@@ -274,7 +321,102 @@ public class LoginActivity extends AppCompatActivity {
     private void goToMain() {
         Intent intent = new Intent(this, MainActivity.class);
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
-        startActivity(intent);
+        NavTransitions.startActivityWithForward(this, intent);
         finish();
+    }
+
+    private void showForgotPasswordDialog() {
+        View dlgView = LayoutInflater.from(this).inflate(R.layout.dialog_forgot_password, null);
+        TextInputLayout tilForgot = dlgView.findViewById(R.id.til_forgot_email);
+        TextInputEditText etForgot = dlgView.findViewById(R.id.et_forgot_email);
+        String seed = etEmail.getText() != null ? etEmail.getText().toString().trim() : "";
+        if (!seed.isEmpty() && seed.contains("@")) {
+            etForgot.setText(seed);
+            etForgot.setSelection(seed.length());
+        }
+
+        AlertDialog dialog = new MaterialAlertDialogBuilder(this)
+                .setTitle(R.string.forgot_password_title)
+                .setMessage(R.string.forgot_password_dialog_message)
+                .setView(dlgView)
+                .setPositiveButton(R.string.forgot_password_send, null)
+                .setNegativeButton(android.R.string.cancel, null)
+                .create();
+
+        dialog.setOnShowListener(d -> {
+            Button positive = dialog.getButton(AlertDialog.BUTTON_POSITIVE);
+            if (positive == null) {
+                return;
+            }
+            positive.setOnClickListener(v -> {
+                String email = etForgot.getText() != null ? etForgot.getText().toString().trim() : "";
+                if (email.isEmpty() || !Validation.isEmailValid(email)) {
+                    tilForgot.setError(getString(R.string.forgot_password_error_validation));
+                    return;
+                }
+                tilForgot.setError(null);
+                if (!NetworkStatus.isOnline(this)) {
+                    Toast.makeText(this, R.string.login_error_no_connection, Toast.LENGTH_LONG).show();
+                    return;
+                }
+                positive.setEnabled(false);
+                ApiReachability.checkThen(
+                        () -> {
+                            if (!isFinishing() && !isDestroyed()) {
+                                positive.setEnabled(true);
+                                Toast.makeText(this, R.string.login_error_no_connection, Toast.LENGTH_LONG).show();
+                            }
+                        },
+                        () -> {
+                            if (isFinishing() || isDestroyed()) {
+                                return;
+                            }
+                            submitForgotPassword(dialog, positive, email);
+                        }
+                );
+            });
+        });
+        dialog.show();
+    }
+
+    private void submitForgotPassword(AlertDialog dialog, Button positiveBtn, String email) {
+        ApiClient.getInstance().getService()
+                .forgotPassword(new ForgotPasswordRequest(email))
+                .enqueue(new Callback<Void>() {
+                    @Override
+                    public void onResponse(Call<Void> call, Response<Void> response) {
+                        if (isFinishing() || isDestroyed()) {
+                            return;
+                        }
+                        positiveBtn.setEnabled(true);
+                        if (response.isSuccessful()) {
+                            dialog.dismiss();
+                            Toast.makeText(LoginActivity.this, R.string.forgot_password_success, Toast.LENGTH_LONG)
+                                    .show();
+                            ActivityLogger.log(LoginActivity.this, sessionManager, "FORGOT_PASSWORD",
+                                    "Request submitted");
+                            return;
+                        }
+                        if (response.code() == 400) {
+                            Toast.makeText(LoginActivity.this, R.string.forgot_password_error_validation,
+                                    Toast.LENGTH_LONG).show();
+                            return;
+                        }
+                        Toast.makeText(LoginActivity.this, R.string.forgot_password_error_generic, Toast.LENGTH_LONG)
+                                .show();
+                    }
+
+                    @Override
+                    public void onFailure(Call<Void> call, Throwable t) {
+                        if (isFinishing() || isDestroyed()) {
+                            return;
+                        }
+                        positiveBtn.setEnabled(true);
+                        Toast.makeText(LoginActivity.this, R.string.login_error_no_connection, Toast.LENGTH_LONG)
+                                .show();
+                        ActivityLogger.logFailure(LoginActivity.this, sessionManager, "FORGOT_PASSWORD",
+                                "Network error: " + t.getMessage());
+                    }
+                });
     }
 }

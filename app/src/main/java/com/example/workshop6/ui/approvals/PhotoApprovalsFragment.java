@@ -5,6 +5,7 @@ import android.graphics.ColorMatrix;
 import android.graphics.ColorMatrixColorFilter;
 import android.view.LayoutInflater;
 import android.view.View;
+import android.view.ViewOutlineProvider;
 import android.view.ViewGroup;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -22,6 +23,7 @@ import com.example.workshop6.data.api.ApiClient;
 import com.example.workshop6.data.api.ApiService;
 import com.example.workshop6.data.api.dto.CustomerDto;
 import com.example.workshop6.logging.ActivityLogger;
+import com.example.workshop6.util.ProfileInitialsAvatar;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -145,11 +147,9 @@ public class PhotoApprovalsFragment extends Fragment {
                         approve ? "APPROVE_PHOTO" : "REJECT_PHOTO",
                         "customerId=" + customer.id
                 );
-                Toast.makeText(
-                        requireContext(),
+                Toast.makeText(requireContext(),
                         approve ? R.string.photo_approved : R.string.photo_rejected,
-                        Toast.LENGTH_SHORT
-                ).show();
+                        Toast.LENGTH_SHORT).show();
                 loadPendingPhotos();
             }
 
@@ -205,20 +205,27 @@ public class PhotoApprovalsFragment extends Fragment {
             holder.tvName.setText(fullName);
             holder.tvEmail.setText(c.email != null ? c.email : "");
 
+            int avPx = (int) (72f * holder.itemView.getResources().getDisplayMetrics().density + 0.5f);
+            android.graphics.drawable.Drawable initialsDrawable = ProfileInitialsAvatar.create(
+                    holder.itemView.getContext(),
+                    avPx,
+                    ProfileInitialsAvatar.initialsFrom(fullName, c.email, ""));
             if (c.profilePhotoPath != null && !c.profilePhotoPath.trim().isEmpty()) {
                 String originFallback = cdnToOriginUrl(c.profilePhotoPath);
                 Glide.with(holder.itemView)
                         .load(c.profilePhotoPath)
-                        .placeholder(R.drawable.ic_person_placeholder)
+                        .circleCrop()
+                        .placeholder(initialsDrawable)
                         .error(
                                 Glide.with(holder.itemView)
                                         .load(originFallback != null ? originFallback : c.profilePhotoPath)
-                                        .placeholder(R.drawable.ic_person_placeholder)
-                                        .error(R.drawable.ic_person_placeholder)
+                                        .circleCrop()
+                                        .placeholder(initialsDrawable)
+                                        .error(initialsDrawable)
                         )
                         .into(holder.ivPhoto);
             } else {
-                holder.ivPhoto.setImageResource(R.drawable.ic_person_placeholder);
+                holder.ivPhoto.setImageDrawable(initialsDrawable);
             }
             applyPendingPhotoStyle(holder.ivPhoto);
 
@@ -241,6 +248,8 @@ public class PhotoApprovalsFragment extends Fragment {
             VH(@NonNull View itemView) {
                 super(itemView);
                 ivPhoto = itemView.findViewById(R.id.iv_pending_photo);
+                ivPhoto.setClipToOutline(true);
+                ivPhoto.setOutlineProvider(ViewOutlineProvider.BACKGROUND);
                 tvName = itemView.findViewById(R.id.tv_pending_name);
                 tvEmail = itemView.findViewById(R.id.tv_pending_email);
                 btnApprove = itemView.findViewById(R.id.btn_approve_photo);

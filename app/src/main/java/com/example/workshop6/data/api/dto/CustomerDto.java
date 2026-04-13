@@ -31,4 +31,6 @@ public class CustomerDto {
     public String profilePhotoPath;
     @SerializedName("photoApprovalPending")
     public boolean photoApprovalPending;
+    @SerializedName("employeeDiscountEligible")
+    public boolean employeeDiscountEligible;
 }

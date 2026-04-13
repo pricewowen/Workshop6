@@ -79,6 +79,18 @@ public class CategoriesAdapter extends RecyclerView.Adapter<CategoriesAdapter.Ca
         return categoryList.size();
     }
 
+    /** Programmatic selection (e.g. revert to All when an action cannot complete). */
+    public void setSelectedPosition(int position) {
+        if (categoryList.isEmpty()) {
+            return;
+        }
+        int clamped = Math.max(0, Math.min(position, categoryList.size() - 1));
+        int previous = selectedPosition;
+        selectedPosition = clamped;
+        notifyItemChanged(previous);
+        notifyItemChanged(selectedPosition);
+    }
+
     // ViewHolder class
     static class CategoryViewHolder extends RecyclerView.ViewHolder {
         TextView tvCategoryName;

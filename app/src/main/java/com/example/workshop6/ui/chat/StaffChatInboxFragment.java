@@ -259,38 +259,7 @@ public class StaffChatInboxFragment extends Fragment {
             return;
         }
         Intent intent = new Intent(requireContext(), ChatActivity.class);
-        intent.putExtra(ChatActivity.EXTRA_THREAD_ID, thread.id);
-        intent.putExtra(ChatActivity.EXTRA_THREAD_TITLE, buildThreadTitle(thread));
-        intent.putExtra(ChatActivity.EXTRA_THREAD_SUBTITLE, buildThreadSubtitle(thread));
+        intent.putExtra(ChatActivity.EXTRA_THREAD_ID, threadId);
         NavTransitions.startActivityWithForward(requireActivity(), intent);
-    }
-
-    private String buildThreadTitle(ChatThreadDto thread) {
-        if ("CUSTOMER".equalsIgnoreCase(sessionManager.getUserRole())) {
-            return getString(R.string.staff_chat);
-        }
-        if (thread.customerDisplayName != null && !thread.customerDisplayName.trim().isEmpty()) {
-            return thread.customerDisplayName.trim();
-        }
-        if (thread.customerUsername != null && !thread.customerUsername.trim().isEmpty()) {
-            return thread.customerUsername.trim();
-        }
-        if (thread.customerEmail != null && !thread.customerEmail.trim().isEmpty()) {
-            return thread.customerEmail.trim();
-        }
-        return thread.id != null ? "Thread #" + thread.id : getString(R.string.nav_chat_short);
-    }
-
-    private String buildThreadSubtitle(ChatThreadDto thread) {
-        if ("CUSTOMER".equalsIgnoreCase(sessionManager.getUserRole())) {
-            return getString(R.string.chat_subtitle_customer_waiting);
-        }
-        if (thread.customerEmail != null && !thread.customerEmail.trim().isEmpty()) {
-            return thread.customerEmail.trim();
-        }
-        if (thread.customerUsername != null && !thread.customerUsername.trim().isEmpty()) {
-            return thread.customerUsername.trim();
-        }
-        return getString(R.string.chat_subtitle_staff_view);
     }
 }

@@ -24,6 +24,7 @@ import com.example.workshop6.data.api.ApiClient;
 import com.example.workshop6.data.api.ApiService;
 import com.example.workshop6.data.api.dto.ChatMessageDto;
 import com.example.workshop6.data.api.dto.PostChatMessageRequest;
+import com.example.workshop6.util.NavTransitions;
 import com.example.workshop6.util.Validation;
 
 import java.util.List;
@@ -76,7 +77,10 @@ public class ChatActivity extends AppCompatActivity {
         textSubtitle = findViewById(R.id.text_chat_subtitle);
         layoutChatInput = findViewById(R.id.layout_chat_input);
 
-        buttonBack.setOnClickListener(v -> finish());
+        buttonBack.setOnClickListener(v -> {
+            finish();
+            NavTransitions.applyBackwardPending(this);
+        });
 
         sessionManager = new SessionManager(getApplicationContext());
         api = ApiClient.getInstance().getService();
@@ -90,6 +94,7 @@ public class ChatActivity extends AppCompatActivity {
         userUuid = sessionManager.getUserUuid();
         if (userUuid == null || userUuid.isEmpty()) {
             finish();
+            NavTransitions.applyBackwardPending(this);
             return;
         }
 
@@ -101,6 +106,7 @@ public class ChatActivity extends AppCompatActivity {
         threadId = getIntent().getIntExtra(EXTRA_THREAD_ID, -1);
         if (threadId == -1) {
             finish();
+            NavTransitions.applyBackwardPending(this);
             return;
         }
 
@@ -202,7 +208,7 @@ public class ChatActivity extends AppCompatActivity {
         Intent intent = new Intent(this, LoginActivity.class);
         intent.putExtra("session_message", getString(R.string.session_expired));
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
-        startActivity(intent);
+        NavTransitions.startActivityWithForward(this, intent);
         finish();
     }
 

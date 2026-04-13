@@ -11,11 +11,10 @@ val localProperties = Properties().apply {
 
 /**
  * Dev API base URL; override in local.properties as api.base.url=
- * Default emulator mapping to host machine: http://10.0.2.2:8080/
- * For a physical device, set api.base.url to your PC LAN IP (same network).
- * Optional: if you prefer 127.0.0.1, run adb reverse tcp:8080 tcp:8080 first.
+ * Default 127.0.0.1 with adb reverse: adb reverse tcp:8080 tcp:8080
+ * For Wi‑Fi-only device without adb reverse, set api.base.url to your PC LAN IP.
  */
-val apiBaseUrl = (localProperties.getProperty("api.base.url") ?: "http://10.0.2.2:8080/")
+val apiBaseUrl = (localProperties.getProperty("api.base.url") ?: "http://127.0.0.1:8080/")
     .trim()
     .let { if (it.endsWith("/")) it else "$it/" }
 

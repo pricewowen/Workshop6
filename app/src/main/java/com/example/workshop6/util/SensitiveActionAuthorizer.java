@@ -21,6 +21,8 @@ import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
 
+import java.util.function.Consumer;
+
 public final class SensitiveActionAuthorizer {
 
     private SensitiveActionAuthorizer() {
@@ -33,7 +35,21 @@ public final class SensitiveActionAuthorizer {
             String message,
             Runnable onAuthorized
     ) {
-        if (activity == null || sessionManager == null || onAuthorized == null) {
+        promptForPasswordWithCurrent(activity, sessionManager, title, message, currentPassword -> onAuthorized.run());
+    }
+
+    /**
+     * After successful re-authentication, invokes the callback with the current password
+     * the user entered (for APIs such as change password).
+     */
+    public static void promptForPasswordWithCurrent(
+            AppCompatActivity activity,
+            SessionManager sessionManager,
+            String title,
+            String message,
+            Consumer<String> onAuthorizedWithCurrentPassword
+    ) {
+        if (activity == null || sessionManager == null || onAuthorizedWithCurrentPassword == null) {
             return;
         }
 
@@ -58,15 +74,15 @@ public final class SensitiveActionAuthorizer {
             }
             tilPassword.setError(null);
 
-            String email = sessionManager.getLoginEmail();
-            if (email == null || email.isEmpty()) {
+            String identity = sessionManager.getLoginEmail();
+            if (identity == null || identity.isEmpty()) {
                 tilPassword.setError(activity.getString(R.string.error_email_or_username_required));
                 return;
             }
 
             ApiClient.getInstance().setToken(null);
             ApiService api = ApiClient.getInstance().getService();
-            api.login(new LoginRequest(email, password)).enqueue(new Callback<AuthResponse>() {
+            api.login(new LoginRequest(identity, password)).enqueue(new Callback<AuthResponse>() {
                 @Override
                 public void onResponse(Call<AuthResponse> call, Response<AuthResponse> response) {
                     if (!response.isSuccessful() || response.body() == null) {
@@ -77,16 +93,19 @@ public final class SensitiveActionAuthorizer {
                     AuthResponse auth = response.body();
                     ApiClient.getInstance().setToken(auth.token);
                     String uid = auth.userId != null ? auth.userId : "";
+                    String sessionEmail = (auth.email != null && !auth.email.trim().isEmpty())
+                            ? auth.email.trim()
+                            : identity;
                     sessionManager.persistLoginSession(
                             auth.token,
                             uid,
                             auth.role.toUpperCase(),
                             auth.username,
-                            email
+                            sessionEmail
                     );
                     sessionManager.touch();
                     dialog.dismiss();
-                    onAuthorized.run();
+                    onAuthorizedWithCurrentPassword.accept(password);
                 }
 
                 @Override

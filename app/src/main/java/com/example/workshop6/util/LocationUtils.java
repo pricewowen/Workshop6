@@ -1,5 +1,9 @@
 package com.example.workshop6.util;
 
+import android.content.Context;
+import android.content.Intent;
+import android.net.Uri;
+
 import com.example.workshop6.data.model.BakeryLocationDetails;
 
 import java.util.ArrayList;
@@ -50,5 +54,24 @@ public class LocationUtils {
             return String.format(Locale.getDefault(), "%.0f m", km * 1000);
         }
         return String.format(Locale.getDefault(), "%.1f km", km);
+    }
+
+    /**
+     * Opens Google Maps (or generic geo intent) for a bakery, same behavior as the location detail screen.
+     */
+    public static void openBakeryInMaps(Context context, BakeryLocationDetails loc) {
+        if (loc == null || (loc.latitude == 0.0 && loc.longitude == 0.0)) {
+            return;
+        }
+        String encodedName = Uri.encode(loc.name != null ? loc.name : "");
+        String uri = String.format(Locale.US,
+                "geo:0,0?q=%f,%f(%s)", loc.latitude, loc.longitude, encodedName);
+        Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(uri));
+        intent.setPackage("com.google.android.apps.maps");
+        if (intent.resolveActivity(context.getPackageManager()) != null) {
+            context.startActivity(intent);
+        } else {
+            context.startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(uri)));
+        }
     }
 }

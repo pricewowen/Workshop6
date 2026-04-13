@@ -10,6 +10,7 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.workshop6.R;
 import com.example.workshop6.data.model.Product;
+import com.example.workshop6.util.MoneyFormat;
 
 import java.text.NumberFormat;
 import java.util.ArrayList;
@@ -51,7 +52,7 @@ public class LocationAvailableProductAdapter extends RecyclerView.Adapter<Locati
         Product p = products.get(position);
         holder.tvName.setText(p.getProductName());
         Double price = p.getProductBasePrice();
-        holder.tvPrice.setText(currency.format(price != null ? price : 0));
+        holder.tvPrice.setText(MoneyFormat.formatCad(currency, price != null ? price : 0));
         holder.itemView.setOnClickListener(v -> {
             if (listener != null) {
                 listener.onProductClick(p.getProductId());
