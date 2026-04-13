@@ -8,7 +8,6 @@ import com.example.workshop6.BuildConfig;
 import java.io.IOException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
 
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
@@ -20,19 +19,12 @@ import okhttp3.Response;
  */
 public final class ApiReachability {
 
-    /**
-     * Cold starts (DNS, TLS, first route) often need more than a couple of seconds on real devices;
-     * keep this aligned with tolerable wait before we show "can't reach server".
-     */
     private static final OkHttpClient PING_CLIENT = new OkHttpClient.Builder()
-            .connectTimeout(8, TimeUnit.SECONDS)
-            .readTimeout(8, TimeUnit.SECONDS)
-            .writeTimeout(8, TimeUnit.SECONDS)
-            .callTimeout(12, TimeUnit.SECONDS)
+            .connectTimeout(2, java.util.concurrent.TimeUnit.SECONDS)
+            .readTimeout(2, java.util.concurrent.TimeUnit.SECONDS)
+            .writeTimeout(2, java.util.concurrent.TimeUnit.SECONDS)
+            .callTimeout(4, java.util.concurrent.TimeUnit.SECONDS)
             .build();
-
-    private static final int REACHABILITY_ATTEMPTS = 3;
-    private static final long RETRY_DELAY_MS = 400L;
 
     private static final ExecutorService EXEC = Executors.newSingleThreadExecutor(r -> {
         Thread t = new Thread(r, "api-reachability");
@@ -48,7 +40,6 @@ public final class ApiReachability {
     /**
      * Blocking; call only from a background thread. Any HTTP response (or successful TCP to server)
      * counts as reachable; timeouts and connection refused return false.
-     * Retries a few times so the first probe after radio/DNS wake-up is less likely to false-fail.
      */
     public static boolean isServerReachable() {
         String url = productsPingUrl();
@@ -57,22 +48,12 @@ public final class ApiReachability {
                 .header("Accept", "application/json")
                 .get()
                 .build();
-        for (int attempt = 1; attempt <= REACHABILITY_ATTEMPTS; attempt++) {
-            try (Response response = PING_CLIENT.newCall(request).execute()) {
-                // 401/403/500 still mean something answered at the base URL
-                return true;
-            } catch (IOException e) {
-                if (attempt < REACHABILITY_ATTEMPTS) {
-                    try {
-                        Thread.sleep(RETRY_DELAY_MS);
-                    } catch (InterruptedException ie) {
-                        Thread.currentThread().interrupt();
-                        return false;
-                    }
-                }
-            }
+        try (Response response = PING_CLIENT.newCall(request).execute()) {
+            // 401/403/500 still mean something answered at the base URL
+            return true;
+        } catch (IOException e) {
+            return false;
         }
-        return false;
     }
 
     static String productsPingUrl() {

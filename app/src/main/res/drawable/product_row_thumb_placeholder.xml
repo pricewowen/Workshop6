@@ -1,7 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
-<inset xmlns:android="http://schemas.android.com/apk/res/android"
-    android:drawable="@drawable/ic_bakery_bread_thumb_placeholder"
-    android:insetLeft="22%"
-    android:insetTop="22%"
-    android:insetRight="22%"
-    android:insetBottom="22%" />
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:drawable="@drawable/bg_hero_bakery" />
+    <item>
+        <inset
+            android:drawable="@drawable/ic_bakery_bread"
+            android:insetLeft="22%"
+            android:insetTop="22%"
+            android:insetRight="22%"
+            android:insetBottom="22%" />
+    </item>
+</layer-list>

@@ -308,10 +308,10 @@ public class OrdersAdminFragment extends Fragment {
             List<StatusOption> statusOptions = getAvailableTransitions(order, current);
             ArrayAdapter<String> spinnerAdapter = new ArrayAdapter<>(
                     holder.itemView.getContext(),
-                    R.layout.spinner_bakery_item,
+                    android.R.layout.simple_spinner_item,
                     toStatusLabels(statusOptions)
             );
-            spinnerAdapter.setDropDownViewResource(R.layout.spinner_bakery_dropdown_item);
+            spinnerAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
             holder.spinnerStatus.setAdapter(spinnerAdapter);
 
             int selectedIdx = findStatusIndexByRaw(current, statusOptions);

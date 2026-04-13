@@ -1,29 +1,20 @@
 <?xml version="1.0" encoding="utf-8"?>
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:background="@color/bakery_background">
+    android:layout_height="match_parent">
 
-    <com.google.android.material.button.MaterialButton
+    <Button
         android:id="@+id/button_new_chat"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="top|end"
         android:layout_margin="12dp"
-        android:minHeight="48dp"
-        android:paddingHorizontal="16dp"
-        android:text="@string/chat_new"
-        android:textAllCaps="false"
-        android:textColor="@color/bakery_text_light"
-        app:backgroundTint="@color/bakery_gold_bright"
-        app:cornerRadius="24dp" />
+        android:text="@string/chat_new" />
 
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/recycler_staff_threads"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:clipToPadding="false"
         android:padding="12dp"
         android:paddingTop="64dp" />
 
@@ -32,11 +23,8 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="center"
-        android:gravity="center"
-        android:paddingStart="24dp"
-        android:paddingEnd="24dp"
         android:text="@string/staff_chat_empty_threads"
-        android:textAppearance="@style/TextAppearance.Bakery.ReviewSectionEmpty"
+        android:textColor="@color/bakery_text_secondary"
         android:textSize="16sp"
         android:visibility="gone" />
 

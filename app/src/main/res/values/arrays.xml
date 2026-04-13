@@ -16,12 +16,4 @@
         <item>Saskatchewan</item>
         <item>Yukon</item>
     </string-array>
-
-    <string-array name="preference_type_spinner">
-        <item>No preference</item>
-        <item>Like</item>
-        <item>Dislike</item>
-        <item>Avoid</item>
-        <item>Allergic</item>
-    </string-array>
 </resources>

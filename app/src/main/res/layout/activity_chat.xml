@@ -2,13 +2,12 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/bakery_background"
     android:orientation="vertical">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="@color/bakery_background"
+        android:background="@color/bakery_primary"
         android:gravity="center_vertical"
         android:orientation="horizontal"
         android:padding="12dp">
@@ -19,8 +18,7 @@
             android:layout_height="40dp"
             android:background="?attr/selectableItemBackgroundBorderless"
             android:contentDescription="@string/btn_back"
-            android:src="@android:drawable/ic_media_previous"
-            android:tint="@color/bakery_text_dark" />
+            android:src="@android:drawable/ic_media_previous" />
 
         <TextView
             android:id="@+id/text_chat_title"
@@ -28,7 +26,7 @@
             android:layout_height="wrap_content"
             android:layout_marginStart="12dp"
             android:text="@string/nav_chat_short"
-            android:textColor="@color/bakery_text_dark"
+            android:textColor="@color/bakery_text_light"
             android:textSize="18sp"
             android:textStyle="bold" />
     </LinearLayout>

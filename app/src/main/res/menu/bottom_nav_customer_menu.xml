@@ -3,12 +3,12 @@
 
     <item
         android:id="@+id/nav_browse"
-        android:icon="@drawable/ic_nav_search"
+        android:icon="@android:drawable/ic_menu_search"
         android:title="@string/nav_browse" />
 
     <item
         android:id="@+id/nav_map"
-        android:icon="@drawable/ic_nav_map_pin"
+        android:icon="@android:drawable/ic_menu_mapmode"
         android:title="@string/nav_map" />
 
     <item
@@ -18,12 +18,12 @@
 
     <item
         android:id="@+id/nav_staff_chat"
-        android:icon="@drawable/ic_nav_chat_bubble"
+        android:icon="@android:drawable/ic_dialog_email"
         android:title="@string/nav_chat_short" />
 
     <item
         android:id="@+id/nav_me"
-        android:icon="@drawable/ic_me_account"
+        android:icon="@android:drawable/ic_menu_myplaces"
         android:title="@string/nav_me" />
 
 </menu>

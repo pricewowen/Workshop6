@@ -38,9 +38,6 @@ public class OrderDto {
     public String deliveredAt;
     public String comment;
     public List<OrderItemDto> items;
-    /** True if customer already used their one location/service review for this order. */
-    @SerializedName("locationReviewSubmitted")
-    public boolean locationReviewSubmitted;
 
     public BigDecimal getSubtotalAmount() {
         return orderTotal != null ? orderTotal : BigDecimal.ZERO;

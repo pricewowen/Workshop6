@@ -3,7 +3,6 @@ package com.example.workshop6.util;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
-import android.graphics.Matrix;
 import android.net.Uri;
 import android.os.ParcelFileDescriptor;
 
@@ -172,17 +171,6 @@ public final class ImageUtils {
         } catch (Exception e) {
             return null;
         }
-    }
-
-    public static Bitmap rotateBitmap(Bitmap source, int degrees) {
-        if (source == null) return null;
-        int normalized = ((degrees % 360) + 360) % 360;
-        if (normalized == 0) {
-            return source;
-        }
-        Matrix matrix = new Matrix();
-        matrix.postRotate(normalized);
-        return Bitmap.createBitmap(source, 0, 0, source.getWidth(), source.getHeight(), matrix, true);
     }
 
 }

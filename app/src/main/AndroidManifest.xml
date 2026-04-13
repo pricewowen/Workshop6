@@ -30,8 +30,7 @@
 
         <activity
             android:name=".auth.LoginActivity"
-            android:exported="true"
-            android:launchMode="singleTop">
+            android:exported="true">
 
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -69,12 +68,6 @@
         <activity
             android:name=".ui.loyalty.LoyaltyRewardsActivity"
             android:exported="false"
-            android:parentActivityName=".ui.MainActivity" />
-
-        <activity
-            android:name=".ui.me.CustomerPreferencesActivity"
-            android:exported="false"
-            android:label="@string/title_taste_preferences"
             android:parentActivityName=".ui.MainActivity" />
 
         <activity

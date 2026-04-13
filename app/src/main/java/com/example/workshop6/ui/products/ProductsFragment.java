@@ -62,7 +62,6 @@ public class ProductsFragment extends Fragment {
     private RecyclerView rvProducts;
     private TextInputEditText etSearch;
     private MaterialCardView cardFeatured;
-    private View featuredEmptyPanel;
     private View featuredLoadingPanel;
     private View featuredLoadedPanel;
     private TextView tvFeatureProductName;
@@ -107,7 +106,6 @@ public class ProductsFragment extends Fragment {
         rvProducts = view.findViewById(R.id.rvProducts);
         etSearch = view.findViewById(R.id.etSearch);
         cardFeatured = view.findViewById(R.id.card_featured);
-        featuredEmptyPanel = view.findViewById(R.id.featured_empty_panel);
         featuredLoadingPanel = view.findViewById(R.id.featured_loading_panel);
         featuredLoadedPanel = view.findViewById(R.id.featured_loaded_panel);
         tvFeatureProductName = view.findViewById(R.id.tvFeatureProductName);
@@ -122,9 +120,8 @@ public class ProductsFragment extends Fragment {
 
         boolean isCustomer = "CUSTOMER".equalsIgnoreCase(sessionManager.getUserRole());
         if (!isCustomer) {
-            // Nav graph start destination is Browse; staff menus skip Shop entirely. Redirect without
-            // toasting — user did not choose to open products.
             setProductsPageLoading(false);
+            Toast.makeText(requireContext(), R.string.staff_purchase_blocked, Toast.LENGTH_SHORT).show();
             Navigation.findNavController(view).navigate(R.id.nav_me);
             return;
         }
@@ -139,8 +136,8 @@ public class ProductsFragment extends Fragment {
                 if (productAdapter == null) {
                     return;
                 }
-                        String rawQuery = s.toString().trim();
-                        String query = SearchUtils.normalizeUserSearch(rawQuery);
+                String rawQuery = s.toString().trim();
+                String query = SearchUtils.normalizeUserSearch(rawQuery);
                 api.getProducts(rawQuery.isEmpty() ? null : query, null).enqueue(new Callback<List<ProductDto>>() {
                     @Override
                     public void onResponse(Call<List<ProductDto>> call, Response<List<ProductDto>> response) {
@@ -180,12 +177,12 @@ public class ProductsFragment extends Fragment {
         if (isCacheFresh(featuredCachedAtMs) && today.equals(cachedFeaturedForDate)) {
             if (cachedFeaturedProduct != null) {
                 featured = cachedFeaturedProduct;
-                        featuredProductId = featured.getProductId();
+                featuredProductId = featured.getProductId();
                 ProductSpecialState.applyForToday(featured.getProductId(), cachedFeaturedDiscountPercent, today);
                 showFeaturedCard(featured, cachedFeaturedDiscountPercent);
             } else {
                 ProductSpecialState.applyForToday(null, null, today);
-                showFeaturedEmptyState();
+                hideFeaturedCard();
             }
             return;
         }
@@ -196,8 +193,7 @@ public class ProductsFragment extends Fragment {
                     return;
                 }
                 if (!response.isSuccessful() || response.body() == null) {
-                    ProductSpecialState.applyForToday(null, null, today);
-                    showFeaturedEmptyState();
+                    hideFeaturedCard();
                     return;
                 }
                 ProductSpecialTodayDto body = response.body();
@@ -215,14 +211,12 @@ public class ProductsFragment extends Fragment {
                             return;
                         }
                         if (!response2.isSuccessful() || response2.body() == null) {
-                            ProductSpecialState.applyForToday(null, null, today);
-                            showFeaturedEmptyState();
+                            hideFeaturedCard();
                             return;
                         }
                         Product p = ProductMapper.fromDto(response2.body());
                         if (p == null) {
-                            ProductSpecialState.applyForToday(null, null, today);
-                            showFeaturedEmptyState();
+                            hideFeaturedCard();
                             return;
                         }
                         cacheAndApplyFeaturedForDate(today, p, discountPercent);
@@ -231,8 +225,7 @@ public class ProductsFragment extends Fragment {
                     @Override
                     public void onFailure(Call<ProductDto> call2, Throwable t) {
                         if (isUiReady()) {
-                            ProductSpecialState.applyForToday(null, null, today);
-                            showFeaturedEmptyState();
+                            hideFeaturedCard();
                         }
                     }
                 });
@@ -241,8 +234,7 @@ public class ProductsFragment extends Fragment {
             @Override
             public void onFailure(Call<ProductSpecialTodayDto> call, Throwable t) {
                 if (isUiReady()) {
-                    ProductSpecialState.applyForToday(null, null, TodayDate.isoLocal());
-                    showFeaturedEmptyState();
+                    hideFeaturedCard();
                 }
             }
         });
@@ -253,22 +245,8 @@ public class ProductsFragment extends Fragment {
             return;
         }
         cardFeatured.setVisibility(View.VISIBLE);
-        featuredEmptyPanel.setVisibility(View.GONE);
         featuredLoadingPanel.setVisibility(View.VISIBLE);
         featuredLoadedPanel.setVisibility(View.GONE);
-    }
-
-    /** Today’s feature card with a friendly message when no special is configured (or load failed). */
-    private void showFeaturedEmptyState() {
-        if (!isUiReady()) {
-            return;
-        }
-        cardFeatured.setVisibility(View.VISIBLE);
-        featuredEmptyPanel.setVisibility(View.VISIBLE);
-        featuredLoadingPanel.setVisibility(View.GONE);
-        featuredLoadedPanel.setVisibility(View.GONE);
-        featured = null;
-        featuredProductId = -1;
     }
 
     /** Cache only after a successful {@code /product-specials/today} response (and successful product load when applicable). */
@@ -281,7 +259,7 @@ public class ProductsFragment extends Fragment {
             featured = null;
             featuredProductId = -1;
             ProductSpecialState.applyForToday(null, null, today);
-            showFeaturedEmptyState();
+            hideFeaturedCard();
             return;
         }
         cachedFeaturedProduct = p;
@@ -296,7 +274,6 @@ public class ProductsFragment extends Fragment {
         if (!isUiReady()) {
             return;
         }
-        featuredEmptyPanel.setVisibility(View.GONE);
         featuredLoadingPanel.setVisibility(View.GONE);
         featuredLoadedPanel.setVisibility(View.VISIBLE);
         cardFeatured.setVisibility(View.VISIBLE);
@@ -312,6 +289,17 @@ public class ProductsFragment extends Fragment {
             tvFeaturePriceLine.setText(MoneyFormat.formatCad(currency, base));
             tvFeatureDiscountPercent.setVisibility(View.GONE);
         }
+    }
+
+    private void hideFeaturedCard() {
+        if (!isUiReady()) {
+            return;
+        }
+        cardFeatured.setVisibility(View.GONE);
+        featuredLoadingPanel.setVisibility(View.GONE);
+        featuredLoadedPanel.setVisibility(View.GONE);
+        featured = null;
+        featuredProductId = -1;
     }
 
     private void openFeaturedProductDetails() {

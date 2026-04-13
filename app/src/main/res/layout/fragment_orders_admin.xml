@@ -16,7 +16,9 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="@string/orders_admin_title"
-        android:textAppearance="@style/TextAppearance.Bakery.ReviewSectionTitle"
+        android:textSize="22sp"
+        android:textStyle="bold"
+        android:textColor="@color/bakery_text_dark"
         android:layout_marginBottom="8dp" />
 
     <TextView
@@ -24,8 +26,8 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="@string/orders_admin_subtitle"
-        android:textAppearance="@style/TextAppearance.Bakery.ReviewSectionEmpty"
         android:textSize="13sp"
+        android:textColor="@color/bakery_text_secondary"
         android:layout_marginBottom="12dp" />
 
     <TextView
@@ -33,7 +35,8 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="@string/orders_admin_none_available"
-        android:textAppearance="@style/TextAppearance.Bakery.ReviewSectionEmpty"
+        android:textColor="@color/bakery_text_secondary"
+        android:textSize="14sp"
         android:visibility="gone"
         android:paddingTop="12dp" />
 

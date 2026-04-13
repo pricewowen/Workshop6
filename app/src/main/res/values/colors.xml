@@ -1,57 +1,30 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Primary: chocolate brown (mockup headings, primary buttons) -->
-    <color name="bakery_primary">#3C2A21</color>
-    <color name="bakery_primary_dark">#2A1A14</color>
+    <!-- Primary: Brown -->
+    <color name="bakery_primary">#4E342E</color>
+    <color name="bakery_primary_dark">#3E2723</color>
 
-    <!-- Accent: terracotta (was gold — links, prices, active nav, progress) -->
-    <color name="bakery_gold">#C25F1A</color>
-    <color name="bakery_gold_bright">#C25F1A</color>
+    <!-- Accent: Gold -->
+    <color name="bakery_gold">#C49A22</color>
+    <color name="bakery_gold_bright">#E8B400</color>
 
-    <!-- Surfaces -->
-    <color name="bakery_background">#EAE7E2</color>
-    <color name="bakery_card_white">#FAF8F5</color>
-    <color name="bakery_card_featured">#EDE4D8</color>
-    <color name="bakery_surface_nav">#F2EFEA</color>
-    <color name="bakery_input_fill">#F0EDEA</color>
+    <!-- Backgrounds -->
+    <color name="bakery_background">#F5F5F5</color>
+    <color name="bakery_card_white">#FFFFFF</color>
 
     <!-- Text -->
-    <color name="bakery_text_dark">#3C2A21</color>
+    <color name="bakery_text_dark">#4E342E</color>
     <color name="bakery_text_light">#FFFFFF</color>
-    <color name="bakery_text_secondary">#6E625C</color>
-    <color name="bakery_text_tertiary">#8A8078</color>
-    <color name="bakery_divider">#D4CEC7</color>
-
-    <!-- Review list chips (align with web menu) -->
-    <color name="review_badge_verified">#15803D</color>
-    <color name="review_badge_purchased">#B45309</color>
-
-    <!-- AI recommendations panel (green — distinct from warm bakery browns/orange) -->
-    <color name="ai_recommendations_panel">#DCFCE7</color>
-    <color name="ai_recommendations_border">#059669</color>
-    <color name="ai_recommendations_title">#064E3B</color>
-    <color name="ai_recommendations_body">#047857</color>
-    <color name="ai_recommendations_muted">#0D9488</color>
-    <color name="ai_recommendations_disclaimer">#047857</color>
-    <color name="ai_recommendations_accent">#059669</color>
-    <color name="ai_recommendation_item_bg">#ECFDF5</color>
-    <color name="ai_recommendation_item_stroke">#6EE7B7</color>
-    <color name="ai_recommendation_item_text">#065F46</color>
+    <color name="bakery_text_secondary">#8D6E63</color>
 
     <!-- Status -->
     <color name="bakery_status_open">#4CAF50</color>
-    <color name="bakery_status_closed">#C45C4A</color>
+    <color name="bakery_status_closed">#F44336</color>
 
     <!-- Standard -->
     <color name="white">#FFFFFFFF</color>
     <color name="black">#FF000000</color>
 
-    <!-- Login / auth tagline (reference typography) -->
-    <color name="login_tagline_primary">#2D201A</color>
-    <color name="login_tagline_accent">#BD5F1E</color>
-
-    <!-- Bottom nav: inactive icons on light pill -->
-    <color name="bakery_nav_icon_inactive">#9A918A</color>
-    <!-- Subtle terracotta ripple on nav pill (customer + staff share one bar) -->
-    <color name="bakery_nav_ripple">#33C25F1A</color>
+    <!-- Bottom nav icon tints -->
+    <color name="bakery_nav_icon_inactive">#80FFFFFF</color>
 </resources>

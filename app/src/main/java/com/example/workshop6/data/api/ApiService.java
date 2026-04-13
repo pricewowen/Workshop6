@@ -8,30 +8,23 @@ import com.example.workshop6.data.api.dto.BatchDto;
 import com.example.workshop6.data.api.dto.ChatMessageDto;
 import com.example.workshop6.data.api.dto.ChatThreadDto;
 import com.example.workshop6.data.api.dto.ChangePasswordRequest;
-import com.example.workshop6.data.api.dto.DeactivateAccountRequest;
 import com.example.workshop6.data.api.dto.CheckoutRequest;
-import com.example.workshop6.data.api.dto.CheckoutSessionResponse;
-import com.example.workshop6.data.api.dto.ConfirmStripePaymentRequest;
 import com.example.workshop6.data.api.dto.CustomerBootstrapRequest;
 import com.example.workshop6.data.api.dto.CustomerDto;
 import com.example.workshop6.data.api.dto.CustomerPatchRequest;
-import com.example.workshop6.data.api.dto.CustomerPreferenceDto;
-import com.example.workshop6.data.api.dto.CustomerPreferenceSaveRequest;
 import com.example.workshop6.data.api.dto.ProfilePhotoResponse;
 import com.example.workshop6.data.api.dto.EmployeeDto;
 import com.example.workshop6.data.api.dto.EmployeePatchRequest;
-import com.example.workshop6.data.api.dto.ForgotPasswordRequest;
 import com.example.workshop6.data.api.dto.LoginRequest;
 import com.example.workshop6.data.api.dto.OrderDto;
 import com.example.workshop6.data.api.dto.OrderStatusPatchRequest;
 import com.example.workshop6.data.api.dto.PostChatMessageRequest;
 import com.example.workshop6.data.api.dto.ProductDto;
-import com.example.workshop6.data.api.dto.ProductRecommendationDto;
 import com.example.workshop6.data.api.dto.ProductSpecialTodayDto;
 import com.example.workshop6.data.api.dto.RegisterRequest;
 import com.example.workshop6.data.api.dto.ReviewCreateRequest;
 import com.example.workshop6.data.api.dto.ReviewDto;
-import com.example.workshop6.data.api.dto.ResumePaymentSessionResponse;
+import com.example.workshop6.data.api.dto.ReviewStatusPatchRequest;
 import com.example.workshop6.data.api.dto.RewardTierDto;
 import com.example.workshop6.data.api.dto.TagDto;
 import com.example.workshop6.data.api.dto.UserActivePatchRequest;
@@ -56,17 +49,11 @@ public interface ApiService {
     @POST("api/v1/auth/login")
     Call<AuthResponse> login(@Body LoginRequest request);
 
-    @POST("api/v1/auth/forgot-password")
-    Call<Void> forgotPassword(@Body ForgotPasswordRequest request);
-
     @POST("api/v1/auth/register")
     Call<AuthResponse> register(@Body RegisterRequest request);
 
     @PUT("api/v1/account/password")
     Call<Void> changePassword(@Body ChangePasswordRequest body);
-
-    @POST("api/v1/account/deactivate")
-    Call<Void> deactivateAccount(@Body DeactivateAccountRequest body);
 
     @PATCH("api/v1/account/profile")
     Call<AuthResponse> patchAccountProfile(@Body AccountProfilePatchRequest body);
@@ -83,15 +70,6 @@ public interface ApiService {
 
     @PATCH("api/v1/customers/me")
     Call<CustomerDto> patchCustomerMe(@Body CustomerPatchRequest body);
-
-    @GET("api/v1/customers/me/preferences")
-    Call<List<CustomerPreferenceDto>> getMyPreferences();
-
-    @PUT("api/v1/customers/me/preferences")
-    Call<List<CustomerPreferenceDto>> saveMyPreferences(@Body CustomerPreferenceSaveRequest body);
-
-    @GET("api/v1/recommendations")
-    Call<List<ProductRecommendationDto>> getRecommendations();
 
     @GET("api/v1/employee/me")
     Call<EmployeeDto> getEmployeeMe();
@@ -133,13 +111,7 @@ public interface ApiService {
     Call<List<OrderDto>> getOrders();
 
     @POST("api/v1/orders")
-    Call<CheckoutSessionResponse> checkout(@Body CheckoutRequest body);
-
-    @POST("api/v1/orders/{id}/confirm-stripe-payment")
-    Call<OrderDto> confirmStripePayment(@Path("id") String orderId, @Body ConfirmStripePaymentRequest body);
-
-    @POST("api/v1/orders/{id}/resume-stripe-payment")
-    Call<ResumePaymentSessionResponse> resumeStripePayment(@Path("id") String orderId);
+    Call<OrderDto> checkout(@Body CheckoutRequest body);
 
     @PATCH("api/v1/orders/{id}/status")
     Call<OrderDto> patchOrderStatus(@Path("id") String orderId, @Body OrderStatusPatchRequest body);
@@ -162,11 +134,14 @@ public interface ApiService {
     @POST("api/v1/products/{productId}/reviews")
     Call<ReviewDto> createProductReview(@Path("productId") int productId, @Body ReviewCreateRequest body);
 
-    @POST("api/v1/bakeries/{bakeryId}/reviews")
-    Call<ReviewDto> createBakeryReview(@Path("bakeryId") int bakeryId, @Body ReviewCreateRequest body);
-
     @POST("api/v1/orders/{orderId}/reviews")
     Call<ReviewDto> createOrderReview(@Path("orderId") String orderId, @Body ReviewCreateRequest body);
+
+    @GET("api/v1/reviews/pending")
+    Call<List<ReviewDto>> getPendingReviews();
+
+    @PATCH("api/v1/reviews/{reviewId}/status")
+    Call<ReviewDto> patchReviewStatus(@Path("reviewId") String reviewId, @Body ReviewStatusPatchRequest body);
 
     @GET("api/v1/bakeries/{bakeryId}/batches")
     Call<List<BatchDto>> getBatchesByBakery(

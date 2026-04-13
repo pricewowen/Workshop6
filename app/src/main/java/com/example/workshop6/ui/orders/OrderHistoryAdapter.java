@@ -33,8 +33,6 @@ public class OrderHistoryAdapter extends RecyclerView.Adapter<OrderHistoryAdapte
 
     public interface Listener {
         void onAcceptDelivery(OrderHistoryActivity.OrderWithDetails order);
-
-        void onRetryPendingPayment(OrderHistoryActivity.OrderWithDetails order);
     }
 
     public OrderHistoryAdapter(List<OrderHistoryActivity.OrderWithDetails> orders, Listener listener) {
@@ -73,11 +71,8 @@ public class OrderHistoryAdapter extends RecyclerView.Adapter<OrderHistoryAdapte
         ImageView ivExpandIcon;
 
         LinearLayout llOrderDetails, llCommentSection, llItemsContainer;
-        LinearLayout llPendingPaymentActions;
         LinearLayout llDeliveredActions;
-        TextView tvPendingPaymentHint;
         TextView tvDetailMethod, tvDetailBakery, tvDetailTime, tvDetailSubtotal, tvDetailTaxLabel, tvDetailTax, tvDetailFinalTotal, tvDetailComment, tvDetailPoints;
-        com.google.android.material.button.MaterialButton btnRetryPayment;
         com.google.android.material.button.MaterialButton btnAcceptDelivery;
 
         OrderViewHolder(@NonNull View itemView) {
@@ -94,8 +89,6 @@ public class OrderHistoryAdapter extends RecyclerView.Adapter<OrderHistoryAdapte
             llOrderDetails = itemView.findViewById(R.id.llOrderDetails);
             llCommentSection = itemView.findViewById(R.id.llCommentSection);
             llItemsContainer = itemView.findViewById(R.id.llItemsContainer);
-            llPendingPaymentActions = itemView.findViewById(R.id.llPendingPaymentActions);
-            tvPendingPaymentHint = itemView.findViewById(R.id.tvPendingPaymentHint);
             llDeliveredActions = itemView.findViewById(R.id.llDeliveredActions);
             tvDetailMethod = itemView.findViewById(R.id.tvDetailMethod);
             tvDetailBakery = itemView.findViewById(R.id.tvDetailBakery);
@@ -106,7 +99,6 @@ public class OrderHistoryAdapter extends RecyclerView.Adapter<OrderHistoryAdapte
             tvDetailFinalTotal = itemView.findViewById(R.id.tvDetailFinalTotal);
             tvDetailComment = itemView.findViewById(R.id.tvDetailComment);
             tvDetailPoints = itemView.findViewById(R.id.tvDetailPoints);
-            btnRetryPayment = itemView.findViewById(R.id.btnRetryPayment);
             btnAcceptDelivery = itemView.findViewById(R.id.btnAcceptDelivery);
         }
 
@@ -169,15 +161,6 @@ public class OrderHistoryAdapter extends RecyclerView.Adapter<OrderHistoryAdapte
                     notifyItemChanged(previousExpandedPosition);
                 }
                 notifyItemChanged(expandedPosition);
-            });
-
-            boolean pendingPay = "pending_payment".equalsIgnoreCase(status);
-            tvPendingPaymentHint.setVisibility(isExpanded && pendingPay ? View.VISIBLE : View.GONE);
-            llPendingPaymentActions.setVisibility(isExpanded && pendingPay ? View.VISIBLE : View.GONE);
-            btnRetryPayment.setOnClickListener(v -> {
-                if (listener != null) {
-                    listener.onRetryPendingPayment(orderWithDetails);
-                }
             });
 
             boolean canAccept = "delivered".equalsIgnoreCase(status) || "picked_up".equalsIgnoreCase(status);

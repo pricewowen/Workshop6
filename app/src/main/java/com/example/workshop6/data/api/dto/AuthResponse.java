@@ -8,9 +8,4 @@ public class AuthResponse {
     public String userId;
     /** Sign-in email from server; may be null on older API responses. */
     public String email;
-
-    public Boolean priorGuestCheckout;
-    public String guestProfileCompletionMessage;
-    public Boolean employeeDiscountLinkEstablished;
-    public String employeeDiscountLinkMessage;
 }

@@ -4,8 +4,8 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:layout_marginBottom="10dp"
-    app:cardCornerRadius="14dp"
     app:cardBackgroundColor="@color/bakery_card_white"
+    app:cardCornerRadius="14dp"
     app:strokeColor="@color/bakery_text_secondary"
     app:strokeWidth="1dp">
 
@@ -16,55 +16,57 @@
         android:padding="12dp">
 
         <TextView
-            android:id="@+id/tv_order_admin_number"
+            android:id="@+id/tv_review_approval_author"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:textStyle="bold"
             android:textColor="@color/bakery_text_dark"
-            android:textSize="15sp" />
+            android:textSize="15sp"
+            android:textStyle="bold" />
 
         <TextView
-            android:id="@+id/tv_order_admin_meta"
+            android:id="@+id/tv_review_approval_meta"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
             android:textColor="@color/bakery_text_secondary"
-            android:textSize="13sp"
-            android:layout_marginTop="4dp" />
+            android:textSize="12sp" />
 
         <TextView
-            android:id="@+id/tv_order_admin_current_status"
+            android:id="@+id/tv_review_approval_comment"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:textColor="@color/bakery_text_secondary"
-            android:textSize="12sp"
-            android:layout_marginTop="4dp" />
+            android:layout_marginTop="6dp"
+            android:textColor="@color/bakery_text_dark"
+            android:textSize="13sp" />
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:layout_marginTop="10dp"
-            android:gravity="center_vertical">
-
-            <Spinner
-                android:id="@+id/spinner_order_admin_status"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:spinnerMode="dropdown" />
+            android:layout_marginTop="12dp"
+            android:gravity="end"
+            android:orientation="horizontal">
 
             <com.google.android.material.button.MaterialButton
-                android:id="@+id/btn_order_admin_update"
+                android:id="@+id/btn_review_approve"
                 style="@style/Widget.MaterialComponents.Button.OutlinedButton"
                 android:layout_width="wrap_content"
                 android:layout_height="40dp"
-                android:layout_marginStart="10dp"
-                android:text="@string/orders_admin_update_status"
+                android:text="@string/review_approve"
+                android:textColor="@color/bakery_text_dark"
+                app:cornerRadius="20dp"
+                app:strokeColor="@color/bakery_text_dark" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_review_reject"
+                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                android:layout_width="wrap_content"
+                android:layout_height="40dp"
+                android:layout_marginStart="8dp"
+                android:text="@string/review_reject"
                 android:textColor="@color/bakery_text_dark"
                 app:cornerRadius="20dp"
                 app:strokeColor="@color/bakery_text_dark" />
         </LinearLayout>
-
     </LinearLayout>
 </com.google.android.material.card.MaterialCardView>
 

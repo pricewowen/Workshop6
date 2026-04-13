@@ -10,11 +10,10 @@
         android:id="@+id/toolbar"
         android:layout_width="match_parent"
         android:layout_height="?attr/actionBarSize"
-        android:background="@color/bakery_background"
-        app:navigationIcon="@drawable/ic_arrow_back"
-        app:navigationIconTint="@color/bakery_text_dark"
-        app:title="@string/order_history_title"
-        app:titleTextColor="@color/bakery_text_dark" />
+        android:background="@color/bakery_primary"
+        app:title="My Orders"
+        app:titleTextColor="@color/bakery_text_light"
+        app:navigationIcon="@drawable/ic_arrow_back" />
 
     <FrameLayout
         android:layout_width="match_parent"
@@ -51,7 +50,5 @@
                 android:indeterminate="true"
                 android:indeterminateTint="@color/bakery_gold_bright" />
         </FrameLayout>
-
-        <include layout="@layout/overlay_review_moderation_loading" />
     </FrameLayout>
 </LinearLayout>

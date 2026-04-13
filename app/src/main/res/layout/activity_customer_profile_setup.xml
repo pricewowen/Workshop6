@@ -15,11 +15,10 @@
             android:id="@+id/toolbar"
             android:layout_width="match_parent"
             android:layout_height="?attr/actionBarSize"
-            android:background="@color/bakery_background"
+            android:background="@color/bakery_primary"
             app:navigationIcon="@drawable/ic_arrow_back"
-            app:navigationIconTint="@color/bakery_text_dark"
             app:title="@string/customer_profile_title"
-            app:titleTextColor="@color/bakery_text_dark" />
+            app:titleTextColor="@color/bakery_text_light" />
 
         <androidx.core.widget.NestedScrollView
             android:layout_width="match_parent"
@@ -36,7 +35,6 @@
                 android:paddingBottom="32dp">
 
                 <LinearLayout
-                    android:id="@+id/profile_name_section"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="horizontal"
@@ -205,7 +203,6 @@
                         </com.google.android.material.textfield.TextInputLayout>
                     </LinearLayout>
                     <LinearLayout
-                        android:id="@+id/profile_business_phone_column"
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
@@ -236,12 +233,6 @@
                         </com.google.android.material.textfield.TextInputLayout>
                     </LinearLayout>
                 </LinearLayout>
-
-                <LinearLayout
-                    android:id="@+id/profile_address_section"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="vertical">
 
                 <TextView
                     android:layout_width="wrap_content"
@@ -338,6 +329,7 @@
                             android:textStyle="bold"
                             android:textColor="@color/bakery_text_secondary"
                             android:letterSpacing="0.08"
+                            android:textAllCaps="true"
                             android:layout_marginBottom="4dp" />
                         <Spinner
                             android:id="@+id/spinner_province"
@@ -389,8 +381,6 @@
                     </LinearLayout>
                 </LinearLayout>
 
-                </LinearLayout>
-
                 <TextView
                     android:id="@+id/tv_error"
                     android:layout_width="wrap_content"
@@ -401,25 +391,15 @@
                     android:layout_marginBottom="8dp"
                     tools:visibility="gone" />
 
-                <TextView
-                    android:id="@+id/tv_minimal_contact_hint"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:visibility="gone"
-                    android:text="@string/guest_minimal_contact_hint"
-                    android:textSize="13sp"
-                    android:textColor="@color/bakery_text_secondary"
-                    android:layout_marginBottom="12dp" />
-
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/btn_save"
                     android:layout_width="match_parent"
                     android:layout_height="56dp"
                     android:text="@string/btn_save_customer_profile"
                     android:textSize="16sp"
-                    android:textStyle="normal"
+                    android:textStyle="bold"
                     android:textColor="@color/bakery_text_light"
-                    app:backgroundTint="@color/bakery_gold"
+                    app:backgroundTint="@color/bakery_primary"
                     app:cornerRadius="28dp" />
             </LinearLayout>
         </androidx.core.widget.NestedScrollView>

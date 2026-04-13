@@ -23,34 +23,17 @@
                 android:paddingTop="8dp"
                 android:paddingBottom="32dp">
 
-            <LinearLayout
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_choose_photo"
+                style="@style/Widget.MaterialComponents.Button.TextButton"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_gravity="center_horizontal"
-                android:orientation="horizontal"
-                android:layout_marginBottom="4dp">
-
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/btn_choose_photo"
-                    style="@style/Widget.MaterialComponents.Button.TextButton"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="@string/btn_change_photo"
-                    android:textAllCaps="false"
-                    android:textColor="@color/bakery_primary"
-                    app:rippleColor="#408D6E63" />
-
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/btn_rotate_photo"
-                    style="@style/Widget.MaterialComponents.Button.TextButton"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:enabled="false"
-                    android:text="@string/btn_rotate_photo"
-                    android:textAllCaps="false"
-                    android:textColor="@color/bakery_primary"
-                    app:rippleColor="#408D6E63" />
-            </LinearLayout>
+                android:layout_marginBottom="4dp"
+                android:text="@string/btn_change_photo"
+                android:textAllCaps="false"
+                android:textColor="@color/bakery_primary"
+                app:rippleColor="#408D6E63" />
 
             <TextView
                 android:id="@+id/tv_photo_error"
@@ -87,6 +70,7 @@
                     android:layout_marginBottom="4dp"
                     android:letterSpacing="0.08"
                     android:text="@string/account_label_username"
+                    android:textAllCaps="true"
                     android:textColor="@color/bakery_text_secondary"
                     android:textSize="11sp"
                     android:textStyle="bold" />
@@ -114,6 +98,7 @@
                     android:layout_marginBottom="4dp"
                     android:letterSpacing="0.08"
                     android:text="@string/account_label_sign_email"
+                    android:textAllCaps="true"
                     android:textColor="@color/bakery_text_secondary"
                     android:textSize="11sp"
                     android:textStyle="bold" />
@@ -141,6 +126,7 @@
                     android:layout_marginBottom="4dp"
                     android:letterSpacing="0.08"
                     android:text="@string/account_label_password"
+                    android:textAllCaps="true"
                     android:textColor="@color/bakery_text_secondary"
                     android:textSize="11sp"
                     android:textStyle="bold" />
@@ -176,7 +162,7 @@
                 android:layout_marginTop="4dp"
                 android:orientation="vertical">
 
-            <!-- First + middle + last -->
+            <!-- First + middle + last (same as register) -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -275,7 +261,7 @@
                 </LinearLayout>
             </LinearLayout>
 
-            <!-- Phone + business phone -->
+            <!-- Phone + business phone (same as register) -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -442,6 +428,7 @@
                         android:textStyle="bold"
                         android:textColor="@color/bakery_text_secondary"
                         android:letterSpacing="0.08"
+                        android:textAllCaps="true"
                         android:layout_marginBottom="4dp" />
                     <Spinner
                         android:id="@+id/spinner_province"
@@ -505,8 +492,8 @@
                 android:text="@string/btn_update_account"
                 android:textColor="@color/bakery_text_light"
                 android:textSize="16sp"
-                android:textStyle="normal"
-                app:backgroundTint="@color/bakery_gold"
+                android:textStyle="bold"
+                app:backgroundTint="@color/bakery_primary"
                 app:cornerRadius="28dp" />
 
         </LinearLayout>
@@ -556,7 +543,8 @@
             android:background="@drawable/circle_bg_gray"
             android:clipToOutline="true"
             android:contentDescription="@string/label_photo"
-            android:scaleType="centerCrop" />
+            android:scaleType="centerCrop"
+            android:src="@drawable/ic_person_placeholder" />
     </FrameLayout>
 
     <FrameLayout

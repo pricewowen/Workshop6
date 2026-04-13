@@ -1,12 +1,11 @@
 package com.example.workshop6.ui.approvals;
 
 import android.os.Bundle;
+import android.graphics.ColorMatrix;
+import android.graphics.ColorMatrixColorFilter;
 import android.view.LayoutInflater;
 import android.view.View;
-import android.view.ViewOutlineProvider;
 import android.view.ViewGroup;
-import android.graphics.drawable.Drawable;
-import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -17,17 +16,12 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.bumptech.glide.Glide;
-import com.bumptech.glide.load.DataSource;
-import com.bumptech.glide.load.engine.GlideException;
-import com.bumptech.glide.request.RequestListener;
-import com.bumptech.glide.request.target.Target;
 import com.example.workshop6.R;
 import com.example.workshop6.auth.SessionManager;
 import com.example.workshop6.data.api.ApiClient;
 import com.example.workshop6.data.api.ApiService;
 import com.example.workshop6.data.api.dto.CustomerDto;
 import com.example.workshop6.logging.ActivityLogger;
-import com.example.workshop6.util.ProfileInitialsAvatar;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -40,8 +34,6 @@ public class PhotoApprovalsFragment extends Fragment {
 
     private SessionManager sessionManager;
     private ApiService api;
-    private View contentView;
-    private View loadingOverlay;
     private RecyclerView rvPendingPhotos;
     private TextView tvEmpty;
     private PendingPhotoAdapter adapter;
@@ -61,8 +53,6 @@ public class PhotoApprovalsFragment extends Fragment {
         api = ApiClient.getInstance().getService();
         ApiClient.getInstance().setToken(sessionManager.getToken());
 
-        contentView = view.findViewById(R.id.photo_approvals_content);
-        loadingOverlay = view.findViewById(R.id.photo_approvals_loading_overlay);
         rvPendingPhotos = view.findViewById(R.id.rv_pending_photos);
         tvEmpty = view.findViewById(R.id.tv_pending_empty);
 
@@ -94,7 +84,6 @@ public class PhotoApprovalsFragment extends Fragment {
     private void verifyAccessAndLoad() {
         boolean canModerate = !"CUSTOMER".equalsIgnoreCase(sessionManager.getUserRole());
         if (!canModerate) {
-            setLoadingUi(false);
             tvEmpty.setVisibility(View.VISIBLE);
             tvEmpty.setText(R.string.photo_approvals_access_denied);
             rvPendingPhotos.setVisibility(View.GONE);
@@ -103,42 +92,14 @@ public class PhotoApprovalsFragment extends Fragment {
         loadPendingPhotos();
     }
 
-    private void setLoadingUi(boolean loading) {
-        if (loadingOverlay != null) {
-            loadingOverlay.setVisibility(loading ? View.VISIBLE : View.GONE);
-        }
-        if (contentView != null) {
-            contentView.setVisibility(loading ? View.INVISIBLE : View.VISIBLE);
-        }
-    }
-
     private void loadPendingPhotos() {
-        setLoadingUi(true);
         api.getPendingPhotoCustomers().enqueue(new Callback<List<CustomerDto>>() {
             @Override
             public void onResponse(Call<List<CustomerDto>> call, Response<List<CustomerDto>> response) {
                 if (!isAdded()) {
                     return;
                 }
-                setLoadingUi(false);
-                if (!response.isSuccessful()) {
-                    Toast.makeText(requireContext(),
-                            getString(R.string.login_error_server, response.code()),
-                            Toast.LENGTH_SHORT).show();
-                    tvEmpty.setVisibility(View.VISIBLE);
-                    tvEmpty.setText(R.string.photo_approvals_load_failed);
-                    rvPendingPhotos.setVisibility(View.GONE);
-                    adapter.submitList(new ArrayList<>());
-                    return;
-                }
-                if (response.body() == null) {
-                    Toast.makeText(requireContext(),
-                            getString(R.string.login_error_server, 500),
-                            Toast.LENGTH_SHORT).show();
-                    tvEmpty.setVisibility(View.VISIBLE);
-                    tvEmpty.setText(R.string.photo_approvals_load_failed);
-                    rvPendingPhotos.setVisibility(View.GONE);
-                    adapter.submitList(new ArrayList<>());
+                if (!response.isSuccessful() || response.body() == null) {
                     return;
                 }
                 List<CustomerDto> pending = response.body();
@@ -153,15 +114,6 @@ public class PhotoApprovalsFragment extends Fragment {
 
             @Override
             public void onFailure(Call<List<CustomerDto>> call, Throwable t) {
-                if (!isAdded()) {
-                    return;
-                }
-                setLoadingUi(false);
-                Toast.makeText(requireContext(), R.string.login_error_no_connection, Toast.LENGTH_SHORT).show();
-                tvEmpty.setVisibility(View.VISIBLE);
-                tvEmpty.setText(R.string.photo_approvals_load_failed);
-                rvPendingPhotos.setVisibility(View.GONE);
-                adapter.submitList(new ArrayList<>());
             }
         });
     }
@@ -193,9 +145,11 @@ public class PhotoApprovalsFragment extends Fragment {
                         approve ? "APPROVE_PHOTO" : "REJECT_PHOTO",
                         "customerId=" + customer.id
                 );
-                Toast.makeText(requireContext(),
+                Toast.makeText(
+                        requireContext(),
                         approve ? R.string.photo_approved : R.string.photo_rejected,
-                        Toast.LENGTH_SHORT).show();
+                        Toast.LENGTH_SHORT
+                ).show();
                 loadPendingPhotos();
             }
 
@@ -251,54 +205,22 @@ public class PhotoApprovalsFragment extends Fragment {
             holder.tvName.setText(fullName);
             holder.tvEmail.setText(c.email != null ? c.email : "");
 
-            int avPx = (int) (72f * holder.itemView.getResources().getDisplayMetrics().density + 0.5f);
-            android.graphics.drawable.Drawable initialsDrawable = ProfileInitialsAvatar.create(
-                    holder.itemView.getContext(),
-                    avPx,
-                    ProfileInitialsAvatar.initialsFrom(fullName, c.email, ""));
             if (c.profilePhotoPath != null && !c.profilePhotoPath.trim().isEmpty()) {
                 String originFallback = cdnToOriginUrl(c.profilePhotoPath);
-                RequestListener<Drawable> colorListener = new RequestListener<Drawable>() {
-                    @Override
-                    public boolean onLoadFailed(
-                            @Nullable GlideException e,
-                            Object model,
-                            Target<Drawable> target,
-                            boolean isFirstResource) {
-                        clearApprovalPhotoStyle(holder.ivPhoto);
-                        return false;
-                    }
-
-                    @Override
-                    public boolean onResourceReady(
-                            Drawable resource,
-                            Object model,
-                            Target<Drawable> target,
-                            DataSource dataSource,
-                            boolean isFirstResource) {
-                        clearApprovalPhotoStyle(holder.ivPhoto);
-                        return false;
-                    }
-                };
                 Glide.with(holder.itemView)
                         .load(c.profilePhotoPath)
-                        .circleCrop()
-                        .placeholder(initialsDrawable)
+                        .placeholder(R.drawable.ic_person_placeholder)
                         .error(
                                 Glide.with(holder.itemView)
                                         .load(originFallback != null ? originFallback : c.profilePhotoPath)
-                                        .circleCrop()
-                                        .placeholder(initialsDrawable)
-                                        .error(initialsDrawable)
-                                        .listener(colorListener)
+                                        .placeholder(R.drawable.ic_person_placeholder)
+                                        .error(R.drawable.ic_person_placeholder)
                         )
-                        .listener(colorListener)
                         .into(holder.ivPhoto);
             } else {
-                holder.ivPhoto.setImageDrawable(initialsDrawable);
+                holder.ivPhoto.setImageResource(R.drawable.ic_person_placeholder);
             }
-            // Also clear before async load completes (recycled views / race with Glide).
-            clearApprovalPhotoStyle(holder.ivPhoto);
+            applyPendingPhotoStyle(holder.ivPhoto);
 
             holder.btnApprove.setOnClickListener(v -> listener.onApprove(c));
             holder.btnReject.setOnClickListener(v -> listener.onReject(c));
@@ -319,8 +241,6 @@ public class PhotoApprovalsFragment extends Fragment {
             VH(@NonNull View itemView) {
                 super(itemView);
                 ivPhoto = itemView.findViewById(R.id.iv_pending_photo);
-                ivPhoto.setClipToOutline(true);
-                ivPhoto.setOutlineProvider(ViewOutlineProvider.BACKGROUND);
                 tvName = itemView.findViewById(R.id.tv_pending_name);
                 tvEmail = itemView.findViewById(R.id.tv_pending_email);
                 btnApprove = itemView.findViewById(R.id.btn_approve_photo);
@@ -328,16 +248,24 @@ public class PhotoApprovalsFragment extends Fragment {
             }
         }
 
+        private static void applyPendingPhotoStyle(android.widget.ImageView imageView) {
+            ColorMatrix matrix = new ColorMatrix();
+            matrix.setSaturation(0f);
+            ColorMatrix darken = new ColorMatrix(new float[]{
+                    0.65f, 0, 0, 0, 0,
+                    0, 0.65f, 0, 0, 0,
+                    0, 0, 0.65f, 0, 0,
+                    0, 0, 0, 1, 0
+            });
+            matrix.postConcat(darken);
+            imageView.setColorFilter(new ColorMatrixColorFilter(matrix));
+            imageView.setImageAlpha(230);
+        }
+
         private static String cdnToOriginUrl(String url) {
             if (url == null) return null;
             if (!url.contains(".cdn.digitaloceanspaces.com")) return null;
             return url.replace(".cdn.digitaloceanspaces.com", ".digitaloceanspaces.com");
-        }
-
-        /** Approvers see true color; Me / Edit Profile keep grayscale for pending. */
-        private static void clearApprovalPhotoStyle(ImageView iv) {
-            iv.clearColorFilter();
-            iv.setImageAlpha(255);
         }
     }
 }
