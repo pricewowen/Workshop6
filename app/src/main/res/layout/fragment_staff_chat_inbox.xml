@@ -8,7 +8,7 @@
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="@color/bakery_primary"
+        android:background="@color/bakery_background"
         android:orientation="vertical"
         android:paddingHorizontal="16dp"
         android:paddingTop="16dp"
@@ -18,7 +18,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="@string/nav_chat_short"
-            android:textColor="@color/bakery_text_light"
+            android:textColor="@color/bakery_text_dark"
             android:textSize="22sp"
             android:textStyle="bold" />
 
@@ -28,7 +28,7 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="4dp"
             android:text="@string/chat_inbox_subtitle_staff"
-            android:textColor="@color/bakery_nav_icon_inactive"
+            android:textColor="@color/bakery_text_secondary"
             android:textSize="13sp" />
     </LinearLayout>
 
@@ -36,8 +36,8 @@
         android:id="@+id/button_new_chat"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_gravity="end"
         android:layout_margin="12dp"
+        android:layout_gravity="end"
         android:text="@string/chat_new" />
 
     <androidx.recyclerview.widget.RecyclerView

@@ -9,10 +9,17 @@ val localProperties = Properties().apply {
     if (f.exists()) load(f.inputStream())
 }
 
-/** Dev API base URL; override in local.properties as api.base.url= */
+/**
+ * Dev API base URL; override in local.properties as api.base.url=
+ * Default emulator mapping to host machine: http://10.0.2.2:8080/
+ * For a physical device, set api.base.url to your PC LAN IP (same network).
+ * Optional: if you prefer 127.0.0.1, run adb reverse tcp:8080 tcp:8080 first.
+ */
 val apiBaseUrl = (localProperties.getProperty("api.base.url") ?: "http://10.0.2.2:8080/")
     .trim()
     .let { if (it.endsWith("/")) it else "$it/" }
+
+val stripePublishableKey = (localProperties.getProperty("stripe.publishable.key") ?: "")
 
 android {
     buildFeatures {
@@ -32,6 +39,7 @@ android {
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         buildConfigField("String", "API_BASE_URL", "\"${apiBaseUrl.replace("\"", "\\\"")}\"")
+        buildConfigField("String", "STRIPE_PUBLISHABLE_KEY", "\"${stripePublishableKey.replace("\"", "\\\"")}\"")
     }
 
     buildTypes {
@@ -74,6 +82,8 @@ dependencies {
     implementation(libs.okhttp.logging)
     implementation(libs.gson)
     implementation(libs.glide)
+    implementation(libs.browser)
+    implementation(libs.stripe.android)
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.ext.junit)

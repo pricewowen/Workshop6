@@ -1,22 +1,24 @@
-*.iml
-.gradle
-/local.properties
-/.idea/caches
-/.idea/libraries
-/.idea/modules.xml
-/.idea/workspace.xml
-/.idea/navEditor.xml
-/.idea/assetWizardSettings.xml
-/.idea/.name
-/.idea/material_theme_project_new.xml
-.DS_Store
-/build
-/captures
-.externalNativeBuild
-.cxx
+# Gradle
+.gradle/
+build/
 local.properties
-docs
-/.idea/markdown.xml
-/.claude
+.idea/
+*.iml
+
+# Local machine config
+local.properties
+
+# Android Studio
+.idea/
+*.iml
+
+# OS files
+.DS_Store
+Thumbs.db
 sentry*
-.idea
+.gitnexus
+.claude*
+
+# Gitnexus files
+AGENTS.md
+CLAUDE.md
