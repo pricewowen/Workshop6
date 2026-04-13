@@ -52,7 +52,6 @@ public class RegisterActivity extends AppCompatActivity {
 
     private ScrollView svStep1;
     private ScrollView svStep2;
-    private TextView tvStepLabel;
     private TextView tvRegisterStep2EmployeeMessage;
     private TextView tvRegisterStep2GuestMessage;
     private TextView tvRegisterStep2Error;
@@ -70,10 +69,8 @@ public class RegisterActivity extends AppCompatActivity {
     private ApiService api;
 
     private int registrationStep = 1;
-    private boolean step2EmployeeLinked;
     private boolean step2PriorGuest;
     private String pendingEmployeeToastMessage;
-    private String step2GuestServerHint;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -91,7 +88,10 @@ public class RegisterActivity extends AppCompatActivity {
 
         Toolbar toolbar = findViewById(R.id.register_toolbar);
         setSupportActionBar(toolbar);
-        toolbar.setNavigationOnClickListener(v -> onToolbarBack());
+        if (getSupportActionBar() != null) {
+            getSupportActionBar().setDisplayHomeAsUpEnabled(false);
+        }
+        toolbar.setNavigationOnClickListener(null);
 
         tilUsername = findViewById(R.id.til_username);
         tilEmail = findViewById(R.id.til_email);
@@ -110,37 +110,8 @@ public class RegisterActivity extends AppCompatActivity {
         btnContinue = findViewById(R.id.btn_register_continue);
         btnContinue.setOnClickListener(v -> attemptContinueStep1());
 
-        findViewById(R.id.tv_sign_in_link).setOnClickListener(v -> {
-            finish();
-            NavTransitions.applyBackwardPending(this);
-        });
-        findViewById(R.id.tv_guest_link).setOnClickListener(v -> {
-            if (!NetworkStatus.isOnline(this)) {
-                clearRegisterFieldErrorsForConnectionMessage();
-                tvError.setText(R.string.login_error_no_connection);
-                tvError.setVisibility(View.VISIBLE);
-                return;
-            }
-            ApiReachability.checkThen(
-                    () -> {
-                        if (!isFinishing()) {
-                            clearRegisterFieldErrorsForConnectionMessage();
-                            tvError.setText(R.string.login_error_no_connection);
-                            tvError.setVisibility(View.VISIBLE);
-                        }
-                    },
-                    () -> {
-                        if (!isFinishing()) {
-                            sessionManager.beginGuestSession();
-                            goToMain(true);
-                        }
-                    }
-            );
-        });
-
         svStep1 = findViewById(R.id.sv_register_step1);
         svStep2 = findViewById(R.id.sv_register_step2);
-        tvStepLabel = findViewById(R.id.tv_register_step_label);
         tvRegisterStep2EmployeeMessage = findViewById(R.id.tv_register_step2_employee_message);
         tvRegisterStep2GuestMessage = findViewById(R.id.tv_register_step2_guest_message);
         tvRegisterStep2Error = findViewById(R.id.tv_register_step2_error);
@@ -179,50 +150,84 @@ public class RegisterActivity extends AppCompatActivity {
 
         btnCompleteRegistration.setOnClickListener(v -> attemptCompleteStep2());
 
+        View.OnClickListener signInClick = v -> {
+            finish();
+            NavTransitions.applyBackwardPending(RegisterActivity.this);
+        };
+        View.OnClickListener skipClick = v -> {
+            if (!NetworkStatus.isOnline(RegisterActivity.this)) {
+                clearRegisterFieldErrorsForConnectionMessage();
+                if (registrationStep == 1) {
+                    tvError.setText(R.string.login_error_no_connection);
+                    tvError.setVisibility(View.VISIBLE);
+                } else {
+                    tvRegisterStep2Error.setText(R.string.login_error_no_connection);
+                    tvRegisterStep2Error.setVisibility(View.VISIBLE);
+                }
+                return;
+            }
+            ApiReachability.checkThen(
+                    () -> {
+                        if (!isFinishing()) {
+                            clearRegisterFieldErrorsForConnectionMessage();
+                            if (registrationStep == 1) {
+                                tvError.setText(R.string.login_error_no_connection);
+                                tvError.setVisibility(View.VISIBLE);
+                            } else {
+                                tvRegisterStep2Error.setText(R.string.login_error_no_connection);
+                                tvRegisterStep2Error.setVisibility(View.VISIBLE);
+                            }
+                        }
+                    },
+                    () -> {
+                        if (!isFinishing()) {
+                            sessionManager.beginGuestSession();
+                            goToMain(true);
+                        }
+                    }
+            );
+        };
+        findViewById(R.id.tv_register_footer_sign_in).setOnClickListener(signInClick);
+        findViewById(R.id.tv_register_footer_skip).setOnClickListener(skipClick);
+
         getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
             @Override
             public void handleOnBackPressed() {
-                onToolbarBack();
+                finish();
+                NavTransitions.applyBackwardPending(RegisterActivity.this);
             }
         });
 
+        updateToolbarForStep(1);
         if (savedInstanceState != null) {
             registrationStep = savedInstanceState.getInt(STATE_STEP, 1);
-            if (registrationStep == 2 && sessionManager.isLoggedIn()) {
-                showStep2ShellAfterRestore();
+            if (registrationStep == 2) {
+                svStep1.setVisibility(View.GONE);
+                svStep2.setVisibility(View.VISIBLE);
+                updateToolbarForStep(2);
+                step2PriorGuest = sessionManager.getGuestProfile() != null;
+                applyStep2UiMode();
+                prefillStep2FromGuestAndPhone();
             } else {
                 registrationStep = 1;
                 svStep1.setVisibility(View.VISIBLE);
                 svStep2.setVisibility(View.GONE);
+                updateToolbarForStep(1);
             }
         }
     }
 
-    private void showStep2ShellAfterRestore() {
-        svStep1.setVisibility(View.GONE);
-        svStep2.setVisibility(View.VISIBLE);
-        tvStepLabel.setText(R.string.register_step2_label);
-        if (getSupportActionBar() != null) {
-            getSupportActionBar().setTitle(R.string.register_heading);
+    private void updateToolbarForStep(int step) {
+        if (getSupportActionBar() == null) {
+            return;
         }
-        // Flags unknown after process death; show form and let user complete or patch.
-        step2EmployeeLinked = false;
-        applyStep2UiMode();
+        getSupportActionBar().setTitle(step == 1 ? R.string.register_step1_label : R.string.register_step2_label);
     }
 
     @Override
     protected void onSaveInstanceState(@NonNull Bundle outState) {
         super.onSaveInstanceState(outState);
         outState.putInt(STATE_STEP, registrationStep);
-    }
-
-    private void onToolbarBack() {
-        if (registrationStep == 2) {
-            goToMain(true);
-            return;
-        }
-        finish();
-        NavTransitions.applyBackwardPending(this);
     }
 
     @Override
@@ -234,8 +239,8 @@ public class RegisterActivity extends AppCompatActivity {
     private void updateRegisterAvailabilityForNetwork() {
         boolean online = NetworkStatus.isOnline(this);
         if (btnContinue != null) {
-            btnContinue.setEnabled(online);
-            btnContinue.setAlpha(online ? 1f : 0.5f);
+            btnContinue.setEnabled(true);
+            btnContinue.setAlpha(1f);
         }
         if (btnCompleteRegistration != null && registrationStep == 2) {
             btnCompleteRegistration.setEnabled(online);
@@ -244,28 +249,12 @@ public class RegisterActivity extends AppCompatActivity {
     }
 
     private void attemptContinueStep1() {
-        if (!NetworkStatus.isOnline(this)) {
-            clearRegisterFieldErrorsForConnectionMessage();
-            tvError.setText(R.string.login_error_no_connection);
-            tvError.setVisibility(View.VISIBLE);
+        clearRegisterFieldErrorsForConnectionMessage();
+        tvError.setVisibility(View.GONE);
+        if (!validateStep1Fields()) {
             return;
         }
-
-        btnContinue.setEnabled(false);
-
-        ApiReachability.checkThen(
-                () -> {
-                    if (isFinishing() || isDestroyed()) {
-                        return;
-                    }
-                    btnContinue.setEnabled(true);
-                    updateRegisterAvailabilityForNetwork();
-                    clearRegisterFieldErrorsForConnectionMessage();
-                    tvError.setText(R.string.login_error_no_connection);
-                    tvError.setVisibility(View.VISIBLE);
-                },
-                this::registerAccountAfterReachabilityCheck
-        );
+        advanceToStep2WithoutApi();
     }
 
     private void clearRegisterFieldErrorsForConnectionMessage() {
@@ -366,149 +355,29 @@ public class RegisterActivity extends AppCompatActivity {
         return valid;
     }
 
-    private void registerAccountAfterReachabilityCheck() {
-        if (isFinishing() || isDestroyed()) {
-            return;
-        }
-
-        if (!validateStep1Fields()) {
-            btnContinue.setEnabled(true);
-            updateRegisterAvailabilityForNetwork();
-            return;
-        }
-
-        tvError.setVisibility(View.GONE);
-
-        String username = etUsername.getText() != null ? etUsername.getText().toString().trim() : "";
-        String email = etEmail.getText() != null ? etEmail.getText().toString().trim().toLowerCase(Locale.ROOT) : "";
-        String pass = etPassword.getText() != null ? etPassword.getText().toString() : "";
-        String regPhoneRaw = etRegisterPhone.getText() != null ? etRegisterPhone.getText().toString().trim() : "";
-
-        String phoneOpt = null;
-        if (!regPhoneRaw.isEmpty()) {
-            String digits = regPhoneRaw.replaceAll("\\D", "");
-            phoneOpt = Validation.formatPhoneForStorage(digits);
-            if (phoneOpt == null && !digits.isEmpty()) {
-                phoneOpt = regPhoneRaw;
-            }
-        }
-
-        RegisterRequest registerRequest = new RegisterRequest(username, email, pass, phoneOpt);
-
-        api.register(registerRequest).enqueue(new Callback<AuthResponse>() {
-            @Override
-            public void onResponse(Call<AuthResponse> call, Response<AuthResponse> response) {
-                if (isFinishing() || isDestroyed()) {
-                    return;
-                }
-                if (response.code() == 409) {
-                    btnContinue.setEnabled(true);
-                    updateRegisterAvailabilityForNetwork();
-                    showDuplicateAccountError();
-                    ActivityLogger.logFailure(RegisterActivity.this, null, "REGISTER", "Conflict from API");
-                    return;
-                }
-                if (!response.isSuccessful() || response.body() == null) {
-                    btnContinue.setEnabled(true);
-                    updateRegisterAvailabilityForNetwork();
-                    tvError.setText(R.string.register_error_unexpected);
-                    tvError.setVisibility(View.VISIBLE);
-                    ActivityLogger.logFailure(RegisterActivity.this, null, "REGISTER", "HTTP " + response.code());
-                    return;
-                }
-                AuthResponse auth = response.body();
-                if (auth.token == null || auth.token.trim().isEmpty()
-                        || auth.role == null || auth.role.trim().isEmpty()
-                        || auth.username == null || auth.username.trim().isEmpty()) {
-                    btnContinue.setEnabled(true);
-                    updateRegisterAvailabilityForNetwork();
-                    tvError.setText(R.string.register_error_unexpected);
-                    tvError.setVisibility(View.VISIBLE);
-                    ActivityLogger.logFailure(RegisterActivity.this, null, "REGISTER", "Malformed auth response");
-                    return;
-                }
-                ApiClient.getInstance().setToken(auth.token);
-                String uid = auth.userId != null ? auth.userId : "";
-                String sessionEmail = (auth.email != null && !auth.email.trim().isEmpty())
-                        ? auth.email.trim()
-                        : email;
-                sessionManager.persistLoginSession(
-                        auth.token,
-                        uid,
-                        auth.role.toUpperCase(Locale.ROOT),
-                        auth.username,
-                        sessionEmail
-                );
-                ActivityLogger.log(
-                        RegisterActivity.this,
-                        "USER@" + auth.username,
-                        "REGISTER",
-                        "Account created via API (step 1)"
-                );
-
-                btnContinue.setEnabled(true);
-                updateRegisterAvailabilityForNetwork();
-                goToRegistrationStep2(auth);
-            }
-
-            @Override
-            public void onFailure(Call<AuthResponse> call, Throwable t) {
-                if (isFinishing() || isDestroyed()) {
-                    return;
-                }
-                btnContinue.setEnabled(true);
-                updateRegisterAvailabilityForNetwork();
-                tvError.setText(R.string.login_error_no_connection);
-                tvError.setVisibility(View.VISIBLE);
-                ActivityLogger.logFailure(RegisterActivity.this, null, "REGISTER", "Network error");
-            }
-        });
-    }
-
-    private void goToRegistrationStep2(AuthResponse auth) {
+    private void advanceToStep2WithoutApi() {
         registrationStep = 2;
-        step2EmployeeLinked = Boolean.TRUE.equals(auth.employeeDiscountLinkEstablished);
-        step2PriorGuest = Boolean.TRUE.equals(auth.priorGuestCheckout);
-        pendingEmployeeToastMessage = auth.employeeDiscountLinkMessage;
-        step2GuestServerHint = auth.guestProfileCompletionMessage;
+        step2PriorGuest = sessionManager.getGuestProfile() != null;
+        pendingEmployeeToastMessage = null;
 
         svStep1.setVisibility(View.GONE);
         svStep2.setVisibility(View.VISIBLE);
-        tvStepLabel.setText(R.string.register_step2_label);
         tvRegisterStep2Error.setVisibility(View.GONE);
-
-        if (step2PriorGuest) {
-            Toast.makeText(this, R.string.register_toast_guest_and_welcome_email, Toast.LENGTH_LONG).show();
-        } else {
-            Toast.makeText(this, R.string.register_toast_welcome_email, Toast.LENGTH_LONG).show();
-        }
+        updateToolbarForStep(2);
+        updateRegisterAvailabilityForNetwork();
 
         applyStep2UiMode();
-
-        if (!step2EmployeeLinked) {
-            prefillStep2FromGuestAndPhone();
-        }
+        prefillStep2FromGuestAndPhone();
     }
 
     private void applyStep2UiMode() {
-        if (step2EmployeeLinked) {
-            tvRegisterStep2EmployeeMessage.setVisibility(View.VISIBLE);
-            tvRegisterStep2GuestMessage.setVisibility(View.GONE);
-            llRegisterPersonalForm.setVisibility(View.GONE);
-            clearStep2FieldErrors();
-        } else {
-            tvRegisterStep2EmployeeMessage.setVisibility(View.GONE);
-            tvRegisterStep2GuestMessage.setVisibility(step2PriorGuest ? View.VISIBLE : View.GONE);
-            if (step2PriorGuest) {
-                String serverHint = step2GuestServerHint;
-                if (serverHint != null && !serverHint.trim().isEmpty()) {
-                    tvRegisterStep2GuestMessage.setText(serverHint.trim());
-                } else {
-                    tvRegisterStep2GuestMessage.setText(R.string.register_step2_guest_link_body);
-                }
-            }
-            llRegisterPersonalForm.setVisibility(View.VISIBLE);
+        tvRegisterStep2EmployeeMessage.setVisibility(View.GONE);
+        tvRegisterStep2GuestMessage.setVisibility(step2PriorGuest ? View.VISIBLE : View.GONE);
+        if (step2PriorGuest) {
+            tvRegisterStep2GuestMessage.setText(R.string.register_step2_guest_link_body);
         }
+        llRegisterPersonalForm.setVisibility(View.VISIBLE);
+        clearStep2FieldErrors();
     }
 
     private void prefillStep2FromGuestAndPhone() {
@@ -606,17 +475,6 @@ public class RegisterActivity extends AppCompatActivity {
             return;
         }
 
-        if (step2EmployeeLinked) {
-            btnCompleteRegistration.setEnabled(false);
-            if (pendingEmployeeToastMessage != null && !pendingEmployeeToastMessage.trim().isEmpty()) {
-                Toast.makeText(this, pendingEmployeeToastMessage.trim(), Toast.LENGTH_LONG).show();
-            } else {
-                Toast.makeText(this, R.string.register_toast_employee_discount_linked, Toast.LENGTH_LONG).show();
-            }
-            refreshCustomerDisplayNameThenFinish(false);
-            return;
-        }
-
         btnCompleteRegistration.setEnabled(false);
 
         ApiReachability.checkThen(
@@ -628,15 +486,51 @@ public class RegisterActivity extends AppCompatActivity {
                         tvRegisterStep2Error.setVisibility(View.VISIBLE);
                     }
                 },
-                this::validateAndPatchCustomerProfile
+                this::validateAllStepsThenRegister
         );
     }
 
-    private void validateAndPatchCustomerProfile() {
+    private void validateAllStepsThenRegister() {
         if (isFinishing() || isDestroyed()) {
             return;
         }
 
+        clearRegisterFieldErrorsForConnectionMessage();
+        tvError.setVisibility(View.GONE);
+        tvRegisterStep2Error.setVisibility(View.GONE);
+
+        if (!validateStep1Fields()) {
+            showRegistrationStep1();
+            btnCompleteRegistration.setEnabled(true);
+            updateRegisterAvailabilityForNetwork();
+            return;
+        }
+
+        if (!validateStep2ProfileFields()) {
+            btnCompleteRegistration.setEnabled(true);
+            updateRegisterAvailabilityForNetwork();
+            ActivityLogger.logFailure(this, null, "REGISTER", "Registration step 2 validation failed");
+            return;
+        }
+
+        String loginEmail = etEmail.getText() != null
+                ? etEmail.getText().toString().trim().toLowerCase(Locale.ROOT) : "";
+        CustomerPatchRequest patch = buildCustomerPatchRequest(loginEmail);
+        registerAccountThenFinishProfile(patch);
+    }
+
+    private void showRegistrationStep1() {
+        registrationStep = 1;
+        svStep1.setVisibility(View.VISIBLE);
+        svStep2.setVisibility(View.GONE);
+        updateToolbarForStep(1);
+        updateRegisterAvailabilityForNetwork();
+    }
+
+    /**
+     * Validates step-2 profile fields and sets errors on the form. Does not build a patch.
+     */
+    private boolean validateStep2ProfileFields() {
         String firstName = text(etFirstName);
         String middleInitial = text(etMiddleInitial);
         String lastName = text(etLastName);
@@ -728,12 +622,21 @@ public class RegisterActivity extends AppCompatActivity {
             valid = false;
         }
 
-        if (!valid) {
-            btnCompleteRegistration.setEnabled(true);
-            updateRegisterAvailabilityForNetwork();
-            ActivityLogger.logFailure(this, null, "REGISTER", "Registration step 2 validation failed");
-            return;
-        }
+        return valid;
+    }
+
+    private CustomerPatchRequest buildCustomerPatchRequest(String loginEmailForPatch) {
+        String firstName = text(etFirstName);
+        String middleInitial = text(etMiddleInitial);
+        String lastName = text(etLastName);
+        String phone = digits(etPhone);
+        String businessPhoneRaw = digits(etBusinessPhone);
+        String address1 = text(etAddress1);
+        String address2 = text(etAddress2);
+        String city = text(etCity);
+        String province = spinnerProvince.getSelectedItem() != null
+                ? spinnerProvince.getSelectedItem().toString().trim() : "";
+        String postal = text(etPostal);
 
         String phoneStored = Validation.formatPhoneForStorage(phone);
         if (phoneStored == null) {
@@ -764,9 +667,122 @@ public class RegisterActivity extends AppCompatActivity {
         patch.phone = phoneStored;
         patch.businessPhone = businessPhoneStored == null ? "" : businessPhoneStored;
         patch.address = addr;
-        String loginEmail = sessionManager.getLoginEmail();
-        patch.email = loginEmail != null ? loginEmail : "";
+        patch.email = loginEmailForPatch != null ? loginEmailForPatch : "";
+        return patch;
+    }
 
+    private void registerAccountThenFinishProfile(CustomerPatchRequest pendingPatch) {
+        String username = etUsername.getText() != null ? etUsername.getText().toString().trim() : "";
+        String email = etEmail.getText() != null ? etEmail.getText().toString().trim().toLowerCase(Locale.ROOT) : "";
+        String pass = etPassword.getText() != null ? etPassword.getText().toString() : "";
+        String regPhoneRaw = etRegisterPhone.getText() != null ? etRegisterPhone.getText().toString().trim() : "";
+
+        String phoneOpt = null;
+        if (!regPhoneRaw.isEmpty()) {
+            String digits = regPhoneRaw.replaceAll("\\D", "");
+            phoneOpt = Validation.formatPhoneForStorage(digits);
+            if (phoneOpt == null && !digits.isEmpty()) {
+                phoneOpt = regPhoneRaw;
+            }
+        }
+
+        RegisterRequest registerRequest = new RegisterRequest(username, email, pass, phoneOpt);
+
+        api.register(registerRequest).enqueue(new Callback<AuthResponse>() {
+            @Override
+            public void onResponse(Call<AuthResponse> call, Response<AuthResponse> response) {
+                if (isFinishing() || isDestroyed()) {
+                    return;
+                }
+                if (response.code() == 409) {
+                    btnCompleteRegistration.setEnabled(true);
+                    updateRegisterAvailabilityForNetwork();
+                    returnToStep1ForAccountConflict();
+                    ActivityLogger.logFailure(RegisterActivity.this, null, "REGISTER", "Conflict from API");
+                    return;
+                }
+                if (!response.isSuccessful() || response.body() == null) {
+                    btnCompleteRegistration.setEnabled(true);
+                    updateRegisterAvailabilityForNetwork();
+                    tvRegisterStep2Error.setText(R.string.register_error_unexpected);
+                    tvRegisterStep2Error.setVisibility(View.VISIBLE);
+                    ActivityLogger.logFailure(RegisterActivity.this, null, "REGISTER", "HTTP " + response.code());
+                    return;
+                }
+                AuthResponse auth = response.body();
+                if (auth.token == null || auth.token.trim().isEmpty()
+                        || auth.role == null || auth.role.trim().isEmpty()
+                        || auth.username == null || auth.username.trim().isEmpty()) {
+                    btnCompleteRegistration.setEnabled(true);
+                    updateRegisterAvailabilityForNetwork();
+                    tvRegisterStep2Error.setText(R.string.register_error_unexpected);
+                    tvRegisterStep2Error.setVisibility(View.VISIBLE);
+                    ActivityLogger.logFailure(RegisterActivity.this, null, "REGISTER", "Malformed auth response");
+                    return;
+                }
+
+                ApiClient.getInstance().setToken(auth.token);
+                String uid = auth.userId != null ? auth.userId : "";
+                String sessionEmail = (auth.email != null && !auth.email.trim().isEmpty())
+                        ? auth.email.trim()
+                        : email;
+                sessionManager.persistLoginSession(
+                        auth.token,
+                        uid,
+                        auth.role.toUpperCase(Locale.ROOT),
+                        auth.username,
+                        sessionEmail
+                );
+                ActivityLogger.log(
+                        RegisterActivity.this,
+                        "USER@" + auth.username,
+                        "REGISTER",
+                        "Account created via API (registration complete)"
+                );
+
+                if (Boolean.TRUE.equals(auth.priorGuestCheckout)) {
+                    Toast.makeText(RegisterActivity.this, R.string.register_toast_guest_and_welcome_email, Toast.LENGTH_LONG).show();
+                } else {
+                    Toast.makeText(RegisterActivity.this, R.string.register_toast_welcome_email, Toast.LENGTH_LONG).show();
+                }
+
+                if (Boolean.TRUE.equals(auth.employeeDiscountLinkEstablished)) {
+                    pendingEmployeeToastMessage = auth.employeeDiscountLinkMessage;
+                    if (pendingEmployeeToastMessage != null && !pendingEmployeeToastMessage.trim().isEmpty()) {
+                        Toast.makeText(RegisterActivity.this, pendingEmployeeToastMessage.trim(), Toast.LENGTH_LONG).show();
+                    } else {
+                        Toast.makeText(RegisterActivity.this, R.string.register_toast_employee_discount_linked, Toast.LENGTH_LONG).show();
+                    }
+                    sessionManager.clearGuestProfile();
+                    refreshCustomerDisplayNameThenFinish(false);
+                    return;
+                }
+
+                String patchEmail = sessionManager.getLoginEmail();
+                pendingPatch.email = patchEmail != null ? patchEmail : pendingPatch.email;
+                enqueuePatchCustomerMe(pendingPatch);
+            }
+
+            @Override
+            public void onFailure(Call<AuthResponse> call, Throwable t) {
+                if (isFinishing() || isDestroyed()) {
+                    return;
+                }
+                btnCompleteRegistration.setEnabled(true);
+                updateRegisterAvailabilityForNetwork();
+                tvRegisterStep2Error.setText(R.string.login_error_no_connection);
+                tvRegisterStep2Error.setVisibility(View.VISIBLE);
+                ActivityLogger.logFailure(RegisterActivity.this, null, "REGISTER", "Network error");
+            }
+        });
+    }
+
+    private void returnToStep1ForAccountConflict() {
+        showRegistrationStep1();
+        showDuplicateAccountError();
+    }
+
+    private void enqueuePatchCustomerMe(CustomerPatchRequest patch) {
         api.patchCustomerMe(patch).enqueue(new Callback<CustomerDto>() {
             @Override
             public void onResponse(Call<CustomerDto> call, Response<CustomerDto> response) {

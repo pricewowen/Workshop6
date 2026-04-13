@@ -12,22 +12,8 @@
         android:layout_width="match_parent"
         android:layout_height="?attr/actionBarSize"
         android:background="@color/bakery_background"
-        app:navigationIcon="@drawable/ic_arrow_back"
-        app:navigationIconTint="@color/bakery_text_dark"
-        app:title="@string/register_heading"
+        app:title="@string/register_step1_label"
         app:titleTextColor="@color/bakery_text_dark" />
-
-    <TextView
-        android:id="@+id/tv_register_step_label"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginHorizontal="24dp"
-        android:layout_marginTop="4dp"
-        android:letterSpacing="0.06"
-        android:text="@string/register_step1_label"
-        android:textColor="@color/bakery_text_secondary"
-        android:textSize="12sp"
-        android:textStyle="bold" />
 
     <FrameLayout
         android:layout_width="match_parent"
@@ -52,17 +38,6 @@
                     android:layout_height="wrap_content"
                     android:layout_marginHorizontal="24dp"
                     android:layout_marginTop="8dp" />
-
-                <TextView
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginHorizontal="24dp"
-                    android:layout_marginTop="10dp"
-                    android:gravity="center"
-                    android:lineSpacingMultiplier="1.25"
-                    android:text="@string/register_step1_title"
-                    android:textColor="@color/bakery_text_secondary"
-                    android:textSize="15sp" />
 
                 <com.google.android.material.card.MaterialCardView
                     android:layout_width="match_parent"
@@ -282,67 +257,6 @@
                             android:textStyle="normal"
                             app:backgroundTint="@color/bakery_gold"
                             app:cornerRadius="16dp" />
-
-                        <LinearLayout
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:layout_marginTop="20dp"
-                            android:gravity="center_vertical"
-                            android:minHeight="72dp"
-                            android:orientation="horizontal">
-
-                            <LinearLayout
-                                android:layout_width="0dp"
-                                android:layout_height="wrap_content"
-                                android:layout_weight="1"
-                                android:gravity="center"
-                                android:orientation="vertical"
-                                android:paddingHorizontal="8dp">
-
-                                <TextView
-                                    android:layout_width="wrap_content"
-                                    android:layout_height="wrap_content"
-                                    android:text="@string/link_have_account"
-                                    android:textColor="@color/bakery_text_secondary"
-                                    android:textSize="13sp" />
-
-                                <TextView
-                                    android:id="@+id/tv_sign_in_link"
-                                    android:layout_width="wrap_content"
-                                    android:layout_height="wrap_content"
-                                    android:layout_marginTop="4dp"
-                                    android:clickable="true"
-                                    android:focusable="true"
-                                    android:text="@string/link_sign_in"
-                                    android:textColor="@color/bakery_gold_bright"
-                                    android:textSize="15sp"
-                                    android:textStyle="bold" />
-                            </LinearLayout>
-
-                            <View
-                                android:layout_width="1dp"
-                                android:layout_height="48dp"
-                                android:background="@color/bakery_divider" />
-
-                            <FrameLayout
-                                android:layout_width="0dp"
-                                android:layout_height="match_parent"
-                                android:layout_weight="1">
-
-                                <TextView
-                                    android:id="@+id/tv_guest_link"
-                                    android:layout_width="wrap_content"
-                                    android:layout_height="wrap_content"
-                                    android:layout_gravity="center"
-                                    android:clickable="true"
-                                    android:focusable="true"
-                                    android:paddingHorizontal="12dp"
-                                    android:paddingVertical="8dp"
-                                    android:text="@string/link_skip_for_now"
-                                    android:textColor="@color/bakery_gold_bright"
-                                    android:textSize="15sp" />
-                            </FrameLayout>
-                        </LinearLayout>
                     </LinearLayout>
                 </com.google.android.material.card.MaterialCardView>
             </LinearLayout>
@@ -367,17 +281,6 @@
                     android:layout_height="wrap_content"
                     android:layout_marginHorizontal="24dp"
                     android:layout_marginTop="8dp" />
-
-                <TextView
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginHorizontal="24dp"
-                    android:layout_marginTop="10dp"
-                    android:gravity="center"
-                    android:lineSpacingMultiplier="1.25"
-                    android:text="@string/register_step2_title"
-                    android:textColor="@color/bakery_text_secondary"
-                    android:textSize="15sp" />
 
                 <com.google.android.material.card.MaterialCardView
                     android:layout_width="match_parent"
@@ -447,4 +350,6 @@
             </LinearLayout>
         </ScrollView>
     </FrameLayout>
+
+    <include layout="@layout/include_register_footer" />
 </LinearLayout>
