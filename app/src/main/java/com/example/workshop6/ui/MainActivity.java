@@ -7,8 +7,6 @@ import android.net.Network;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
-import android.view.View;
-import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
@@ -29,6 +27,8 @@ import com.example.workshop6.payments.PendingStripeConfirm;
 import com.example.workshop6.util.NavTransitions;
 import com.example.workshop6.util.NetworkStatus;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
+import android.view.View;
+import android.widget.Toast;
 
 import retrofit2.Call;
 import retrofit2.Callback;
@@ -46,7 +46,7 @@ public class MainActivity extends AppCompatActivity {
     /** Minimum spacing between staff-menu refresh calls when not forced. */
     private static final long STAFF_ACCESS_REFRESH_MS = 4_000L;
     /**
-     * {@link ConnectivityManager.NetworkCallback#onLost} can fire during normal Wi-Fi/cellular handoff.
+     * {@link ConnectivityManager.NetworkCallback#onLost} can fire during normal Wi‑Fi/cellular handoff.
      * Wait before treating it as a real outage so we don't clear a valid session.
      */
     private static final long NETWORK_LOST_DEBOUNCE_MS = 2_500L;
@@ -385,6 +385,11 @@ public class MainActivity extends AppCompatActivity {
             }
             if (!NetworkStatus.isOnline(MainActivity.this)) {
                 Toast.makeText(MainActivity.this, R.string.login_error_no_connection, Toast.LENGTH_SHORT).show();
+                return false;
+            }
+            // Chat is intentionally disabled for now (customer, staff, admin).
+            // Consume the click without navigating.
+            if (item.getItemId() == R.id.nav_staff_chat) {
                 return false;
             }
             boolean navigated = NavigationUI.onNavDestinationSelected(item, navController);
