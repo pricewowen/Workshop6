@@ -1,17 +1,22 @@
-# Gradle
-.gradle/
-build/
-local.properties
-.idea/
 *.iml
-
-# Local machine config
-local.properties
-
-# Android Studio
-.idea/
-*.iml
-
-# OS files
+.gradle
+/local.properties
+/.idea/caches
+/.idea/libraries
+/.idea/modules.xml
+/.idea/workspace.xml
+/.idea/navEditor.xml
+/.idea/assetWizardSettings.xml
+/.idea/.name
+/.idea/material_theme_project_new.xml
 .DS_Store
-Thumbs.db
+/build
+/captures
+.externalNativeBuild
+.cxx
+local.properties
+docs
+/.idea/markdown.xml
+/.claude
+sentry*
+.idea

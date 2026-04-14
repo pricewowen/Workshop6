@@ -36,12 +36,16 @@ import retrofit2.Response;
 public class ChatActivity extends AppCompatActivity {
 
     public static final String EXTRA_THREAD_ID = "thread_id";
+    public static final String EXTRA_THREAD_TITLE = "thread_title";
+    public static final String EXTRA_THREAD_SUBTITLE = "thread_subtitle";
 
     private RecyclerView recyclerMessages;
     private EditText editMessage;
     private Button buttonSend;
     private ImageButton buttonBack;
     private TextView textEmpty;
+    private TextView textTitle;
+    private TextView textSubtitle;
     private LinearLayout layoutChatInput;
 
     private SessionManager sessionManager;
@@ -69,6 +73,8 @@ public class ChatActivity extends AppCompatActivity {
         buttonSend = findViewById(R.id.button_send);
         buttonBack = findViewById(R.id.button_back);
         textEmpty = findViewById(R.id.text_chat_empty);
+        textTitle = findViewById(R.id.text_chat_title);
+        textSubtitle = findViewById(R.id.text_chat_subtitle);
         layoutChatInput = findViewById(R.id.layout_chat_input);
 
         buttonBack.setOnClickListener(v -> {
@@ -104,6 +110,7 @@ public class ChatActivity extends AppCompatActivity {
             return;
         }
 
+        bindConversationHeader();
         buttonSend.setOnClickListener(v -> sendMessage());
         loadMessages();
     }
@@ -157,6 +164,9 @@ public class ChatActivity extends AppCompatActivity {
                 adapter.setMessages(messages);
                 boolean hasMessages = messages != null && !messages.isEmpty();
                 textEmpty.setVisibility(hasMessages ? View.GONE : View.VISIBLE);
+                if (!hasMessages) {
+                    bindEmptyState();
+                }
                 if (hasMessages) {
                     recyclerMessages.scrollToPosition(messages.size() - 1);
                 }
@@ -200,5 +210,31 @@ public class ChatActivity extends AppCompatActivity {
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
         NavTransitions.startActivityWithForward(this, intent);
         finish();
+    }
+
+    private void bindConversationHeader() {
+        String title = getIntent().getStringExtra(EXTRA_THREAD_TITLE);
+        String subtitle = getIntent().getStringExtra(EXTRA_THREAD_SUBTITLE);
+
+        if (title == null || title.trim().isEmpty()) {
+            title = "CUSTOMER".equalsIgnoreCase(sessionManager.getUserRole())
+                    ? getString(R.string.staff_chat)
+                    : getString(R.string.nav_chat_short);
+        }
+        if (subtitle == null || subtitle.trim().isEmpty()) {
+            subtitle = "CUSTOMER".equalsIgnoreCase(sessionManager.getUserRole())
+                    ? getString(R.string.chat_subtitle_customer_waiting)
+                    : getString(R.string.chat_subtitle_staff_view);
+        }
+
+        textTitle.setText(title);
+        textSubtitle.setText(subtitle);
+    }
+
+    private void bindEmptyState() {
+        boolean isCustomer = "CUSTOMER".equalsIgnoreCase(sessionManager.getUserRole());
+        textEmpty.setText(isCustomer
+                ? R.string.chat_empty_state_customer
+                : R.string.chat_empty_state_staff);
     }
 }

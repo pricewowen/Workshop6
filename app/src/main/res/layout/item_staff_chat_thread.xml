@@ -25,7 +25,7 @@
             android:layout_height="wrap_content"
             android:text="Customer Name"
             android:textColor="@color/bakery_text_dark"
-            android:textSize="15sp"
+            android:textSize="16sp"
             android:textStyle="bold" />
 
         <TextView
@@ -35,6 +35,17 @@
             android:layout_marginTop="4dp"
             android:text="Last message preview"
             android:textColor="@color/bakery_text_secondary"
-            android:textSize="13sp" />
+            android:textSize="14sp" />
+
+        <TextView
+            android:id="@+id/text_thread_meta"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:text="Customer thread • OPEN"
+            android:textColor="@color/bakery_gold"
+            android:textSize="12sp" />
+
     </LinearLayout>
+
 </com.google.android.material.card.MaterialCardView>
