@@ -8,4 +8,7 @@ public class RegisterAvailabilityDto {
 
     @SerializedName("emailAvailable")
     public boolean emailAvailable;
+
+    @SerializedName("employeeLinkOffered")
+    public boolean employeeLinkOffered;
 }

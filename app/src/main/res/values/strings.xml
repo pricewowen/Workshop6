@@ -48,8 +48,15 @@
     <string name="register_heading">Create\naccount.</string>
     <string name="register_step1_label">Step 1 of 2: Account</string>
     <string name="register_step2_label">Step 2 of 2: Your details</string>
+    <string name="register_step2_employee_link_label">Step 2 of 2: Staff account</string>
     <string name="register_step1_title">Sign-in and password</string>
     <string name="register_step2_title">Personal details</string>
+    <string name="register_step2_employee_link_instructions">This email matches a staff work address on file. Enter the password you use to sign in to your employee account (not your new customer password), then confirm it, so we can link your new customer profile to that staff record. Your name, phone, and address will be copied from your employee profile after you register.</string>
+    <string name="label_employee_account_password">Employee account password</string>
+    <string name="hint_employee_account_password">Staff sign-in password</string>
+    <string name="label_confirm_employee_password">Confirm employee password</string>
+    <string name="register_error_employee_password_mismatch">The two employee password fields do not match.</string>
+    <string name="register_error_employee_password_wrong">That password does not match the staff account for this email.</string>
     <string name="btn_continue">Continue</string>
     <string name="btn_complete_registration">Complete registration</string>
     <string name="register_step2_employee_linked_body">We matched this account to your employee profile. Your name, contact information, and address from your employee record have been copied to your customer profile. Tap below to finish. You do not need to fill in this form.</string>
@@ -372,7 +379,6 @@
     <string name="guest_checkout_contact_title">Contact details</string>
     <string name="guest_minimal_contact_hint">* We use this to reach you about your order.</string>
     <string name="guest_contact_required">Enter an email or phone number</string>
-    <string name="register_phone_optional">Mobile phone (optional)</string>
     <string name="toast_account_created">Account created.</string>
     <string name="account_label_username">Username</string>
     <string name="account_label_sign_email">Sign-in email</string>

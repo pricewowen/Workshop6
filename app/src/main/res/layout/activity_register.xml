@@ -120,37 +120,6 @@
                                 android:inputType="textEmailAddress|textNoSuggestions" />
                         </com.google.android.material.textfield.TextInputLayout>
 
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_marginBottom="4dp"
-                            android:letterSpacing="0.08"
-                            android:text="@string/register_phone_optional"
-                            android:textColor="@color/bakery_text_secondary"
-                            android:textSize="11sp"
-                            android:textStyle="bold" />
-
-                        <com.google.android.material.textfield.TextInputLayout
-                            android:id="@+id/til_register_phone"
-                            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:layout_marginBottom="16dp"
-                            app:boxCornerRadiusBottomEnd="12dp"
-                            app:boxCornerRadiusBottomStart="12dp"
-                            app:boxCornerRadiusTopEnd="12dp"
-                            app:boxCornerRadiusTopStart="12dp"
-                            app:hintEnabled="false">
-
-                            <com.google.android.material.textfield.TextInputEditText
-                                android:id="@+id/et_register_phone"
-                                android:layout_width="match_parent"
-                                android:layout_height="wrap_content"
-                                android:hint="@string/register_phone_optional"
-                                android:imeOptions="actionNext"
-                                android:inputType="phone|textNoSuggestions" />
-                        </com.google.android.material.textfield.TextInputLayout>
-
                         <LinearLayout
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
@@ -310,6 +279,88 @@
                             android:textColor="@color/bakery_text_dark"
                             android:textSize="15sp"
                             android:visibility="gone" />
+
+                        <LinearLayout
+                            android:id="@+id/ll_register_employee_link"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginBottom="16dp"
+                            android:orientation="vertical"
+                            android:visibility="gone">
+
+                            <TextView
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginBottom="12dp"
+                                android:lineSpacingExtra="3dp"
+                                android:text="@string/register_step2_employee_link_instructions"
+                                android:textColor="@color/bakery_text_secondary"
+                                android:textSize="14sp" />
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginBottom="4dp"
+                                android:letterSpacing="0.08"
+                                android:text="@string/label_employee_account_password"
+                                android:textColor="@color/bakery_text_secondary"
+                                android:textSize="11sp"
+                                android:textStyle="bold" />
+
+                            <com.google.android.material.textfield.TextInputLayout
+                                android:id="@+id/til_employee_link_password"
+                                style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginBottom="12dp"
+                                app:boxCornerRadiusBottomEnd="12dp"
+                                app:boxCornerRadiusBottomStart="12dp"
+                                app:boxCornerRadiusTopEnd="12dp"
+                                app:boxCornerRadiusTopStart="12dp"
+                                app:endIconMode="password_toggle"
+                                app:hintEnabled="false">
+
+                                <com.google.android.material.textfield.TextInputEditText
+                                    android:id="@+id/et_employee_link_password"
+                                    android:layout_width="match_parent"
+                                    android:layout_height="wrap_content"
+                                    android:hint="@string/hint_employee_account_password"
+                                    android:imeOptions="actionNext"
+                                    android:inputType="textPassword" />
+                            </com.google.android.material.textfield.TextInputLayout>
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginBottom="4dp"
+                                android:letterSpacing="0.08"
+                                android:text="@string/label_confirm_employee_password"
+                                android:textColor="@color/bakery_text_secondary"
+                                android:textSize="11sp"
+                                android:textStyle="bold" />
+
+                            <com.google.android.material.textfield.TextInputLayout
+                                android:id="@+id/til_employee_link_confirm"
+                                style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginBottom="8dp"
+                                app:boxCornerRadiusBottomEnd="12dp"
+                                app:boxCornerRadiusBottomStart="12dp"
+                                app:boxCornerRadiusTopEnd="12dp"
+                                app:boxCornerRadiusTopStart="12dp"
+                                app:endIconMode="password_toggle"
+                                app:hintEnabled="false">
+
+                                <com.google.android.material.textfield.TextInputEditText
+                                    android:id="@+id/et_employee_link_confirm"
+                                    android:layout_width="match_parent"
+                                    android:layout_height="wrap_content"
+                                    android:hint="@string/label_confirm_employee_password"
+                                    android:imeOptions="actionDone"
+                                    android:inputType="textPassword" />
+                            </com.google.android.material.textfield.TextInputLayout>
+                        </LinearLayout>
 
                         <TextView
                             android:id="@+id/tv_register_step2_guest_message"
