@@ -1,5 +1,6 @@
 package com.example.workshop6.ui.approvals;
 
+import android.content.Context;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -38,7 +39,13 @@ import retrofit2.Callback;
 import retrofit2.Response;
 
 public class OrdersAdminFragment extends Fragment {
-    private static final List<StatusOption> ALL_STATUS_OPTIONS = Arrays.asList(
+    private static final int PAGE_SIZE = 5;
+
+    /**
+     * API {@code order_status} lifecycle order (aligned with Workshop-5 forward-only rules:
+     * only move to a later step, except {@code cancelled} which is allowed from any state including completed).
+     */
+    private static final List<StatusOption> STATUS_FLOW_ORDER = Arrays.asList(
             new StatusOption("placed", "Placed"),
             new StatusOption("pending_payment", "Pending Payment"),
             new StatusOption("paid", "Paid"),
@@ -47,6 +54,7 @@ public class OrdersAdminFragment extends Fragment {
             new StatusOption("scheduled", "Scheduled"),
             new StatusOption("picked_up", "Picked Up"),
             new StatusOption("delivered", "Delivered"),
+            new StatusOption("completed", "Completed"),
             new StatusOption("cancelled", "Cancelled")
     );
 
@@ -58,6 +66,10 @@ public class OrdersAdminFragment extends Fragment {
     private final NumberFormat currency = NumberFormat.getCurrencyInstance(Locale.CANADA);
     private View loadingOverlay;
     private View contentView;
+    private MaterialButton btnLoadMore;
+
+    private final List<OrderDto> allOrders = new ArrayList<>();
+    private int visibleCount = 0;
 
     @Nullable
     @Override
@@ -76,6 +88,7 @@ public class OrdersAdminFragment extends Fragment {
         tvEmpty = view.findViewById(R.id.tv_orders_admin_empty);
         loadingOverlay = view.findViewById(R.id.orders_admin_loading_overlay);
         contentView = view.findViewById(R.id.orders_admin_content);
+        btnLoadMore = view.findViewById(R.id.btn_orders_admin_load_more);
 
         adapter = new OrdersAdminAdapter(new ArrayList<>(), new OrdersAdminAdapter.Listener() {
             @Override
@@ -85,6 +98,18 @@ public class OrdersAdminFragment extends Fragment {
         }, currency);
         rvOrders.setLayoutManager(new LinearLayoutManager(requireContext()));
         rvOrders.setAdapter(adapter);
+
+        btnLoadMore.setOnClickListener(v -> {
+            if (allOrders.isEmpty()) {
+                return;
+            }
+            int nextCount = Math.min(allOrders.size(), visibleCount + PAGE_SIZE);
+            if (nextCount != visibleCount) {
+                visibleCount = nextCount;
+                adapter.submitList(new ArrayList<>(allOrders.subList(0, visibleCount)));
+            }
+            updateLoadMoreVisibility();
+        });
 
         verifyAccessAndLoad();
     }
@@ -128,21 +153,19 @@ public class OrdersAdminFragment extends Fragment {
                     rvOrders.setVisibility(View.GONE);
                     return;
                 }
-                List<OrderDto> orders = new ArrayList<>();
-                for (OrderDto o : response.body()) {
-                    String st = o.status != null ? o.status.toLowerCase(Locale.ROOT) : "";
-                    if ("completed".equals(st) || "cancelled".equals(st)) {
-                        continue;
-                    }
-                    orders.add(o);
-                }
+                List<OrderDto> orders = new ArrayList<>(response.body());
                 orders.sort((a, b) -> {
                     OffsetDateTime da = parseOrderDate(a);
                     OffsetDateTime db = parseOrderDate(b);
                     return Comparator.nullsLast(Comparator.<OffsetDateTime>naturalOrder()).reversed().compare(da, db);
                 });
-                adapter.submitList(orders);
-                boolean empty = orders.isEmpty();
+
+                allOrders.clear();
+                allOrders.addAll(orders);
+                visibleCount = Math.min(PAGE_SIZE, allOrders.size());
+                adapter.submitList(new ArrayList<>(allOrders.subList(0, visibleCount)));
+
+                boolean empty = allOrders.isEmpty();
                 tvEmpty.setVisibility(empty ? View.VISIBLE : View.GONE);
                 rvOrders.setVisibility(empty ? View.GONE : View.VISIBLE);
                 if (empty) {
@@ -152,6 +175,8 @@ public class OrdersAdminFragment extends Fragment {
                         tvEmpty.setText(R.string.orders_admin_none_available);
                     }
                 }
+
+                updateLoadMoreVisibility();
             }
 
             @Override
@@ -164,12 +189,16 @@ public class OrdersAdminFragment extends Fragment {
         });
     }
 
-    private void patchStatus(OrderDto order, String nextStatus) {
-        if (order == null || order.id == null || nextStatus == null || nextStatus.trim().isEmpty()) {
+    private void updateLoadMoreVisibility() {
+        if (btnLoadMore == null) {
             return;
         }
-        if ("completed".equalsIgnoreCase(nextStatus)) {
-            Toast.makeText(requireContext(), R.string.orders_admin_update_failed, Toast.LENGTH_SHORT).show();
+        boolean show = !allOrders.isEmpty() && visibleCount < allOrders.size();
+        btnLoadMore.setVisibility(show ? View.VISIBLE : View.GONE);
+    }
+
+    private void patchStatus(OrderDto order, String nextStatus) {
+        if (order == null || order.id == null || nextStatus == null || nextStatus.trim().isEmpty()) {
             return;
         }
         String current = order.status != null ? order.status : "";
@@ -177,8 +206,9 @@ public class OrdersAdminFragment extends Fragment {
             Toast.makeText(requireContext(), R.string.orders_admin_status_unchanged, Toast.LENGTH_SHORT).show();
             return;
         }
-        if (!isValidStatusTransition(order, current, nextStatus)) {
-            Toast.makeText(requireContext(), R.string.orders_admin_update_failed, Toast.LENGTH_SHORT).show();
+        String denial = transitionDenialMessage(requireContext(), current, nextStatus);
+        if (denial != null) {
+            Toast.makeText(requireContext(), denial, Toast.LENGTH_LONG).show();
             return;
         }
         setLoadingUi(true);
@@ -214,34 +244,121 @@ public class OrdersAdminFragment extends Fragment {
         });
     }
 
-    private static boolean isValidStatusTransition(@Nullable OrderDto order, String currentRaw, String nextRaw) {
+    private static String normalizeStatusRaw(@Nullable String raw) {
+        return raw == null ? "" : raw.toLowerCase(Locale.ROOT).trim();
+    }
+
+    private static int flowIndex(@Nullable String raw) {
+        String s = normalizeStatusRaw(raw);
+        for (int i = 0; i < STATUS_FLOW_ORDER.size(); i++) {
+            if (STATUS_FLOW_ORDER.get(i).raw.equals(s)) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    private static StatusOption statusOptionForRaw(@Nullable String raw) {
+        String s = normalizeStatusRaw(raw);
+        for (StatusOption o : STATUS_FLOW_ORDER) {
+            if (o.raw.equals(s)) {
+                return o;
+            }
+        }
+        return new StatusOption(s, OrdersAdminAdapter.prettyStatus(s));
+    }
+
+    /**
+     * Workshop-5-aligned: forward in {@link #STATUS_FLOW_ORDER} only; {@code cancelled} is always allowed as a target;
+     * staff cannot PATCH {@code completed}; no changes from terminal {@code cancelled}.
+     */
+    private static boolean canStaffTransition(@Nullable String currentRaw, @Nullable String nextRaw) {
         if (nextRaw == null || nextRaw.trim().isEmpty()) {
             return false;
         }
-        String next = nextRaw.toLowerCase(Locale.ROOT).trim();
-        if ("completed".equals(next)) {
+        String c = normalizeStatusRaw(currentRaw);
+        String n = normalizeStatusRaw(nextRaw);
+        if (c.equals(n)) {
             return false;
         }
-        for (StatusOption option : getAvailableTransitions(order, currentRaw)) {
-            if (next.equals(option.raw)) {
-                return true;
-            }
+        if ("cancelled".equals(n)) {
+            return true;
         }
-        return false;
+        if ("completed".equals(n)) {
+            return false;
+        }
+        if ("cancelled".equals(c)) {
+            return false;
+        }
+        if ("completed".equals(c)) {
+            return false;
+        }
+        int ci = flowIndex(c);
+        int ni = flowIndex(n);
+        if (ci < 0 || ni < 0) {
+            return false;
+        }
+        return ni > ci;
     }
 
-    private static List<StatusOption> getAvailableTransitions(@Nullable OrderDto order, @Nullable String currentRaw) {
-        List<StatusOption> out = new ArrayList<>(ALL_STATUS_OPTIONS);
-        String current = currentRaw != null ? currentRaw.toLowerCase(Locale.ROOT).trim() : "";
-        boolean hasCurrent = false;
-        for (StatusOption option : out) {
-            if (option.raw.equalsIgnoreCase(current)) {
-                hasCurrent = true;
-                break;
-            }
+    /**
+     * @return human-readable denial for Toast, or {@code null} if the transition is allowed
+     */
+    @Nullable
+    private static String transitionDenialMessage(Context ctx, @Nullable String currentRaw, @Nullable String nextRaw) {
+        if (ctx == null) {
+            return null;
         }
-        if (!current.isEmpty() && !hasCurrent && !"completed".equals(current)) {
-            out.add(new StatusOption(current, OrdersAdminAdapter.prettyStatus(current)));
+        String c = normalizeStatusRaw(currentRaw);
+        String n = normalizeStatusRaw(nextRaw);
+        if (n.isEmpty()) {
+            return ctx.getString(R.string.orders_admin_update_failed);
+        }
+        if (c.equals(n)) {
+            return null;
+        }
+        if (canStaffTransition(currentRaw, nextRaw)) {
+            return null;
+        }
+        String fromLabel = statusOptionForRaw(currentRaw).label;
+        String toLabel = statusOptionForRaw(nextRaw).label;
+        if ("completed".equals(n)) {
+            return ctx.getString(R.string.orders_admin_denial_intro_fmt,
+                    fromLabel, toLabel, ctx.getString(R.string.orders_admin_denial_staff_completed));
+        }
+        if ("cancelled".equals(c)) {
+            return ctx.getString(R.string.orders_admin_denial_intro_fmt,
+                    fromLabel, toLabel, ctx.getString(R.string.orders_admin_denial_terminal));
+        }
+        if ("completed".equals(c)) {
+            return ctx.getString(R.string.orders_admin_denial_intro_fmt,
+                    fromLabel, toLabel, ctx.getString(R.string.orders_admin_denial_terminal));
+        }
+        int ci = flowIndex(c);
+        int ni = flowIndex(n);
+        if (ci < 0 || ni < 0) {
+            return ctx.getString(R.string.orders_admin_denial_intro_fmt,
+                    fromLabel, toLabel, ctx.getString(R.string.orders_admin_denial_unknown_status));
+        }
+        if (ni <= ci) {
+            return ctx.getString(R.string.orders_admin_denial_intro_fmt,
+                    fromLabel, toLabel, ctx.getString(R.string.orders_admin_denial_backward));
+        }
+        return ctx.getString(R.string.orders_admin_denial_intro_fmt,
+                fromLabel, toLabel, ctx.getString(R.string.orders_admin_update_failed));
+    }
+
+    private static List<StatusOption> staffSpinnerOptionsForCurrent(@Nullable String currentRaw) {
+        String c = normalizeStatusRaw(currentRaw);
+        List<StatusOption> out = new ArrayList<>();
+        out.add(statusOptionForRaw(currentRaw));
+        for (StatusOption o : STATUS_FLOW_ORDER) {
+            if (o.raw.equals(c)) {
+                continue;
+            }
+            if (canStaffTransition(currentRaw, o.raw)) {
+                out.add(o);
+            }
         }
         return out;
     }
@@ -305,7 +422,7 @@ public class OrdersAdminFragment extends Fragment {
                     prettyStatus(current)
             ));
 
-            List<StatusOption> statusOptions = getAvailableTransitions(order, current);
+            List<StatusOption> statusOptions = staffSpinnerOptionsForCurrent(current);
             ArrayAdapter<String> spinnerAdapter = new ArrayAdapter<>(
                     holder.itemView.getContext(),
                     R.layout.spinner_bakery_item,

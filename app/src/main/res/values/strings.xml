@@ -466,8 +466,9 @@
     <string name="confirmation_comment">Comment</string>
 
     <!-- Orders admin -->
-    <string name="orders_admin_title">Order Status Manager</string>
-    <string name="orders_admin_subtitle">Review recent orders and update their status.</string>
+    <string name="orders_admin_title">Orders</string>
+    <string name="orders_admin_subtitle">Review orders and update their status.</string>
+    <string name="orders_admin_load_more">Load 5 more</string>
     <string name="orders_admin_none_available">No orders available right now.</string>
     <string name="orders_admin_none_available_employee_scope">No active orders for your assigned bakery right now.</string>
     <string name="orders_admin_access_denied">Only employees and admins can update order status.</string>
@@ -478,6 +479,11 @@
     <string name="orders_admin_status_unchanged">Order is already in that status.</string>
     <string name="orders_admin_status_updated">Order status updated.</string>
     <string name="orders_admin_update_failed">Could not update order status.</string>
+    <string name="orders_admin_denial_staff_completed">Staff cannot set an order to completed here. Customers complete delivered orders from their history.</string>
+    <string name="orders_admin_denial_terminal">Completed or cancelled orders cannot be changed to another status.</string>
+    <string name="orders_admin_denial_backward">Status can only move forward in the workflow. You can still cancel an active order if needed.</string>
+    <string name="orders_admin_denial_unknown_status">This order\'s status isn\'t recognized for workflow rules. Only cancel may be available.</string>
+    <string name="orders_admin_denial_intro_fmt">Cannot change from %1$s to %2$s. %3$s</string>
     <string name="order_retry_payment">Complete payment</string>
     <string name="order_payment_pending_hint">Payment did not finish. Tap below to pay securely.</string>
     <string name="order_accept_delivery">Accept Delivery</string>
