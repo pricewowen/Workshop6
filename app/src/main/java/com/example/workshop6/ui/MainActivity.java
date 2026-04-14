@@ -24,6 +24,7 @@ import com.example.workshop6.data.api.ApiService;
 import com.example.workshop6.data.api.dto.CustomerDto;
 import com.example.workshop6.data.api.dto.EmployeeDto;
 import com.example.workshop6.payments.PendingStripeConfirm;
+import com.example.workshop6.util.ApiReachability;
 import com.example.workshop6.util.NavTransitions;
 import com.example.workshop6.util.NetworkStatus;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
@@ -56,18 +57,40 @@ public class MainActivity extends AppCompatActivity {
     private int currentBottomNavMenuResId = 0;
     private long lastStaffAccessCheckAt = 0L;
     private boolean staffAccessCheckInFlight = false;
+    private boolean apiReachabilityCheckInFlight = false;
+    private int apiUnreachableStreak = 0;
     /** While a review is being moderated, bottom navigation is disabled so the user cannot switch tabs. */
     private boolean reviewSubmissionBlocksBottomNav;
     private final Handler connectivityHandler = new Handler(Looper.getMainLooper());
     private final Runnable connectivityPollRunnable = new Runnable() {
         @Override
         public void run() {
-            if (isFinishing() || sessionManager == null || !sessionManager.isLoggedIn()) {
+            if (isFinishing() || sessionManager == null || !sessionManager.hasActiveSession()) {
                 return;
             }
             BottomNavigationView bottomNav = findViewById(R.id.bottom_nav);
             if (bottomNav != null) {
                 updateStaffAccess(bottomNav, true);
+            }
+            // For all roles: if the API becomes unreachable (but the device is still online),
+            // force logout so the user is not stuck in a broken authenticated state.
+            if (NetworkStatus.isOnline(MainActivity.this) && !apiReachabilityCheckInFlight) {
+                apiReachabilityCheckInFlight = true;
+                ApiReachability.checkThen(
+                        null,
+                        () -> {
+                            apiReachabilityCheckInFlight = false;
+                            apiUnreachableStreak++;
+                            // One failed probe is enough: ApiReachability already retries internally.
+                            if (apiUnreachableStreak >= 1) {
+                                handleServerUnreachable();
+                            }
+                        },
+                        () -> {
+                            apiReachabilityCheckInFlight = false;
+                            apiUnreachableStreak = 0;
+                        }
+                );
             }
             connectivityHandler.postDelayed(this, API_SESSION_POLL_MS);
         }
@@ -76,7 +99,7 @@ public class MainActivity extends AppCompatActivity {
     private final Runnable networkLostConfirmRunnable = new Runnable() {
         @Override
         public void run() {
-            if (isFinishing() || sessionManager == null || !sessionManager.isLoggedIn()) {
+            if (isFinishing() || sessionManager == null || !sessionManager.hasActiveSession()) {
                 return;
             }
             if (!NetworkStatus.isOnline(MainActivity.this)) {
@@ -95,7 +118,7 @@ public class MainActivity extends AppCompatActivity {
         @Override
         public void onLost(@NonNull Network network) {
             runOnUiThread(() -> {
-                if (isFinishing() || sessionManager == null || !sessionManager.isLoggedIn()) {
+                if (isFinishing() || sessionManager == null || !sessionManager.hasActiveSession()) {
                     return;
                 }
                 connectivityHandler.removeCallbacks(networkLostConfirmRunnable);
@@ -235,7 +258,7 @@ public class MainActivity extends AppCompatActivity {
             }
         }
         connectivityHandler.removeCallbacks(connectivityPollRunnable);
-        if (sessionManager.isLoggedIn()) {
+        if (sessionManager.hasActiveSession()) {
             connectivityHandler.post(connectivityPollRunnable);
         }
         PendingStripeConfirm.tryDrain(this);
@@ -339,11 +362,20 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void handleConnectionLost() {
-        if (isFinishing() || sessionManager == null || !sessionManager.isLoggedIn()) {
+        if (isFinishing() || sessionManager == null || !sessionManager.hasActiveSession()) {
             return;
         }
         Toast.makeText(this, R.string.lost_connection_logout, Toast.LENGTH_LONG).show();
         redirectToLogin(getString(R.string.lost_connection_logout));
+    }
+
+    private void handleServerUnreachable() {
+        if (isFinishing() || sessionManager == null || !sessionManager.hasActiveSession()) {
+            return;
+        }
+        // Align with Map/Browse forced logout: same copy as other “API unreachable” paths.
+        Toast.makeText(this, R.string.login_error_no_connection, Toast.LENGTH_LONG).show();
+        redirectToLogin(getString(R.string.login_error_no_connection));
     }
 
     private void applyStaffNavigation(BottomNavigationView bottomNav, String role) {
@@ -384,7 +416,8 @@ public class MainActivity extends AppCompatActivity {
                 return false;
             }
             if (!NetworkStatus.isOnline(MainActivity.this)) {
-                Toast.makeText(MainActivity.this, R.string.login_error_no_connection, Toast.LENGTH_SHORT).show();
+                // Match forced-logout flows: leave main app; LoginActivity shows this as a Toast (not tvError).
+                redirectToLogin(getString(R.string.login_error_no_connection));
                 return false;
             }
             boolean navigated = NavigationUI.onNavDestinationSelected(item, navController);
@@ -461,7 +494,7 @@ public class MainActivity extends AppCompatActivity {
         intent.putExtra("session_message", message);
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
         NavTransitions.startActivityWithForward(this, intent);
-        finish();
+        finishAffinity();
     }
 
     public SessionManager getSessionManager() {

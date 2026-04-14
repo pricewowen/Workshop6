@@ -3,6 +3,8 @@ package com.example.workshop6.util;
 import android.os.Handler;
 import android.os.Looper;
 
+import androidx.annotation.Nullable;
+
 import com.example.workshop6.BuildConfig;
 
 import java.io.IOException;
@@ -21,18 +23,17 @@ import okhttp3.Response;
 public final class ApiReachability {
 
     /**
-     * Cold starts (DNS, TLS, first route) often need more than a couple of seconds on real devices;
-     * keep this aligned with tolerable wait before we show "can't reach server".
+     * Short limits so a stopped API fails fast; {@link #REACHABILITY_ATTEMPTS} still smooths flaky radios.
      */
     private static final OkHttpClient PING_CLIENT = new OkHttpClient.Builder()
-            .connectTimeout(8, TimeUnit.SECONDS)
-            .readTimeout(8, TimeUnit.SECONDS)
-            .writeTimeout(8, TimeUnit.SECONDS)
-            .callTimeout(12, TimeUnit.SECONDS)
+            .connectTimeout(4, TimeUnit.SECONDS)
+            .readTimeout(4, TimeUnit.SECONDS)
+            .writeTimeout(4, TimeUnit.SECONDS)
+            .callTimeout(6, TimeUnit.SECONDS)
             .build();
 
-    private static final int REACHABILITY_ATTEMPTS = 3;
-    private static final long RETRY_DELAY_MS = 400L;
+    private static final int REACHABILITY_ATTEMPTS = 2;
+    private static final long RETRY_DELAY_MS = 200L;
 
     private static final ExecutorService EXEC = Executors.newSingleThreadExecutor(r -> {
         Thread t = new Thread(r, "api-reachability");
@@ -90,6 +91,24 @@ public final class ApiReachability {
      * Runs {@link #isServerReachable()} off the main thread, then posts one of the runnables on the main looper.
      */
     public static void checkThen(Runnable onUnreachableOnMain, Runnable onReachableOnMain) {
+        checkThen(null, onUnreachableOnMain, onReachableOnMain);
+    }
+
+    /**
+     * Like {@link #checkThen(Runnable, Runnable)} but runs {@code onPrepareOnMain} on the main thread first
+     * (e.g. show a blocking “checking server” UI before the background probe starts).
+     */
+    public static void checkThen(
+            @Nullable Runnable onPrepareOnMain,
+            Runnable onUnreachableOnMain,
+            Runnable onReachableOnMain) {
+        if (onPrepareOnMain != null) {
+            if (Looper.myLooper() == Looper.getMainLooper()) {
+                onPrepareOnMain.run();
+            } else {
+                MAIN.post(onPrepareOnMain);
+            }
+        }
         EXEC.execute(() -> {
             boolean ok = isServerReachable();
             MAIN.post(() -> {

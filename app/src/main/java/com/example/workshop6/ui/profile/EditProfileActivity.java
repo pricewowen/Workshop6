@@ -8,10 +8,13 @@ import android.graphics.ColorMatrix;
 import android.graphics.ColorMatrixColorFilter;
 import android.net.Uri;
 import android.os.Bundle;
+import android.text.Editable;
+import android.text.TextWatcher;
 import android.text.method.PasswordTransformationMethod;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewOutlineProvider;
+import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.ImageView;
@@ -176,10 +179,85 @@ public class EditProfileActivity extends AppCompatActivity {
                 R.array.provinces, android.R.layout.simple_spinner_item);
         provinceAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         spinnerProvince.setAdapter(provinceAdapter);
+        spinnerProvince.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                if (tvProvinceError != null) {
+                    tvProvinceError.setVisibility(View.GONE);
+                }
+            }
+
+            @Override
+            public void onNothingSelected(AdapterView<?> parent) {
+            }
+        });
 
         etPhone.addTextChangedListener(new PhoneFormatTextWatcher(etPhone));
         etBusinessPhone.addTextChangedListener(new PhoneFormatTextWatcher(etBusinessPhone));
         etPostal.addTextChangedListener(new PostalCodeFormatTextWatcher(etPostal));
+
+        etPhone.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+            }
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+            }
+
+            @Override
+            public void afterTextChanged(Editable s) {
+                if (tilPhone != null) {
+                    tilPhone.setError(null);
+                }
+            }
+        });
+
+        if (etAccountUsername != null) {
+            etAccountUsername.addTextChangedListener(new TextWatcher() {
+                @Override
+                public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+                }
+
+                @Override
+                public void onTextChanged(CharSequence s, int start, int before, int count) {
+                }
+
+                @Override
+                public void afterTextChanged(Editable s) {
+                    if (tilAccountUsername != null) {
+                        tilAccountUsername.setError(null);
+                    }
+                }
+            });
+        }
+        if (etAccountSignEmail != null) {
+            etAccountSignEmail.addTextChangedListener(new TextWatcher() {
+                @Override
+                public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+                }
+
+                @Override
+                public void onTextChanged(CharSequence s, int start, int before, int count) {
+                }
+
+                @Override
+                public void afterTextChanged(Editable s) {
+                    if (tilAccountSignEmail != null) {
+                        tilAccountSignEmail.setError(null);
+                    }
+                }
+            });
+        }
+
+        clearFieldErrorOnType(etFirstName, tilFirstName);
+        clearFieldErrorOnType(etMiddleInitial, tilMiddleInitial);
+        clearFieldErrorOnType(etLastName, tilLastName);
+        clearFieldErrorOnType(etBusinessPhone, tilBusinessPhone);
+        clearFieldErrorOnType(etAddress1, tilAddress1);
+        clearFieldErrorOnType(etAddress2, tilAddress2);
+        clearFieldErrorOnType(etCity, tilCity);
+        clearFieldErrorOnType(etPostal, tilPostal);
 
         galleryPickerLauncher = registerForActivityResult(
                 new ActivityResultContracts.GetContent(),
@@ -695,6 +773,26 @@ public class EditProfileActivity extends AppCompatActivity {
         etAccountPassword.setText(ACCOUNT_PASSWORD_ROW_MASK);
     }
 
+    private void clearFieldErrorOnType(TextInputEditText et, TextInputLayout til) {
+        if (et == null || til == null) {
+            return;
+        }
+        et.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+            }
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+            }
+
+            @Override
+            public void afterTextChanged(Editable s) {
+                til.setError(null);
+            }
+        });
+    }
+
     private void showChangePasswordDialog() {
         if (isFinishing() || isDestroyed()) {
             return;
@@ -727,55 +825,82 @@ public class EditProfileActivity extends AppCompatActivity {
                 .setPositiveButton(R.string.btn_save, null)
                 .create();
 
-        dialog.setOnShowListener(ignored -> dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v -> {
-            tilCurrent.setError(null);
-            tilNew.setError(null);
-            tilConfirm.setError(null);
+        dialog.setOnShowListener(ignored -> {
+            TextWatcher clearPwdErrors = new TextWatcher() {
+                @Override
+                public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+                }
 
-            String cur = etCurrent.getText() != null ? etCurrent.getText().toString() : "";
-            String nw = etNew.getText() != null ? etNew.getText().toString() : "";
-            String cf = etConfirm.getText() != null ? etConfirm.getText().toString() : "";
+                @Override
+                public void onTextChanged(CharSequence s, int start, int before, int count) {
+                }
 
-            if (Validation.isEmpty(cur)) {
-                tilCurrent.setError(getString(R.string.error_password_required));
-                return;
-            }
-            if (Validation.isEmpty(nw)) {
-                tilNew.setError(getString(R.string.error_password_required));
-                return;
-            }
-            if (Validation.isPasswordTooShort(nw)) {
-                tilNew.setError(getString(R.string.error_password_too_short));
-                return;
-            }
-            if (Validation.isPasswordTooLong(nw)) {
-                tilNew.setError(getString(R.string.error_password_too_long));
-                return;
-            }
-            if (!Validation.isPasswordStrong(nw)) {
-                tilNew.setError(getString(R.string.error_password_strength));
-                return;
-            }
-            if (Validation.isEmpty(cf)) {
-                tilConfirm.setError(getString(R.string.error_password_required));
-                return;
-            }
-            if (!nw.equals(cf)) {
-                tilConfirm.setError(getString(R.string.error_password_mismatch));
-                return;
-            }
-            if (nw.equals(cur)) {
-                tilNew.setError(getString(R.string.change_password_reuse_error));
-                return;
-            }
+                @Override
+                public void afterTextChanged(Editable s) {
+                    if (s == etCurrent.getText()) {
+                        tilCurrent.setError(null);
+                    } else if (s == etNew.getText()) {
+                        tilNew.setError(null);
+                        tilConfirm.setError(null);
+                    } else if (s == etConfirm.getText()) {
+                        tilConfirm.setError(null);
+                    }
+                }
+            };
+            etCurrent.addTextChangedListener(clearPwdErrors);
+            etNew.addTextChangedListener(clearPwdErrors);
+            etConfirm.addTextChangedListener(clearPwdErrors);
 
-            pendingNewPassword = nw;
-            if (tilAccountPassword != null) {
-                tilAccountPassword.setError(null);
-            }
-            applyAccountPasswordRowDisplay();
-            dialog.dismiss();
-        }));
+            dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v -> {
+                tilCurrent.setError(null);
+                tilNew.setError(null);
+                tilConfirm.setError(null);
+
+                String cur = etCurrent.getText() != null ? etCurrent.getText().toString() : "";
+                String nw = etNew.getText() != null ? etNew.getText().toString() : "";
+                String cf = etConfirm.getText() != null ? etConfirm.getText().toString() : "";
+
+                if (Validation.isEmpty(cur)) {
+                    tilCurrent.setError(getString(R.string.error_password_required));
+                    return;
+                }
+                if (Validation.isEmpty(nw)) {
+                    tilNew.setError(getString(R.string.error_password_required));
+                    return;
+                }
+                if (Validation.isPasswordTooShort(nw)) {
+                    tilNew.setError(getString(R.string.error_password_too_short));
+                    return;
+                }
+                if (Validation.isPasswordTooLong(nw)) {
+                    tilNew.setError(getString(R.string.error_password_too_long));
+                    return;
+                }
+                if (!Validation.isPasswordStrong(nw)) {
+                    tilNew.setError(getString(R.string.error_password_strength));
+                    return;
+                }
+                if (Validation.isEmpty(cf)) {
+                    tilConfirm.setError(getString(R.string.error_password_required));
+                    return;
+                }
+                if (!nw.equals(cf)) {
+                    tilConfirm.setError(getString(R.string.error_password_mismatch));
+                    return;
+                }
+                if (nw.equals(cur)) {
+                    tilNew.setError(getString(R.string.change_password_reuse_error));
+                    return;
+                }
+
+                pendingNewPassword = nw;
+                if (tilAccountPassword != null) {
+                    tilAccountPassword.setError(null);
+                }
+                applyAccountPasswordRowDisplay();
+                dialog.dismiss();
+            });
+        });
 
         dialog.show();
     }

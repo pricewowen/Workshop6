@@ -3,7 +3,7 @@ package com.example.workshop6.auth;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.content.pm.ApplicationInfo;
-import android.util.Patterns;
+import com.example.workshop6.util.Validation;
 
 import androidx.security.crypto.EncryptedSharedPreferences;
 import androidx.security.crypto.MasterKey;
@@ -314,7 +314,7 @@ public class SessionManager {
 
     public boolean hasMinimalGuestContact() {
         String email = prefs.getString(KEY_GUEST_EMAIL, "").trim();
-        if (!email.isEmpty() && Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
+        if (!email.isEmpty() && Validation.isEmailValid(email)) {
             return true;
         }
         String phone = prefs.getString(KEY_GUEST_PHONE, "");

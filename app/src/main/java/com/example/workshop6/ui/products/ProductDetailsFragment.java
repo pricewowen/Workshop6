@@ -1,5 +1,6 @@
 package com.example.workshop6.ui.products;
 
+import android.app.Activity;
 import android.content.res.ColorStateList;
 import android.graphics.Typeface;
 import android.graphics.drawable.Drawable;
@@ -34,6 +35,7 @@ import com.bumptech.glide.request.target.Target;
 import com.bumptech.glide.Glide;
 import com.bumptech.glide.request.RequestOptions;
 import com.example.workshop6.R;
+import com.example.workshop6.auth.AuthNavigation;
 import com.example.workshop6.auth.SessionManager;
 import com.example.workshop6.data.api.ApiClient;
 import com.example.workshop6.data.api.ApiService;
@@ -254,10 +256,8 @@ public class ProductDetailsFragment extends Fragment {
                     return;
                 }
                 setProductDetailsLoading(false);
-                Toast.makeText(requireContext(), R.string.login_error_no_connection, Toast.LENGTH_SHORT).show();
-                if (isUiReady()) {
-                    Navigation.findNavController(requireView()).navigateUp();
-                }
+                AuthNavigation.logoutToLoginFromFragment(ProductDetailsFragment.this,
+                        R.string.login_error_no_connection);
             }
         });
 

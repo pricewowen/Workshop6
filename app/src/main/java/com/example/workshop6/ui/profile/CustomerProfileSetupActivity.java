@@ -3,7 +3,10 @@ package com.example.workshop6.ui.profile;
 import android.app.Activity;
 import android.content.Intent;
 import android.os.Bundle;
+import android.text.Editable;
+import android.text.TextWatcher;
 import android.view.View;
+import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Spinner;
 import android.widget.TextView;
@@ -86,11 +89,13 @@ public class CustomerProfileSetupActivity extends AppCompatActivity {
     private boolean minimalContactGuest;
     /** When launched for checkout: whether to {@code startActivity(CheckoutActivity)} on success (vs. {@code setResult} only). */
     private boolean openCheckoutAfterSave;
+    private View connectingOverlay;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_customer_profile_setup);
+        connectingOverlay = findViewById(R.id.profile_setup_connecting_overlay);
 
         sessionManager = new SessionManager(this);
         guestMode = getIntent().getBooleanExtra(
@@ -189,10 +194,71 @@ public class CustomerProfileSetupActivity extends AppCompatActivity {
                 R.array.provinces, android.R.layout.simple_spinner_item);
         provinceAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         spinnerProvince.setAdapter(provinceAdapter);
+        spinnerProvince.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                if (tvProvinceError != null) {
+                    tvProvinceError.setVisibility(View.GONE);
+                }
+            }
+
+            @Override
+            public void onNothingSelected(AdapterView<?> parent) {
+            }
+        });
 
         etPhone.addTextChangedListener(new PhoneFormatTextWatcher(etPhone));
         etBusinessPhone.addTextChangedListener(new PhoneFormatTextWatcher(etBusinessPhone));
         etPostal.addTextChangedListener(new PostalCodeFormatTextWatcher(etPostal));
+
+        etPhone.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+            }
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+            }
+
+            @Override
+            public void afterTextChanged(Editable s) {
+                if (tilPhone != null) {
+                    tilPhone.setError(null);
+                }
+                if (minimalContactGuest && tilEmail != null) {
+                    tilEmail.setError(null);
+                }
+            }
+        });
+
+        if (etEmail != null && tilEmail != null) {
+            etEmail.addTextChangedListener(new TextWatcher() {
+                @Override
+                public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+                }
+
+                @Override
+                public void onTextChanged(CharSequence s, int start, int before, int count) {
+                }
+
+                @Override
+                public void afterTextChanged(Editable s) {
+                    tilEmail.setError(null);
+                    if (minimalContactGuest && tilPhone != null) {
+                        tilPhone.setError(null);
+                    }
+                }
+            });
+        }
+
+        clearFieldErrorOnType(etFirstName, tilFirstName);
+        clearFieldErrorOnType(etMiddleInitial, tilMiddleInitial);
+        clearFieldErrorOnType(etLastName, tilLastName);
+        clearFieldErrorOnType(etBusinessPhone, tilBusinessPhone);
+        clearFieldErrorOnType(etAddress1, tilAddress1);
+        clearFieldErrorOnType(etAddress2, tilAddress2);
+        clearFieldErrorOnType(etCity, tilCity);
+        clearFieldErrorOnType(etPostal, tilPostal);
 
         btnSave.setOnClickListener(v -> attemptSave());
 
@@ -373,8 +439,10 @@ public class CustomerProfileSetupActivity extends AppCompatActivity {
             }
             btnSave.setEnabled(false);
             ApiReachability.checkThen(
+                    this::showProfileSetupConnectingOverlay,
                     () -> {
                         if (!isFinishing()) {
+                            hideProfileSetupConnectingOverlay();
                             btnSave.setEnabled(true);
                             tvError.setText(R.string.login_error_no_connection);
                             tvError.setVisibility(TextView.VISIBLE);
@@ -393,8 +461,10 @@ public class CustomerProfileSetupActivity extends AppCompatActivity {
         btnSave.setEnabled(false);
 
         ApiReachability.checkThen(
+                this::showProfileSetupConnectingOverlay,
                 () -> {
                     if (!isFinishing()) {
+                        hideProfileSetupConnectingOverlay();
                         btnSave.setEnabled(true);
                         tvError.setText(R.string.login_error_no_connection);
                         tvError.setVisibility(TextView.VISIBLE);
@@ -402,6 +472,18 @@ public class CustomerProfileSetupActivity extends AppCompatActivity {
                 },
                 this::saveAfterReachability
         );
+    }
+
+    private void showProfileSetupConnectingOverlay() {
+        if (connectingOverlay != null) {
+            connectingOverlay.setVisibility(View.VISIBLE);
+        }
+    }
+
+    private void hideProfileSetupConnectingOverlay() {
+        if (connectingOverlay != null) {
+            connectingOverlay.setVisibility(View.GONE);
+        }
     }
 
     private void saveEmployeePersonalProfile() {
@@ -615,6 +697,26 @@ public class CustomerProfileSetupActivity extends AppCompatActivity {
         });
     }
 
+    private void clearFieldErrorOnType(TextInputEditText et, TextInputLayout til) {
+        if (et == null || til == null) {
+            return;
+        }
+        et.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+            }
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+            }
+
+            @Override
+            public void afterTextChanged(Editable s) {
+                til.setError(null);
+            }
+        });
+    }
+
     private static String normalizePostalForApi(String raw) {
         if (raw == null) {
             return "";
@@ -696,6 +798,8 @@ public class CustomerProfileSetupActivity extends AppCompatActivity {
         if (isFinishing()) {
             return;
         }
+
+        hideProfileSetupConnectingOverlay();
 
         if (minimalContactGuest) {
             saveGuestMinimalContact();

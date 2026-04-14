@@ -1,5 +1,6 @@
 package com.example.workshop6.ui.locations;
 
+import android.app.Activity;
 import android.Manifest;
 import android.content.pm.PackageManager;
 import android.location.Location;
@@ -24,6 +25,7 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.workshop6.R;
+import com.example.workshop6.auth.AuthNavigation;
 import com.example.workshop6.data.api.ApiClient;
 import com.example.workshop6.data.api.ApiService;
 import com.example.workshop6.data.api.BakeryLocationMapper;
@@ -48,6 +50,8 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+
+import android.widget.Toast;
 
 import retrofit2.Call;
 import retrofit2.Callback;
@@ -219,11 +223,15 @@ public class MapFragment extends Fragment {
                 }
                 scheduleHideMapLoadingUi();
                 if (!response.isSuccessful() || response.body() == null) {
-                    View v = getView();
-                    if (v != null) {
-                        Snackbar.make(v, getString(R.string.login_error_server, response.code()),
-                                Snackbar.LENGTH_LONG).show();
+                    Activity mapActivity = getActivity();
+                    if (mapActivity != null && AuthNavigation.maybeLogoutForFailedResponse(mapActivity, response)) {
+                        return;
                     }
+                    Toast.makeText(
+                                    requireContext(),
+                                    getString(R.string.login_error_server, response.code()),
+                                    Toast.LENGTH_LONG)
+                            .show();
                     return;
                 }
                 cachedLocations.clear();
@@ -242,12 +250,19 @@ public class MapFragment extends Fragment {
                     return;
                 }
                 setMapLoadingUi(false);
-                View v = getView();
-                if (v != null) {
-                    Snackbar.make(v, R.string.login_error_no_connection, Snackbar.LENGTH_LONG).show();
-                }
+                // Network / unreachable server: toast (not Snackbar) and return to sign-in.
+                safeLogoutToLogin(R.string.login_error_no_connection);
             }
         });
+    }
+
+    /** Avoids {@link IllegalStateException} if the async callback runs after the fragment is detached. */
+    private void safeLogoutToLogin(int toastMessageRes) {
+        Activity activity = getActivity();
+        if (activity == null || activity.isFinishing()) {
+            return;
+        }
+        AuthNavigation.logoutToLogin(activity, toastMessageRes, null);
     }
 
     private void loadBakeryAverages() {

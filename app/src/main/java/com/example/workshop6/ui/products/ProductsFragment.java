@@ -1,5 +1,6 @@
 package com.example.workshop6.ui.products;
 
+import android.app.Activity;
 import android.os.Bundle;
 
 import androidx.annotation.NonNull;
@@ -17,6 +18,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.example.workshop6.R;
+import com.example.workshop6.auth.AuthNavigation;
 import com.example.workshop6.auth.SessionManager;
 import com.example.workshop6.data.api.ApiClient;
 import com.example.workshop6.data.api.ApiService;
@@ -350,6 +352,10 @@ public class ProductsFragment extends Fragment {
                     if (isUiReady()) {
                         setProductsPageLoading(false);
                     }
+                    Activity host = getActivity();
+                    if (host != null && AuthNavigation.maybeLogoutForFailedResponse(host, response)) {
+                        return;
+                    }
                     return;
                 }
                 List<Category> categories = new ArrayList<>();
@@ -364,6 +370,10 @@ public class ProductsFragment extends Fragment {
                         if (!response2.isSuccessful() || response2.body() == null) {
                             if (isUiReady()) {
                                 setProductsPageLoading(false);
+                            }
+                            Activity host = getActivity();
+                            if (host != null && AuthNavigation.maybeLogoutForFailedResponse(host, response2)) {
+                                return;
                             }
                             return;
                         }
@@ -391,6 +401,8 @@ public class ProductsFragment extends Fragment {
                         if (isUiReady()) {
                             setProductsPageLoading(false);
                         }
+                        AuthNavigation.logoutToLoginFromFragment(ProductsFragment.this,
+                                R.string.login_error_no_connection);
                     }
                 });
             }
@@ -401,6 +413,8 @@ public class ProductsFragment extends Fragment {
                 if (isUiReady()) {
                     setProductsPageLoading(false);
                 }
+                AuthNavigation.logoutToLoginFromFragment(ProductsFragment.this,
+                        R.string.login_error_no_connection);
             }
         });
     }

@@ -2,7 +2,10 @@ package com.example.workshop6.auth;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.text.Editable;
+import android.text.TextWatcher;
 import android.view.View;
+import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.ScrollView;
 import android.widget.Spinner;
@@ -71,6 +74,7 @@ public class RegisterActivity extends AppCompatActivity {
     private int registrationStep = 1;
     private boolean step2PriorGuest;
     private String pendingEmployeeToastMessage;
+    private View connectingOverlay;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -84,6 +88,7 @@ public class RegisterActivity extends AppCompatActivity {
         }
 
         setContentView(R.layout.activity_register);
+        connectingOverlay = findViewById(R.id.register_connecting_overlay);
         api = ApiClient.getInstance().getService();
 
         Toolbar toolbar = findViewById(R.id.register_toolbar);
@@ -105,6 +110,80 @@ public class RegisterActivity extends AppCompatActivity {
         etPassword = findViewById(R.id.et_password);
         etConfirmPassword = findViewById(R.id.et_confirm_password);
         etRegisterPhone.addTextChangedListener(new PhoneFormatTextWatcher(etRegisterPhone));
+        etRegisterPhone.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+            }
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+            }
+
+            @Override
+            public void afterTextChanged(Editable s) {
+                if (tilRegisterPhone != null) {
+                    tilRegisterPhone.setError(null);
+                }
+            }
+        });
+
+        etUsername.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+            }
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+            }
+
+            @Override
+            public void afterTextChanged(Editable s) {
+                tilUsername.setError(null);
+            }
+        });
+        etEmail.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+            }
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+            }
+
+            @Override
+            public void afterTextChanged(Editable s) {
+                tilEmail.setError(null);
+            }
+        });
+        etPassword.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+            }
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+            }
+
+            @Override
+            public void afterTextChanged(Editable s) {
+                tilPassword.setError(null);
+                tilConfirmPassword.setError(null);
+            }
+        });
+        etConfirmPassword.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+            }
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+            }
+
+            @Override
+            public void afterTextChanged(Editable s) {
+                tilConfirmPassword.setError(null);
+            }
+        });
 
         tvError = findViewById(R.id.tv_error);
         btnContinue = findViewById(R.id.btn_register_continue);
@@ -147,6 +226,28 @@ public class RegisterActivity extends AppCompatActivity {
                 R.array.provinces, android.R.layout.simple_spinner_item);
         provinceAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         spinnerProvince.setAdapter(provinceAdapter);
+        spinnerProvince.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                if (tvProvinceError != null) {
+                    tvProvinceError.setVisibility(View.GONE);
+                }
+            }
+
+            @Override
+            public void onNothingSelected(AdapterView<?> parent) {
+            }
+        });
+
+        clearFieldErrorOnType(etFirstName, tilFirstName);
+        clearFieldErrorOnType(etMiddleInitial, tilMiddleInitial);
+        clearFieldErrorOnType(etLastName, tilLastName);
+        clearFieldErrorOnType(etPhone, tilPhone);
+        clearFieldErrorOnType(etBusinessPhone, tilBusinessPhone);
+        clearFieldErrorOnType(etAddress1, tilAddress1);
+        clearFieldErrorOnType(etAddress2, tilAddress2);
+        clearFieldErrorOnType(etCity, tilCity);
+        clearFieldErrorOnType(etPostal, tilPostal);
 
         btnCompleteRegistration.setOnClickListener(v -> attemptCompleteStep2());
 
@@ -167,8 +268,10 @@ public class RegisterActivity extends AppCompatActivity {
                 return;
             }
             ApiReachability.checkThen(
+                    this::showRegisterConnectingOverlay,
                     () -> {
                         if (!isFinishing()) {
+                            hideRegisterConnectingOverlay();
                             clearRegisterFieldErrorsForConnectionMessage();
                             if (registrationStep == 1) {
                                 tvError.setText(R.string.login_error_no_connection);
@@ -181,6 +284,7 @@ public class RegisterActivity extends AppCompatActivity {
                     },
                     () -> {
                         if (!isFinishing()) {
+                            hideRegisterConnectingOverlay();
                             sessionManager.beginGuestSession();
                             goToMain(true);
                         }
@@ -246,6 +350,26 @@ public class RegisterActivity extends AppCompatActivity {
             btnCompleteRegistration.setEnabled(online);
             btnCompleteRegistration.setAlpha(online ? 1f : 0.5f);
         }
+    }
+
+    private void clearFieldErrorOnType(TextInputEditText et, TextInputLayout til) {
+        if (et == null || til == null) {
+            return;
+        }
+        et.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+            }
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+            }
+
+            @Override
+            public void afterTextChanged(Editable s) {
+                til.setError(null);
+            }
+        });
     }
 
     private void attemptContinueStep1() {
@@ -478,8 +602,10 @@ public class RegisterActivity extends AppCompatActivity {
         btnCompleteRegistration.setEnabled(false);
 
         ApiReachability.checkThen(
+                this::showRegisterConnectingOverlay,
                 () -> {
                     if (!isFinishing()) {
+                        hideRegisterConnectingOverlay();
                         btnCompleteRegistration.setEnabled(true);
                         updateRegisterAvailabilityForNetwork();
                         tvRegisterStep2Error.setText(R.string.login_error_no_connection);
@@ -490,10 +616,24 @@ public class RegisterActivity extends AppCompatActivity {
         );
     }
 
+    private void showRegisterConnectingOverlay() {
+        if (connectingOverlay != null) {
+            connectingOverlay.setVisibility(View.VISIBLE);
+        }
+    }
+
+    private void hideRegisterConnectingOverlay() {
+        if (connectingOverlay != null) {
+            connectingOverlay.setVisibility(View.GONE);
+        }
+    }
+
     private void validateAllStepsThenRegister() {
         if (isFinishing() || isDestroyed()) {
             return;
         }
+
+        hideRegisterConnectingOverlay();
 
         clearRegisterFieldErrorsForConnectionMessage();
         tvError.setVisibility(View.GONE);

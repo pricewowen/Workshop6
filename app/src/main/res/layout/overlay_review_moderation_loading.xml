@@ -1,9 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- Same visual pattern as login "Checking server" overlay (activity_login connecting overlay). -->
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/review_moderation_overlay"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#B3000000"
+    android:background="#99000000"
     android:clickable="true"
     android:elevation="32dp"
     android:focusable="true"
@@ -15,31 +16,22 @@
         android:layout_gravity="center"
         android:gravity="center_horizontal"
         android:orientation="vertical"
-        android:padding="28dp">
+        android:paddingHorizontal="28dp"
+        android:paddingVertical="24dp"
+        android:background="@color/bakery_card_white">
 
         <ProgressBar
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:indeterminate="true"
-            android:indeterminateTint="@color/bakery_gold_bright" />
+            android:indeterminate="true" />
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="18dp"
+            android:layout_marginTop="12dp"
             android:gravity="center"
             android:text="@string/review_moderation_overlay_message"
-            android:textColor="@color/bakery_text_light"
-            android:textSize="16sp" />
-
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:gravity="center"
-            android:text="@string/review_moderation_overlay_subtitle"
-            android:textColor="@color/bakery_text_light"
-            android:textSize="13sp"
-            android:alpha="0.9" />
+            android:textColor="@color/bakery_text_dark"
+            android:textSize="15sp" />
     </LinearLayout>
 </FrameLayout>

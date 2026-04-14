@@ -1,5 +1,7 @@
 package com.example.workshop6.util;
 
+import android.text.Editable;
+import android.text.TextWatcher;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.TextView;
@@ -66,55 +68,71 @@ public final class SensitiveActionAuthorizer {
                 .setPositiveButton(R.string.reauth_confirm, null)
                 .create();
 
-        dialog.setOnShowListener(ignored -> dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v -> {
-            String password = etPassword.getText() != null ? etPassword.getText().toString() : "";
-            if (Validation.isEmpty(password)) {
-                tilPassword.setError(activity.getString(R.string.error_password_required));
-                return;
-            }
-            tilPassword.setError(null);
-
-            String identity = sessionManager.getLoginEmail();
-            if (identity == null || identity.isEmpty()) {
-                tilPassword.setError(activity.getString(R.string.error_email_or_username_required));
-                return;
-            }
-
-            ApiClient.getInstance().setToken(null);
-            ApiService api = ApiClient.getInstance().getService();
-            api.login(new LoginRequest(identity, password)).enqueue(new Callback<AuthResponse>() {
+        dialog.setOnShowListener(ignored -> {
+            etPassword.addTextChangedListener(new TextWatcher() {
                 @Override
-                public void onResponse(Call<AuthResponse> call, Response<AuthResponse> response) {
-                    if (!response.isSuccessful() || response.body() == null) {
-                        tilPassword.setError(activity.getString(R.string.reauth_error_invalid));
-                        ApiClient.getInstance().setToken(sessionManager.getToken());
-                        return;
-                    }
-                    AuthResponse auth = response.body();
-                    ApiClient.getInstance().setToken(auth.token);
-                    String uid = auth.userId != null ? auth.userId : "";
-                    String sessionEmail = (auth.email != null && !auth.email.trim().isEmpty())
-                            ? auth.email.trim()
-                            : identity;
-                    sessionManager.persistLoginSession(
-                            auth.token,
-                            uid,
-                            auth.role.toUpperCase(),
-                            auth.username,
-                            sessionEmail
-                    );
-                    sessionManager.touch();
-                    dialog.dismiss();
-                    onAuthorizedWithCurrentPassword.accept(password);
+                public void beforeTextChanged(CharSequence s, int start, int count, int after) {
                 }
 
                 @Override
-                public void onFailure(Call<AuthResponse> call, Throwable t) {
-                    tilPassword.setError(activity.getString(R.string.login_error_no_connection));
-                    ApiClient.getInstance().setToken(sessionManager.getToken());
+                public void onTextChanged(CharSequence s, int start, int before, int count) {
+                }
+
+                @Override
+                public void afterTextChanged(Editable s) {
+                    tilPassword.setError(null);
                 }
             });
-        }));
+            dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v -> {
+                String password = etPassword.getText() != null ? etPassword.getText().toString() : "";
+                if (Validation.isEmpty(password)) {
+                    tilPassword.setError(activity.getString(R.string.error_password_required));
+                    return;
+                }
+                tilPassword.setError(null);
+
+                String identity = sessionManager.getLoginEmail();
+                if (identity == null || identity.isEmpty()) {
+                    tilPassword.setError(activity.getString(R.string.error_email_or_username_required));
+                    return;
+                }
+
+                ApiClient.getInstance().setToken(null);
+                ApiService api = ApiClient.getInstance().getService();
+                api.login(new LoginRequest(identity, password)).enqueue(new Callback<AuthResponse>() {
+                    @Override
+                    public void onResponse(Call<AuthResponse> call, Response<AuthResponse> response) {
+                        if (!response.isSuccessful() || response.body() == null) {
+                            tilPassword.setError(activity.getString(R.string.reauth_error_invalid));
+                            ApiClient.getInstance().setToken(sessionManager.getToken());
+                            return;
+                        }
+                        AuthResponse auth = response.body();
+                        ApiClient.getInstance().setToken(auth.token);
+                        String uid = auth.userId != null ? auth.userId : "";
+                        String sessionEmail = (auth.email != null && !auth.email.trim().isEmpty())
+                                ? auth.email.trim()
+                                : identity;
+                        sessionManager.persistLoginSession(
+                                auth.token,
+                                uid,
+                                auth.role.toUpperCase(),
+                                auth.username,
+                                sessionEmail
+                        );
+                        sessionManager.touch();
+                        dialog.dismiss();
+                        onAuthorizedWithCurrentPassword.accept(password);
+                    }
+
+                    @Override
+                    public void onFailure(Call<AuthResponse> call, Throwable t) {
+                        tilPassword.setError(activity.getString(R.string.login_error_no_connection));
+                        ApiClient.getInstance().setToken(sessionManager.getToken());
+                    }
+                });
+            });
+        });
 
         dialog.show();
     }

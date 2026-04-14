@@ -24,7 +24,7 @@
     <string name="forgot_password_dialog_message">Enter the email address for your account. If an account exists, we\'ll send a link to reset your password.</string>
     <string name="forgot_password_send">Send recovery email</string>
     <string name="forgot_password_success">If an account exists with that email, a recovery link has been sent.</string>
-    <string name="forgot_password_error_validation">Enter a valid email address.</string>
+    <string name="forgot_password_error_validation">@string/error_email_invalid</string>
     <string name="forgot_password_error_generic">Could not send recovery email. Try again.</string>
     <string name="register_toast_welcome_email">Check your email. We sent a welcome message to the address you registered.</string>
     <string name="register_toast_guest_and_welcome_email">Account created. Your previous guest orders are linked. Check your email. We sent a welcome message.</string>
@@ -38,6 +38,7 @@
     <string name="login_error_locked_out">Too many failed attempts. Try again in %1$s.</string>
     <string name="login_error_server">Server error (%1$d). Please try again.</string>
     <string name="login_error_no_connection">Cannot connect to server.</string>
+    <string name="auth_checking_server">Checking server…</string>
     <string name="login_role_choice_title">How do you want to sign in?</string>
     <string name="login_role_choice_body">Your sign-in matches both your employee and customer accounts. Choose one to continue.</string>
     <string name="lost_connection_logout">Lost connection to server. Please sign in again.</string>
@@ -95,9 +96,9 @@
     <string name="error_username_required">Username is required</string>
     <string name="error_username_too_short">Username is too short</string>
     <string name="error_username_too_long">Username is too long</string>
-    <string name="error_username_invalid">Use letters, numbers, _ or - only</string>
+    <string name="error_username_invalid">Use letters, numbers, and . _ - only</string>
     <string name="register_error_username_exists">Unable to create account</string>
-    <string name="error_email_invalid">Enter a valid email address</string>
+    <string name="error_email_invalid">Enter a valid email. Use at least 2 characters before @ and in each part of the domain.</string>
     <string name="error_phone_required">Phone number is required</string>
     <string name="error_phone_invalid">Enter a valid 10-digit phone number</string>
     <string name="error_password_required">Password is required</string>
@@ -502,8 +503,7 @@
     <string name="order_review_already_submitted_order">You already submitted a review for this order.</string>
     <string name="order_review_submit_failed">Could not submit review.</string>
     <string name="order_review_no_items">No reviewable items on this order.</string>
-    <string name="review_moderation_overlay_message">Checking your review…</string>
-    <string name="review_moderation_overlay_subtitle">Please wait while we process your feedback.</string>
+    <string name="review_moderation_overlay_message">Submitting your review…</string>
     <string name="review_name_required">First and last name are required in your profile before leaving a review.</string>
     <string name="btn_leave_review">Leave Review</string>
     <string name="review_badge_verified">✓ Verified</string>

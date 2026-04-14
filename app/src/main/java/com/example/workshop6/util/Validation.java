@@ -4,6 +4,12 @@ import android.util.Patterns;
 import androidx.annotation.Nullable;
 import java.util.regex.Pattern;
 
+/**
+ * Central validation for Workshop-6. Use {@link #isEmailValid} for every user-entered email
+ * (register, login-with-email, forgot password, checkout guest, profile email, guest profile in prefs).
+ * Use {@link #isUsernameTooShort}, {@link #isUsernameTooLong}, and {@link #isUsernameFormatValid} (or {@link #isUsernameValid})
+ * for every username (register, login identity without {@code @}, edit-profile username).
+ */
 public class Validation {
     private static final int MIN_PASSWORD_LENGTH = 7;
     // Keep max aligned with practical credential policy used by the app.
@@ -32,6 +38,9 @@ public class Validation {
     private static final int USERNAME_MAX_LENGTH = 50;
     private static final Pattern USERNAME_PATTERN = Pattern.compile("^[a-zA-Z0-9_.-]+$");
 
+    /** Minimum length for the local part and for each domain label when validating email. */
+    private static final int MIN_EMAIL_LABEL_LENGTH = 2;
+
     private Validation() {
         // private constructor to prevent instantiation
     }
@@ -48,13 +57,43 @@ public class Validation {
     }
 
     /**
-     * Checks if the given email has a valid format.
+     * Checks if the given email has a valid format (Android pattern) and enforces at least 2 characters
+     * for the local part and for each domain label (single-letter local parts or TLDs are rejected).
      *
      * @param email the email to be validated
      * @return true if the email is valid
      */
     public static boolean isEmailValid(@Nullable CharSequence email) {
-        return !isEmpty(email) && Patterns.EMAIL_ADDRESS.matcher(email).matches();
+        if (isEmpty(email) || !Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
+            return false;
+        }
+        return hasMinimumEmailLabelLengths(email.toString().trim());
+    }
+
+    private static boolean hasMinimumEmailLabelLengths(String trimmed) {
+        int at = trimmed.indexOf('@');
+        if (at < 0) {
+            return false;
+        }
+        int lastAt = trimmed.lastIndexOf('@');
+        if (lastAt != at) {
+            return false;
+        }
+        String local = trimmed.substring(0, at);
+        String domain = trimmed.substring(at + 1);
+        if (local.length() < MIN_EMAIL_LABEL_LENGTH || domain.isEmpty()) {
+            return false;
+        }
+        if (!domain.contains(".")) {
+            return false;
+        }
+        String[] labels = domain.split("\\.", -1);
+        for (String label : labels) {
+            if (label.length() < MIN_EMAIL_LABEL_LENGTH) {
+                return false;
+            }
+        }
+        return true;
     }
 
     /**

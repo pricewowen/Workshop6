@@ -215,6 +215,7 @@ public class CheckoutActivity extends AppCompatActivity {
 
         @Override
         public void afterTextChanged(Editable s) {
+            clearCheckoutTextInputErrorForEditable(s);
             if (sessionManager != null && sessionManager.isGuestMode()) {
                 syncGuestModelFromFields();
             }
@@ -222,6 +223,123 @@ public class CheckoutActivity extends AppCompatActivity {
             refreshSubmitButtonState();
         }
     };
+
+    /**
+     * Clears inline errors for the checkout field the user is editing (so stale messages do not linger).
+     * Guest email/phone share a combined empty-state error; clearing either field clears both layouts.
+     */
+    private void clearCheckoutTextInputErrorForEditable(@Nullable Editable s) {
+        if (s == null) {
+            return;
+        }
+        if (etCheckoutGuestEmail != null && s == etCheckoutGuestEmail.getText()) {
+            if (tilCheckoutGuestEmail != null) {
+                tilCheckoutGuestEmail.setError(null);
+            }
+            if (tilCheckoutGuestPhone != null) {
+                tilCheckoutGuestPhone.setError(null);
+            }
+            return;
+        }
+        if (etCheckoutGuestPhone != null && s == etCheckoutGuestPhone.getText()) {
+            if (tilCheckoutGuestEmail != null) {
+                tilCheckoutGuestEmail.setError(null);
+            }
+            if (tilCheckoutGuestPhone != null) {
+                tilCheckoutGuestPhone.setError(null);
+            }
+            return;
+        }
+        if (etCheckoutBootstrapFirst != null && s == etCheckoutBootstrapFirst.getText()) {
+            if (tilCheckoutBootstrapFirst != null) {
+                tilCheckoutBootstrapFirst.setError(null);
+            }
+            return;
+        }
+        if (etCheckoutBootstrapLast != null && s == etCheckoutBootstrapLast.getText()) {
+            if (tilCheckoutBootstrapLast != null) {
+                tilCheckoutBootstrapLast.setError(null);
+            }
+            return;
+        }
+        if (etCheckoutBootstrapPhone != null && s == etCheckoutBootstrapPhone.getText()) {
+            if (tilCheckoutBootstrapPhone != null) {
+                tilCheckoutBootstrapPhone.setError(null);
+            }
+            return;
+        }
+        if (etCheckoutBootstrapAddr1 != null && s == etCheckoutBootstrapAddr1.getText()) {
+            if (tilCheckoutBootstrapAddr1 != null) {
+                tilCheckoutBootstrapAddr1.setError(null);
+            }
+            if (tvCheckoutBootstrapProvinceError != null) {
+                tvCheckoutBootstrapProvinceError.setVisibility(View.GONE);
+            }
+            return;
+        }
+        if (etCheckoutBootstrapAddr2 != null && s == etCheckoutBootstrapAddr2.getText()) {
+            if (tilCheckoutBootstrapAddr2 != null) {
+                tilCheckoutBootstrapAddr2.setError(null);
+            }
+            if (tvCheckoutBootstrapProvinceError != null) {
+                tvCheckoutBootstrapProvinceError.setVisibility(View.GONE);
+            }
+            return;
+        }
+        if (etCheckoutBootstrapCity != null && s == etCheckoutBootstrapCity.getText()) {
+            if (tilCheckoutBootstrapCity != null) {
+                tilCheckoutBootstrapCity.setError(null);
+            }
+            if (tvCheckoutBootstrapProvinceError != null) {
+                tvCheckoutBootstrapProvinceError.setVisibility(View.GONE);
+            }
+            return;
+        }
+        if (etCheckoutBootstrapPostal != null && s == etCheckoutBootstrapPostal.getText()) {
+            if (tilCheckoutBootstrapPostal != null) {
+                tilCheckoutBootstrapPostal.setError(null);
+            }
+            if (tvCheckoutBootstrapProvinceError != null) {
+                tvCheckoutBootstrapProvinceError.setVisibility(View.GONE);
+            }
+            return;
+        }
+        if (etCheckoutDeliveryLine1 != null && s == etCheckoutDeliveryLine1.getText()) {
+            if (tilCheckoutDeliveryLine1 != null) {
+                tilCheckoutDeliveryLine1.setError(null);
+            }
+            if (tvCheckoutDeliveryProvinceError != null) {
+                tvCheckoutDeliveryProvinceError.setVisibility(View.GONE);
+            }
+            return;
+        }
+        if (etCheckoutDeliveryLine2 != null && s == etCheckoutDeliveryLine2.getText()) {
+            if (tilCheckoutDeliveryLine2 != null) {
+                tilCheckoutDeliveryLine2.setError(null);
+            }
+            if (tvCheckoutDeliveryProvinceError != null) {
+                tvCheckoutDeliveryProvinceError.setVisibility(View.GONE);
+            }
+            return;
+        }
+        if (etCheckoutDeliveryCity != null && s == etCheckoutDeliveryCity.getText()) {
+            if (tilCheckoutDeliveryCity != null) {
+                tilCheckoutDeliveryCity.setError(null);
+            }
+            if (tvCheckoutDeliveryProvinceError != null) {
+                tvCheckoutDeliveryProvinceError.setVisibility(View.GONE);
+            }
+            return;
+        }
+        if (etCheckoutDeliveryPostal != null && s == etCheckoutDeliveryPostal.getText()) {
+            if (tilCheckoutDeliveryPostal != null) {
+                tilCheckoutDeliveryPostal.setError(null);
+            }
+            if (tvCheckoutDeliveryProvinceError != null) {
+                tvCheckoutDeliveryProvinceError.setVisibility(View.GONE);
+            }
+        }
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -380,6 +498,12 @@ public class CheckoutActivity extends AppCompatActivity {
         AdapterView.OnItemSelectedListener provinceChangedListener = new AdapterView.OnItemSelectedListener() {
             @Override
             public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                if (tvCheckoutBootstrapProvinceError != null) {
+                    tvCheckoutBootstrapProvinceError.setVisibility(View.GONE);
+                }
+                if (tvCheckoutDeliveryProvinceError != null) {
+                    tvCheckoutDeliveryProvinceError.setVisibility(View.GONE);
+                }
                 refreshSubmitButtonState();
             }
 
@@ -1262,7 +1386,10 @@ public class CheckoutActivity extends AppCompatActivity {
                     selectedDayIndex  = pendingDay[0];
                     selectedTimeIndex = pendingTime[0];
                     selectedDateTime  = slotsByDay.get(selectedDayIndex).get(selectedTimeIndex);
-                                updateScheduledTimeDisplay();
+                    updateScheduledTimeDisplay();
+                    if (tvScheduledTime != null) {
+                        tvScheduledTime.setError(null);
+                    }
                     refreshSubmitButtonState();
                 })
                 .setNegativeButton("Cancel", null)
@@ -1387,19 +1514,20 @@ public class CheckoutActivity extends AppCompatActivity {
         return 0d;
     }
 
-    /** Clears inline errors while typing; does not change Review Order enabled state. */
+    /** Re-validates the form for submit enablement; field errors clear as the user edits (see {@link #clearCheckoutTextInputErrorForEditable}). */
     private void refreshSubmitButtonState() {
         validateForm(false);
     }
 
     /**
-     * @param showFieldErrors when false, clears field errors only (no inline messages).
+     * @param showFieldErrors when true, resets all checkout field errors then applies validation messages; when false,
+     *                          updates validity without showing new inline errors (existing messages clear per-field while typing).
      */
     private boolean validateForm(boolean showFieldErrors) {
         if (sessionManager.isGuestMode()) {
             syncGuestModelFromFields();
         }
-        if (!showFieldErrors) {
+        if (showFieldErrors) {
             clearCheckoutFieldErrors();
         }
         boolean valid = true;
@@ -1416,20 +1544,22 @@ public class CheckoutActivity extends AppCompatActivity {
                     && (sessionManager.isGuestMode() || !hasServerSavedDeliveryAddress())) {
                 valid &= validateDeliveryFormFields(showFieldErrors);
             }
+            if (rbDelivery != null) {
                 rbDelivery.setError(null);
             }
+        }
         if (bakeryList != null && !bakeryList.isEmpty() && selectedBakery == null) {
-                valid = false;
+            valid = false;
         }
 
         Calendar minValid = Calendar.getInstance();
         minValid.add(Calendar.HOUR_OF_DAY, 2);
         if (selectedDateTime.before(minValid)) {
-            if (showFieldErrors) {
-            tvScheduledTime.setError(getString(R.string.error_past_time));
+            if (showFieldErrors && tvScheduledTime != null) {
+                tvScheduledTime.setError(getString(R.string.error_past_time));
             }
             valid = false;
-        } else if (showFieldErrors) {
+        } else if (tvScheduledTime != null) {
             tvScheduledTime.setError(null);
         }
 
@@ -1492,7 +1622,7 @@ public class CheckoutActivity extends AppCompatActivity {
                 tilCheckoutGuestEmail.setError(getString(R.string.error_email_invalid));
             }
             ok = false;
-        } else if (showFieldErrors) {
+        } else {
             tilCheckoutGuestEmail.setError(null);
         }
         if (hasPhone && !Validation.isPhoneNumberValid(phoneRaw)) {
@@ -1500,7 +1630,7 @@ public class CheckoutActivity extends AppCompatActivity {
                 tilCheckoutGuestPhone.setError(getString(R.string.error_phone_invalid));
             }
             ok = false;
-        } else if (showFieldErrors) {
+        } else {
             tilCheckoutGuestPhone.setError(null);
         }
         return ok;
@@ -1522,7 +1652,7 @@ public class CheckoutActivity extends AppCompatActivity {
                 tilCheckoutBootstrapFirst.setError(getString(R.string.error_name_invalid));
             }
             ok = false;
-        } else if (showFieldErrors) {
+        } else {
             tilCheckoutBootstrapFirst.setError(null);
         }
         if (Validation.isEmpty(last)) {
@@ -1535,7 +1665,7 @@ public class CheckoutActivity extends AppCompatActivity {
                 tilCheckoutBootstrapLast.setError(getString(R.string.error_name_invalid));
             }
             ok = false;
-        } else if (showFieldErrors) {
+        } else {
             tilCheckoutBootstrapLast.setError(null);
         }
         if (Validation.isEmpty(phoneRaw)) {
@@ -1548,7 +1678,7 @@ public class CheckoutActivity extends AppCompatActivity {
                 tilCheckoutBootstrapPhone.setError(getString(R.string.error_phone_invalid));
             }
             ok = false;
-        } else if (showFieldErrors) {
+        } else {
             tilCheckoutBootstrapPhone.setError(null);
         }
         return ok;
@@ -1615,7 +1745,7 @@ public class CheckoutActivity extends AppCompatActivity {
                 tilLine1.setError(getString(R.string.error_address_invalid));
             }
             ok = false;
-        } else if (showFieldErrors) {
+        } else {
             tilLine1.setError(null);
         }
 
@@ -1624,7 +1754,7 @@ public class CheckoutActivity extends AppCompatActivity {
                 tilLine2.setError(getString(R.string.error_address_invalid));
             }
             ok = false;
-        } else if (showFieldErrors) {
+        } else {
             tilLine2.setError(null);
         }
 
@@ -1638,7 +1768,7 @@ public class CheckoutActivity extends AppCompatActivity {
                 tilCity.setError(getString(R.string.error_city_required));
             }
             ok = false;
-        } else if (showFieldErrors) {
+        } else {
             tilCity.setError(null);
         }
 
@@ -1654,7 +1784,7 @@ public class CheckoutActivity extends AppCompatActivity {
                 tvProvinceError.setVisibility(View.VISIBLE);
             }
             ok = false;
-        } else if (showFieldErrors && tvProvinceError != null) {
+        } else if (tvProvinceError != null) {
             tvProvinceError.setVisibility(View.GONE);
         }
 
@@ -1668,7 +1798,7 @@ public class CheckoutActivity extends AppCompatActivity {
                 tilPostal.setError(getString(R.string.error_postal_invalid));
             }
             ok = false;
-        } else if (showFieldErrors) {
+        } else {
             tilPostal.setError(null);
         }
         return ok;
@@ -1857,8 +1987,8 @@ public class CheckoutActivity extends AppCompatActivity {
             @Override
             public void onFailure(Call<CustomerDto> call, Throwable t) {
                 runOnUiThread(() -> {
-                    Snackbar.make(findViewById(android.R.id.content),
-                            R.string.login_error_no_connection, Snackbar.LENGTH_LONG).show();
+                    Toast.makeText(CheckoutActivity.this, R.string.login_error_no_connection, Toast.LENGTH_LONG)
+                            .show();
                     btnPlaceOrder.setEnabled(true);
                 });
             }
@@ -1900,8 +2030,8 @@ public class CheckoutActivity extends AppCompatActivity {
             @Override
             public void onFailure(Call<CustomerDto> call, Throwable t) {
                 runOnUiThread(() -> {
-                    Snackbar.make(findViewById(android.R.id.content),
-                            R.string.login_error_no_connection, Snackbar.LENGTH_LONG).show();
+                    Toast.makeText(CheckoutActivity.this, R.string.login_error_no_connection, Toast.LENGTH_LONG)
+                            .show();
                     btnPlaceOrder.setEnabled(true);
                 });
             }

@@ -349,6 +349,41 @@
                 </com.google.android.material.card.MaterialCardView>
             </LinearLayout>
         </ScrollView>
+
+        <FrameLayout
+            android:id="@+id/register_connecting_overlay"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:visibility="gone"
+            android:clickable="true"
+            android:focusable="true"
+            android:background="#99000000">
+
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:gravity="center_horizontal"
+                android:orientation="vertical"
+                android:paddingHorizontal="28dp"
+                android:paddingVertical="24dp"
+                android:background="@color/bakery_card_white">
+
+                <ProgressBar
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:indeterminate="true" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:gravity="center"
+                    android:text="@string/auth_checking_server"
+                    android:textColor="@color/bakery_text_dark"
+                    android:textSize="15sp" />
+            </LinearLayout>
+        </FrameLayout>
     </FrameLayout>
 
     <include layout="@layout/include_register_footer" />

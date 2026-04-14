@@ -2,6 +2,8 @@ package com.example.workshop6.ui.me;
 
 import android.content.Intent;
 import android.graphics.ColorMatrix;
+import android.text.Editable;
+import android.text.TextWatcher;
 import android.graphics.ColorMatrixColorFilter;
 import android.os.Bundle;
 import android.view.LayoutInflater;
@@ -951,6 +953,20 @@ public class MeFragment extends Fragment {
                 .create();
 
         dialog.setOnShowListener(d -> {
+            et.addTextChangedListener(new TextWatcher() {
+                @Override
+                public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+                }
+
+                @Override
+                public void onTextChanged(CharSequence s, int start, int before, int count) {
+                }
+
+                @Override
+                public void afterTextChanged(Editable s) {
+                    til.setError(null);
+                }
+            });
             Button positive = dialog.getButton(AlertDialog.BUTTON_POSITIVE);
             if (positive != null) {
                 positive.setOnClickListener(v -> {

@@ -7,6 +7,7 @@ import android.text.TextWatcher;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.Button;
+import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 import android.text.format.DateUtils;
@@ -34,6 +35,8 @@ import com.google.android.material.textfield.TextInputEditText;
 import com.google.android.material.textfield.TextInputLayout;
 import okhttp3.ResponseBody;
 
+import java.util.Locale;
+
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
@@ -46,6 +49,7 @@ public class LoginActivity extends AppCompatActivity {
     private TextView tvError;
     private SessionManager sessionManager;
     private View btnLogin;
+    private View connectingOverlay;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -70,6 +74,8 @@ public class LoginActivity extends AppCompatActivity {
         }
 
         setContentView(R.layout.activity_login);
+
+        connectingOverlay = findViewById(R.id.login_connecting_overlay);
 
         tilEmail    = findViewById(R.id.til_email);
         tilPassword = findViewById(R.id.til_password);
@@ -114,30 +120,57 @@ public class LoginActivity extends AppCompatActivity {
 
         String sessionMessage = getIntent().getStringExtra("session_message");
         if (!Validation.isEmpty(sessionMessage)) {
-            tvError.setText(sessionMessage);
-            tvError.setVisibility(View.VISIBLE);
+            if (isSessionMessageConnectionStyle(sessionMessage)) {
+                Toast.makeText(this, sessionMessage, Toast.LENGTH_LONG).show();
+                tvError.setVisibility(View.GONE);
+            } else {
+                tvError.setText(sessionMessage);
+                tvError.setVisibility(View.VISIBLE);
+            }
         }
 
         btnLogin.setOnClickListener(v -> attemptLogin());
 
-        findViewById(R.id.tv_forgot_password).setOnClickListener(v -> showForgotPasswordDialog());
-
-        // Register link — device online + API reachable before opening registration.
-        findViewById(R.id.tv_register_link).setOnClickListener(v -> {
+        // Forgot password — device online + API reachable before opening dialog (same as register / guest).
+        findViewById(R.id.tv_forgot_password).setOnClickListener(v -> {
             if (!NetworkStatus.isOnline(this)) {
-                tvError.setText(R.string.login_error_no_connection);
-                tvError.setVisibility(View.VISIBLE);
+                showLoginNoConnection();
                 return;
             }
             ApiReachability.checkThen(
+                    this::showLoginConnectingOverlay,
                     () -> {
                         if (!isFinishing()) {
-                            tvError.setText(R.string.login_error_no_connection);
-                            tvError.setVisibility(View.VISIBLE);
+                            hideLoginConnectingOverlay();
+                            showLoginNoConnection();
                         }
                     },
                     () -> {
                         if (!isFinishing()) {
+                            hideLoginConnectingOverlay();
+                            showForgotPasswordDialog();
+                        }
+                    }
+            );
+        });
+
+        // Register link — device online + API reachable before opening registration.
+        findViewById(R.id.tv_register_link).setOnClickListener(v -> {
+            if (!NetworkStatus.isOnline(this)) {
+                showServerConnectionToast();
+                return;
+            }
+            ApiReachability.checkThen(
+                    this::showLoginConnectingOverlay,
+                    () -> {
+                        if (!isFinishing()) {
+                            hideLoginConnectingOverlay();
+                            showServerConnectionToast();
+                        }
+                    },
+                    () -> {
+                        if (!isFinishing()) {
+                            hideLoginConnectingOverlay();
                             Intent intent = new Intent(LoginActivity.this, RegisterActivity.class);
                             intent.putExtra(EXTRA_ALLOW_GUEST_AUTH, sessionManager.isGuestMode());
                             NavTransitions.startActivityWithForward(
@@ -150,19 +183,20 @@ public class LoginActivity extends AppCompatActivity {
         // Skip for now — same online + API check as register link before starting guest session.
         findViewById(R.id.tv_guest_link).setOnClickListener(v -> {
             if (!NetworkStatus.isOnline(this)) {
-                tvError.setText(R.string.login_error_no_connection);
-                tvError.setVisibility(View.VISIBLE);
+                showServerConnectionToast();
                 return;
             }
             ApiReachability.checkThen(
+                    this::showLoginConnectingOverlay,
                     () -> {
                         if (!isFinishing()) {
-                            tvError.setText(R.string.login_error_no_connection);
-                            tvError.setVisibility(View.VISIBLE);
+                            hideLoginConnectingOverlay();
+                            showServerConnectionToast();
                         }
                     },
                     () -> {
                         if (!isFinishing()) {
+                            hideLoginConnectingOverlay();
                             sessionManager.beginGuestSession();
                             goToMain();
                         }
@@ -178,9 +212,12 @@ public class LoginActivity extends AppCompatActivity {
     }
 
     private void attemptLogin() {
-        String email = etEmail.getText() != null ? etEmail.getText().toString().trim() : "";
+        String rawIdentity = etEmail.getText() != null ? etEmail.getText().toString().trim() : "";
+        String identityForApi = rawIdentity.contains("@")
+                ? rawIdentity.toLowerCase(Locale.ROOT)
+                : rawIdentity;
         String pass  = etPassword.getText() != null ? etPassword.getText().toString() : "";
-        long remainingLockoutMs = sessionManager.getRemainingLockoutMs(email);
+        long remainingLockoutMs = sessionManager.getRemainingLockoutMs(identityForApi);
 
         if (remainingLockoutMs > 0) {
             tvError.setText(getString(
@@ -200,10 +237,12 @@ public class LoginActivity extends AppCompatActivity {
         tvError.setVisibility(View.GONE);
 
         ApiReachability.checkThen(
+                this::showLoginConnectingOverlay,
                 () -> {
                     if (isFinishing() || isDestroyed()) {
                         return;
                     }
+                    hideLoginConnectingOverlay();
                     btnLogin.setEnabled(true);
                     showLoginNoConnection();
                 },
@@ -211,41 +250,91 @@ public class LoginActivity extends AppCompatActivity {
                     if (isFinishing() || isDestroyed()) {
                         return;
                     }
-                    if (!validateLoginFields(email, pass)) {
+                    hideLoginConnectingOverlay();
+                    if (!validateLoginFields(rawIdentity, pass)) {
                         btnLogin.setEnabled(true);
                         return;
                     }
                     tvError.setVisibility(View.GONE);
-                    submitLoginRequest(new LoginRequest(email, pass), email);
+                    submitLoginRequest(new LoginRequest(identityForApi, pass), identityForApi);
                 }
         );
+    }
+
+    private void showServerConnectionToast() {
+        Toast.makeText(this, R.string.login_error_no_connection, Toast.LENGTH_LONG).show();
+    }
+
+    /** Session extras from forced logout / MainActivity redirect: show as toast, not {@link #tvError}. */
+    private boolean isSessionMessageConnectionStyle(String message) {
+        return message.equals(getString(R.string.login_error_no_connection))
+                || message.equals(getString(R.string.lost_connection_logout));
+    }
+
+    private void showLoginConnectingOverlay() {
+        if (connectingOverlay != null) {
+            connectingOverlay.setVisibility(View.VISIBLE);
+        }
+    }
+
+    private void hideLoginConnectingOverlay() {
+        if (connectingOverlay != null) {
+            connectingOverlay.setVisibility(View.GONE);
+        }
     }
 
     private void showLoginNoConnection() {
         tilEmail.setError(null);
         tilPassword.setError(null);
-        tvError.setText(R.string.login_error_no_connection);
-        tvError.setVisibility(View.VISIBLE);
+        tvError.setVisibility(View.GONE);
+        showServerConnectionToast();
     }
 
-    private boolean validateLoginFields(String email, String pass) {
+    /**
+     * Same rules as registration step 1: password length + strength; identity is either a username
+     * (no {@code @}) with username rules, or an email (contains {@code @}) with full email validation.
+     */
+    private boolean validateLoginFields(String identity, String pass) {
+        tilEmail.setError(null);
+        tilPassword.setError(null);
         boolean valid = true;
-        if (Validation.isEmpty(email)) {
+
+        if (Validation.isEmpty(identity)) {
             tilEmail.setError(getString(R.string.error_email_or_username_required));
             valid = false;
+        } else if (identity.contains("@")) {
+            String email = identity.toLowerCase(Locale.ROOT);
+            if (!Validation.isEmailValid(email)) {
+                tilEmail.setError(getString(R.string.error_email_invalid));
+                valid = false;
+            }
         } else {
-            tilEmail.setError(null);
+            if (Validation.isUsernameTooShort(identity)) {
+                tilEmail.setError(getString(R.string.error_username_too_short));
+                valid = false;
+            } else if (Validation.isUsernameTooLong(identity)) {
+                tilEmail.setError(getString(R.string.error_username_too_long));
+                valid = false;
+            } else if (!Validation.isUsernameFormatValid(identity)) {
+                tilEmail.setError(getString(R.string.error_username_invalid));
+                valid = false;
+            }
         }
 
         if (Validation.isEmpty(pass)) {
             tilPassword.setError(getString(R.string.error_password_required));
             valid = false;
-        } else if (!Validation.isPasswordValid(pass)) {
-            tilPassword.setError(getString(R.string.error_password_invalid));
+        } else if (Validation.isPasswordTooShort(pass)) {
+            tilPassword.setError(getString(R.string.error_password_too_short));
             valid = false;
-        } else {
-            tilPassword.setError(null);
+        } else if (Validation.isPasswordTooLong(pass)) {
+            tilPassword.setError(getString(R.string.error_password_too_long));
+            valid = false;
+        } else if (!Validation.isPasswordStrong(pass)) {
+            tilPassword.setError(getString(R.string.error_password_strength));
+            valid = false;
         }
+
         return valid;
     }
 
@@ -334,8 +423,8 @@ public class LoginActivity extends AppCompatActivity {
                     return;
                 }
                 btnLogin.setEnabled(true);
-                tvError.setText(R.string.login_error_no_connection);
-                tvError.setVisibility(View.VISIBLE);
+                tvError.setVisibility(View.GONE);
+                showServerConnectionToast();
                 ActivityLogger.logFailure(LoginActivity.this, null, "LOGIN", "Network error: " + t.getMessage());
             }
         });
@@ -381,6 +470,8 @@ public class LoginActivity extends AppCompatActivity {
         View dlgView = LayoutInflater.from(this).inflate(R.layout.dialog_forgot_password, null);
         TextInputLayout tilForgot = dlgView.findViewById(R.id.til_forgot_email);
         TextInputEditText etForgot = dlgView.findViewById(R.id.et_forgot_email);
+        ProgressBar pbForgot = dlgView.findViewById(R.id.pb_forgot_connecting);
+        TextView tvForgotConnecting = dlgView.findViewById(R.id.tv_forgot_connecting);
         String seed = etEmail.getText() != null ? etEmail.getText().toString().trim() : "";
         if (!seed.isEmpty() && seed.contains("@")) {
             etForgot.setText(seed);
@@ -396,34 +487,72 @@ public class LoginActivity extends AppCompatActivity {
                 .create();
 
         dialog.setOnShowListener(d -> {
+            etForgot.addTextChangedListener(new TextWatcher() {
+                @Override
+                public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+                }
+
+                @Override
+                public void onTextChanged(CharSequence s, int start, int before, int count) {
+                }
+
+                @Override
+                public void afterTextChanged(Editable s) {
+                    tilForgot.setError(null);
+                }
+            });
             Button positive = dialog.getButton(AlertDialog.BUTTON_POSITIVE);
             if (positive == null) {
                 return;
             }
             positive.setOnClickListener(v -> {
                 String email = etForgot.getText() != null ? etForgot.getText().toString().trim() : "";
-                if (email.isEmpty() || !Validation.isEmailValid(email)) {
+                String emailNorm = email.toLowerCase(Locale.ROOT);
+                if (emailNorm.isEmpty() || !Validation.isEmailValid(emailNorm)) {
                     tilForgot.setError(getString(R.string.forgot_password_error_validation));
                     return;
                 }
                 tilForgot.setError(null);
                 if (!NetworkStatus.isOnline(this)) {
-                    Toast.makeText(this, R.string.login_error_no_connection, Toast.LENGTH_LONG).show();
+                    dialog.dismiss();
+                    showLoginNoConnection();
                     return;
                 }
                 positive.setEnabled(false);
+                etForgot.setEnabled(false);
+                if (pbForgot != null) {
+                    pbForgot.setVisibility(View.VISIBLE);
+                }
+                if (tvForgotConnecting != null) {
+                    tvForgotConnecting.setVisibility(View.VISIBLE);
+                }
                 ApiReachability.checkThen(
+                        null,
                         () -> {
                             if (!isFinishing() && !isDestroyed()) {
+                                if (pbForgot != null) {
+                                    pbForgot.setVisibility(View.GONE);
+                                }
+                                if (tvForgotConnecting != null) {
+                                    tvForgotConnecting.setVisibility(View.GONE);
+                                }
+                                etForgot.setEnabled(true);
                                 positive.setEnabled(true);
-                                Toast.makeText(this, R.string.login_error_no_connection, Toast.LENGTH_LONG).show();
+                                dialog.dismiss();
+                                showLoginNoConnection();
                             }
                         },
                         () -> {
                             if (isFinishing() || isDestroyed()) {
                                 return;
                             }
-                            submitForgotPassword(dialog, positive, email);
+                            submitForgotPassword(
+                                    dialog,
+                                    positive,
+                                    emailNorm,
+                                    pbForgot,
+                                    tvForgotConnecting,
+                                    etForgot);
                         }
                 );
             });
@@ -431,7 +560,13 @@ public class LoginActivity extends AppCompatActivity {
         dialog.show();
     }
 
-    private void submitForgotPassword(AlertDialog dialog, Button positiveBtn, String email) {
+    private void submitForgotPassword(
+            AlertDialog dialog,
+            Button positiveBtn,
+            String email,
+            ProgressBar pbForgot,
+            TextView tvForgotConnecting,
+            TextInputEditText etForgot) {
         ApiClient.getInstance().getService()
                 .forgotPassword(new ForgotPasswordRequest(email))
                 .enqueue(new Callback<Void>() {
@@ -439,6 +574,15 @@ public class LoginActivity extends AppCompatActivity {
                     public void onResponse(Call<Void> call, Response<Void> response) {
                         if (isFinishing() || isDestroyed()) {
                             return;
+                        }
+                        if (pbForgot != null) {
+                            pbForgot.setVisibility(View.GONE);
+                        }
+                        if (tvForgotConnecting != null) {
+                            tvForgotConnecting.setVisibility(View.GONE);
+                        }
+                        if (etForgot != null) {
+                            etForgot.setEnabled(true);
                         }
                         positiveBtn.setEnabled(true);
                         if (response.isSuccessful()) {
@@ -463,9 +607,18 @@ public class LoginActivity extends AppCompatActivity {
                         if (isFinishing() || isDestroyed()) {
                             return;
                         }
+                        if (pbForgot != null) {
+                            pbForgot.setVisibility(View.GONE);
+                        }
+                        if (tvForgotConnecting != null) {
+                            tvForgotConnecting.setVisibility(View.GONE);
+                        }
+                        if (etForgot != null) {
+                            etForgot.setEnabled(true);
+                        }
                         positiveBtn.setEnabled(true);
-                        Toast.makeText(LoginActivity.this, R.string.login_error_no_connection, Toast.LENGTH_LONG)
-                                .show();
+                        dialog.dismiss();
+                        showLoginNoConnection();
                         ActivityLogger.logFailure(LoginActivity.this, sessionManager, "FORGOT_PASSWORD",
                                 "Network error: " + t.getMessage());
                     }
