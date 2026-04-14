@@ -527,4 +527,5 @@
     <string name="me_bakery_label">Bakery: %1$s</string>
     <string name="me_bakery_loading">Bakery: Loading...</string>
     <string name="me_position_label">Position: %1$s</string>
+    <string name="chat_typing">typing…</string>
 </resources>

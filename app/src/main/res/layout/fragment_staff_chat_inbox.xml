@@ -11,16 +11,16 @@
         android:layout_height="wrap_content"
         android:background="@color/bakery_primary"
         android:orientation="vertical"
-        android:paddingHorizontal="16dp"
-        android:paddingTop="16dp"
-        android:paddingBottom="12dp">
+        android:paddingHorizontal="20dp"
+        android:paddingTop="20dp"
+        android:paddingBottom="16dp">
 
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="@string/nav_chat_short"
             android:textColor="@color/bakery_text_light"
-            android:textSize="22sp"
+            android:textSize="24sp"
             android:textStyle="bold" />
 
         <TextView
@@ -33,37 +33,47 @@
             android:textSize="13sp" />
     </LinearLayout>
 
-    <com.google.android.material.button.MaterialButton
-        android:id="@+id/button_new_chat"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="end"
-        android:layout_margin="12dp"
-        android:minHeight="48dp"
-        android:paddingHorizontal="16dp"
-        android:text="@string/chat_new"
-        android:textAllCaps="false"
-        android:textColor="@color/bakery_text_light"
-        app:backgroundTint="@color/bakery_gold_bright"
-        app:cornerRadius="24dp" />
-
-    <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/recycler_staff_threads"
+    <FrameLayout
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:layout_weight="1"
-        android:padding="12dp"
-        android:clipToPadding="false" />
+        android:layout_weight="1">
 
-    <TextView
-        android:id="@+id/text_staff_chat_empty"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="center_horizontal"
-        android:layout_margin="24dp"
-        android:text="@string/staff_chat_empty_threads"
-        android:textAppearance="@style/TextAppearance.Bakery.ReviewSectionEmpty"
-        android:textSize="16sp"
-        android:visibility="gone" />
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/recycler_staff_threads"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:clipToPadding="false"
+            android:paddingHorizontal="12dp"
+            android:paddingVertical="8dp"
+            android:scrollbars="none" />
+
+        <TextView
+            android:id="@+id/text_staff_chat_empty"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:layout_margin="24dp"
+            android:text="@string/staff_chat_empty_threads"
+            android:textAppearance="@style/TextAppearance.Bakery.ReviewSectionEmpty"
+            android:textSize="16sp"
+            android:visibility="gone" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/button_new_chat"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="bottom|end"
+            android:layout_margin="20dp"
+            android:minHeight="56dp"
+            android:paddingHorizontal="24dp"
+            android:text="@string/chat_new"
+            android:textAllCaps="false"
+            android:textColor="@color/bakery_text_light"
+            android:elevation="6dp"
+            android:visibility="gone"
+            app:backgroundTint="@color/bakery_gold"
+            app:cornerRadius="28dp" />
+
+    </FrameLayout>
 
 </LinearLayout>

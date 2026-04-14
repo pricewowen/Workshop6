@@ -387,11 +387,6 @@ public class MainActivity extends AppCompatActivity {
                 Toast.makeText(MainActivity.this, R.string.login_error_no_connection, Toast.LENGTH_SHORT).show();
                 return false;
             }
-            // Chat is intentionally disabled for now (customer, staff, admin).
-            // Consume the click without navigating.
-            if (item.getItemId() == R.id.nav_staff_chat) {
-                return false;
-            }
             boolean navigated = NavigationUI.onNavDestinationSelected(item, navController);
             if (item.getItemId() == R.id.nav_browse) {
                 bottomNav.post(this::popBrowseToProductListIfNeeded);
