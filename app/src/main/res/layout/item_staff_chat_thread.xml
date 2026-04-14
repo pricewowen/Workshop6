@@ -8,43 +8,88 @@
     android:focusable="true"
     android:foreground="?attr/selectableItemBackground"
     app:cardBackgroundColor="@color/bakery_card_white"
-    app:cardCornerRadius="22dp"
-    app:cardElevation="4dp"
-    app:strokeColor="@color/bakery_divider"
-    app:strokeWidth="1dp">
+    app:cardCornerRadius="16dp"
+    app:cardElevation="2dp">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:padding="16dp">
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:padding="14dp">
 
         <TextView
-            android:id="@+id/text_customer_name"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="Customer Name"
-            android:textColor="@color/bakery_text_dark"
-            android:textSize="16sp"
+            android:id="@+id/avatar_thread"
+            android:layout_width="56dp"
+            android:layout_height="56dp"
+            android:background="@drawable/bg_avatar_circle"
+            android:gravity="center"
+            android:textColor="@color/bakery_text_light"
+            android:textSize="22sp"
             android:textStyle="bold" />
 
-        <TextView
-            android:id="@+id/text_last_message"
-            android:layout_width="match_parent"
+        <LinearLayout
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
-            android:text="Last message preview"
-            android:textColor="@color/bakery_text_secondary"
-            android:textSize="14sp" />
+            android:layout_weight="1"
+            android:layout_marginStart="14dp"
+            android:orientation="vertical">
 
-        <TextView
-            android:id="@+id/text_thread_meta"
+            <TextView
+                android:id="@+id/text_customer_name"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:ellipsize="end"
+                android:singleLine="true"
+                android:text="Customer Name"
+                android:textColor="@color/bakery_text_dark"
+                android:textSize="16sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/text_last_message"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:ellipsize="end"
+                android:singleLine="true"
+                android:text="Last message preview"
+                android:textColor="@color/bakery_text_secondary"
+                android:textSize="14sp" />
+
+            <TextView
+                android:id="@+id/text_thread_meta"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:text="Customer thread • OPEN"
+                android:textColor="@color/bakery_gold"
+                android:textSize="12sp" />
+        </LinearLayout>
+
+        <LinearLayout
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="6dp"
-            android:text="Customer thread • OPEN"
-            android:textColor="@color/bakery_gold"
-            android:textSize="12sp" />
+            android:layout_marginStart="8dp"
+            android:gravity="end|top"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/text_time"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textColor="@color/bakery_text_tertiary"
+                android:textSize="12sp" />
+
+            <View
+                android:id="@+id/unread_dot"
+                android:layout_width="8dp"
+                android:layout_height="8dp"
+                android:layout_marginTop="8dp"
+                android:layout_gravity="end"
+                android:background="@drawable/bg_avatar_circle"
+                android:visibility="gone" />
+        </LinearLayout>
 
     </LinearLayout>
 

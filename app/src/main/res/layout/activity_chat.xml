@@ -1,54 +1,75 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@color/bakery_background"
     android:orientation="vertical">
 
-   <LinearLayout
-    android:layout_width="match_parent"
-    android:layout_height="wrap_content"
-    android:background="@color/bakery_background"
-    android:gravity="center_vertical"
-    android:orientation="horizontal"
-    android:padding="12dp">
-
-    <ImageButton
-        android:id="@+id/button_back"
-        android:layout_width="40dp"
-        android:layout_height="40dp"
-        android:background="?attr/selectableItemBackgroundBorderless"
-        android:contentDescription="@string/btn_back"
-        android:src="@android:drawable/ic_media_previous"
-        android:tint="@color/bakery_text_dark" />
-
     <LinearLayout
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="12dp"
-        android:layout_weight="1"
-        android:orientation="vertical">
+        android:layout_width="match_parent"
+        android:layout_height="56dp"
+        android:background="@color/bakery_background"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:padding="12dp">
+
+        <ImageButton
+            android:id="@+id/button_back"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/btn_back"
+            android:src="@android:drawable/ic_media_previous"
+            app:tint="@color/bakery_text_dark" />
 
         <TextView
-            android:id="@+id/text_chat_title"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="@string/nav_chat_short"
-            android:textColor="@color/bakery_text_dark"
-            android:textSize="18sp"
+            android:id="@+id/avatar_header"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:layout_marginStart="8dp"
+            android:background="@drawable/bg_avatar_circle"
+            android:gravity="center"
+            android:textColor="@color/bakery_text_light"
+            android:textSize="16sp"
             android:textStyle="bold" />
 
-        <TextView
-            android:id="@+id/text_chat_subtitle"
-            android:layout_width="wrap_content"
+        <LinearLayout
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_marginTop="2dp"
-            android:text="@string/chat_subtitle_default"
-            android:textColor="@color/bakery_nav_icon_inactive"
-            android:textSize="12sp" />
+            android:layout_marginStart="12dp"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/text_chat_title"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/nav_chat_short"
+                android:textColor="@color/bakery_text_dark"
+                android:textSize="18sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/text_chat_subtitle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:text="@string/chat_subtitle_default"
+                android:textColor="@color/bakery_text_secondary"
+                android:textSize="12sp" />
+        </LinearLayout>
+
+        <Space
+            android:layout_width="40dp"
+            android:layout_height="40dp" />
+
     </LinearLayout>
 
-</LinearLayout>
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="@color/bakery_divider" />
 
     <FrameLayout
         android:layout_width="match_parent"
@@ -59,7 +80,11 @@
             android:id="@+id/recycler_chat_messages"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:padding="12dp" />
+            android:clipToPadding="false"
+            android:paddingStart="8dp"
+            android:paddingTop="6dp"
+            android:paddingEnd="8dp"
+            android:paddingBottom="6dp" />
 
         <TextView
             android:id="@+id/text_chat_empty"
@@ -73,27 +98,99 @@
     </FrameLayout>
 
     <LinearLayout
-        android:id="@+id/layout_chat_input"
+        android:id="@+id/layout_typing_row"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="@android:color/white"
+        android:gravity="start|center_vertical"
         android:orientation="horizontal"
-        android:padding="12dp">
+        android:paddingStart="12dp"
+        android:paddingTop="6dp"
+        android:paddingEnd="12dp"
+        android:paddingBottom="6dp"
+        android:visibility="gone">
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:background="@drawable/bg_typing_pill"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingStart="10dp"
+            android:paddingTop="6dp"
+            android:paddingEnd="10dp"
+            android:paddingBottom="6dp">
+
+            <View
+                android:id="@+id/view_typing_dot_1"
+                android:layout_width="8dp"
+                android:layout_height="8dp"
+                android:background="@drawable/typing_dot" />
+
+            <View
+                android:id="@+id/view_typing_dot_2"
+                android:layout_width="8dp"
+                android:layout_height="8dp"
+                android:layout_marginStart="3dp"
+                android:background="@drawable/typing_dot" />
+
+            <View
+                android:id="@+id/view_typing_dot_3"
+                android:layout_width="8dp"
+                android:layout_height="8dp"
+                android:layout_marginStart="3dp"
+                android:background="@drawable/typing_dot" />
+
+            <TextView
+                android:id="@+id/text_typing"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="6dp"
+                android:text="@string/chat_typing"
+                android:textColor="@color/bakery_text_tertiary"
+                android:textSize="12sp" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/layout_chat_input"
+        android:layout_width="match_parent"
+        android:layout_height="72dp"
+        android:background="@color/bakery_card_white"
+        android:elevation="4dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingStart="12dp"
+        android:paddingEnd="12dp">
 
         <EditText
             android:id="@+id/edit_message"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
+            android:background="@drawable/bg_input_pill"
             android:hint="@string/type_a_message"
-            android:maxLength="500" />
+            android:imeOptions="actionSend"
+            android:inputType="textMultiLine|textCapSentences"
+            android:maxLength="500"
+            android:maxLines="4"
+            android:minHeight="44dp"
+            android:paddingStart="16dp"
+            android:paddingTop="10dp"
+            android:paddingEnd="16dp"
+            android:paddingBottom="10dp"
+            android:textColor="@color/bakery_text_dark"
+            android:textSize="15sp" />
 
-        <Button
+        <ImageButton
             android:id="@+id/button_send"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
+            android:layout_width="44dp"
+            android:layout_height="44dp"
             android:layout_marginStart="8dp"
-            android:text="@string/send" />
+            android:background="@drawable/bg_send_button"
+            android:contentDescription="@string/send"
+            android:padding="10dp"
+            android:scaleType="centerInside"
+            android:src="@drawable/ic_send_arrow" />
     </LinearLayout>
 
 </LinearLayout>
