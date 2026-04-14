@@ -28,7 +28,6 @@ import com.example.workshop6.auth.SessionManager;
 import com.example.workshop6.data.api.ApiClient;
 import com.example.workshop6.data.api.ApiService;
 import com.example.workshop6.data.api.dto.ConfirmStripePaymentRequest;
-import com.example.workshop6.data.api.dto.CustomerDto;
 import com.example.workshop6.data.api.dto.OrderDto;
 import com.example.workshop6.data.api.dto.OrderItemDto;
 import com.example.workshop6.data.api.dto.ResumePaymentSessionResponse;
@@ -59,6 +58,7 @@ public class OrderHistoryActivity extends AppCompatActivity implements OrderHist
     private TextView tvEmptyOrders;
     private View loadingView;
     private View reviewModerationOverlay;
+    private View paymentConfirmingOverlay;
     private OrderHistoryAdapter adapter;
     private SessionManager sessionManager;
     private ApiService api;
@@ -96,6 +96,7 @@ public class OrderHistoryActivity extends AppCompatActivity implements OrderHist
         tvEmptyOrders = findViewById(R.id.tvEmptyOrders);
         loadingView = findViewById(R.id.loadingView);
         reviewModerationOverlay = findViewById(R.id.review_moderation_overlay);
+        paymentConfirmingOverlay = findViewById(R.id.payment_confirming_overlay);
 
         rvOrders.setLayoutManager(new LinearLayoutManager(this));
         adapter = new OrderHistoryAdapter(new ArrayList<>(), this);
@@ -185,12 +186,20 @@ public class OrderHistoryActivity extends AppCompatActivity implements OrderHist
             return;
         }
         PendingStripeConfirm.save(this, pendingPayOrderId, pendingPayIntentId);
-        Toast.makeText(this, R.string.confirming_order_payment, Toast.LENGTH_LONG).show();
+        if (paymentConfirmingOverlay != null) {
+            paymentConfirmingOverlay.setVisibility(View.VISIBLE);
+        }
         ConfirmStripePaymentRequest body = new ConfirmStripePaymentRequest();
         body.paymentIntentId = pendingPayIntentId;
         api.confirmStripePayment(pendingPayOrderId, body).enqueue(new Callback<OrderDto>() {
             @Override
             public void onResponse(Call<OrderDto> call, Response<OrderDto> response) {
+                if (isFinishing()) {
+                    return;
+                }
+                if (paymentConfirmingOverlay != null) {
+                    paymentConfirmingOverlay.setVisibility(View.GONE);
+                }
                 OrderDto order = response.body();
                 if (response.isSuccessful() && order != null && order.status != null
                         && "paid".equalsIgnoreCase(order.status.trim())) {
@@ -207,9 +216,14 @@ public class OrderHistoryActivity extends AppCompatActivity implements OrderHist
 
             @Override
             public void onFailure(Call<OrderDto> call, Throwable t) {
-                Snackbar.make(findViewById(android.R.id.content), R.string.order_confirm_failed, Snackbar.LENGTH_LONG)
-                        .setAction(R.string.action_retry, v -> confirmPendingOrderPaymentWithServer())
-                        .show();
+                if (!isFinishing() && paymentConfirmingOverlay != null) {
+                    paymentConfirmingOverlay.setVisibility(View.GONE);
+                }
+                if (!isFinishing()) {
+                    Snackbar.make(findViewById(android.R.id.content), R.string.order_confirm_failed, Snackbar.LENGTH_LONG)
+                            .setAction(R.string.action_retry, v -> confirmPendingOrderPaymentWithServer())
+                            .show();
+                }
             }
         });
     }
@@ -314,35 +328,9 @@ public class OrderHistoryActivity extends AppCompatActivity implements OrderHist
                 .setTitle(R.string.order_accept_delivery)
                 .setMessage(R.string.order_accept_delivery_prompt)
                 .setNegativeButton(R.string.order_accept_without_review, (d, w) -> markOrderCompleted(orderWithDetails.order.id))
-                .setPositiveButton(R.string.order_leave_review, (d, w) ->
-                        ensureProfileHasReviewNameThen(() -> showReviewDialog(orderWithDetails)))
+                .setPositiveButton(R.string.order_leave_review, (d, w) -> showReviewDialog(orderWithDetails))
                 .setNeutralButton(android.R.string.cancel, null)
                 .show();
-    }
-
-    private void ensureProfileHasReviewNameThen(Runnable onValidName) {
-        api.getCustomerMe().enqueue(new Callback<CustomerDto>() {
-            @Override
-            public void onResponse(Call<CustomerDto> call, Response<CustomerDto> response) {
-                if (!response.isSuccessful() || response.body() == null) {
-                    Toast.makeText(OrderHistoryActivity.this, R.string.order_review_submit_failed, Toast.LENGTH_SHORT).show();
-                    return;
-                }
-                CustomerDto customer = response.body();
-                boolean hasFirst = customer.firstName != null && !customer.firstName.trim().isEmpty();
-                boolean hasLast = customer.lastName != null && !customer.lastName.trim().isEmpty();
-                if (!hasFirst || !hasLast) {
-                    Toast.makeText(OrderHistoryActivity.this, R.string.review_name_required, Toast.LENGTH_LONG).show();
-                    return;
-                }
-                onValidName.run();
-            }
-
-            @Override
-            public void onFailure(Call<CustomerDto> call, Throwable t) {
-                Toast.makeText(OrderHistoryActivity.this, R.string.login_error_no_connection, Toast.LENGTH_SHORT).show();
-            }
-        });
     }
 
     private void showReviewDialog(OrderWithDetails orderWithDetails) {
@@ -409,7 +397,7 @@ public class OrderHistoryActivity extends AppCompatActivity implements OrderHist
                 try {
                     if (!response.isSuccessful()) {
                         if (response.code() == 400) {
-                            Toast.makeText(OrderHistoryActivity.this, R.string.review_name_required, Toast.LENGTH_LONG).show();
+                            Toast.makeText(OrderHistoryActivity.this, R.string.order_review_submit_failed, Toast.LENGTH_LONG).show();
                             return;
                         }
                         if (response.code() == 409) {

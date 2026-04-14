@@ -24,7 +24,6 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.bumptech.glide.Glide;
 import com.bumptech.glide.request.RequestOptions;
 import com.example.workshop6.R;
-import com.example.workshop6.auth.SessionManager;
 import com.example.workshop6.data.api.ApiClient;
 import com.example.workshop6.data.api.ApiService;
 import com.example.workshop6.data.api.BakeryLocationMapper;
@@ -284,7 +283,6 @@ public class LocationDetailFragment extends Fragment {
         if (!isAdded()) {
             return;
         }
-        SessionManager session = new SessionManager(requireContext());
         android.widget.LinearLayout container = new android.widget.LinearLayout(requireContext());
         container.setOrientation(android.widget.LinearLayout.VERTICAL);
         int pad = (int) (16 * getResources().getDisplayMetrics().density);
@@ -296,20 +294,8 @@ public class LocationDetailFragment extends Fragment {
 
         View ratingView = LayoutInflater.from(requireContext())
                 .inflate(R.layout.view_dialog_review_rating_bar, container, false);
-        android.widget.RatingBar ratingBar = ratingView.findViewById(R.id.ratingBarDialog);
+        android.widget.        RatingBar ratingBar = ratingView.findViewById(R.id.ratingBarDialog);
         container.addView(ratingView);
-
-        android.widget.EditText etGuestName = null;
-        if (!session.isLoggedIn()) {
-            android.widget.TextView tvGuest = new android.widget.TextView(requireContext());
-            tvGuest.setText(R.string.review_guest_name_label);
-            tvGuest.setPadding(0, pad, 0, 0);
-            container.addView(tvGuest);
-            etGuestName = new android.widget.EditText(requireContext());
-            etGuestName.setHint(R.string.review_guest_name_hint);
-            etGuestName.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_CAP_WORDS);
-            container.addView(etGuestName);
-        }
 
         android.widget.TextView tvComment = new android.widget.TextView(requireContext());
         tvComment.setText(R.string.order_review_comment_label);
@@ -323,7 +309,6 @@ public class LocationDetailFragment extends Fragment {
         etComment.setMaxLines(5);
         container.addView(etComment);
 
-        final android.widget.EditText guestField = etGuestName;
         new androidx.appcompat.app.AlertDialog.Builder(requireContext())
                 .setTitle(R.string.btn_leave_review)
                 .setView(container)
@@ -331,22 +316,13 @@ public class LocationDetailFragment extends Fragment {
                 .setPositiveButton(R.string.order_submit_review, (d, w) -> {
                     short rating = (short) Math.max(1, Math.min(5, Math.round(ratingBar.getRating())));
                     String comment = etComment.getText() != null ? etComment.getText().toString().trim() : "";
-                    String guestName = null;
-                    if (guestField != null && guestField.getText() != null) {
-                        String g = guestField.getText().toString().trim();
-                        guestName = g.isEmpty() ? null : g;
-                    }
-                    submitBakeryReview(root, bakeryId, rating, comment, guestName);
+                    submitBakeryReview(root, bakeryId, rating, comment);
                 })
                 .show();
     }
 
-    private void submitBakeryReview(View root, int bakeryId, short rating, String comment,
-                                    @Nullable String guestName) {
+    private void submitBakeryReview(View root, int bakeryId, short rating, String comment) {
         ReviewCreateRequest req = new ReviewCreateRequest(rating, comment);
-        if (guestName != null && !guestName.isEmpty()) {
-            req.guestName = guestName;
-        }
         final MainActivity mainForReview =
                 getActivity() instanceof MainActivity ? (MainActivity) getActivity() : null;
         if (mainForReview != null) {

@@ -51,7 +51,7 @@
     <string name="register_step2_employee_link_label">Step 2 of 2: Staff account</string>
     <string name="register_step1_title">Sign-in and password</string>
     <string name="register_step2_title">Personal details</string>
-    <string name="register_step2_employee_link_instructions">This email matches a staff work address on file. Enter the password you use to sign in to your employee account (not your new customer password), then confirm it, so we can link your new customer profile to that staff record. Your name, phone, and address will be copied from your employee profile after you register.</string>
+    <string name="register_step2_employee_link_instructions">This matches a staff work email. Enter your employee password twice to link. We copy your name, phone, and address from staff records.</string>
     <string name="label_employee_account_password">Employee account password</string>
     <string name="hint_employee_account_password">Staff sign-in password</string>
     <string name="label_confirm_employee_password">Confirm employee password</string>
@@ -511,7 +511,6 @@
     <string name="order_review_submit_failed">Could not submit review.</string>
     <string name="order_review_no_items">No reviewable items on this order.</string>
     <string name="review_moderation_overlay_message">Submitting your review…</string>
-    <string name="review_name_required">First and last name are required in your profile before leaving a review.</string>
     <string name="btn_leave_review">Leave Review</string>
     <string name="review_badge_verified">✓ Verified</string>
     <string name="review_badge_purchased">✓ Purchased</string>
@@ -519,8 +518,6 @@
     <string name="review_filter_verified">Verified</string>
     <string name="review_filter_purchased">Purchased</string>
     <string name="review_filter_no_matches">No reviews match this filter.</string>
-    <string name="review_guest_name_label">Your name (optional)</string>
-    <string name="review_guest_name_hint">How you\'d like to appear</string>
     <string name="product_review_comment_hint">Share feedback about this product such as taste texture freshness and value. Optional.</string>
     <string name="product_review_requires_purchase">You can only review products you have purchased.</string>
     <string name="product_review_already_submitted">You already submitted a review for this product.</string>

@@ -101,6 +101,7 @@ public class CheckoutActivity extends AppCompatActivity {
     private TextView tvTotal;
     private Button btnConfirmOrder;
     private View confirmationLayout;
+    private View paymentConfirmingOverlay;
     private View mainLayout;
     private Button btnPlaceOrder;
     private Button btnEditOrder;
@@ -425,6 +426,7 @@ public class CheckoutActivity extends AppCompatActivity {
         tvTotal = findViewById(R.id.tvTotal);
         btnConfirmOrder = findViewById(R.id.btnConfirmOrder);
         confirmationLayout = findViewById(R.id.confirmationLayout);
+        paymentConfirmingOverlay = findViewById(R.id.payment_confirming_overlay);
         mainLayout = findViewById(R.id.mainLayout);
         btnPlaceOrder = findViewById(R.id.btnPlaceOrder);
         btnEditOrder = findViewById(R.id.btnEditOrder);
@@ -2160,13 +2162,21 @@ public class CheckoutActivity extends AppCompatActivity {
             return;
         }
         PendingStripeConfirm.save(this, pendingCheckoutOrderId, pendingPaymentIntentId);
-        Toast.makeText(this, R.string.confirming_order_payment, Toast.LENGTH_LONG).show();
+        if (paymentConfirmingOverlay != null) {
+            paymentConfirmingOverlay.setVisibility(View.VISIBLE);
+        }
 
         ConfirmStripePaymentRequest body = new ConfirmStripePaymentRequest();
         body.paymentIntentId = pendingPaymentIntentId;
         api.confirmStripePayment(pendingCheckoutOrderId, body).enqueue(new Callback<OrderDto>() {
             @Override
             public void onResponse(Call<OrderDto> call, Response<OrderDto> response) {
+                if (isFinishing()) {
+                    return;
+                }
+                if (paymentConfirmingOverlay != null) {
+                    paymentConfirmingOverlay.setVisibility(View.GONE);
+                }
                 OrderDto order = response.body();
                 if (response.isSuccessful() && order != null && order.status != null
                         && "paid".equalsIgnoreCase(order.status.trim())) {
@@ -2182,9 +2192,14 @@ public class CheckoutActivity extends AppCompatActivity {
             @Override
             public void onFailure(Call<OrderDto> call, Throwable t) {
                 Log.e("Checkout", "confirm payment failed", t);
-                Snackbar.make(findViewById(android.R.id.content), R.string.order_confirm_failed, Snackbar.LENGTH_LONG)
-                        .setAction(R.string.action_retry, v -> confirmStripePaymentWithServer())
-                        .show();
+                if (!isFinishing() && paymentConfirmingOverlay != null) {
+                    paymentConfirmingOverlay.setVisibility(View.GONE);
+                }
+                if (!isFinishing()) {
+                    Snackbar.make(findViewById(android.R.id.content), R.string.order_confirm_failed, Snackbar.LENGTH_LONG)
+                            .setAction(R.string.action_retry, v -> confirmStripePaymentWithServer())
+                            .show();
+                }
             }
         });
     }

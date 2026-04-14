@@ -53,5 +53,7 @@
         </FrameLayout>
 
         <include layout="@layout/overlay_review_moderation_loading" />
+
+        <include layout="@layout/overlay_confirming_payment" />
     </FrameLayout>
 </LinearLayout>
