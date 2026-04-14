@@ -17,4 +17,7 @@ public class ChatThreadDto {
     public String status;
     public String createdAt;
     public String updatedAt;
+
+    public transient String latestMessagePreview;
+    public transient String latestMessageAt;
 }
