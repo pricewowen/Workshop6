@@ -525,15 +525,16 @@
             android:id="@+id/toolbar"
             android:layout_width="match_parent"
             android:layout_height="?attr/actionBarSize"
-            android:background="@color/bakery_primary"
+            android:background="@color/bakery_background"
             app:navigationIcon="@drawable/ic_arrow_back"
+            app:navigationIconTint="@color/bakery_text_dark"
             app:title="@string/title_edit_account"
-            app:titleTextColor="@color/bakery_text_light" />
+            app:titleTextColor="@color/bakery_text_dark" />
 
         <FrameLayout
             android:layout_width="match_parent"
             android:layout_height="80dp"
-            android:background="@color/bakery_primary"
+            android:background="@color/bakery_background"
             android:clipChildren="false" />
     </LinearLayout>
 

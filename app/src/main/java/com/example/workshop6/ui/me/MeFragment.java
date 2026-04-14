@@ -899,7 +899,7 @@ public class MeFragment extends Fragment {
                 intent.putExtra(LoginActivity.EXTRA_ALLOW_GUEST_AUTH, true);
                 NavTransitions.startActivityWithBackward(requireActivity(), intent);
             });
-        } else {
+                } else {
             cardGuestPrompt.setVisibility(View.GONE);
             cardActions.setVisibility(View.VISIBLE);
             tvDeactivateAccount.setVisibility(View.VISIBLE);

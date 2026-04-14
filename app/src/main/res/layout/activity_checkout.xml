@@ -6,7 +6,7 @@
     android:orientation="vertical"
     android:background="@color/bakery_background">
 
-    <androidx.appcompat.widget.Toolbar
+    <com.google.android.material.appbar.MaterialToolbar
         android:id="@+id/toolbar"
         android:layout_width="match_parent"
         android:layout_height="?attr/actionBarSize"
@@ -14,6 +14,7 @@
         app:navigationIcon="@drawable/ic_arrow_back"
         app:navigationIconTint="@color/bakery_text_dark"
         app:title="@string/checkout_title"
+        app:titleCentered="false"
         app:titleTextColor="@color/bakery_text_dark" />
 
     <ScrollView
@@ -28,7 +29,9 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:padding="16dp">
+            android:paddingHorizontal="16dp"
+            android:paddingTop="16dp"
+            android:paddingBottom="24dp">
 
             <TextView
                 android:id="@+id/tv_checkout_intro"
@@ -46,8 +49,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="16dp"
                 android:visibility="gone"
-                app:cardCornerRadius="8dp"
-                app:cardElevation="2dp">
+                style="@style/Widget.Workshop6.Card.Panel">
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -110,8 +112,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="16dp"
                 android:visibility="gone"
-                app:cardCornerRadius="8dp"
-                app:cardElevation="2dp">
+                style="@style/Widget.Workshop6.Card.Panel">
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -295,8 +296,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="16dp"
-                app:cardCornerRadius="8dp"
-                app:cardElevation="2dp">
+                style="@style/Widget.Workshop6.Card.Panel">
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -342,8 +342,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="16dp"
-                app:cardCornerRadius="8dp"
-                app:cardElevation="2dp">
+                style="@style/Widget.Workshop6.Card.Panel">
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -413,8 +412,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="16dp"
                 android:visibility="gone"
-                app:cardCornerRadius="8dp"
-                app:cardElevation="2dp">
+                style="@style/Widget.Workshop6.Card.Panel">
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -560,8 +558,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="16dp"
-                app:cardCornerRadius="8dp"
-                app:cardElevation="2dp">
+                style="@style/Widget.Workshop6.Card.Panel">
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -593,12 +590,14 @@
                             android:textColor="@color/bakery_primary"
                             android:textSize="16sp" />
 
-                        <Button
+                        <com.google.android.material.button.MaterialButton
                             android:id="@+id/btnSelectTime"
+                            style="@style/Widget.Workshop6.Button.SecondaryOutlined"
                             android:layout_width="wrap_content"
-                            android:layout_height="40dp"
-                            android:text="@string/select_time"
-                            android:backgroundTint="@color/bakery_primary" />
+                            android:layout_height="wrap_content"
+                            android:minHeight="48dp"
+                            android:paddingHorizontal="16dp"
+                            android:text="@string/select_time" />
                     </LinearLayout>
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
@@ -608,8 +607,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="16dp"
-                app:cardCornerRadius="8dp"
-                app:cardElevation="2dp">
+                style="@style/Widget.Workshop6.Card.Panel">
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -650,8 +648,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="16dp"
                 android:visibility="gone"
-                app:cardCornerRadius="8dp"
-                app:cardElevation="2dp">
+                style="@style/Widget.Workshop6.Card.Panel">
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -683,8 +680,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="16dp"
-                app:cardCornerRadius="8dp"
-                app:cardElevation="2dp">
+                style="@style/Widget.Workshop6.Card.Panel">
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -717,12 +713,11 @@
                         android:textSize="14sp"
                         android:layout_marginBottom="12dp" />
 
-                    <Button
+                    <com.google.android.material.button.MaterialButton
                         android:id="@+id/btnCheckoutLoyaltyRedeem"
+                        style="@style/Widget.Workshop6.Button.PrimaryGold"
                         android:layout_width="match_parent"
-                        android:layout_height="48dp"
-                        android:backgroundTint="@color/bakery_gold_bright"
-                        android:textColor="@android:color/black"
+                        android:layout_height="56dp"
                         android:text="@string/btn_redeem" />
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
@@ -732,8 +727,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="16dp"
-                app:cardCornerRadius="8dp"
-                app:cardElevation="2dp">
+                style="@style/Widget.Workshop6.Card.Panel">
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -963,14 +957,13 @@
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
-            <Button
+            <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnConfirmOrder"
+                style="@style/Widget.Workshop6.Button.PrimaryGold"
                 android:layout_width="match_parent"
                 android:layout_height="56dp"
-                android:backgroundTint="@color/bakery_primary"
-                android:text="@string/confirm_order"
-                android:textColor="@color/bakery_text_light"
-                android:textSize="16sp" />
+                android:layout_marginTop="4dp"
+                android:text="@string/confirm_order" />
         </LinearLayout>
         <!-- Confirmation Layout -->
         <LinearLayout
@@ -1029,24 +1022,23 @@
                 android:orientation="horizontal"
                 android:paddingVertical="16dp">
 
-                <Button
+                <com.google.android.material.button.MaterialButton
                     android:id="@+id/btnEditOrder"
+                    style="@style/Widget.Workshop6.Button.SecondaryOutlined"
                     android:layout_width="0dp"
                     android:layout_height="56dp"
                     android:layout_weight="1"
                     android:layout_marginEnd="8dp"
-                    android:backgroundTint="@color/bakery_text_secondary"
-                    android:text="@string/edit_order"
-                    android:textColor="@color/bakery_text_light" />
+                    android:text="@string/edit_order" />
 
-                <Button
+                <com.google.android.material.button.MaterialButton
                     android:id="@+id/btnPlaceOrder"
+                    style="@style/Widget.Workshop6.Button.PrimaryGold"
                     android:layout_width="0dp"
                     android:layout_height="56dp"
                     android:layout_weight="1"
                     android:layout_marginStart="8dp"
-                    android:text="@string/place_order"
-                    android:textColor="@color/bakery_text_light" />
+                    android:text="@string/place_order" />
             </LinearLayout>
         </LinearLayout>
         </FrameLayout>
