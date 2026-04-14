@@ -28,6 +28,7 @@ import com.example.workshop6.data.api.dto.PostChatMessageRequest;
 import com.example.workshop6.data.api.dto.ProductDto;
 import com.example.workshop6.data.api.dto.ProductRecommendationDto;
 import com.example.workshop6.data.api.dto.ProductSpecialTodayDto;
+import com.example.workshop6.data.api.dto.RegisterAvailabilityDto;
 import com.example.workshop6.data.api.dto.RegisterRequest;
 import com.example.workshop6.data.api.dto.ReviewCreateRequest;
 import com.example.workshop6.data.api.dto.ReviewDto;
@@ -61,6 +62,15 @@ public interface ApiService {
 
     @POST("api/v1/auth/register")
     Call<AuthResponse> register(@Body RegisterRequest request);
+
+    /**
+     * Pre-check username/email before step 2 (case-insensitive; email may match employee work email only).
+     */
+    @GET("api/v1/auth/register/availability")
+    Call<RegisterAvailabilityDto> getRegisterAvailability(
+            @Query("username") String username,
+            @Query("email") String email
+    );
 
     @PUT("api/v1/account/password")
     Call<Void> changePassword(@Body ChangePasswordRequest body);

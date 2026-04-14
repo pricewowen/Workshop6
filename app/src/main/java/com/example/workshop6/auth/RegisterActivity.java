@@ -25,6 +25,7 @@ import com.example.workshop6.data.api.dto.AuthResponse;
 import com.example.workshop6.data.api.dto.CustomerDto;
 import com.example.workshop6.data.api.dto.CustomerPatchRequest;
 import com.example.workshop6.data.api.dto.GuestCustomerRequest;
+import com.example.workshop6.data.api.dto.RegisterAvailabilityDto;
 import com.example.workshop6.data.api.dto.RegisterRequest;
 import com.example.workshop6.logging.ActivityLogger;
 import com.example.workshop6.ui.MainActivity;
@@ -83,7 +84,8 @@ public class RegisterActivity extends AppCompatActivity {
         sessionManager = new SessionManager(this);
         boolean allowGuestAuth = getIntent().getBooleanExtra(LoginActivity.EXTRA_ALLOW_GUEST_AUTH, false);
         if (sessionManager.isGuestMode() && !allowGuestAuth) {
-            goToMain(true);
+            // Guest redirect — not a completed registration; do not show post-registration MainActivity toast.
+            goToMain(false);
             return;
         }
 
@@ -252,8 +254,11 @@ public class RegisterActivity extends AppCompatActivity {
         btnCompleteRegistration.setOnClickListener(v -> attemptCompleteStep2());
 
         View.OnClickListener signInClick = v -> {
+            // Abandon registration and open login explicitly (do not rely on back stack or partial session).
+            Intent loginIntent = new Intent(RegisterActivity.this, LoginActivity.class);
+            loginIntent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+            NavTransitions.startActivityWithForward(RegisterActivity.this, loginIntent);
             finish();
-            NavTransitions.applyBackwardPending(RegisterActivity.this);
         };
         View.OnClickListener skipClick = v -> {
             if (!NetworkStatus.isOnline(RegisterActivity.this)) {
@@ -286,7 +291,8 @@ public class RegisterActivity extends AppCompatActivity {
                         if (!isFinishing()) {
                             hideRegisterConnectingOverlay();
                             sessionManager.beginGuestSession();
-                            goToMain(true);
+                            // Skip is browse-as-guest, not account creation — no "Account created" toast on Main.
+                            goToMain(false);
                         }
                     }
             );
@@ -378,7 +384,72 @@ public class RegisterActivity extends AppCompatActivity {
         if (!validateStep1Fields()) {
             return;
         }
-        advanceToStep2WithoutApi();
+        if (!NetworkStatus.isOnline(this)) {
+            tvError.setText(R.string.login_error_no_connection);
+            tvError.setVisibility(View.VISIBLE);
+            return;
+        }
+
+        ApiReachability.checkThen(
+                this::showRegisterConnectingOverlay,
+                () -> {
+                    if (!isFinishing()) {
+                        hideRegisterConnectingOverlay();
+                        tvError.setText(R.string.login_error_no_connection);
+                        tvError.setVisibility(View.VISIBLE);
+                    }
+                },
+                this::fetchRegisterAvailabilityThenAdvance
+        );
+    }
+
+    private void fetchRegisterAvailabilityThenAdvance() {
+        if (isFinishing() || isDestroyed()) {
+            return;
+        }
+        String username = etUsername.getText() != null ? etUsername.getText().toString().trim() : "";
+        String email = etEmail.getText() != null ? etEmail.getText().toString().trim().toLowerCase(Locale.ROOT) : "";
+
+        api.getRegisterAvailability(username, email).enqueue(new Callback<RegisterAvailabilityDto>() {
+            @Override
+            public void onResponse(@NonNull Call<RegisterAvailabilityDto> call,
+                    @NonNull Response<RegisterAvailabilityDto> response) {
+                if (isFinishing() || isDestroyed()) {
+                    return;
+                }
+                hideRegisterConnectingOverlay();
+                RegisterAvailabilityDto body = response.body();
+                if (!response.isSuccessful() || body == null) {
+                    tvError.setText(R.string.register_error_unexpected);
+                    tvError.setVisibility(View.VISIBLE);
+                    ActivityLogger.logFailure(RegisterActivity.this, null, "REGISTER",
+                            "Availability HTTP " + response.code());
+                    return;
+                }
+                if (!body.usernameAvailable) {
+                    tilUsername.setError(getString(R.string.register_error_username_exists));
+                    ActivityLogger.logFailure(RegisterActivity.this, null, "REGISTER", "Username taken (precheck)");
+                    return;
+                }
+                if (!body.emailAvailable) {
+                    tilEmail.setError(getString(R.string.register_error_email_exists));
+                    ActivityLogger.logFailure(RegisterActivity.this, null, "REGISTER", "Email taken (precheck)");
+                    return;
+                }
+                advanceToStep2WithoutApi();
+            }
+
+            @Override
+            public void onFailure(@NonNull Call<RegisterAvailabilityDto> call, @NonNull Throwable t) {
+                if (isFinishing() || isDestroyed()) {
+                    return;
+                }
+                hideRegisterConnectingOverlay();
+                tvError.setText(R.string.login_error_no_connection);
+                tvError.setVisibility(View.VISIBLE);
+                ActivityLogger.logFailure(RegisterActivity.this, null, "REGISTER", "Availability network error");
+            }
+        });
     }
 
     private void clearRegisterFieldErrorsForConnectionMessage() {

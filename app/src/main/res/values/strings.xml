@@ -92,12 +92,12 @@
     <string name="error_name_required">Name is required</string>
     <string name="error_name_invalid">Use letters and spaces only</string>
     <string name="error_email_required">Email is required</string>
-    <string name="register_error_email_exists">Unable to create account</string>
+    <string name="register_error_email_exists">That email is already registered. Sign in or use another address.</string>
     <string name="error_username_required">Username is required</string>
     <string name="error_username_too_short">Username is too short</string>
     <string name="error_username_too_long">Username is too long</string>
     <string name="error_username_invalid">Use letters, numbers, and . _ - only</string>
-    <string name="register_error_username_exists">Unable to create account</string>
+    <string name="register_error_username_exists">That username is already taken.</string>
     <string name="error_email_invalid">Enter a valid email. Use at least 2 characters before @ and in each part of the domain.</string>
     <string name="error_phone_required">Phone number is required</string>
     <string name="error_phone_invalid">Enter a valid 10-digit phone number</string>
@@ -443,7 +443,8 @@
     <string name="confirm_order_message">Please review your order details before placing</string>
     <string name="edit_order">Edit Order</string>
     <string name="place_order">Place Order</string>
-    <string name="order_placed_success">Payment successful! Your order has been placed.</string>
+    <!-- Short for Toast: one line on typical phones. Used after payment / order confirm. -->
+    <string name="order_placed_success">Order placed. Check your email for your receipt.</string>
     <string name="confirming_order_payment">Confirming payment on server…</string>
     <string name="order_confirm_failed">Could not confirm payment with the server. You can retry if your card was charged.</string>
     <string name="action_retry">Retry</string>
