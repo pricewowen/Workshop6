@@ -4,9 +4,13 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.util.Log;
+import android.text.Editable;
 import android.text.TextUtils;
+import android.text.TextWatcher;
 import android.view.View;
-import android.widget.Button;
+import android.view.animation.Animation;
+import android.view.animation.AnimationUtils;
 import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.LinearLayout;
@@ -17,6 +21,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.example.workshop6.BuildConfig;
 import com.example.workshop6.R;
 import com.example.workshop6.auth.LoginActivity;
 import com.example.workshop6.auth.SessionManager;
@@ -24,11 +29,15 @@ import com.example.workshop6.data.api.ApiClient;
 import com.example.workshop6.data.api.ApiService;
 import com.example.workshop6.data.api.dto.ChatMessageDto;
 import com.example.workshop6.data.api.dto.PostChatMessageRequest;
+import com.example.workshop6.data.api.dto.TypingPayload;
+import com.example.workshop6.data.ws.StompClient;
 import com.example.workshop6.util.NavTransitions;
 import com.example.workshop6.util.Validation;
+import com.google.gson.Gson;
 
 import java.util.List;
 
+import okhttp3.OkHttpClient;
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
@@ -41,12 +50,17 @@ public class ChatActivity extends AppCompatActivity {
 
     private RecyclerView recyclerMessages;
     private EditText editMessage;
-    private Button buttonSend;
+    private ImageButton buttonSend;
     private ImageButton buttonBack;
     private TextView textEmpty;
     private TextView textTitle;
     private TextView textSubtitle;
     private LinearLayout layoutChatInput;
+    private TextView avatarHeader;
+    private View layoutTypingRow;
+    private View dot1;
+    private View dot2;
+    private View dot3;
 
     private SessionManager sessionManager;
     private ApiService api;
@@ -54,12 +68,36 @@ public class ChatActivity extends AppCompatActivity {
     private int threadId = -1;
     private String userUuid;
 
+    private StompClient stomp;
+    private String messagesSubId;
+    private String typingSubId;
+    private String readSubId;
+    private final Handler typingIdleHandler = new Handler(Looper.getMainLooper());
+    private final Handler typingSafetyHandler = new Handler(Looper.getMainLooper());
+    private long lastTypingPublishAt;
+    private boolean lastPublishedIsTyping;
+    private final Gson gson = new Gson();
+
     private final Handler handler = new Handler(Looper.getMainLooper());
     private final Runnable refreshRunnable = new Runnable() {
         @Override
         public void run() {
             loadMessages();
-            handler.postDelayed(this, 1500);
+            handler.postDelayed(this, 5000);
+        }
+    };
+
+    private final Runnable typingIdleRunnable = new Runnable() {
+        @Override
+        public void run() {
+            publishTyping(false);
+        }
+    };
+
+    private final Runnable typingSafetyHideRunnable = new Runnable() {
+        @Override
+        public void run() {
+            hideTypingRow();
         }
     };
 
@@ -76,6 +114,11 @@ public class ChatActivity extends AppCompatActivity {
         textTitle = findViewById(R.id.text_chat_title);
         textSubtitle = findViewById(R.id.text_chat_subtitle);
         layoutChatInput = findViewById(R.id.layout_chat_input);
+        avatarHeader = findViewById(R.id.avatar_header);
+        layoutTypingRow = findViewById(R.id.layout_typing_row);
+        dot1 = findViewById(R.id.view_typing_dot_1);
+        dot2 = findViewById(R.id.view_typing_dot_2);
+        dot3 = findViewById(R.id.view_typing_dot_3);
 
         buttonBack.setOnClickListener(v -> {
             finish();
@@ -111,7 +154,22 @@ public class ChatActivity extends AppCompatActivity {
         }
 
         bindConversationHeader();
+        bindHeaderAvatar();
         buttonSend.setOnClickListener(v -> sendMessage());
+        editMessage.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+            }
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+            }
+
+            @Override
+            public void afterTextChanged(Editable s) {
+                onInputChanged(s == null ? "" : s.toString());
+            }
+        });
         loadMessages();
     }
 
@@ -124,12 +182,21 @@ public class ChatActivity extends AppCompatActivity {
         }
         sessionManager.touch();
         handler.post(refreshRunnable);
+        startWebSocket();
     }
 
     @Override
     protected void onPause() {
         super.onPause();
         handler.removeCallbacks(refreshRunnable);
+        typingIdleHandler.removeCallbacks(typingIdleRunnable);
+        typingSafetyHandler.removeCallbacks(typingSafetyHideRunnable);
+        clearTypingAnimations();
+        if (stomp != null) {
+            try { stomp.disconnect(); } catch (Exception ignored) {}
+            stomp = null;
+        }
+        lastPublishedIsTyping = false;
     }
 
     @Override
@@ -190,6 +257,9 @@ public class ChatActivity extends AppCompatActivity {
             return;
         }
 
+        typingIdleHandler.removeCallbacks(typingIdleRunnable);
+        publishTyping(false);
+
         api.postChatMessage(threadId, new PostChatMessageRequest(boundedText)).enqueue(new Callback<ChatMessageDto>() {
             @Override
             public void onResponse(Call<ChatMessageDto> call, Response<ChatMessageDto> response) {
@@ -231,10 +301,156 @@ public class ChatActivity extends AppCompatActivity {
         textSubtitle.setText(subtitle);
     }
 
+    private void bindHeaderAvatar() {
+        if (avatarHeader == null) return;
+        String title = textTitle.getText() != null ? textTitle.getText().toString() : "";
+        String initial = "?";
+        for (int i = 0; i < title.length(); i++) {
+            char c = title.charAt(i);
+            if (!Character.isWhitespace(c)) {
+                initial = String.valueOf(c).toUpperCase();
+                break;
+            }
+        }
+        avatarHeader.setText(initial);
+    }
+
     private void bindEmptyState() {
         boolean isCustomer = "CUSTOMER".equalsIgnoreCase(sessionManager.getUserRole());
         textEmpty.setText(isCustomer
                 ? R.string.chat_empty_state_customer
                 : R.string.chat_empty_state_staff);
+    }
+
+    private void startWebSocket() {
+        if (threadId == -1) return;
+        if (stomp != null) return;
+        String token = sessionManager.getToken();
+        // Fresh OkHttpClient: ApiClient exposes no getter, and WS handles its own timeouts.
+        OkHttpClient wsHttpClient = new OkHttpClient();
+        stomp = new StompClient(BuildConfig.API_BASE_URL, token, wsHttpClient);
+        stomp.connect(new StompClient.ConnectionListener() {
+            @Override
+            public void onConnected() {
+                Log.d("ChatWS", "STOMP connected, subscribing thread " + threadId);
+                messagesSubId = stomp.subscribe(
+                        "/topic/chat/thread/" + threadId + "/messages",
+                        body -> {
+                            Log.d("ChatWS", "message frame: " + body);
+                            try {
+                                ChatMessageDto dto = gson.fromJson(body, ChatMessageDto.class);
+                                if (dto == null) return;
+                                adapter.appendOne(dto);
+                                int count = adapter.getItemCount();
+                                if (count > 0) {
+                                    recyclerMessages.scrollToPosition(count - 1);
+                                }
+                                if (count > 0) {
+                                    textEmpty.setVisibility(View.GONE);
+                                }
+                            } catch (Exception ignored) {
+                            }
+                        });
+                typingSubId = stomp.subscribe(
+                        "/topic/chat/thread/" + threadId + "/typing",
+                        body -> {
+                            Log.d("ChatWS", "typing frame: " + body + " myUuid=" + userUuid);
+                            try {
+                                TypingPayload payload = gson.fromJson(body, TypingPayload.class);
+                                if (payload == null) return;
+                                Log.d("ChatWS", "parsed userId=" + payload.userId + " typing=" + payload.typing);
+                                if (payload.userId != null
+                                        && !payload.userId.equals(userUuid)
+                                        && payload.typing) {
+                                    showTypingRow();
+                                    typingSafetyHandler.removeCallbacks(typingSafetyHideRunnable);
+                                    typingSafetyHandler.postDelayed(typingSafetyHideRunnable, 8000L);
+                                } else {
+                                    hideTypingRow();
+                                }
+                            } catch (Exception e) {
+                                Log.w("ChatWS", "typing parse failed", e);
+                            }
+                        });
+                readSubId = stomp.subscribe(
+                        "/topic/chat/thread/" + threadId + "/read",
+                        body -> {
+                            // Reserved hook for read receipts; no UI in this scope.
+                        });
+            }
+
+            @Override
+            public void onDisconnected(Throwable cause) {
+                Log.w("ChatWS", "STOMP disconnected", cause);
+            }
+        });
+    }
+
+    private void onInputChanged(String text) {
+        if (threadId == -1) return;
+        boolean empty = text == null || text.trim().isEmpty();
+        if (empty) {
+            typingIdleHandler.removeCallbacks(typingIdleRunnable);
+            if (lastPublishedIsTyping) {
+                publishTyping(false);
+            }
+            return;
+        }
+        long now = System.currentTimeMillis();
+        if ((now - lastTypingPublishAt) > 2000L || !lastPublishedIsTyping) {
+            publishTyping(true);
+            lastTypingPublishAt = now;
+        }
+        typingIdleHandler.removeCallbacks(typingIdleRunnable);
+        typingIdleHandler.postDelayed(typingIdleRunnable, 3000L);
+    }
+
+    private void publishTyping(boolean isTyping) {
+        if (threadId == -1) return;
+        if (stomp == null || !stomp.isConnected()) {
+            lastPublishedIsTyping = isTyping;
+            return;
+        }
+        TypingPayload payload = new TypingPayload(userUuid, isTyping);
+        String json = gson.toJson(payload);
+        try {
+            stomp.send("/app/chat/thread/" + threadId + "/typing", json);
+        } catch (Exception ignored) {
+        }
+        lastPublishedIsTyping = isTyping;
+    }
+
+    private void showTypingRow() {
+        if (layoutTypingRow == null) return;
+        layoutTypingRow.setVisibility(View.VISIBLE);
+        startTypingAnimations();
+    }
+
+    private void hideTypingRow() {
+        if (layoutTypingRow == null) return;
+        layoutTypingRow.setVisibility(View.GONE);
+        clearTypingAnimations();
+        typingSafetyHandler.removeCallbacks(typingSafetyHideRunnable);
+    }
+
+    private void startTypingAnimations() {
+        if (dot1 != null) {
+            Animation a1 = AnimationUtils.loadAnimation(this, R.anim.typing_dot_1);
+            dot1.startAnimation(a1);
+        }
+        if (dot2 != null) {
+            Animation a2 = AnimationUtils.loadAnimation(this, R.anim.typing_dot_2);
+            dot2.startAnimation(a2);
+        }
+        if (dot3 != null) {
+            Animation a3 = AnimationUtils.loadAnimation(this, R.anim.typing_dot_3);
+            dot3.startAnimation(a3);
+        }
+    }
+
+    private void clearTypingAnimations() {
+        if (dot1 != null) dot1.clearAnimation();
+        if (dot2 != null) dot2.clearAnimation();
+        if (dot3 != null) dot3.clearAnimation();
     }
 }

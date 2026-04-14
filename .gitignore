@@ -20,3 +20,6 @@ docs
 /.claude
 sentry*
 .idea
+.gitnexus
+AGENTS.md
+CLAUDE.md
