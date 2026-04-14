@@ -1,37 +1,37 @@
 package com.example.workshop6.auth;
 
-import android.Manifest;
 import android.content.Intent;
-import android.graphics.Bitmap;
-import android.net.Uri;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.ArrayAdapter;
-import android.widget.ImageView;
+import android.widget.ScrollView;
 import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import androidx.activity.result.ActivityResultLauncher;
-import androidx.activity.result.contract.ActivityResultContracts;
+import androidx.activity.OnBackPressedCallback;
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.content.ContextCompat;
-import android.content.pm.PackageManager;
+import androidx.appcompat.widget.Toolbar;
 
 import com.example.workshop6.R;
 import com.example.workshop6.data.api.ApiClient;
 import com.example.workshop6.data.api.ApiService;
+import com.example.workshop6.data.api.dto.AddressUpsertRequest;
 import com.example.workshop6.data.api.dto.AuthResponse;
+import com.example.workshop6.data.api.dto.CustomerDto;
+import com.example.workshop6.data.api.dto.CustomerPatchRequest;
+import com.example.workshop6.data.api.dto.GuestCustomerRequest;
 import com.example.workshop6.data.api.dto.RegisterRequest;
 import com.example.workshop6.logging.ActivityLogger;
 import com.example.workshop6.ui.MainActivity;
-import com.example.workshop6.util.ImageUtils;
+import com.example.workshop6.util.ApiReachability;
+import com.example.workshop6.util.NavTransitions;
+import com.example.workshop6.util.NetworkStatus;
 import com.example.workshop6.util.PhoneFormatTextWatcher;
 import com.example.workshop6.util.PostalCodeFormatTextWatcher;
-import com.example.workshop6.util.ApiReachability;
-import com.example.workshop6.util.NetworkStatus;
 import com.example.workshop6.util.Validation;
-import com.google.android.material.dialog.MaterialAlertDialogBuilder;
+import com.google.android.material.button.MaterialButton;
 import com.google.android.material.textfield.TextInputEditText;
 import com.google.android.material.textfield.TextInputLayout;
 
@@ -43,110 +43,191 @@ import retrofit2.Response;
 
 public class RegisterActivity extends AppCompatActivity {
 
-    private TextInputLayout tilFirstName, tilMiddleInitial, tilLastName, tilUsername, tilEmail, tilPhone, tilBusinessPhone, tilPassword, tilConfirmPassword;
+    private static final String STATE_STEP = "register_step";
+
+    private TextInputLayout tilUsername, tilEmail, tilRegisterPhone, tilPassword, tilConfirmPassword;
+    private TextInputEditText etUsername, etEmail, etRegisterPhone, etPassword, etConfirmPassword;
+    private TextView tvError;
+    private MaterialButton btnContinue;
+
+    private ScrollView svStep1;
+    private ScrollView svStep2;
+    private TextView tvRegisterStep2EmployeeMessage;
+    private TextView tvRegisterStep2GuestMessage;
+    private TextView tvRegisterStep2Error;
+    private MaterialButton btnCompleteRegistration;
+    private View llRegisterPersonalForm;
+
+    private TextInputLayout tilFirstName, tilMiddleInitial, tilLastName, tilPhone, tilBusinessPhone;
     private TextInputLayout tilAddress1, tilAddress2, tilCity, tilPostal;
-    private TextInputEditText etFirstName, etMiddleInitial, etLastName, etUsername, etEmail, etPhone, etBusinessPhone, etPassword, etConfirmPassword;
+    private TextInputEditText etFirstName, etMiddleInitial, etLastName, etPhone, etBusinessPhone;
     private TextInputEditText etAddress1, etAddress2, etCity, etPostal;
     private Spinner spinnerProvince;
-    private TextView tvError;
     private TextView tvProvinceError;
-    private View btnCreateAccount;
-
-    private ImageView ivProfilePhoto;
-    private TextView tvPhotoError;
-
-    private Uri selectedPhotoUri;
-    private Uri cameraPhotoUri;
 
     private SessionManager sessionManager;
+    private ApiService api;
 
-    private ActivityResultLauncher<String> galleryPickerLauncher;
-    private ActivityResultLauncher<Uri> cameraLauncher;
-    private ActivityResultLauncher<String> cameraPermissionLauncher;
+    private int registrationStep = 1;
+    private boolean step2PriorGuest;
+    private String pendingEmployeeToastMessage;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_register);
 
         sessionManager = new SessionManager(this);
+        boolean allowGuestAuth = getIntent().getBooleanExtra(LoginActivity.EXTRA_ALLOW_GUEST_AUTH, false);
+        if (sessionManager.isGuestMode() && !allowGuestAuth) {
+            goToMain(true);
+            return;
+        }
+
+        setContentView(R.layout.activity_register);
+        api = ApiClient.getInstance().getService();
+
+        Toolbar toolbar = findViewById(R.id.register_toolbar);
+        setSupportActionBar(toolbar);
+        if (getSupportActionBar() != null) {
+            getSupportActionBar().setDisplayHomeAsUpEnabled(false);
+        }
+        toolbar.setNavigationOnClickListener(null);
+
+        tilUsername = findViewById(R.id.til_username);
+        tilEmail = findViewById(R.id.til_email);
+        tilRegisterPhone = findViewById(R.id.til_register_phone);
+        tilPassword = findViewById(R.id.til_password);
+        tilConfirmPassword = findViewById(R.id.til_confirm_password);
+
+        etUsername = findViewById(R.id.et_username);
+        etEmail = findViewById(R.id.et_email);
+        etRegisterPhone = findViewById(R.id.et_register_phone);
+        etPassword = findViewById(R.id.et_password);
+        etConfirmPassword = findViewById(R.id.et_confirm_password);
+        etRegisterPhone.addTextChangedListener(new PhoneFormatTextWatcher(etRegisterPhone));
+
+        tvError = findViewById(R.id.tv_error);
+        btnContinue = findViewById(R.id.btn_register_continue);
+        btnContinue.setOnClickListener(v -> attemptContinueStep1());
+
+        svStep1 = findViewById(R.id.sv_register_step1);
+        svStep2 = findViewById(R.id.sv_register_step2);
+        tvRegisterStep2EmployeeMessage = findViewById(R.id.tv_register_step2_employee_message);
+        tvRegisterStep2GuestMessage = findViewById(R.id.tv_register_step2_guest_message);
+        tvRegisterStep2Error = findViewById(R.id.tv_register_step2_error);
+        btnCompleteRegistration = findViewById(R.id.btn_complete_registration);
+        llRegisterPersonalForm = findViewById(R.id.ll_register_personal_form);
 
         tilFirstName = findViewById(R.id.til_first_name);
         tilMiddleInitial = findViewById(R.id.til_middle_initial);
-        tilLastName  = findViewById(R.id.til_last_name);
-        tilUsername  = findViewById(R.id.til_username);
-        tilEmail     = findViewById(R.id.til_email);
-        tilPhone     = findViewById(R.id.til_phone);
+        tilLastName = findViewById(R.id.til_last_name);
+        tilPhone = findViewById(R.id.til_phone);
         tilBusinessPhone = findViewById(R.id.til_business_phone);
-        tilPassword  = findViewById(R.id.til_password);
-        tilConfirmPassword = findViewById(R.id.til_confirm_password);
         tilAddress1 = findViewById(R.id.til_address1);
         tilAddress2 = findViewById(R.id.til_address2);
         tilCity = findViewById(R.id.til_city);
         tilPostal = findViewById(R.id.til_postal);
-
         etFirstName = findViewById(R.id.et_first_name);
         etMiddleInitial = findViewById(R.id.et_middle_initial);
-        etLastName  = findViewById(R.id.et_last_name);
-        etUsername  = findViewById(R.id.et_username);
-        etEmail     = findViewById(R.id.et_email);
-        etPhone     = findViewById(R.id.et_phone);
+        etLastName = findViewById(R.id.et_last_name);
+        etPhone = findViewById(R.id.et_phone);
         etBusinessPhone = findViewById(R.id.et_business_phone);
-        etPassword  = findViewById(R.id.et_password);
-        etConfirmPassword = findViewById(R.id.et_confirm_password);
         etAddress1 = findViewById(R.id.et_address1);
         etAddress2 = findViewById(R.id.et_address2);
         etCity = findViewById(R.id.et_city);
         etPostal = findViewById(R.id.et_postal);
-
         spinnerProvince = findViewById(R.id.spinner_province);
         tvProvinceError = findViewById(R.id.tv_province_error);
-        tvError = findViewById(R.id.tv_error);
+
+        etPhone.addTextChangedListener(new PhoneFormatTextWatcher(etPhone));
+        etBusinessPhone.addTextChangedListener(new PhoneFormatTextWatcher(etBusinessPhone));
+        etPostal.addTextChangedListener(new PostalCodeFormatTextWatcher(etPostal));
 
         ArrayAdapter<CharSequence> provinceAdapter = ArrayAdapter.createFromResource(this,
                 R.array.provinces, android.R.layout.simple_spinner_item);
         provinceAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         spinnerProvince.setAdapter(provinceAdapter);
 
-        etPhone.addTextChangedListener(new PhoneFormatTextWatcher(etPhone));
-        etBusinessPhone.addTextChangedListener(new PhoneFormatTextWatcher(etBusinessPhone));
-        etPostal.addTextChangedListener(new PostalCodeFormatTextWatcher(etPostal));
+        btnCompleteRegistration.setOnClickListener(v -> attemptCompleteStep2());
 
-        ivProfilePhoto = findViewById(R.id.iv_profile_photo);
-        tvPhotoError   = findViewById(R.id.tv_photo_error);
-
-        galleryPickerLauncher = registerForActivityResult(
-                new ActivityResultContracts.GetContent(),
-                uri -> {
-                    if (uri == null) return;
-                    handlePhotoChosen(uri);
+        View.OnClickListener signInClick = v -> {
+            finish();
+            NavTransitions.applyBackwardPending(RegisterActivity.this);
+        };
+        View.OnClickListener skipClick = v -> {
+            if (!NetworkStatus.isOnline(RegisterActivity.this)) {
+                clearRegisterFieldErrorsForConnectionMessage();
+                if (registrationStep == 1) {
+                    tvError.setText(R.string.login_error_no_connection);
+                    tvError.setVisibility(View.VISIBLE);
+                } else {
+                    tvRegisterStep2Error.setText(R.string.login_error_no_connection);
+                    tvRegisterStep2Error.setVisibility(View.VISIBLE);
                 }
-        );
-
-        cameraLauncher = registerForActivityResult(
-                new ActivityResultContracts.TakePicture(),
-                success -> {
-                    if (success && cameraPhotoUri != null) {
-                        handlePhotoChosen(cameraPhotoUri);
+                return;
+            }
+            ApiReachability.checkThen(
+                    () -> {
+                        if (!isFinishing()) {
+                            clearRegisterFieldErrorsForConnectionMessage();
+                            if (registrationStep == 1) {
+                                tvError.setText(R.string.login_error_no_connection);
+                                tvError.setVisibility(View.VISIBLE);
+                            } else {
+                                tvRegisterStep2Error.setText(R.string.login_error_no_connection);
+                                tvRegisterStep2Error.setVisibility(View.VISIBLE);
+                            }
+                        }
+                    },
+                    () -> {
+                        if (!isFinishing()) {
+                            sessionManager.beginGuestSession();
+                            goToMain(true);
+                        }
                     }
-                }
-        );
+            );
+        };
+        findViewById(R.id.tv_register_footer_sign_in).setOnClickListener(signInClick);
+        findViewById(R.id.tv_register_footer_skip).setOnClickListener(skipClick);
 
-        cameraPermissionLauncher = registerForActivityResult(
-                new ActivityResultContracts.RequestPermission(),
-                isGranted -> {
-                    if (isGranted) {
-                        launchCameraCapture();
-                    } else {
-                        Toast.makeText(this, R.string.permission_camera_required, Toast.LENGTH_SHORT).show();
-                    }
-                }
-        );
+        getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
+            @Override
+            public void handleOnBackPressed() {
+                finish();
+                NavTransitions.applyBackwardPending(RegisterActivity.this);
+            }
+        });
 
-        findViewById(R.id.btn_choose_photo).setOnClickListener(v -> showPhotoChooser());
-        btnCreateAccount = findViewById(R.id.btn_create_account);
-        btnCreateAccount.setOnClickListener(v -> attemptRegister());
-        findViewById(R.id.tv_sign_in_link).setOnClickListener(v -> finish());
+        updateToolbarForStep(1);
+        if (savedInstanceState != null) {
+            registrationStep = savedInstanceState.getInt(STATE_STEP, 1);
+            if (registrationStep == 2) {
+                svStep1.setVisibility(View.GONE);
+                svStep2.setVisibility(View.VISIBLE);
+                updateToolbarForStep(2);
+                step2PriorGuest = sessionManager.getGuestProfile() != null;
+                applyStep2UiMode();
+                prefillStep2FromGuestAndPhone();
+            } else {
+                registrationStep = 1;
+                svStep1.setVisibility(View.VISIBLE);
+                svStep2.setVisibility(View.GONE);
+                updateToolbarForStep(1);
+            }
+        }
+    }
+
+    private void updateToolbarForStep(int step) {
+        if (getSupportActionBar() == null) {
+            return;
+        }
+        getSupportActionBar().setTitle(step == 1 ? R.string.register_step1_label : R.string.register_step2_label);
+    }
+
+    @Override
+    protected void onSaveInstanceState(@NonNull Bundle outState) {
+        super.onSaveInstanceState(outState);
+        outState.putInt(STATE_STEP, registrationStep);
     }
 
     @Override
@@ -156,103 +237,43 @@ public class RegisterActivity extends AppCompatActivity {
     }
 
     private void updateRegisterAvailabilityForNetwork() {
-        if (btnCreateAccount == null) {
-            return;
-        }
         boolean online = NetworkStatus.isOnline(this);
-        btnCreateAccount.setEnabled(online);
-        btnCreateAccount.setAlpha(online ? 1f : 0.5f);
-    }
-
-    private void showPhotoChooser() {
-        new MaterialAlertDialogBuilder(this)
-                .setTitle(R.string.photo_picker_title)
-                .setItems(new CharSequence[]{
-                        getString(R.string.photo_take),
-                        getString(R.string.photo_choose_gallery)
-                }, (dialog, which) -> {
-                    if (which == 0) {
-                        requestCameraAndLaunch();
-                    } else {
-                        galleryPickerLauncher.launch("image/*");
-                    }
-                })
-                .setNegativeButton(R.string.photo_cancel, null)
-                .show();
-    }
-
-    private void requestCameraAndLaunch() {
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA)
-                == PackageManager.PERMISSION_GRANTED) {
-            launchCameraCapture();
-        } else {
-            cameraPermissionLauncher.launch(Manifest.permission.CAMERA);
+        if (btnContinue != null) {
+            btnContinue.setEnabled(true);
+            btnContinue.setAlpha(1f);
+        }
+        if (btnCompleteRegistration != null && registrationStep == 2) {
+            btnCompleteRegistration.setEnabled(online);
+            btnCompleteRegistration.setAlpha(online ? 1f : 0.5f);
         }
     }
 
-    private void launchCameraCapture() {
-        cameraPhotoUri = ImageUtils.createCameraImageUri(this);
-        if (cameraPhotoUri == null) {
-            Toast.makeText(this, R.string.error_photo_read, Toast.LENGTH_SHORT).show();
+    private void attemptContinueStep1() {
+        clearRegisterFieldErrorsForConnectionMessage();
+        tvError.setVisibility(View.GONE);
+        if (!validateStep1Fields()) {
             return;
         }
-        cameraLauncher.launch(cameraPhotoUri);
-    }
-
-    private void handlePhotoChosen(Uri uri) {
-        String err = ImageUtils.validateProfilePhoto(this, uri);
-        if (err != null) {
-            selectedPhotoUri = null;
-            tvPhotoError.setText(err);
-            tvPhotoError.setVisibility(View.VISIBLE);
-            ivProfilePhoto.setImageResource(R.drawable.ic_person_placeholder);
-            return;
-        }
-
-        selectedPhotoUri = uri;
-        tvPhotoError.setVisibility(View.GONE);
-
-        Bitmap preview = ImageUtils.decodeForPreview(this, uri);
-        if (preview != null) {
-            ivProfilePhoto.setImageBitmap(preview);
-        }
-    }
-
-    private void attemptRegister() {
-        if (!NetworkStatus.isOnline(this)) {
-            clearRegisterFieldErrorsForConnectionMessage();
-            tvError.setText(R.string.login_error_no_connection);
-            tvError.setVisibility(View.VISIBLE);
-            return;
-        }
-
-        btnCreateAccount.setEnabled(false);
-
-        ApiReachability.checkThen(
-                () -> {
-                    if (isFinishing() || isDestroyed()) {
-                        return;
-                    }
-                    btnCreateAccount.setEnabled(true);
-                    updateRegisterAvailabilityForNetwork();
-                    clearRegisterFieldErrorsForConnectionMessage();
-                    tvError.setText(R.string.login_error_no_connection);
-                    tvError.setVisibility(View.VISIBLE);
-                },
-                this::registerAfterReachabilityCheck
-        );
+        advanceToStep2WithoutApi();
     }
 
     private void clearRegisterFieldErrorsForConnectionMessage() {
+        tilUsername.setError(null);
+        tilEmail.setError(null);
+        tilPassword.setError(null);
+        tilConfirmPassword.setError(null);
+        tilRegisterPhone.setError(null);
+    }
+
+    private void clearStep2FieldErrors() {
+        if (tilFirstName == null) {
+            return;
+        }
         tilFirstName.setError(null);
         tilMiddleInitial.setError(null);
         tilLastName.setError(null);
-        tilUsername.setError(null);
-        tilEmail.setError(null);
         tilPhone.setError(null);
         tilBusinessPhone.setError(null);
-        tilPassword.setError(null);
-        tilConfirmPassword.setError(null);
         tilAddress1.setError(null);
         tilAddress2.setError(null);
         tilCity.setError(null);
@@ -260,54 +281,14 @@ public class RegisterActivity extends AppCompatActivity {
         tvProvinceError.setVisibility(View.GONE);
     }
 
-    private void registerAfterReachabilityCheck() {
-        if (isFinishing() || isDestroyed()) {
-            return;
-        }
-
-        String firstName = etFirstName.getText() != null ? etFirstName.getText().toString().trim() : "";
-        String middleInitial = etMiddleInitial.getText() != null ? etMiddleInitial.getText().toString().trim() : "";
-        String lastName  = etLastName.getText() != null ? etLastName.getText().toString().trim() : "";
-        String username  = etUsername.getText() != null ? etUsername.getText().toString().trim() : "";
-        String email     = etEmail.getText() != null ? etEmail.getText().toString().trim().toLowerCase(Locale.ROOT) : "";
-        String phone     = etPhone.getText() != null ? etPhone.getText().toString().replaceAll("\\D", "") : "";
-        String businessPhoneRaw = etBusinessPhone.getText() != null ? etBusinessPhone.getText().toString().replaceAll("\\D", "") : "";
-        String pass      = etPassword.getText() != null ? etPassword.getText().toString() : "";
-        String confirm   = etConfirmPassword.getText() != null ? etConfirmPassword.getText().toString() : "";
-        String address1  = etAddress1.getText() != null ? etAddress1.getText().toString().trim() : "";
-        String address2  = etAddress2.getText() != null ? etAddress2.getText().toString().trim() : "";
-        String city      = etCity.getText() != null ? etCity.getText().toString().trim() : "";
-        String province  = spinnerProvince.getSelectedItem() != null ? spinnerProvince.getSelectedItem().toString().trim() : "";
-        String postal    = etPostal.getText() != null ? etPostal.getText().toString().trim() : "";
+    private boolean validateStep1Fields() {
+        String username = etUsername.getText() != null ? etUsername.getText().toString().trim() : "";
+        String email = etEmail.getText() != null ? etEmail.getText().toString().trim().toLowerCase(Locale.ROOT) : "";
+        String pass = etPassword.getText() != null ? etPassword.getText().toString() : "";
+        String confirm = etConfirmPassword.getText() != null ? etConfirmPassword.getText().toString() : "";
+        String regPhoneRaw = etRegisterPhone.getText() != null ? etRegisterPhone.getText().toString().trim() : "";
 
         boolean valid = true;
-
-        if (Validation.isEmpty(firstName)) {
-            tilFirstName.setError(getString(R.string.error_name_required));
-            valid = false;
-        } else if (!Validation.isFullNameValid(firstName)) {
-            tilFirstName.setError(getString(R.string.error_name_invalid));
-            valid = false;
-        } else {
-            tilFirstName.setError(null);
-        }
-
-        if (!Validation.isMiddleInitialValid(middleInitial)) {
-            tilMiddleInitial.setError(getString(R.string.error_middle_initial_invalid));
-            valid = false;
-        } else {
-            tilMiddleInitial.setError(null);
-        }
-
-        if (Validation.isEmpty(lastName)) {
-            tilLastName.setError(getString(R.string.error_name_required));
-            valid = false;
-        } else if (!Validation.isFullNameValid(lastName)) {
-            tilLastName.setError(getString(R.string.error_name_invalid));
-            valid = false;
-        } else {
-            tilLastName.setError(null);
-        }
 
         if (Validation.isEmpty(username)) {
             tilUsername.setError(getString(R.string.error_username_required));
@@ -335,21 +316,11 @@ public class RegisterActivity extends AppCompatActivity {
             tilEmail.setError(null);
         }
 
-        if (Validation.isEmpty(phone)) {
-            tilPhone.setError(getString(R.string.error_phone_required));
-            valid = false;
-        } else if (!Validation.isPhoneNumberValid(phone)) {
-            tilPhone.setError(getString(R.string.error_phone_invalid));
+        if (!regPhoneRaw.isEmpty() && !Validation.isPhoneNumberValid(regPhoneRaw)) {
+            tilRegisterPhone.setError(getString(R.string.error_phone_invalid));
             valid = false;
         } else {
-            tilPhone.setError(null);
-        }
-
-        if (!Validation.isEmpty(businessPhoneRaw) && !Validation.isPhoneNumberValid(businessPhoneRaw)) {
-            tilBusinessPhone.setError(getString(R.string.error_phone_invalid));
-            valid = false;
-        } else {
-            tilBusinessPhone.setError(null);
+            tilRegisterPhone.setError(null);
         }
 
         if (Validation.isEmpty(pass)) {
@@ -368,7 +339,6 @@ public class RegisterActivity extends AppCompatActivity {
             tilPassword.setError(null);
         }
 
-        // Confirm password: required and must match password
         if (Validation.isEmpty(confirm)) {
             tilConfirmPassword.setError(getString(R.string.error_password_required));
             valid = false;
@@ -379,70 +349,294 @@ public class RegisterActivity extends AppCompatActivity {
             tilConfirmPassword.setError(null);
         }
 
-        // Address is required (not optional) – always validate
+        if (!valid) {
+            ActivityLogger.logFailure(this, null, "REGISTER", "Registration step 1 validation failed");
+        }
+        return valid;
+    }
+
+    private void advanceToStep2WithoutApi() {
+        registrationStep = 2;
+        step2PriorGuest = sessionManager.getGuestProfile() != null;
+        pendingEmployeeToastMessage = null;
+
+        svStep1.setVisibility(View.GONE);
+        svStep2.setVisibility(View.VISIBLE);
+        tvRegisterStep2Error.setVisibility(View.GONE);
+        updateToolbarForStep(2);
+        updateRegisterAvailabilityForNetwork();
+
+        applyStep2UiMode();
+        prefillStep2FromGuestAndPhone();
+    }
+
+    private void applyStep2UiMode() {
+        tvRegisterStep2EmployeeMessage.setVisibility(View.GONE);
+        tvRegisterStep2GuestMessage.setVisibility(step2PriorGuest ? View.VISIBLE : View.GONE);
+        if (step2PriorGuest) {
+            tvRegisterStep2GuestMessage.setText(R.string.register_step2_guest_link_body);
+        }
+        llRegisterPersonalForm.setVisibility(View.VISIBLE);
+        clearStep2FieldErrors();
+    }
+
+    private void prefillStep2FromGuestAndPhone() {
+        GuestCustomerRequest guest = sessionManager.getGuestProfile();
+        if (guest != null) {
+            etFirstName.setText(emptyToBlank(guest.firstName));
+            etMiddleInitial.setText(emptyToBlank(guest.middleInitial));
+            etLastName.setText(emptyToBlank(guest.lastName));
+            etPhone.setText(emptyToBlank(guest.phone));
+            etBusinessPhone.setText(emptyToBlank(guest.businessPhone));
+            etAddress1.setText(emptyToBlank(guest.addressLine1));
+            etAddress2.setText(emptyToBlank(guest.addressLine2));
+            etCity.setText(emptyToBlank(guest.city));
+            etPostal.setText(emptyToBlank(guest.postalCode));
+            setProvinceSelection(guest.province);
+            tvProvinceError.setVisibility(View.GONE);
+        }
+        String regPhoneRaw = etRegisterPhone.getText() != null ? etRegisterPhone.getText().toString().trim() : "";
+        if ((etPhone.getText() == null || etPhone.getText().toString().trim().isEmpty())
+                && !regPhoneRaw.isEmpty()) {
+            etPhone.setText(regPhoneRaw);
+        }
+    }
+
+    private static String emptyToBlank(String s) {
+        return s != null ? s : "";
+    }
+
+    private void setProvinceSelection(String province) {
+        if (province == null || province.isEmpty()) {
+            spinnerProvince.setSelection(0);
+            return;
+        }
+        String normalized = normalizeProvince(province);
+        ArrayAdapter<?> adapter = (ArrayAdapter<?>) spinnerProvince.getAdapter();
+        for (int i = 0; i < adapter.getCount(); i++) {
+            CharSequence item = (CharSequence) adapter.getItem(i);
+            if (item != null && normalized.equalsIgnoreCase(item.toString().trim())) {
+                spinnerProvince.setSelection(i);
+                return;
+            }
+        }
+        spinnerProvince.setSelection(0);
+    }
+
+    private static String normalizeProvince(String province) {
+        String p = province.trim();
+        String upper = p.toUpperCase(Locale.ROOT);
+        if ("AB".equals(upper)) {
+            return "Alberta";
+        }
+        if ("BC".equals(upper)) {
+            return "British Columbia";
+        }
+        if ("MB".equals(upper)) {
+            return "Manitoba";
+        }
+        if ("NB".equals(upper)) {
+            return "New Brunswick";
+        }
+        if ("NL".equals(upper) || "NF".equals(upper)) {
+            return "Newfoundland and Labrador";
+        }
+        if ("NS".equals(upper)) {
+            return "Nova Scotia";
+        }
+        if ("NT".equals(upper)) {
+            return "Northwest Territories";
+        }
+        if ("NU".equals(upper)) {
+            return "Nunavut";
+        }
+        if ("ON".equals(upper)) {
+            return "Ontario";
+        }
+        if ("PE".equals(upper) || "PEI".equals(upper)) {
+            return "Prince Edward Island";
+        }
+        if ("QC".equals(upper) || "PQ".equals(upper)) {
+            return "Quebec";
+        }
+        if ("SK".equals(upper)) {
+            return "Saskatchewan";
+        }
+        if ("YT".equals(upper) || "YK".equals(upper)) {
+            return "Yukon";
+        }
+        return p;
+    }
+
+    private void attemptCompleteStep2() {
+        if (!NetworkStatus.isOnline(this)) {
+            tvRegisterStep2Error.setText(R.string.login_error_no_connection);
+            tvRegisterStep2Error.setVisibility(View.VISIBLE);
+            return;
+        }
+
+        btnCompleteRegistration.setEnabled(false);
+
+        ApiReachability.checkThen(
+                () -> {
+                    if (!isFinishing()) {
+                        btnCompleteRegistration.setEnabled(true);
+                        updateRegisterAvailabilityForNetwork();
+                        tvRegisterStep2Error.setText(R.string.login_error_no_connection);
+                        tvRegisterStep2Error.setVisibility(View.VISIBLE);
+                    }
+                },
+                this::validateAllStepsThenRegister
+        );
+    }
+
+    private void validateAllStepsThenRegister() {
+        if (isFinishing() || isDestroyed()) {
+            return;
+        }
+
+        clearRegisterFieldErrorsForConnectionMessage();
+        tvError.setVisibility(View.GONE);
+        tvRegisterStep2Error.setVisibility(View.GONE);
+
+        if (!validateStep1Fields()) {
+            showRegistrationStep1();
+            btnCompleteRegistration.setEnabled(true);
+            updateRegisterAvailabilityForNetwork();
+            return;
+        }
+
+        if (!validateStep2ProfileFields()) {
+            btnCompleteRegistration.setEnabled(true);
+            updateRegisterAvailabilityForNetwork();
+            ActivityLogger.logFailure(this, null, "REGISTER", "Registration step 2 validation failed");
+            return;
+        }
+
+        String loginEmail = etEmail.getText() != null
+                ? etEmail.getText().toString().trim().toLowerCase(Locale.ROOT) : "";
+        CustomerPatchRequest patch = buildCustomerPatchRequest(loginEmail);
+        registerAccountThenFinishProfile(patch);
+    }
+
+    private void showRegistrationStep1() {
+        registrationStep = 1;
+        svStep1.setVisibility(View.VISIBLE);
+        svStep2.setVisibility(View.GONE);
+        updateToolbarForStep(1);
+        updateRegisterAvailabilityForNetwork();
+    }
+
+    /**
+     * Validates step-2 profile fields and sets errors on the form. Does not build a patch.
+     */
+    private boolean validateStep2ProfileFields() {
+        String firstName = text(etFirstName);
+        String middleInitial = text(etMiddleInitial);
+        String lastName = text(etLastName);
+        String phone = digits(etPhone);
+        String businessPhoneRaw = digits(etBusinessPhone);
+        String address1 = text(etAddress1);
+        String address2 = text(etAddress2);
+        String city = text(etCity);
+        String province = spinnerProvince.getSelectedItem() != null
+                ? spinnerProvince.getSelectedItem().toString().trim() : "";
+        int provincePos = spinnerProvince.getSelectedItemPosition();
+        String postal = text(etPostal);
+
+        clearStep2FieldErrors();
+        tvRegisterStep2Error.setVisibility(View.GONE);
+
+        boolean valid = true;
+
+        if (Validation.isEmpty(firstName)) {
+            tilFirstName.setError(getString(R.string.error_name_required));
+            valid = false;
+        } else if (!Validation.isFullNameValid(firstName)) {
+            tilFirstName.setError(getString(R.string.error_name_invalid));
+            valid = false;
+        }
+
+        if (!Validation.isMiddleInitialValid(middleInitial)) {
+            tilMiddleInitial.setError(getString(R.string.error_middle_initial_invalid));
+            valid = false;
+        }
+
+        if (Validation.isEmpty(lastName)) {
+            tilLastName.setError(getString(R.string.error_name_required));
+            valid = false;
+        } else if (!Validation.isFullNameValid(lastName)) {
+            tilLastName.setError(getString(R.string.error_name_invalid));
+            valid = false;
+        }
+
+        if (Validation.isEmpty(phone)) {
+            tilPhone.setError(getString(R.string.error_phone_required));
+            valid = false;
+        } else if (!Validation.isPhoneNumberValid(phone)) {
+            tilPhone.setError(getString(R.string.error_phone_invalid));
+            valid = false;
+        }
+
+        if (!Validation.isEmpty(businessPhoneRaw) && !Validation.isPhoneNumberValid(businessPhoneRaw)) {
+            tilBusinessPhone.setError(getString(R.string.error_phone_invalid));
+            valid = false;
+        }
+
         if (Validation.isEmpty(address1)) {
             tilAddress1.setError(getString(R.string.error_address_required));
             valid = false;
         } else if (!Validation.isAddressLineValid(address1)) {
             tilAddress1.setError(getString(R.string.error_address_invalid));
             valid = false;
-        } else {
-            tilAddress1.setError(null);
         }
+
         if (!Validation.isEmpty(address2) && !Validation.isAddressLineValid(address2)) {
             tilAddress2.setError(getString(R.string.error_address_invalid));
             valid = false;
-        } else tilAddress2.setError(null);
+        }
+
         if (Validation.isEmpty(city)) {
             tilCity.setError(getString(R.string.error_city_required));
             valid = false;
         } else if (!Validation.isCityValid(city)) {
             tilCity.setError(getString(R.string.error_city_required));
             valid = false;
-        } else tilCity.setError(null);
-        if (Validation.isEmpty(province)) {
-            tvProvinceError.setText(getString(R.string.error_province_required));
+        }
+
+        if (Validation.isEmpty(province) || provincePos <= 0) {
+            tvProvinceError.setText(R.string.error_province_required);
             tvProvinceError.setVisibility(View.VISIBLE);
             valid = false;
         } else if (!Validation.isProvinceValid(province)) {
-            tvProvinceError.setText(getString(R.string.error_province_required));
+            tvProvinceError.setText(R.string.error_province_required);
             tvProvinceError.setVisibility(View.VISIBLE);
             valid = false;
-        } else {
-            tvProvinceError.setVisibility(View.GONE);
         }
+
         if (Validation.isEmpty(postal)) {
             tilPostal.setError(getString(R.string.error_postal_required));
             valid = false;
         } else if (!Validation.isPostalCodeValid(postal)) {
             tilPostal.setError(getString(R.string.error_postal_invalid));
             valid = false;
-        } else tilPostal.setError(null);
-
-        if (selectedPhotoUri != null) {
-            String photoErr = ImageUtils.validateProfilePhoto(this, selectedPhotoUri);
-            if (photoErr != null) {
-                tvPhotoError.setText(photoErr);
-                tvPhotoError.setVisibility(View.VISIBLE);
-                valid = false;
-            } else {
-                tvPhotoError.setVisibility(View.GONE);
-            }
         }
 
-        if (!valid) {
-            ActivityLogger.logFailure(
-                    this,
-                    null,
-                    "REGISTER",
-                    "Registration validation failed"
-            );
-            btnCreateAccount.setEnabled(true);
-            updateRegisterAvailabilityForNetwork();
-            return;
-        }
+        return valid;
+    }
 
-        tvError.setVisibility(View.GONE);
+    private CustomerPatchRequest buildCustomerPatchRequest(String loginEmailForPatch) {
+        String firstName = text(etFirstName);
+        String middleInitial = text(etMiddleInitial);
+        String lastName = text(etLastName);
+        String phone = digits(etPhone);
+        String businessPhoneRaw = digits(etBusinessPhone);
+        String address1 = text(etAddress1);
+        String address2 = text(etAddress2);
+        String city = text(etCity);
+        String province = spinnerProvince.getSelectedItem() != null
+                ? spinnerProvince.getSelectedItem().toString().trim() : "";
+        String postal = text(etPostal);
 
         String phoneStored = Validation.formatPhoneForStorage(phone);
         if (phoneStored == null) {
@@ -457,20 +651,43 @@ public class RegisterActivity extends AppCompatActivity {
             }
         }
 
-        String middleForApi = middleInitial.isEmpty() ? null : middleInitial;
+        String postalNormalized = normalizePostalForApi(postal);
 
-        RegisterRequest registerRequest = new RegisterRequest(
-                username,
-                email,
-                pass,
-                firstName,
-                middleForApi,
-                lastName,
-                phoneStored,
-                businessPhoneStored
-        );
+        AddressUpsertRequest addr = new AddressUpsertRequest();
+        addr.line1 = address1;
+        addr.line2 = Validation.isEmpty(address2) ? null : address2;
+        addr.city = city;
+        addr.province = province;
+        addr.postalCode = postalNormalized;
 
-        ApiService api = ApiClient.getInstance().getService();
+        CustomerPatchRequest patch = new CustomerPatchRequest();
+        patch.firstName = firstName;
+        patch.middleInitial = middleInitial.isEmpty() ? "" : middleInitial;
+        patch.lastName = lastName;
+        patch.phone = phoneStored;
+        patch.businessPhone = businessPhoneStored == null ? "" : businessPhoneStored;
+        patch.address = addr;
+        patch.email = loginEmailForPatch != null ? loginEmailForPatch : "";
+        return patch;
+    }
+
+    private void registerAccountThenFinishProfile(CustomerPatchRequest pendingPatch) {
+        String username = etUsername.getText() != null ? etUsername.getText().toString().trim() : "";
+        String email = etEmail.getText() != null ? etEmail.getText().toString().trim().toLowerCase(Locale.ROOT) : "";
+        String pass = etPassword.getText() != null ? etPassword.getText().toString() : "";
+        String regPhoneRaw = etRegisterPhone.getText() != null ? etRegisterPhone.getText().toString().trim() : "";
+
+        String phoneOpt = null;
+        if (!regPhoneRaw.isEmpty()) {
+            String digits = regPhoneRaw.replaceAll("\\D", "");
+            phoneOpt = Validation.formatPhoneForStorage(digits);
+            if (phoneOpt == null && !digits.isEmpty()) {
+                phoneOpt = regPhoneRaw;
+            }
+        }
+
+        RegisterRequest registerRequest = new RegisterRequest(username, email, pass, phoneOpt);
+
         api.register(registerRequest).enqueue(new Callback<AuthResponse>() {
             @Override
             public void onResponse(Call<AuthResponse> call, Response<AuthResponse> response) {
@@ -478,17 +695,17 @@ public class RegisterActivity extends AppCompatActivity {
                     return;
                 }
                 if (response.code() == 409) {
-                    btnCreateAccount.setEnabled(true);
+                    btnCompleteRegistration.setEnabled(true);
                     updateRegisterAvailabilityForNetwork();
-                    showDuplicateAccountError();
+                    returnToStep1ForAccountConflict();
                     ActivityLogger.logFailure(RegisterActivity.this, null, "REGISTER", "Conflict from API");
                     return;
                 }
                 if (!response.isSuccessful() || response.body() == null) {
-                    btnCreateAccount.setEnabled(true);
+                    btnCompleteRegistration.setEnabled(true);
                     updateRegisterAvailabilityForNetwork();
-                    tvError.setText(R.string.register_error_unexpected);
-                    tvError.setVisibility(View.VISIBLE);
+                    tvRegisterStep2Error.setText(R.string.register_error_unexpected);
+                    tvRegisterStep2Error.setVisibility(View.VISIBLE);
                     ActivityLogger.logFailure(RegisterActivity.this, null, "REGISTER", "HTTP " + response.code());
                     return;
                 }
@@ -496,29 +713,54 @@ public class RegisterActivity extends AppCompatActivity {
                 if (auth.token == null || auth.token.trim().isEmpty()
                         || auth.role == null || auth.role.trim().isEmpty()
                         || auth.username == null || auth.username.trim().isEmpty()) {
-                    btnCreateAccount.setEnabled(true);
+                    btnCompleteRegistration.setEnabled(true);
                     updateRegisterAvailabilityForNetwork();
-                    tvError.setText(R.string.register_error_unexpected);
-                    tvError.setVisibility(View.VISIBLE);
+                    tvRegisterStep2Error.setText(R.string.register_error_unexpected);
+                    tvRegisterStep2Error.setVisibility(View.VISIBLE);
                     ActivityLogger.logFailure(RegisterActivity.this, null, "REGISTER", "Malformed auth response");
                     return;
                 }
+
                 ApiClient.getInstance().setToken(auth.token);
                 String uid = auth.userId != null ? auth.userId : "";
+                String sessionEmail = (auth.email != null && !auth.email.trim().isEmpty())
+                        ? auth.email.trim()
+                        : email;
                 sessionManager.persistLoginSession(
                         auth.token,
                         uid,
-                        auth.role.toUpperCase(),
+                        auth.role.toUpperCase(Locale.ROOT),
                         auth.username,
-                        email
+                        sessionEmail
                 );
                 ActivityLogger.log(
                         RegisterActivity.this,
                         "USER@" + auth.username,
                         "REGISTER",
-                        "Customer account created via API"
+                        "Account created via API (registration complete)"
                 );
-                goToMain();
+
+                if (Boolean.TRUE.equals(auth.priorGuestCheckout)) {
+                    Toast.makeText(RegisterActivity.this, R.string.register_toast_guest_and_welcome_email, Toast.LENGTH_LONG).show();
+                } else {
+                    Toast.makeText(RegisterActivity.this, R.string.register_toast_welcome_email, Toast.LENGTH_LONG).show();
+                }
+
+                if (Boolean.TRUE.equals(auth.employeeDiscountLinkEstablished)) {
+                    pendingEmployeeToastMessage = auth.employeeDiscountLinkMessage;
+                    if (pendingEmployeeToastMessage != null && !pendingEmployeeToastMessage.trim().isEmpty()) {
+                        Toast.makeText(RegisterActivity.this, pendingEmployeeToastMessage.trim(), Toast.LENGTH_LONG).show();
+                    } else {
+                        Toast.makeText(RegisterActivity.this, R.string.register_toast_employee_discount_linked, Toast.LENGTH_LONG).show();
+                    }
+                    sessionManager.clearGuestProfile();
+                    refreshCustomerDisplayNameThenFinish(false);
+                    return;
+                }
+
+                String patchEmail = sessionManager.getLoginEmail();
+                pendingPatch.email = patchEmail != null ? patchEmail : pendingPatch.email;
+                enqueuePatchCustomerMe(pendingPatch);
             }
 
             @Override
@@ -526,13 +768,114 @@ public class RegisterActivity extends AppCompatActivity {
                 if (isFinishing() || isDestroyed()) {
                     return;
                 }
-                btnCreateAccount.setEnabled(true);
+                btnCompleteRegistration.setEnabled(true);
                 updateRegisterAvailabilityForNetwork();
-                tvError.setText(R.string.login_error_no_connection);
-                tvError.setVisibility(View.VISIBLE);
+                tvRegisterStep2Error.setText(R.string.login_error_no_connection);
+                tvRegisterStep2Error.setVisibility(View.VISIBLE);
                 ActivityLogger.logFailure(RegisterActivity.this, null, "REGISTER", "Network error");
             }
         });
+    }
+
+    private void returnToStep1ForAccountConflict() {
+        showRegistrationStep1();
+        showDuplicateAccountError();
+    }
+
+    private void enqueuePatchCustomerMe(CustomerPatchRequest patch) {
+        api.patchCustomerMe(patch).enqueue(new Callback<CustomerDto>() {
+            @Override
+            public void onResponse(Call<CustomerDto> call, Response<CustomerDto> response) {
+                if (isFinishing() || isDestroyed()) {
+                    return;
+                }
+                btnCompleteRegistration.setEnabled(true);
+                updateRegisterAvailabilityForNetwork();
+                if (!response.isSuccessful() || response.body() == null) {
+                    tvRegisterStep2Error.setText(R.string.customer_profile_error_unexpected);
+                    tvRegisterStep2Error.setVisibility(View.VISIBLE);
+                    return;
+                }
+                CustomerDto c = response.body();
+                String displayName = ((c.firstName != null ? c.firstName : "") + " "
+                        + (c.lastName != null ? c.lastName : "")).trim();
+                if (displayName.isEmpty()) {
+                    displayName = sessionManager.getUserName();
+                }
+                sessionManager.createSession(
+                        sessionManager.getUserUuid(),
+                        sessionManager.getUserRole(),
+                        displayName,
+                        sessionManager.getLoginEmail()
+                );
+                sessionManager.clearGuestProfile();
+                ActivityLogger.log(RegisterActivity.this, sessionManager, "REGISTER", "Customer profile completed after registration");
+                Toast.makeText(RegisterActivity.this, R.string.customer_profile_saved, Toast.LENGTH_SHORT).show();
+                goToMain(false);
+            }
+
+            @Override
+            public void onFailure(Call<CustomerDto> call, Throwable t) {
+                if (!isFinishing()) {
+                    btnCompleteRegistration.setEnabled(true);
+                    updateRegisterAvailabilityForNetwork();
+                    tvRegisterStep2Error.setText(R.string.login_error_no_connection);
+                    tvRegisterStep2Error.setVisibility(View.VISIBLE);
+                }
+            }
+        });
+    }
+
+    private void refreshCustomerDisplayNameThenFinish(boolean promptProfileOnMain) {
+        api.getCustomerMe().enqueue(new Callback<CustomerDto>() {
+            @Override
+            public void onResponse(Call<CustomerDto> call, Response<CustomerDto> response) {
+                if (isFinishing()) {
+                    return;
+                }
+                btnCompleteRegistration.setEnabled(true);
+                updateRegisterAvailabilityForNetwork();
+                if (response.isSuccessful() && response.body() != null) {
+                    CustomerDto c = response.body();
+                    String displayName = ((c.firstName != null ? c.firstName : "") + " "
+                            + (c.lastName != null ? c.lastName : "")).trim();
+                    if (!displayName.isEmpty()) {
+                        sessionManager.createSession(
+                                sessionManager.getUserUuid(),
+                                sessionManager.getUserRole(),
+                                displayName,
+                                sessionManager.getLoginEmail()
+                        );
+                    }
+                }
+                goToMain(promptProfileOnMain);
+            }
+
+            @Override
+            public void onFailure(Call<CustomerDto> call, Throwable t) {
+                if (!isFinishing()) {
+                    btnCompleteRegistration.setEnabled(true);
+                    updateRegisterAvailabilityForNetwork();
+                    goToMain(promptProfileOnMain);
+                }
+            }
+        });
+    }
+
+    private static String text(TextInputEditText et) {
+        return et.getText() != null ? et.getText().toString().trim() : "";
+    }
+
+    private static String digits(TextInputEditText et) {
+        String t = text(et);
+        return t.replaceAll("\\D", "");
+    }
+
+    private static String normalizePostalForApi(String raw) {
+        if (raw == null) {
+            return "";
+        }
+        return raw.trim().toUpperCase(Locale.ROOT).replaceAll("\\s+", " ");
     }
 
     private void showDuplicateAccountError() {
@@ -542,10 +885,14 @@ public class RegisterActivity extends AppCompatActivity {
         tvError.setVisibility(View.VISIBLE);
     }
 
-    private void goToMain() {
+    /**
+     * @param promptProfileOnMain shows a Me-tab profile hint on {@link MainActivity}
+     */
+    private void goToMain(boolean promptProfileOnMain) {
         Intent intent = new Intent(this, MainActivity.class);
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
-        startActivity(intent);
+        intent.putExtra(MainActivity.EXTRA_PROMPT_CUSTOMER_PROFILE, promptProfileOnMain);
+        NavTransitions.startActivityWithForward(this, intent);
         finish();
     }
 }

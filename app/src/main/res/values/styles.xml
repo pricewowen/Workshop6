@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Serif display (mockup headings) -->
+    <style name="TextAppearance.Bakery.Display" parent="TextAppearance.AppCompat">
+        <item name="android:fontFamily">serif</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:textColor">@color/bakery_text_dark</item>
+    </style>
+
+    <style name="TextAppearance.Bakery.Title" parent="TextAppearance.AppCompat.Medium">
+        <item name="android:fontFamily">serif</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:textColor">@color/bakery_text_dark</item>
+    </style>
+
+    <style name="TextAppearance.Bakery.Overline" parent="TextAppearance.AppCompat.Small">
+        <item name="android:textAllCaps">false</item>
+        <item name="android:letterSpacing">0.04</item>
+        <item name="android:textColor">@color/bakery_gold_bright</item>
+        <item name="android:textStyle">bold</item>
+    </style>
+
+    <!-- Shared by product detail + location detail review sections -->
+    <style name="TextAppearance.Bakery.ReviewSectionTitle" parent="TextAppearance.AppCompat.Large">
+        <item name="android:fontFamily">serif</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:textSize">20sp</item>
+        <item name="android:textColor">@color/bakery_text_dark</item>
+    </style>
+
+    <style name="TextAppearance.Bakery.ReviewSectionEmpty" parent="TextAppearance.AppCompat.Body1">
+        <item name="android:textSize">14sp</item>
+        <item name="android:textColor">@color/bakery_text_secondary</item>
+    </style>
+
+    <!-- Bottom nav: same look for customer / staff / admin (shared BottomNavigationView). -->
+    <style name="TextAppearance.Bakery.BottomNav.Active" parent="TextAppearance.AppCompat.Caption">
+        <item name="android:textSize">11sp</item>
+        <item name="android:textAllCaps">false</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:letterSpacing">0.01</item>
+    </style>
+
+    <style name="TextAppearance.Bakery.BottomNav.Inactive" parent="TextAppearance.AppCompat.Caption">
+        <item name="android:textSize">11sp</item>
+        <item name="android:textAllCaps">false</item>
+        <item name="android:letterSpacing">0.01</item>
+    </style>
+
+    <style name="Widget.Bakery.BottomNavigationView" parent="Widget.MaterialComponents.BottomNavigationView">
+        <item name="itemIconSize">24dp</item>
+        <item name="itemPaddingTop">6dp</item>
+        <item name="itemPaddingBottom">6dp</item>
+        <item name="itemTextAppearanceActive">@style/TextAppearance.Bakery.BottomNav.Active</item>
+        <item name="itemTextAppearanceInactive">@style/TextAppearance.Bakery.BottomNav.Inactive</item>
+    </style>
+
+    <!-- Required parent for Widget.Bakery.* dotted styles (implicit inheritance in AAPT). -->
+    <style name="Widget.Bakery" parent="@android:style/Widget" />
+
+    <style name="Widget.Bakery.ReviewListFrame">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">wrap_content</item>
+    </style>
+
+    <style name="Widget.Bakery.ReviewsRecyclerView">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:clipToPadding">false</item>
+        <item name="android:nestedScrollingEnabled">false</item>
+        <item name="android:overScrollMode">never</item>
+        <item name="android:paddingTop">4dp</item>
+        <item name="android:paddingBottom">4dp</item>
+        <item name="android:paddingEnd">4dp</item>
+        <item name="android:saveEnabled">false</item>
+    </style>
+
+    <style name="Widget.Bakery.LeaveReviewButton" parent="Widget.MaterialComponents.Button.UnelevatedButton">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:minHeight">48dp</item>
+        <item name="android:textAllCaps">false</item>
+        <item name="android:textColor">@color/bakery_text_light</item>
+        <item name="android:textSize">16sp</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:backgroundTint">@color/bakery_gold</item>
+        <item name="cornerRadius">28dp</item>
+    </style>
+</resources>

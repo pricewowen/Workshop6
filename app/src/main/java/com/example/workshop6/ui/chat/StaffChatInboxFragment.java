@@ -18,6 +18,7 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.workshop6.R;
+import com.example.workshop6.util.NavTransitions;
 import com.example.workshop6.auth.SessionManager;
 import com.example.workshop6.data.api.ApiClient;
 import com.example.workshop6.data.api.ApiService;
@@ -254,14 +255,14 @@ public class StaffChatInboxFragment extends Fragment {
     }
 
     private void launchChat(ChatThreadDto thread) {
-        if (!isAdded() || thread == null || thread.id == null) {
-            return;
-        }
-        Intent intent = new Intent(requireContext(), ChatActivity.class);
-        intent.putExtra(ChatActivity.EXTRA_THREAD_ID, thread.id);
-        intent.putExtra(ChatActivity.EXTRA_THREAD_TITLE, buildThreadTitle(thread));
-        intent.putExtra(ChatActivity.EXTRA_THREAD_SUBTITLE, buildThreadSubtitle(thread));
-        startActivity(intent);
+      if (!isAdded() || thread == null || thread.id == null) {
+        return;
+      }
+      Intent intent = new Intent(requireContext(), ChatActivity.class);
+      intent.putExtra(ChatActivity.EXTRA_THREAD_ID, thread.id);
+      intent.putExtra(ChatActivity.EXTRA_THREAD_TITLE, buildThreadTitle(thread));
+      intent.putExtra(ChatActivity.EXTRA_THREAD_SUBTITLE, buildThreadSubtitle(thread));
+      NavTransitions.startActivityWithForward(requireActivity(), intent);
     }
 
     private String buildThreadTitle(ChatThreadDto thread) {

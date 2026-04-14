@@ -8,6 +8,9 @@ import java.util.List;
 public class CheckoutRequest {
     public String customerId;
     public BigDecimal manualDiscount;
+    /** ISO yyyy-MM-dd for server-side today’s special pricing (client local date). */
+    @SerializedName("pricingLocalDate")
+    public String pricingLocalDate;
     public Integer bakeryId;
     public String orderMethod;
     public Integer addressId;
@@ -15,6 +18,7 @@ public class CheckoutRequest {
     public String scheduledAt;
     public String paymentMethod;
     public List<CheckoutLineRequest> items;
+    public GuestCustomerRequest guest;
 
     public static class CheckoutLineRequest {
         public Integer productId;

@@ -3,7 +3,7 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/nav_graph"
-    app:startDestination="@id/nav_me">
+    app:startDestination="@id/nav_browse">
 
     <fragment
         android:id="@+id/nav_browse"
@@ -31,7 +31,12 @@
         android:id="@+id/nav_me"
         android:name="com.example.workshop6.ui.me.MeFragment"
         android:label="@string/nav_me"
-        tools:layout="@layout/fragment_me" />
+        tools:layout="@layout/fragment_me">
+
+        <action
+            android:id="@+id/action_me_to_product_detail"
+            app:destination="@id/productDetailFragment" />
+    </fragment>
 
     <fragment
         android:id="@+id/nav_cart"
@@ -50,6 +55,12 @@
         android:name="com.example.workshop6.ui.approvals.AccountAdminFragment"
         android:label="@string/nav_account_admin"
         tools:layout="@layout/fragment_account_admin" />
+
+    <fragment
+        android:id="@+id/nav_order_admin"
+        android:name="com.example.workshop6.ui.approvals.OrdersAdminFragment"
+        android:label="@string/nav_order_admin"
+        tools:layout="@layout/fragment_orders_admin" />
 
     <fragment
         android:id="@+id/nav_staff_chat"
@@ -84,5 +95,9 @@
             android:defaultValue="-1"
             app:argType="integer" />
     </fragment>
+
+    <action
+        android:id="@+id/action_global_product_detail"
+        app:destination="@id/productDetailFragment" />
 
 </navigation>

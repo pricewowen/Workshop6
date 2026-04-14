@@ -1,6 +1,10 @@
 package com.example.workshop6.ui.approvals;
 
+import android.content.Context;
+import android.content.res.ColorStateList;
+import android.content.res.Resources;
 import android.os.Bundle;
+import android.util.TypedValue;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -9,6 +13,7 @@ import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
@@ -37,6 +42,8 @@ public class AccountAdminFragment extends Fragment {
     private RecyclerView rvAccounts;
     private TextView tvEmpty;
     private AccountAdapter adapter;
+    private View loadingOverlay;
+    private View contentView;
 
     @Nullable
     @Override
@@ -55,6 +62,8 @@ public class AccountAdminFragment extends Fragment {
 
         rvAccounts = view.findViewById(R.id.rv_accounts);
         tvEmpty = view.findViewById(R.id.tv_accounts_empty);
+        loadingOverlay = view.findViewById(R.id.account_admin_loading_overlay);
+        contentView = view.findViewById(R.id.account_admin_content);
 
         adapter = new AccountAdapter(new ArrayList<>(), this::toggleAccountState);
         rvAccounts.setLayoutManager(new LinearLayoutManager(requireContext()));
@@ -72,12 +81,14 @@ public class AccountAdminFragment extends Fragment {
     }
 
     private void loadAccounts() {
+        setLoadingUi(true);
         String role = sessionManager.getUserRole();
         boolean canManageAccounts = "ADMIN".equalsIgnoreCase(role) || "EMPLOYEE".equalsIgnoreCase(role);
         if (!canManageAccounts) {
             tvEmpty.setVisibility(View.VISIBLE);
             tvEmpty.setText(R.string.account_admin_access_denied);
             rvAccounts.setVisibility(View.GONE);
+            setLoadingUi(false);
             return;
         }
 
@@ -87,6 +98,7 @@ public class AccountAdminFragment extends Fragment {
                 if (!isAdded()) {
                     return;
                 }
+                setLoadingUi(false);
                 if (!response.isSuccessful() || response.body() == null) {
                     tvEmpty.setVisibility(View.VISIBLE);
                     tvEmpty.setText(R.string.account_admin_access_denied);
@@ -120,6 +132,7 @@ public class AccountAdminFragment extends Fragment {
             @Override
             public void onFailure(Call<List<UserSummaryDto>> call, Throwable t) {
                 if (isAdded()) {
+                    setLoadingUi(false);
                     Toast.makeText(requireContext(), R.string.login_error_no_connection, Toast.LENGTH_SHORT).show();
                 }
             }
@@ -131,12 +144,14 @@ public class AccountAdminFragment extends Fragment {
             return;
         }
         boolean nextState = !row.isActive;
+        setLoadingUi(true);
         api.patchUserActive(row.userId, new UserActivePatchRequest(nextState)).enqueue(new Callback<UserSummaryDto>() {
             @Override
             public void onResponse(Call<UserSummaryDto> call, Response<UserSummaryDto> response) {
                 if (!isAdded()) {
                     return;
                 }
+                setLoadingUi(false);
                 if (!response.isSuccessful()) {
                     Toast.makeText(requireContext(), R.string.account_admin_permission_denied, Toast.LENGTH_SHORT).show();
                     return;
@@ -147,11 +162,9 @@ public class AccountAdminFragment extends Fragment {
                         nextState ? "REACTIVATE_ACCOUNT" : "DEACTIVATE_ACCOUNT",
                         "userId=" + row.userId
                 );
-                Toast.makeText(
-                        requireContext(),
+                Toast.makeText(requireContext(),
                         nextState ? R.string.account_reactivated : R.string.account_deactivated,
-                        Toast.LENGTH_SHORT
-                ).show();
+                        Toast.LENGTH_SHORT).show();
                 loadAccounts();
             }
 
@@ -160,9 +173,19 @@ public class AccountAdminFragment extends Fragment {
                 if (!isAdded()) {
                     return;
                 }
+                setLoadingUi(false);
                 Toast.makeText(requireContext(), R.string.login_error_no_connection, Toast.LENGTH_SHORT).show();
             }
         });
+    }
+
+    private void setLoadingUi(boolean loading) {
+        if (loadingOverlay != null) {
+            loadingOverlay.setVisibility(loading ? View.VISIBLE : View.GONE);
+        }
+        if (contentView != null) {
+            contentView.setVisibility(loading ? View.INVISIBLE : View.VISIBLE);
+        }
     }
 
     private static class AccountRow {
@@ -228,6 +251,7 @@ public class AccountAdminFragment extends Fragment {
                     )
             );
             holder.btnToggle.setText(row.isActive ? R.string.account_deactivate : R.string.account_reactivate);
+            applyAccountToggleStyle(holder.btnToggle, row.isActive);
             holder.btnToggle.setOnClickListener(v -> listener.onToggle(row));
         }
 
@@ -248,6 +272,31 @@ public class AccountAdminFragment extends Fragment {
                 tvEmail = itemView.findViewById(R.id.tv_account_email);
                 tvMeta = itemView.findViewById(R.id.tv_account_meta);
                 btnToggle = itemView.findViewById(R.id.btn_toggle_account);
+            }
+        }
+
+        /**
+         * Deactivate: cream fill + terracotta outline (secondary). Reactivate: filled primary pill.
+         */
+        private static void applyAccountToggleStyle(MaterialButton btn, boolean accountActive) {
+            Context ctx = btn.getContext();
+            Resources res = ctx.getResources();
+            int strokePx = (int) (TypedValue.applyDimension(
+                    TypedValue.COMPLEX_UNIT_DIP, 2f, res.getDisplayMetrics()) + 0.5f);
+            if (accountActive) {
+                btn.setBackgroundTintList(ColorStateList.valueOf(
+                        ContextCompat.getColor(ctx, R.color.bakery_card_white)));
+                btn.setStrokeColor(ColorStateList.valueOf(
+                        ContextCompat.getColor(ctx, R.color.bakery_gold_bright)));
+                btn.setStrokeWidth(strokePx);
+                btn.setTextColor(ColorStateList.valueOf(
+                        ContextCompat.getColor(ctx, R.color.bakery_gold_bright)));
+            } else {
+                btn.setBackgroundTintList(ColorStateList.valueOf(
+                        ContextCompat.getColor(ctx, R.color.bakery_gold_bright)));
+                btn.setStrokeWidth(0);
+                btn.setTextColor(ColorStateList.valueOf(
+                        ContextCompat.getColor(ctx, R.color.bakery_text_light)));
             }
         }
     }

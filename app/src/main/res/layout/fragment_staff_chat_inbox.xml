@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@color/bakery_background"
@@ -32,13 +33,19 @@
             android:textSize="13sp" />
     </LinearLayout>
 
-    <Button
+    <com.google.android.material.button.MaterialButton
         android:id="@+id/button_new_chat"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="end"
         android:layout_margin="12dp"
-        android:text="@string/chat_new" />
+        android:minHeight="48dp"
+        android:paddingHorizontal="16dp"
+        android:text="@string/chat_new"
+        android:textAllCaps="false"
+        android:textColor="@color/bakery_text_light"
+        app:backgroundTint="@color/bakery_gold_bright"
+        app:cornerRadius="24dp" />
 
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/recycler_staff_threads"
@@ -55,7 +62,7 @@
         android:layout_gravity="center_horizontal"
         android:layout_margin="24dp"
         android:text="@string/staff_chat_empty_threads"
-        android:textColor="@color/bakery_text_secondary"
+        android:textAppearance="@style/TextAppearance.Bakery.ReviewSectionEmpty"
         android:textSize="16sp"
         android:visibility="gone" />
 

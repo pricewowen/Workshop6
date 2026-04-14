@@ -1,25 +1,16 @@
 package com.example.workshop6.data.api.dto;
 
 public class RegisterRequest {
-    public final String username;
-    public final String email;
-    public final String password;
-    public final String firstName;
-    public final String middleInitial;
-    public final String lastName;
-    public final String phone;
-    public final String businessPhone;
+    public String username;
+    public String email;
+    public String password;
+    /** Optional; helps link a prior guest checkout by phone. */
+    public String phone;
 
-    public RegisterRequest(String username, String email, String password,
-                           String firstName, String middleInitial, String lastName,
-                           String phone, String businessPhone) {
+    public RegisterRequest(String username, String email, String password, String phone) {
         this.username = username;
         this.email = email;
         this.password = password;
-        this.firstName = firstName;
-        this.middleInitial = middleInitial;
-        this.lastName = lastName;
         this.phone = phone;
-        this.businessPhone = businessPhone;
     }
 }

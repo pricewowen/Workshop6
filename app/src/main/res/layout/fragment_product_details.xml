@@ -1,192 +1,250 @@
 <?xml version="1.0" encoding="utf-8"?>
-<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.coordinatorlayout.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@color/bakery_background">
 
-<androidx.core.widget.NestedScrollView
-    android:id="@+id/product_details_content"
-    android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:background="@color/bakery_background"
-    android:fillViewport="true">
-
-    <LinearLayout
+    <com.google.android.material.appbar.MaterialToolbar
+        android:id="@+id/toolbar_product"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:padding="16dp">
+        android:layout_height="?attr/actionBarSize"
+        android:background="@color/bakery_background"
+        app:navigationContentDescription="@string/cd_navigate_up"
+        app:navigationIcon="@drawable/ic_arrow_back"
+        app:navigationIconTint="@color/bakery_text_dark"
+        app:titleTextColor="@color/bakery_text_dark" />
 
-        <!-- BACK BUTTON -->
-        <Button
-            android:id="@+id/btnBack"
-            android:layout_width="75dp"
-            android:layout_height="wrap_content"
-            android:text="@string/btn_back" />
+    <androidx.core.widget.NestedScrollView
+        android:id="@+id/product_details_content"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_marginTop="?attr/actionBarSize"
+        android:background="@color/bakery_background"
+        android:clipToPadding="false"
+        android:fillViewport="true">
 
-        <!-- PRODUCT IMAGE -->
-        <com.google.android.material.card.MaterialCardView
+        <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="240dp"
-            app:cardCornerRadius="24dp"
-            app:cardElevation="6dp">
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:paddingBottom="24dp">
 
-            <ImageView
-                android:id="@+id/ivProductImage"
+            <!-- Hero: same band as bakery location (gradient brown + image) -->
+            <FrameLayout
                 android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:contentDescription="@string/label_products"
-                android:scaleType="centerCrop"
-                android:src="@drawable/product_image_placeholder" />
-        </com.google.android.material.card.MaterialCardView>
+                android:layout_height="180dp"
+                android:background="@drawable/bg_hero_bakery">
 
-
-        <!-- PRODUCT NAME -->
-        <TextView
-            android:id="@+id/tvProductName"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
-            android:text=""
-            android:textColor="@color/bakery_text_dark"
-            android:textSize="22sp"
-            android:textStyle="bold" />
-
-        <TextView
-            android:id="@+id/tvProductSpecialBadge"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:text=""
-            android:textColor="@color/bakery_gold"
-            android:textSize="14sp"
-            android:textStyle="bold"
-            android:visibility="gone" />
-
-        <!-- PRODUCT PRICE (Spannable was/now when today’s special) -->
-        <TextView
-            android:id="@+id/tvProductPrice"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:text=""
-            android:textColor="@color/bakery_gold"
-            android:textSize="18sp"
-            android:textStyle="bold" />
-
-
-        <!-- PRODUCT DESCRIPTION -->
-        <TextView
-            android:id="@+id/tvProductDescription"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="12dp"
-            android:text=""
-            android:textColor="#666666"
-            android:textSize="14sp" />
-
-
-        <!-- REVIEWS TITLE -->
-        <TextView
-            android:id="@+id/tvReviewsTitle"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="20dp"
-            android:text=""
-            android:textColor="@color/bakery_text_dark"
-            android:textSize="18sp"
-            android:textStyle="bold" />
-
-
-        <!-- REVIEWS LIST -->
-        <androidx.recyclerview.widget.RecyclerView
-            android:id="@+id/rvReviews"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:nestedScrollingEnabled="false"/>
-
-
-        <!-- QUANTITY SELECTOR CARD -->
-        <com.google.android.material.card.MaterialCardView
-            android:layout_width="match_parent"
-            android:layout_height="80dp"
-            android:layout_marginTop="24dp"
-            app:cardCornerRadius="16dp"
-            app:cardElevation="4dp"
-            app:cardBackgroundColor="@color/bakery_card_white">
+                <ImageView
+                    android:id="@+id/ivProductImage"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:contentDescription="@string/label_products"
+                    android:scaleType="centerCrop"
+                    android:src="@drawable/product_image_placeholder" />
+            </FrameLayout>
 
             <LinearLayout
                 android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:gravity="center_vertical"
-                android:orientation="horizontal"
-                android:padding="16dp">
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:paddingHorizontal="16dp"
+                android:paddingTop="16dp">
 
                 <TextView
-                    android:layout_width="0dp"
+                    android:id="@+id/tvProductSpecialBadge"
+                    android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:text="@string/label_product_quantity"
-                    android:textColor="@color/bakery_text_dark"
+                    android:text=""
+                    android:textColor="@color/bakery_gold"
+                    android:textSize="14sp"
+                    android:textStyle="bold"
+                    android:visibility="gone" />
+
+                <TextView
+                    android:id="@+id/tvProductPrice"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:text=""
+                    android:textColor="@color/bakery_gold_bright"
+                    android:textSize="20sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/tvProductDescription"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:text=""
+                    android:textColor="@color/bakery_text_secondary"
+                    android:textSize="15sp"
+                    android:lineSpacingMultiplier="1.15" />
+
+                <com.google.android.material.chip.ChipGroup
+                    android:id="@+id/chipGroupProductTags"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="16dp"
+                    android:visibility="gone"
+                    app:chipSpacingHorizontal="8dp"
+                    app:chipSpacingVertical="8dp"
+                    app:singleLine="false"
+                    app:singleSelection="false" />
+
+                <com.google.android.material.card.MaterialCardView
+                    android:layout_width="match_parent"
+                    android:layout_height="80dp"
+                    android:layout_marginTop="24dp"
+                    app:cardBackgroundColor="@color/bakery_card_white"
+                    app:cardCornerRadius="16dp"
+                    app:cardElevation="4dp">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal"
+                        android:padding="16dp">
+
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="@string/label_product_quantity"
+                            android:textColor="@color/bakery_text_dark"
+                            android:textSize="16sp"
+                            android:textStyle="bold" />
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btnDecrease"
+                            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                            android:layout_width="40dp"
+                            android:layout_height="40dp"
+                            android:insetTop="0dp"
+                            android:insetBottom="0dp"
+                            android:text="@string/btn_decrease"
+                            android:textColor="@color/bakery_primary"
+                            android:textSize="18sp"
+                            app:cornerRadius="12dp"
+                            app:strokeColor="@color/bakery_divider" />
+
+                        <TextView
+                            android:id="@+id/tvQuantity"
+                            android:layout_width="40dp"
+                            android:layout_height="wrap_content"
+                            android:gravity="center"
+                            android:text="@string/label_product_quantity_number"
+                            android:textColor="@color/bakery_text_dark"
+                            android:textSize="18sp"
+                            android:textStyle="bold" />
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btnIncrease"
+                            android:layout_width="40dp"
+                            android:layout_height="40dp"
+                            android:backgroundTint="@color/bakery_gold"
+                            android:insetTop="0dp"
+                            android:insetBottom="0dp"
+                            android:text="@string/btn_increase"
+                            android:textColor="@color/bakery_text_light"
+                            android:textSize="18sp"
+                            app:cornerRadius="12dp" />
+                    </LinearLayout>
+                </com.google.android.material.card.MaterialCardView>
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnAddToCart"
+                    android:layout_width="match_parent"
+                    android:layout_height="56dp"
+                    android:layout_marginTop="24dp"
+                    android:backgroundTint="@color/bakery_gold"
+                    android:text="@string/btn_add_to_cart"
+                    android:textAllCaps="false"
+                    android:textColor="@color/bakery_text_light"
                     android:textSize="16sp"
-                    android:textStyle="bold" />
-
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/btnDecrease"
-                    android:layout_width="40dp"
-                    android:layout_height="40dp"
-                    android:insetTop="0dp"
-                    android:insetBottom="0dp"
-                    android:text="@string/btn_decrease"
-                    android:textSize="18sp"
-                    app:cornerRadius="12dp"
-                    android:backgroundTint="@color/bakery_gold_bright"
-                    android:textColor="@android:color/black" />
+                    android:textStyle="bold"
+                    app:cornerRadius="28dp" />
 
                 <TextView
-                    android:id="@+id/tvQuantity"
-                    android:layout_width="40dp"
+                    android:id="@+id/tvReviewsTitle"
+                    android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:gravity="center"
-                    android:text="@string/label_product_quantity_number"
-                    android:textColor="@color/bakery_text_dark"
-                    android:textSize="18sp"
-                    android:textStyle="bold" />
+                    android:layout_marginTop="@dimen/review_section_title_margin_top"
+                    android:text="@string/section_product_reviews"
+                    android:textAppearance="@style/TextAppearance.Bakery.ReviewSectionTitle" />
+
+                <TextView
+                    android:id="@+id/tvReviewsEmpty"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/review_section_stack_spacing"
+                    android:text="@string/product_reviews_none_yet"
+                    android:textAppearance="@style/TextAppearance.Bakery.ReviewSectionEmpty"
+                    android:visibility="gone" />
+
+                <HorizontalScrollView
+                    android:id="@+id/hsv_product_review_filters"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/review_section_stack_spacing"
+                    android:scrollbars="none"
+                    android:visibility="gone">
+
+                    <com.google.android.material.chip.ChipGroup
+                        android:id="@+id/chip_group_product_review_filter"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        app:selectionRequired="true"
+                        app:singleLine="true"
+                        app:singleSelection="true">
+
+                        <com.google.android.material.chip.Chip
+                            android:id="@+id/chip_product_review_all"
+                            style="@style/Widget.MaterialComponents.Chip.Choice"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:checked="true"
+                            android:text="@string/review_filter_all"
+                            android:textColor="@color/bakery_text_dark" />
+
+                        <com.google.android.material.chip.Chip
+                            android:id="@+id/chip_product_review_verified"
+                            style="@style/Widget.MaterialComponents.Chip.Choice"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/review_filter_verified"
+                            android:textColor="@color/bakery_text_dark" />
+
+                        <com.google.android.material.chip.Chip
+                            android:id="@+id/chip_product_review_purchased"
+                            style="@style/Widget.MaterialComponents.Chip.Choice"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/review_filter_purchased"
+                            android:textColor="@color/bakery_text_dark" />
+                    </com.google.android.material.chip.ChipGroup>
+                </HorizontalScrollView>
+
+                <FrameLayout
+                    style="@style/Widget.Bakery.ReviewListFrame"
+                    android:layout_marginTop="@dimen/review_section_stack_spacing">
+
+                    <androidx.recyclerview.widget.RecyclerView
+                        android:id="@+id/rvReviews"
+                        style="@style/Widget.Bakery.ReviewsRecyclerView"
+                        android:visibility="gone" />
+                </FrameLayout>
 
                 <com.google.android.material.button.MaterialButton
-                    android:id="@+id/btnIncrease"
-                    android:layout_width="40dp"
-                    android:layout_height="40dp"
-                    android:insetTop="0dp"
-                    android:insetBottom="0dp"
-                    android:text="@string/btn_increase"
-                    android:textSize="18sp"
-                    app:cornerRadius="12dp"
-                    android:backgroundTint="@color/bakery_gold_bright"
-                    android:textColor="@android:color/black" />
-
+                    android:id="@+id/btnLeaveReview"
+                    style="@style/Widget.Bakery.LeaveReviewButton"
+                    android:layout_marginTop="@dimen/review_section_stack_spacing"
+                    android:text="@string/btn_leave_review" />
             </LinearLayout>
-        </com.google.android.material.card.MaterialCardView>
-
-
-        <!-- ADD TO CART BUTTON -->
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btnAddToCart"
-            android:layout_width="match_parent"
-            android:layout_height="56dp"
-            android:layout_marginTop="24dp"
-            android:text="@string/btn_add_to_cart"
-            android:textColor="@android:color/black"
-            android:textStyle="bold"
-            android:textSize="16sp"
-            android:backgroundTint="@color/bakery_gold_bright"
-            app:cornerRadius="20dp" />
-
-    </LinearLayout>
-
-</androidx.core.widget.NestedScrollView>
+        </LinearLayout>
+    </androidx.core.widget.NestedScrollView>
 
     <FrameLayout
         android:id="@+id/product_details_loading_overlay"
@@ -206,4 +264,4 @@
             android:indeterminateTint="@color/bakery_gold_bright" />
     </FrameLayout>
 
-</FrameLayout>
+</androidx.coordinatorlayout.widget.CoordinatorLayout>

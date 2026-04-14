@@ -13,12 +13,16 @@ import com.bumptech.glide.Glide;
 import com.bumptech.glide.request.RequestOptions;
 import com.example.workshop6.R;
 import com.example.workshop6.data.model.Product;
+import com.example.workshop6.util.MoneyFormat;
 
+import java.text.NumberFormat;
 import java.util.List;
+import java.util.Locale;
 
 public class ProductAdapter extends RecyclerView.Adapter<ProductAdapter.ProductViewHolder> {
     private List<Product> productList;
     private OnProductListener listener;
+    private final NumberFormat currency = NumberFormat.getCurrencyInstance(Locale.CANADA);
 
     public interface OnProductListener {
         void onProductClick(int productId);
@@ -41,7 +45,7 @@ public class ProductAdapter extends RecyclerView.Adapter<ProductAdapter.ProductV
     public void onBindViewHolder(@NonNull ProductAdapter.ProductViewHolder holder, int position) {
         Product product = productList.get(position);
         holder.tvProductName.setText(product.getProductName());
-        holder.tvProductPrice.setText(String.format("$%.2f", product.getProductBasePrice().doubleValue()));
+        holder.tvProductPrice.setText(MoneyFormat.formatCad(currency, product.getProductBasePrice().doubleValue()));
         String url = product.getImageUrl();
         if (url != null && !url.trim().isEmpty()) {
             Glide.with(holder.ivThumb.getContext())

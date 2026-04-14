@@ -15,6 +15,10 @@ public class EmployeeDto {
     public String lastName;
     @SerializedName("middleInitial")
     public String middleInitial;
+
+    /** Employee job position/title (e.g. Baker, Shift Lead). */
+    @SerializedName("position")
+    public String position;
     public String phone;
     @SerializedName("businessPhone")
     public String businessPhone;

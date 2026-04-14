@@ -27,6 +27,7 @@ import com.example.workshop6.data.api.dto.TagDto;
 import com.example.workshop6.data.model.Category;
 import com.example.workshop6.data.model.Product;
 import com.example.workshop6.logging.ActivityLogger;
+import com.example.workshop6.util.MoneyFormat;
 import com.example.workshop6.util.ProductSpecialState;
 import com.example.workshop6.util.SearchUtils;
 import com.example.workshop6.util.SpecialPriceSpan;
@@ -61,6 +62,7 @@ public class ProductsFragment extends Fragment {
     private RecyclerView rvProducts;
     private TextInputEditText etSearch;
     private MaterialCardView cardFeatured;
+    private View featuredEmptyPanel;
     private View featuredLoadingPanel;
     private View featuredLoadedPanel;
     private TextView tvFeatureProductName;
@@ -105,6 +107,7 @@ public class ProductsFragment extends Fragment {
         rvProducts = view.findViewById(R.id.rvProducts);
         etSearch = view.findViewById(R.id.etSearch);
         cardFeatured = view.findViewById(R.id.card_featured);
+        featuredEmptyPanel = view.findViewById(R.id.featured_empty_panel);
         featuredLoadingPanel = view.findViewById(R.id.featured_loading_panel);
         featuredLoadedPanel = view.findViewById(R.id.featured_loaded_panel);
         tvFeatureProductName = view.findViewById(R.id.tvFeatureProductName);
@@ -119,8 +122,9 @@ public class ProductsFragment extends Fragment {
 
         boolean isCustomer = "CUSTOMER".equalsIgnoreCase(sessionManager.getUserRole());
         if (!isCustomer) {
+            // Nav graph start destination is Browse; staff menus skip Shop entirely. Redirect without
+            // toasting — user did not choose to open products.
             setProductsPageLoading(false);
-            Toast.makeText(requireContext(), R.string.staff_purchase_blocked, Toast.LENGTH_SHORT).show();
             Navigation.findNavController(view).navigate(R.id.nav_me);
             return;
         }
@@ -135,8 +139,8 @@ public class ProductsFragment extends Fragment {
                 if (productAdapter == null) {
                     return;
                 }
-                String rawQuery = s.toString().trim();
-                String query = SearchUtils.normalizeUserSearch(rawQuery);
+                        String rawQuery = s.toString().trim();
+                        String query = SearchUtils.normalizeUserSearch(rawQuery);
                 api.getProducts(rawQuery.isEmpty() ? null : query, null).enqueue(new Callback<List<ProductDto>>() {
                     @Override
                     public void onResponse(Call<List<ProductDto>> call, Response<List<ProductDto>> response) {
@@ -176,12 +180,12 @@ public class ProductsFragment extends Fragment {
         if (isCacheFresh(featuredCachedAtMs) && today.equals(cachedFeaturedForDate)) {
             if (cachedFeaturedProduct != null) {
                 featured = cachedFeaturedProduct;
-                featuredProductId = featured.getProductId();
+                        featuredProductId = featured.getProductId();
                 ProductSpecialState.applyForToday(featured.getProductId(), cachedFeaturedDiscountPercent, today);
                 showFeaturedCard(featured, cachedFeaturedDiscountPercent);
             } else {
                 ProductSpecialState.applyForToday(null, null, today);
-                hideFeaturedCard();
+                showFeaturedEmptyState();
             }
             return;
         }
@@ -192,7 +196,8 @@ public class ProductsFragment extends Fragment {
                     return;
                 }
                 if (!response.isSuccessful() || response.body() == null) {
-                    hideFeaturedCard();
+                    ProductSpecialState.applyForToday(null, null, today);
+                    showFeaturedEmptyState();
                     return;
                 }
                 ProductSpecialTodayDto body = response.body();
@@ -210,12 +215,14 @@ public class ProductsFragment extends Fragment {
                             return;
                         }
                         if (!response2.isSuccessful() || response2.body() == null) {
-                            hideFeaturedCard();
+                            ProductSpecialState.applyForToday(null, null, today);
+                            showFeaturedEmptyState();
                             return;
                         }
                         Product p = ProductMapper.fromDto(response2.body());
                         if (p == null) {
-                            hideFeaturedCard();
+                            ProductSpecialState.applyForToday(null, null, today);
+                            showFeaturedEmptyState();
                             return;
                         }
                         cacheAndApplyFeaturedForDate(today, p, discountPercent);
@@ -224,7 +231,8 @@ public class ProductsFragment extends Fragment {
                     @Override
                     public void onFailure(Call<ProductDto> call2, Throwable t) {
                         if (isUiReady()) {
-                            hideFeaturedCard();
+                            ProductSpecialState.applyForToday(null, null, today);
+                            showFeaturedEmptyState();
                         }
                     }
                 });
@@ -233,7 +241,8 @@ public class ProductsFragment extends Fragment {
             @Override
             public void onFailure(Call<ProductSpecialTodayDto> call, Throwable t) {
                 if (isUiReady()) {
-                    hideFeaturedCard();
+                    ProductSpecialState.applyForToday(null, null, TodayDate.isoLocal());
+                    showFeaturedEmptyState();
                 }
             }
         });
@@ -244,8 +253,22 @@ public class ProductsFragment extends Fragment {
             return;
         }
         cardFeatured.setVisibility(View.VISIBLE);
+        featuredEmptyPanel.setVisibility(View.GONE);
         featuredLoadingPanel.setVisibility(View.VISIBLE);
         featuredLoadedPanel.setVisibility(View.GONE);
+    }
+
+    /** Today’s feature card with a friendly message when no special is configured (or load failed). */
+    private void showFeaturedEmptyState() {
+        if (!isUiReady()) {
+            return;
+        }
+        cardFeatured.setVisibility(View.VISIBLE);
+        featuredEmptyPanel.setVisibility(View.VISIBLE);
+        featuredLoadingPanel.setVisibility(View.GONE);
+        featuredLoadedPanel.setVisibility(View.GONE);
+        featured = null;
+        featuredProductId = -1;
     }
 
     /** Cache only after a successful {@code /product-specials/today} response (and successful product load when applicable). */
@@ -258,7 +281,7 @@ public class ProductsFragment extends Fragment {
             featured = null;
             featuredProductId = -1;
             ProductSpecialState.applyForToday(null, null, today);
-            hideFeaturedCard();
+            showFeaturedEmptyState();
             return;
         }
         cachedFeaturedProduct = p;
@@ -273,6 +296,7 @@ public class ProductsFragment extends Fragment {
         if (!isUiReady()) {
             return;
         }
+        featuredEmptyPanel.setVisibility(View.GONE);
         featuredLoadingPanel.setVisibility(View.GONE);
         featuredLoadedPanel.setVisibility(View.VISIBLE);
         cardFeatured.setVisibility(View.VISIBLE);
@@ -285,20 +309,9 @@ public class ProductsFragment extends Fragment {
             tvFeatureDiscountPercent.setVisibility(View.VISIBLE);
             tvFeatureDiscountPercent.setText(getString(R.string.featured_discount_today, discountPercent));
         } else {
-            tvFeaturePriceLine.setText(currency.format(base));
+            tvFeaturePriceLine.setText(MoneyFormat.formatCad(currency, base));
             tvFeatureDiscountPercent.setVisibility(View.GONE);
         }
-    }
-
-    private void hideFeaturedCard() {
-        if (!isUiReady()) {
-            return;
-        }
-        cardFeatured.setVisibility(View.GONE);
-        featuredLoadingPanel.setVisibility(View.GONE);
-        featuredLoadedPanel.setVisibility(View.GONE);
-        featured = null;
-        featuredProductId = -1;
     }
 
     private void openFeaturedProductDetails() {

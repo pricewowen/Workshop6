@@ -13,6 +13,8 @@ import androidx.appcompat.widget.Toolbar;
 import com.example.workshop6.R;
 import com.example.workshop6.auth.LoginActivity;
 import com.example.workshop6.auth.SessionManager;
+import com.example.workshop6.ui.MainActivity;
+import com.example.workshop6.util.NavTransitions;
 import com.example.workshop6.data.api.ApiClient;
 import com.example.workshop6.data.api.ApiService;
 import com.example.workshop6.data.api.dto.CustomerDto;
@@ -42,6 +44,7 @@ public class LoyaltyRewardsActivity extends AppCompatActivity {
     private TextView tvNextTier;
     private TextView tvPointsNeeded;
     private ProgressBar progressLoyalty;
+    private View cardEmployeeDiscount;
     private final NumberFormat pointsFormat = NumberFormat.getNumberInstance(Locale.US);
     private final List<RewardTierDto> rewardTiers = new ArrayList<>();
 
@@ -58,6 +61,7 @@ public class LoyaltyRewardsActivity extends AppCompatActivity {
         if (!"CUSTOMER".equalsIgnoreCase(sessionManager.getUserRole())) {
             Toast.makeText(this, R.string.staff_purchase_blocked, Toast.LENGTH_SHORT).show();
             finish();
+            NavTransitions.applyBackwardPending(this);
             return;
         }
 
@@ -69,7 +73,10 @@ public class LoyaltyRewardsActivity extends AppCompatActivity {
         if (getSupportActionBar() != null) {
             getSupportActionBar().setDisplayHomeAsUpEnabled(true);
         }
-        toolbar.setNavigationOnClickListener(v -> finish());
+        toolbar.setNavigationOnClickListener(v -> {
+            finish();
+            NavTransitions.applyBackwardPending(this);
+        });
 
         loadingOverlay = findViewById(R.id.loyalty_loading_overlay);
         tvPoints = findViewById(R.id.tv_loyalty_points);
@@ -78,6 +85,7 @@ public class LoyaltyRewardsActivity extends AppCompatActivity {
         tvNextTier = findViewById(R.id.tv_loyalty_next_tier);
         tvPointsNeeded = findViewById(R.id.tv_loyalty_points_needed);
         progressLoyalty = findViewById(R.id.progress_loyalty);
+        cardEmployeeDiscount = findViewById(R.id.card_loyalty_employee_discount);
     }
 
     @Override
@@ -96,12 +104,26 @@ public class LoyaltyRewardsActivity extends AppCompatActivity {
         api.getCustomerMe().enqueue(new Callback<CustomerDto>() {
             @Override
             public void onResponse(Call<CustomerDto> call, Response<CustomerDto> response) {
+                if (response.code() == 404) {
+                    loadingOverlay.setVisibility(View.GONE);
+                    Toast.makeText(LoyaltyRewardsActivity.this, R.string.checkout_need_customer_profile, Toast.LENGTH_LONG).show();
+                    Intent i = new Intent(LoyaltyRewardsActivity.this, MainActivity.class);
+                    i.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+                    i.putExtra(MainActivity.EXTRA_OPEN_ME_TAB, true);
+                    i.putExtra(MainActivity.EXTRA_PROMPT_CUSTOMER_PROFILE, true);
+                    NavTransitions.startActivityWithForward(LoyaltyRewardsActivity.this, i);
+                    finish();
+                    return;
+                }
                 if (!response.isSuccessful() || response.body() == null) {
                     loadingOverlay.setVisibility(View.GONE);
                     Toast.makeText(LoyaltyRewardsActivity.this, R.string.error_user_not_found, Toast.LENGTH_SHORT).show();
                     return;
                 }
                 CustomerDto c = response.body();
+                if (cardEmployeeDiscount != null) {
+                    cardEmployeeDiscount.setVisibility(c.employeeDiscountEligible ? View.VISIBLE : View.GONE);
+                }
                 api.getRewardTiers().enqueue(new Callback<List<RewardTierDto>>() {
                     @Override
                     public void onResponse(Call<List<RewardTierDto>> call2, Response<List<RewardTierDto>> response2) {
@@ -147,7 +169,7 @@ public class LoyaltyRewardsActivity extends AppCompatActivity {
         sessionManager.logout();
         Intent intent = new Intent(this, LoginActivity.class);
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
-        startActivity(intent);
+        NavTransitions.startActivityWithForward(this, intent);
         finish();
     }
 }

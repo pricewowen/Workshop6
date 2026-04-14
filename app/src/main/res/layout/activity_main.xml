@@ -21,17 +21,33 @@
 
     <com.google.android.material.bottomnavigation.BottomNavigationView
         android:id="@+id/bottom_nav"
+        style="@style/Widget.Bakery.BottomNavigationView"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_marginStart="16dp"
-        android:layout_marginEnd="16dp"
-        android:layout_marginBottom="16dp"
+        android:layout_marginStart="20dp"
+        android:layout_marginEnd="20dp"
+        android:layout_marginBottom="20dp"
         android:background="@drawable/bottom_nav_background"
+        android:elevation="6dp"
+        android:paddingTop="2dp"
+        android:paddingBottom="6dp"
         app:itemIconTint="@color/bottom_nav_item_colors"
         app:itemTextColor="@color/bottom_nav_item_colors"
+        app:itemRippleColor="@color/bakery_nav_ripple"
         app:labelVisibilityMode="labeled"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent" />
+
+    <include
+        android:id="@+id/main_review_moderation_overlay"
+        layout="@layout/overlay_review_moderation_loading"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:elevation="32dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

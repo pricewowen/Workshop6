@@ -5,82 +5,87 @@
     android:layout_height="match_parent"
     android:background="@color/bakery_background">
 
-    <androidx.constraintlayout.widget.ConstraintLayout
+    <!-- Same scroll pattern as Browse (fragment_products): one NestedScrollView for search, filters, and list -->
+    <androidx.core.widget.NestedScrollView
         android:id="@+id/map_content"
         android:layout_width="match_parent"
-        android:layout_height="match_parent">
+        android:layout_height="match_parent"
+        android:layout_marginTop="8dp"
+        android:background="@color/bakery_background"
+        android:fillViewport="true"
+        android:clipToPadding="false">
 
-        <!-- Search bar -->
-        <com.google.android.material.card.MaterialCardView
-            android:id="@+id/search_card"
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_margin="16dp"
-            app:cardBackgroundColor="@color/bakery_card_white"
-            app:cardCornerRadius="24dp"
-            app:cardElevation="2dp"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent">
+            android:orientation="vertical"
+            android:padding="16dp">
 
-            <androidx.appcompat.widget.SearchView
-                android:id="@+id/search_view"
+            <com.google.android.material.textfield.TextInputLayout
+                android:id="@+id/mapSearchLayout"
+                style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                app:closeIcon="@null"
-                app:iconifiedByDefault="false"
-                app:queryHint="@string/search_locations_hint"
-                app:searchIcon="@null" />
+                android:layout_marginBottom="14dp"
+                app:boxCornerRadiusBottomEnd="20dp"
+                app:boxCornerRadiusBottomStart="20dp"
+                app:boxCornerRadiusTopEnd="20dp"
+                app:boxCornerRadiusTopStart="20dp"
+                app:hintEnabled="true"
+                app:startIconDrawable="@android:drawable/ic_menu_search"
+                app:startIconTint="@color/bakery_text_tertiary">
 
-        </com.google.android.material.card.MaterialCardView>
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/etMapSearch"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:hint="@string/search_locations_hint"
+                    android:padding="12dp"
+                    android:textColor="@color/bakery_text_dark"
+                    android:textSize="14sp" />
 
-        <!-- Chip toggle: Nearby / All -->
-        <com.google.android.material.chip.ChipGroup
-            android:id="@+id/chip_group_filter"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="16dp"
-            android:layout_marginTop="8dp"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/search_card"
-            app:selectionRequired="true"
-            app:singleSelection="true">
+            </com.google.android.material.textfield.TextInputLayout>
 
-            <com.google.android.material.chip.Chip
-                android:id="@+id/chip_nearby"
-                style="@style/Widget.MaterialComponents.Chip.Choice"
+            <TextView
+                android:id="@+id/tv_map_categories_header"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="@string/btn_show_nearby"
-                android:textColor="@color/bakery_text_dark"
-                app:chipBackgroundColor="@color/bakery_card_white" />
+                android:layout_marginBottom="8dp"
+                android:text="@string/label_categories"
+                android:textColor="@color/bakery_text_tertiary"
+                android:textSize="11sp"
+                android:textStyle="bold" />
 
-            <com.google.android.material.chip.Chip
-                android:id="@+id/chip_all"
-                style="@style/Widget.MaterialComponents.Chip.Choice"
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/rv_map_filters"
+                android:layout_width="match_parent"
+                android:layout_height="90dp"
+                android:layout_marginBottom="16dp"
+                android:clipToPadding="false"
+                android:overScrollMode="never" />
+
+            <TextView
+                android:id="@+id/tv_map_bakeries_header"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:checked="true"
-                android:text="@string/btn_show_all"
+                android:layout_marginBottom="8dp"
+                android:text="@string/label_bakeries"
+                android:fontFamily="serif"
                 android:textColor="@color/bakery_text_dark"
-                app:chipBackgroundColor="@color/bakery_card_white" />
+                android:textSize="20sp"
+                android:textStyle="bold" />
 
-        </com.google.android.material.chip.ChipGroup>
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/rv_locations"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:clipToPadding="false"
+                android:nestedScrollingEnabled="false"
+                android:overScrollMode="never" />
 
-        <!-- Locations list -->
-        <androidx.recyclerview.widget.RecyclerView
-            android:id="@+id/rv_locations"
-            android:layout_width="match_parent"
-            android:layout_height="0dp"
-            android:clipToPadding="false"
-            android:paddingTop="8dp"
-            android:paddingBottom="16dp"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/chip_group_filter" />
+        </LinearLayout>
+    </androidx.core.widget.NestedScrollView>
 
-    </androidx.constraintlayout.widget.ConstraintLayout>
 
     <FrameLayout
         android:id="@+id/map_loading_overlay"

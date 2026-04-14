@@ -15,8 +15,8 @@ public final class SpecialPriceSpan {
     }
 
     public static CharSequence wasNow(NumberFormat currency, double basePrice, double salePrice) {
-        String was = currency.format(basePrice);
-        String now = currency.format(salePrice);
+        String was = MoneyFormat.formatCad(currency, basePrice);
+        String now = MoneyFormat.formatCad(currency, salePrice);
         SpannableStringBuilder sb = new SpannableStringBuilder();
         sb.append("Was ");
         sb.append(was);
