@@ -1488,12 +1488,17 @@ public class CheckoutActivity extends AppCompatActivity {
                 }
             }
             if (tvCheckoutDeliveryFeeHint != null) {
-                boolean hint = showDelivery && deliveryFee > 0.005;
+                boolean hint = showDelivery;
                 tvCheckoutDeliveryFeeHint.setVisibility(hint ? View.VISIBLE : View.GONE);
                 if (hint) {
                     String threshold = MoneyFormat.formatCad(currencyFormat, DELIVERY_FREE_THRESHOLD);
-                    tvCheckoutDeliveryFeeHint.setText(
-                            getString(R.string.checkout_delivery_free_hint, threshold));
+                    if (deliveryFee <= 0.005) {
+                        tvCheckoutDeliveryFeeHint.setText(
+                                getString(R.string.checkout_delivery_free_unlocked_hint, threshold));
+                    } else {
+                        tvCheckoutDeliveryFeeHint.setText(
+                                getString(R.string.checkout_delivery_free_hint, threshold));
+                    }
                 }
             }
         }

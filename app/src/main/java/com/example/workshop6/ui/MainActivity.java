@@ -449,7 +449,19 @@ public class MainActivity extends AppCompatActivity {
             return;
         }
         NavDestination dest = navController.getCurrentDestination();
-        if (dest == null || dest.getId() != R.id.productDetailFragment) {
+        if (dest == null) {
+            return;
+        }
+        int id = dest.getId();
+        if (id == R.id.reviewDetailFragment) {
+            NavBackStackEntry prev = navController.getPreviousBackStackEntry();
+            if (prev != null && prev.getDestination() != null
+                    && prev.getDestination().getId() == R.id.productDetailFragment) {
+                navController.popBackStack(R.id.nav_browse, false);
+            }
+            return;
+        }
+        if (id != R.id.productDetailFragment) {
             return;
         }
         NavBackStackEntry prev = navController.getPreviousBackStackEntry();
@@ -476,6 +488,10 @@ public class MainActivity extends AppCompatActivity {
             return;
         }
         if (id == R.id.locationDetailFragment) {
+            navController.popBackStack(R.id.nav_map, false);
+            return;
+        }
+        if (id == R.id.reviewDetailFragment) {
             navController.popBackStack(R.id.nav_map, false);
             return;
         }

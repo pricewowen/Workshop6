@@ -2,12 +2,16 @@ package com.example.workshop6.ui.locations;
 
 import android.app.Activity;
 import android.Manifest;
+import android.content.Context;
+import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.location.Location;
+import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.SystemClock;
+import android.provider.Settings;
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.view.LayoutInflater;
@@ -44,6 +48,7 @@ import com.google.android.material.snackbar.Snackbar;
 import com.google.android.material.textfield.TextInputEditText;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
@@ -60,8 +65,10 @@ import retrofit2.Response;
 public class MapFragment extends Fragment {
 
     private static final long MAP_LOAD_MIN_MS = 400L;
-    /** Synthetic tag id for the "Nearby" chip (Browse uses positive API tag ids). */
+    /** Synthetic filter ids for map chips (Browse uses positive API tag ids). */
     private static final int MAP_FILTER_TAG_NEARBY = -2;
+    private static final int MAP_FILTER_TAG_OPEN_NOW = -3;
+    private static final int MAP_FILTER_TAG_TOP_RATED_4 = -4;
 
     private LocationAdapter adapter;
     private CategoriesAdapter mapFilterAdapter;
@@ -75,6 +82,8 @@ public class MapFragment extends Fragment {
     };
 
     private boolean nearbyMode = false;
+    private boolean openNowMode = false;
+    private boolean topRatedMode = false;
     private boolean hasUserLocation = false;
     private double userLat = 0, userLon = 0;
     private FusedLocationProviderClient fusedClient;
@@ -83,21 +92,21 @@ public class MapFragment extends Fragment {
     private String currentSearch = "";
     private final Map<Integer, ProductDto> productCatalogById = new HashMap<>();
 
-    private final ActivityResultLauncher<String> locationPermissionLauncher =
+    private final ActivityResultLauncher<String[]> locationPermissionLauncher =
             registerForActivityResult(
-                    new ActivityResultContracts.RequestPermission(),
-                    isGranted -> {
-                        if (isGranted) {
+                    new ActivityResultContracts.RequestMultiplePermissions(),
+                    result -> {
+                        boolean fineGranted = Boolean.TRUE.equals(
+                                result.get(Manifest.permission.ACCESS_FINE_LOCATION));
+                        boolean coarseGranted = Boolean.TRUE.equals(
+                                result.get(Manifest.permission.ACCESS_COARSE_LOCATION));
+                        if (fineGranted || coarseGranted || hasLocationPermission()) {
                             fetchUserLocation();
                         } else {
                             hasUserLocation = false;
                             nearbyMode = false;
                             revertToAllLocationsFilter();
-                            View v = getView();
-                            if (v != null) {
-                                Snackbar.make(v, R.string.permission_location_rationale,
-                                        Snackbar.LENGTH_LONG).show();
-                            }
+                            showLocationPermissionSnackbar();
                         }
                     }
             );
@@ -140,17 +149,28 @@ public class MapFragment extends Fragment {
                 requireContext(),
                 LinearLayoutManager.HORIZONTAL,
                 false));
-        List<Category> nearbyOnly = Collections.singletonList(
-                new Category(MAP_FILTER_TAG_NEARBY, getString(R.string.btn_show_nearby)));
-        mapFilterAdapter = new CategoriesAdapter(new ArrayList<>(nearbyOnly), tagId -> {
-            if (tagId == -1) {
-                nearbyMode = false;
-                adapter.setNearbyMode(false, 0, 0);
-                applyFilterAndDisplay();
-            } else if (tagId == MAP_FILTER_TAG_NEARBY) {
+        List<Category> mapFilters = Arrays.asList(
+                new Category(MAP_FILTER_TAG_NEARBY, getString(R.string.btn_show_nearby)),
+                new Category(MAP_FILTER_TAG_OPEN_NOW, getString(R.string.map_filter_open_now)),
+                new Category(MAP_FILTER_TAG_TOP_RATED_4, getString(R.string.map_filter_top_rated_4))
+        );
+        mapFilterAdapter = new CategoriesAdapter(new ArrayList<>(mapFilters), tagId -> {
+            nearbyMode = false;
+            openNowMode = false;
+            topRatedMode = false;
+            adapter.setNearbyMode(false, 0, 0);
+
+            if (tagId == MAP_FILTER_TAG_NEARBY) {
                 nearbyMode = true;
                 requestOrFetchLocation();
+                return;
             }
+            if (tagId == MAP_FILTER_TAG_OPEN_NOW) {
+                openNowMode = true;
+            } else if (tagId == MAP_FILTER_TAG_TOP_RATED_4) {
+                topRatedMode = true;
+            }
+            applyFilterAndDisplay();
         });
         rvMapFilters.setAdapter(mapFilterAdapter);
 
@@ -176,6 +196,8 @@ public class MapFragment extends Fragment {
 
     private void revertToAllLocationsFilter() {
         nearbyMode = false;
+        openNowMode = false;
+        topRatedMode = false;
         if (mapFilterAdapter != null) {
             mapFilterAdapter.setSelectedPosition(0);
         }
@@ -296,6 +318,15 @@ public class MapFragment extends Fragment {
         LocationSearchHelper.ParsedLocationQuery parsed = LocationSearchHelper.parseQuery(currentSearch);
         List<BakeryLocationDetails> filtered = new ArrayList<>();
         for (BakeryLocationDetails loc : cachedLocations) {
+            if (openNowMode) {
+                String status = loc.status != null ? loc.status.toLowerCase(Locale.ROOT) : "";
+                if (!status.contains("open")) {
+                    continue;
+                }
+            }
+            if (topRatedMode && !LocationSearchHelper.ratingSatisfies(loc.averageRating, 4.0)) {
+                continue;
+            }
             if (!LocationSearchHelper.ratingSatisfies(loc.averageRating, parsed.minRating)) {
                 continue;
             }
@@ -410,19 +441,25 @@ public class MapFragment extends Fragment {
     }
 
     private void requestOrFetchLocation() {
-        if (ContextCompat.checkSelfPermission(requireContext(),
-                Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
+        if (hasLocationPermission()) {
             fetchUserLocation();
         } else {
-            locationPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION);
+            locationPermissionLauncher.launch(new String[]{
+                    Manifest.permission.ACCESS_FINE_LOCATION,
+                    Manifest.permission.ACCESS_COARSE_LOCATION
+            });
         }
     }
 
     private void fetchUserLocation() {
-        if (ContextCompat.checkSelfPermission(requireContext(),
-                Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+        if (!hasLocationPermission()) {
             return;
         }
+        boolean fineGranted = ContextCompat.checkSelfPermission(
+                requireContext(), Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED;
+        int priority = fineGranted
+                ? Priority.PRIORITY_HIGH_ACCURACY
+                : Priority.PRIORITY_BALANCED_POWER_ACCURACY;
         // Show a quick result from cache, then refine with a fresh fix (feels much faster than current-only).
         fusedClient.getLastLocation().addOnCompleteListener(task -> {
             if (task.isSuccessful()) {
@@ -431,7 +468,7 @@ public class MapFragment extends Fragment {
                     applyUserLocation(last);
                 }
             }
-            fusedClient.getCurrentLocation(Priority.PRIORITY_HIGH_ACCURACY, null)
+            fusedClient.getCurrentLocation(priority, null)
                     .addOnSuccessListener(requireActivity(), fresh -> {
                         if (fresh != null) {
                             applyUserLocation(fresh);
@@ -445,6 +482,44 @@ public class MapFragment extends Fragment {
                         }
                     });
         });
+    }
+
+    private boolean hasLocationPermission() {
+        Context context = getContext();
+        if (context == null) {
+            return false;
+        }
+        return ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION)
+                == PackageManager.PERMISSION_GRANTED
+                || ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION)
+                == PackageManager.PERMISSION_GRANTED;
+    }
+
+    private void showLocationPermissionSnackbar() {
+        View v = getView();
+        if (v == null) {
+            return;
+        }
+        boolean canAskAgainFine = shouldShowRequestPermissionRationale(Manifest.permission.ACCESS_FINE_LOCATION);
+        boolean canAskAgainCoarse = shouldShowRequestPermissionRationale(Manifest.permission.ACCESS_COARSE_LOCATION);
+        if (!canAskAgainFine && !canAskAgainCoarse) {
+            Snackbar.make(v, R.string.permission_location_denied_permanently, Snackbar.LENGTH_LONG)
+                    .setAction(R.string.action_settings, ignored -> openAppSettings())
+                    .show();
+            return;
+        }
+        Snackbar.make(v, R.string.permission_location_rationale, Snackbar.LENGTH_LONG).show();
+    }
+
+    private void openAppSettings() {
+        Context context = getContext();
+        if (context == null) {
+            return;
+        }
+        Intent i = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS);
+        i.setData(Uri.fromParts("package", context.getPackageName(), null));
+        i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        startActivity(i);
     }
 
     private void applyUserLocation(@NonNull Location location) {

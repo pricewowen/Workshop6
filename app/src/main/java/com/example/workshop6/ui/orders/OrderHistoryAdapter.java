@@ -77,6 +77,7 @@ public class OrderHistoryAdapter extends RecyclerView.Adapter<OrderHistoryAdapte
         LinearLayout llDeliveredActions;
         TextView tvPendingPaymentHint;
         TextView tvDetailMethod, tvDetailBakery, tvDetailTime, tvDetailSubtotal, tvDetailTaxLabel, tvDetailTax, tvDetailFinalTotal, tvDetailComment, tvDetailPoints;
+        TextView tvDetailPointsLabel;
         com.google.android.material.button.MaterialButton btnRetryPayment;
         com.google.android.material.button.MaterialButton btnAcceptDelivery;
 
@@ -106,6 +107,7 @@ public class OrderHistoryAdapter extends RecyclerView.Adapter<OrderHistoryAdapte
             tvDetailFinalTotal = itemView.findViewById(R.id.tvDetailFinalTotal);
             tvDetailComment = itemView.findViewById(R.id.tvDetailComment);
             tvDetailPoints = itemView.findViewById(R.id.tvDetailPoints);
+            tvDetailPointsLabel = itemView.findViewById(R.id.tvDetailPointsLabel);
             btnRetryPayment = itemView.findViewById(R.id.btnRetryPayment);
             btnAcceptDelivery = itemView.findViewById(R.id.btnAcceptDelivery);
         }
@@ -240,8 +242,40 @@ public class OrderHistoryAdapter extends RecyclerView.Adapter<OrderHistoryAdapte
 
                 llItemsContainer.addView(itemView);
             }
-            int earnedPoints = computeEarnedPoints(o, orderWithDetails.items);
-            tvDetailPoints.setText(pointsFormat.format(earnedPoints) + " pts");
+            bindPointsStatus(o, orderWithDetails.items);
+        }
+
+        private void bindPointsStatus(OrderDto order, List<OrderHistoryActivity.OrderItemDetails> items) {
+            String status = order != null && order.status != null
+                    ? order.status.trim().toLowerCase(Locale.ROOT)
+                    : "";
+            int earnedPoints = computeEarnedPoints(order, items);
+            String earnedText = pointsFormat.format(earnedPoints);
+            int gold = itemView.getContext().getColor(R.color.bakery_gold);
+            int secondary = itemView.getContext().getColor(R.color.bakery_text_secondary);
+            int cancelled = itemView.getContext().getColor(R.color.bakery_status_closed);
+
+            if ("completed".equals(status)) {
+                tvDetailPointsLabel.setText(R.string.order_points_label_earned);
+                tvDetailPoints.setText(itemView.getContext().getString(
+                        R.string.order_points_earned_value, earnedText));
+                tvDetailPointsLabel.setTextColor(gold);
+                tvDetailPoints.setTextColor(gold);
+                return;
+            }
+            if ("cancelled".equals(status)) {
+                tvDetailPointsLabel.setText(R.string.order_points_label_pending);
+                tvDetailPoints.setText(R.string.order_points_cancelled_value);
+                tvDetailPointsLabel.setTextColor(cancelled);
+                tvDetailPoints.setTextColor(cancelled);
+                return;
+            }
+
+            tvDetailPointsLabel.setText(R.string.order_points_label_pending);
+            tvDetailPoints.setText(itemView.getContext().getString(
+                    R.string.order_points_pending_value, earnedText));
+            tvDetailPointsLabel.setTextColor(secondary);
+            tvDetailPoints.setTextColor(secondary);
         }
     }
 

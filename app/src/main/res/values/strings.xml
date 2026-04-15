@@ -137,7 +137,12 @@
     <string name="search_locations_hint">Search Locations...</string>
     <string name="btn_show_nearby">Nearby</string>
     <string name="btn_show_all">All</string>
+    <string name="label_filters">Filters</string>
+    <string name="map_filter_open_now">Open Now</string>
+    <string name="map_filter_top_rated_4">Top Rated 4.0+</string>
     <string name="permission_location_rationale">Location permission is needed to find nearby bakeries.</string>
+    <string name="permission_location_denied_permanently">Location permission is blocked. Enable it in Settings to use Nearby.</string>
+    <string name="action_settings">Settings</string>
     <string name="error_could_not_get_location">Could not get your location, try again</string>
 
     <!-- Location Detail -->
@@ -239,6 +244,7 @@
     <string name="checkout_delivery_fee">Delivery fee</string>
     <string name="checkout_delivery_free">Free</string>
     <string name="checkout_delivery_free_hint">Free delivery on orders of %1$s or more</string>
+    <string name="checkout_delivery_free_unlocked_hint">Your order qualifies for free delivery (orders %1$s and above).</string>
     <string name="confirmation_delivery_fee">@string/checkout_delivery_fee</string>
     <string name="product_special_badge">Today\'s special · %1$.0f%% off</string>
 
@@ -532,6 +538,11 @@
     <string name="product_review_requires_purchase">You can only review products you have purchased.</string>
     <string name="product_review_already_submitted">You already submitted a review for this product.</string>
     <string name="order_delivery_accepted">Delivery accepted. Order complete.</string>
+    <string name="order_points_label_earned">Points earned:</string>
+    <string name="order_points_label_pending">Points status:</string>
+    <string name="order_points_earned_value">%1$s pts earned</string>
+    <string name="order_points_pending_value">%1$s pts pending until order completion</string>
+    <string name="order_points_cancelled_value">No points earned (order cancelled)</string>
     <string name="review_approvals_title">Review Approvals</string>
     <string name="review_approvals_subtitle">Approve or reject customer reviews from delivered orders.</string>
     <string name="review_approvals_none_pending">No pending reviews right now.</string>
