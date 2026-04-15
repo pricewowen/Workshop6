@@ -698,6 +698,13 @@ public class MeFragment extends Fragment {
                 && (System.currentTimeMillis() - recommendationsCachedAtMs) <= AI_RECOMMENDATIONS_CACHE_TTL_MS;
     }
 
+    private boolean isAiRecommendationsCacheFreshForUser(String userKey) {
+        return recommendationsCacheSnapshot != null
+                && userKey.equals(recommendationsCacheUserKey)
+                && recommendationsCachedAtMs > 0
+                && (System.currentTimeMillis() - recommendationsCachedAtMs) <= AI_RECOMMENDATIONS_CACHE_TTL_MS;
+    }
+
     private void storeAiRecommendationsCache(
             String userKey,
             String prefsFingerprint,
@@ -757,6 +764,13 @@ public class MeFragment extends Fragment {
         }
 
         cardAiRecommendations.setVisibility(View.VISIBLE);
+
+        String userKeyForCache = buildUserKey();
+        if (isAiRecommendationsCacheFreshForUser(userKeyForCache)) {
+            applyCachedAiRecommendationsUi();
+            return;
+        }
+
         recommendationsLoading.setVisibility(View.VISIBLE);
         tvRecommendationsPlaceholder.setVisibility(View.GONE);
         rvRecommendations.setVisibility(View.GONE);
@@ -769,7 +783,13 @@ public class MeFragment extends Fragment {
                 if (!isAdded() || getView() == null) {
                     return;
                 }
-                if (!response.isSuccessful() || response.body() == null || response.body().isEmpty()) {
+                if (!response.isSuccessful()) {
+                    recommendationsLoading.setVisibility(View.GONE);
+                    tvRecommendationsPlaceholder.setText(R.string.me_recommendations_unavailable);
+                    tvRecommendationsPlaceholder.setVisibility(View.VISIBLE);
+                    return;
+                }
+                if (response.body() == null || response.body().isEmpty()) {
                     recommendationsLoading.setVisibility(View.GONE);
                     tvRecommendationsPlaceholder.setText(R.string.me_recommendations_set_preferences_hint);
                     tvRecommendationsPlaceholder.setVisibility(View.VISIBLE);
@@ -833,7 +853,7 @@ public class MeFragment extends Fragment {
             public void onFailure(Call<List<CustomerPreferenceDto>> call, Throwable t) {
                 if (isAdded() && getView() != null) {
                     recommendationsLoading.setVisibility(View.GONE);
-                    tvRecommendationsPlaceholder.setText(R.string.me_recommendations_set_preferences_hint);
+                    tvRecommendationsPlaceholder.setText(R.string.me_recommendations_unavailable);
                     tvRecommendationsPlaceholder.setVisibility(View.VISIBLE);
                 }
             }

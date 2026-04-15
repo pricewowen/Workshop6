@@ -81,6 +81,48 @@
         android:layout_height="1dp"
         android:background="@color/bakery_divider" />
 
+    <LinearLayout
+        android:id="@+id/layout_staff_actions"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@color/bakery_card_white"
+        android:gravity="end|center_vertical"
+        android:orientation="horizontal"
+        android:paddingStart="12dp"
+        android:paddingTop="6dp"
+        android:paddingEnd="12dp"
+        android:paddingBottom="6dp"
+        android:visibility="gone">
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/button_staff_claim"
+            style="@style/Widget.MaterialComponents.Button.TextButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:minHeight="36dp"
+            android:text="@string/chat_staff_claim"
+            android:textAllCaps="false"
+            android:textColor="@color/bakery_text_dark" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/button_staff_mark_read"
+            style="@style/Widget.MaterialComponents.Button.TextButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="4dp"
+            android:minHeight="36dp"
+            android:text="@string/chat_staff_mark_read"
+            android:textAllCaps="false"
+            android:textColor="@color/bakery_text_dark" />
+    </LinearLayout>
+
+    <View
+        android:id="@+id/divider_staff_actions"
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="@color/bakery_divider"
+        android:visibility="gone" />
+
     <FrameLayout
         android:layout_width="match_parent"
         android:layout_height="0dp"

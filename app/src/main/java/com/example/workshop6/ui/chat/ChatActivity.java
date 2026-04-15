@@ -15,6 +15,10 @@ import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.LinearLayout;
 import android.widget.TextView;
+import android.widget.Toast;
+
+import com.example.workshop6.data.api.dto.ChatThreadDto;
+import com.google.android.material.button.MaterialButton;
 
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
@@ -57,6 +61,10 @@ public class ChatActivity extends AppCompatActivity {
     private TextView textSubtitle;
     private LinearLayout layoutChatInput;
     private TextView avatarHeader;
+    private View layoutStaffActions;
+    private View dividerStaffActions;
+    private MaterialButton buttonStaffClaim;
+    private MaterialButton buttonStaffMarkRead;
     private View layoutTypingRow;
     private View dot1;
     private View dot2;
@@ -115,6 +123,10 @@ public class ChatActivity extends AppCompatActivity {
         textSubtitle = findViewById(R.id.text_chat_subtitle);
         layoutChatInput = findViewById(R.id.layout_chat_input);
         avatarHeader = findViewById(R.id.avatar_header);
+        layoutStaffActions = findViewById(R.id.layout_staff_actions);
+        dividerStaffActions = findViewById(R.id.divider_staff_actions);
+        buttonStaffClaim = findViewById(R.id.button_staff_claim);
+        buttonStaffMarkRead = findViewById(R.id.button_staff_mark_read);
         layoutTypingRow = findViewById(R.id.layout_typing_row);
         dot1 = findViewById(R.id.view_typing_dot_1);
         dot2 = findViewById(R.id.view_typing_dot_2);
@@ -155,6 +167,7 @@ public class ChatActivity extends AppCompatActivity {
 
         bindConversationHeader();
         bindHeaderAvatar();
+        bindStaffActions();
         buttonSend.setOnClickListener(v -> sendMessage());
         editMessage.addTextChangedListener(new TextWatcher() {
             @Override
@@ -313,6 +326,58 @@ public class ChatActivity extends AppCompatActivity {
             }
         }
         avatarHeader.setText(initial);
+    }
+
+    private void bindStaffActions() {
+        String role = sessionManager.getUserRole();
+        boolean isStaff = "ADMIN".equalsIgnoreCase(role) || "EMPLOYEE".equalsIgnoreCase(role);
+        int vis = isStaff ? View.VISIBLE : View.GONE;
+        if (layoutStaffActions != null) layoutStaffActions.setVisibility(vis);
+        if (dividerStaffActions != null) dividerStaffActions.setVisibility(vis);
+        if (!isStaff) return;
+
+        buttonStaffClaim.setOnClickListener(v -> claimThread());
+        buttonStaffMarkRead.setOnClickListener(v -> markReadExplicit());
+    }
+
+    private void claimThread() {
+        if (threadId == -1) return;
+        api.assignChatThread(threadId).enqueue(new Callback<ChatThreadDto>() {
+            @Override
+            public void onResponse(Call<ChatThreadDto> call, Response<ChatThreadDto> response) {
+                if (isFinishing()) return;
+                int msg = response.isSuccessful()
+                        ? R.string.chat_staff_claim_success
+                        : R.string.chat_staff_claim_failed;
+                Toast.makeText(ChatActivity.this, msg, Toast.LENGTH_SHORT).show();
+            }
+
+            @Override
+            public void onFailure(Call<ChatThreadDto> call, Throwable t) {
+                if (isFinishing()) return;
+                Toast.makeText(ChatActivity.this, R.string.chat_staff_claim_failed, Toast.LENGTH_SHORT).show();
+            }
+        });
+    }
+
+    private void markReadExplicit() {
+        if (threadId == -1) return;
+        api.markChatThreadRead(threadId).enqueue(new Callback<Void>() {
+            @Override
+            public void onResponse(Call<Void> call, Response<Void> response) {
+                if (isFinishing()) return;
+                int msg = response.isSuccessful()
+                        ? R.string.chat_staff_mark_read_success
+                        : R.string.chat_staff_mark_read_failed;
+                Toast.makeText(ChatActivity.this, msg, Toast.LENGTH_SHORT).show();
+            }
+
+            @Override
+            public void onFailure(Call<Void> call, Throwable t) {
+                if (isFinishing()) return;
+                Toast.makeText(ChatActivity.this, R.string.chat_staff_mark_read_failed, Toast.LENGTH_SHORT).show();
+            }
+        });
     }
 
     private void bindEmptyState() {

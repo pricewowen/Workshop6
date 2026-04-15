@@ -409,6 +409,12 @@
     <string name="chat_empty_state_staff">No messages in this thread yet. The customer has not sent anything yet.</string>
     <string name="chat_open_existing_thread">Opened your current support conversation</string>
     <string name="staff_chat_disabled_for_staff">Staff accounts manage customer chats from the Chat tab only</string>
+    <string name="chat_staff_claim">Claim thread</string>
+    <string name="chat_staff_mark_read">Mark as read</string>
+    <string name="chat_staff_claim_success">Thread assigned to you</string>
+    <string name="chat_staff_claim_failed">Could not claim thread</string>
+    <string name="chat_staff_mark_read_success">Thread marked as read</string>
+    <string name="chat_staff_mark_read_failed">Could not mark as read</string>
     <string name="staff_purchase_blocked">Admin and employee accounts cannot purchase products</string>
 
     <!-- Cart -->
