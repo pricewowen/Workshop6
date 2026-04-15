@@ -23,6 +23,7 @@ import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
@@ -223,9 +224,20 @@ public class CheckoutActivity extends AppCompatActivity {
         }
     };
 
+    private static final String STATE_DELIVERY_METHOD = "checkout.deliveryMethod";
+    private static final String STATE_BAKERY_ID = "checkout.selectedBakeryId";
+    private static final String STATE_DAY_INDEX = "checkout.selectedDayIndex";
+    private static final String STATE_TIME_INDEX = "checkout.selectedTimeIndex";
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        if (savedInstanceState != null) {
+            deliveryMethod = savedInstanceState.getString(STATE_DELIVERY_METHOD, deliveryMethod);
+            selectedBakeryId = savedInstanceState.getInt(STATE_BAKERY_ID, selectedBakeryId);
+            selectedDayIndex = savedInstanceState.getInt(STATE_DAY_INDEX, selectedDayIndex);
+            selectedTimeIndex = savedInstanceState.getInt(STATE_TIME_INDEX, selectedTimeIndex);
+        }
         setContentView(R.layout.activity_checkout);
 
         // PaymentSheet must be registered before the activity is started.
@@ -1835,13 +1847,13 @@ public class CheckoutActivity extends AppCompatActivity {
                 runOnUiThread(() -> {
                     if (response.code() == 409) {
                         Snackbar.make(findViewById(android.R.id.content),
-                                R.string.customer_profile_conflict, Snackbar.LENGTH_LONG).show();
+                                R.string.customer_profile_conflict, Snackbar.LENGTH_LONG).setAnchorView(btnPlaceOrder).show();
                         btnPlaceOrder.setEnabled(true);
                         return;
                     }
                     if (!response.isSuccessful() || response.body() == null) {
                         Snackbar.make(findViewById(android.R.id.content),
-                                R.string.customer_profile_error_unexpected, Snackbar.LENGTH_LONG).show();
+                                R.string.customer_profile_error_unexpected, Snackbar.LENGTH_LONG).setAnchorView(btnPlaceOrder).show();
                         btnPlaceOrder.setEnabled(true);
                         return;
                     }
@@ -1858,7 +1870,7 @@ public class CheckoutActivity extends AppCompatActivity {
             public void onFailure(Call<CustomerDto> call, Throwable t) {
                 runOnUiThread(() -> {
                     Snackbar.make(findViewById(android.R.id.content),
-                            R.string.login_error_no_connection, Snackbar.LENGTH_LONG).show();
+                            R.string.login_error_no_connection, Snackbar.LENGTH_LONG).setAnchorView(btnPlaceOrder).show();
                     btnPlaceOrder.setEnabled(true);
                 });
             }
@@ -1886,7 +1898,7 @@ public class CheckoutActivity extends AppCompatActivity {
                 runOnUiThread(() -> {
                     if (!response.isSuccessful() || response.body() == null) {
                         Snackbar.make(findViewById(android.R.id.content),
-                                R.string.customer_profile_error_unexpected, Snackbar.LENGTH_LONG).show();
+                                R.string.customer_profile_error_unexpected, Snackbar.LENGTH_LONG).setAnchorView(btnPlaceOrder).show();
                         btnPlaceOrder.setEnabled(true);
                     return;
                 }
@@ -1901,7 +1913,7 @@ public class CheckoutActivity extends AppCompatActivity {
             public void onFailure(Call<CustomerDto> call, Throwable t) {
                 runOnUiThread(() -> {
                     Snackbar.make(findViewById(android.R.id.content),
-                            R.string.login_error_no_connection, Snackbar.LENGTH_LONG).show();
+                            R.string.login_error_no_connection, Snackbar.LENGTH_LONG).setAnchorView(btnPlaceOrder).show();
                     btnPlaceOrder.setEnabled(true);
                 });
             }
@@ -1956,7 +1968,7 @@ public class CheckoutActivity extends AppCompatActivity {
                 }
                 if (!response.isSuccessful() || response.body() == null || response.body().clientSecret == null || response.body().orderId == null) {
                     Snackbar.make(findViewById(android.R.id.content),
-                            R.string.error_placing_order, Snackbar.LENGTH_LONG).show();
+                            R.string.error_placing_order, Snackbar.LENGTH_LONG).setAnchorView(btnPlaceOrder).show();
                     btnPlaceOrder.setEnabled(true);
                     btnPlaceOrder.setText(R.string.place_order);
                     confirmationLayout.setVisibility(View.GONE);
@@ -1979,7 +1991,7 @@ public class CheckoutActivity extends AppCompatActivity {
             public void onFailure(Call<CheckoutSessionResponse> call, Throwable t) {
                 Log.e("Checkout", "checkout failed", t);
                 Snackbar.make(findViewById(android.R.id.content),
-                        R.string.error_placing_order, Snackbar.LENGTH_LONG).show();
+                        R.string.error_placing_order, Snackbar.LENGTH_LONG).setAnchorView(btnPlaceOrder).show();
                 btnPlaceOrder.setEnabled(true);
                 btnPlaceOrder.setText(R.string.place_order);
                 confirmationLayout.setVisibility(View.GONE);
@@ -2010,7 +2022,7 @@ public class CheckoutActivity extends AppCompatActivity {
             String message = ((PaymentSheetResult.Failed) result).getError().getLocalizedMessage();
             if (message == null) message = getString(R.string.error_placing_order);
             Log.e("Checkout", "PaymentSheet failed: " + message);
-            Snackbar.make(findViewById(android.R.id.content), message, Snackbar.LENGTH_LONG).show();
+            Snackbar.make(findViewById(android.R.id.content), message, Snackbar.LENGTH_LONG).setAnchorView(btnPlaceOrder).show();
             btnPlaceOrder.setEnabled(true);
             btnPlaceOrder.setText(R.string.place_order);
             confirmationLayout.setVisibility(View.GONE);
@@ -2044,6 +2056,7 @@ public class CheckoutActivity extends AppCompatActivity {
                     finishCheckoutSuccessAfterPayment();
                 } else {
                     Snackbar.make(findViewById(android.R.id.content), R.string.order_confirm_failed, Snackbar.LENGTH_LONG)
+                            .setAnchorView(btnPlaceOrder)
                             .setAction(R.string.action_retry, v -> confirmStripePaymentWithServer())
                             .show();
                 }
@@ -2053,6 +2066,7 @@ public class CheckoutActivity extends AppCompatActivity {
             public void onFailure(Call<OrderDto> call, Throwable t) {
                 Log.e("Checkout", "confirm payment failed", t);
                 Snackbar.make(findViewById(android.R.id.content), R.string.order_confirm_failed, Snackbar.LENGTH_LONG)
+                        .setAnchorView(btnPlaceOrder)
                         .setAction(R.string.action_retry, v -> confirmStripePaymentWithServer())
                         .show();
             }
@@ -2076,6 +2090,15 @@ public class CheckoutActivity extends AppCompatActivity {
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
         NavTransitions.startActivityWithForward(this, intent);
         finish();
+    }
+
+    @Override
+    protected void onSaveInstanceState(@NonNull Bundle outState) {
+        super.onSaveInstanceState(outState);
+        outState.putString(STATE_DELIVERY_METHOD, deliveryMethod);
+        outState.putInt(STATE_BAKERY_ID, selectedBakeryId);
+        outState.putInt(STATE_DAY_INDEX, selectedDayIndex);
+        outState.putInt(STATE_TIME_INDEX, selectedTimeIndex);
     }
 
     private CustomerDto toGuestCustomer(GuestCustomerRequest guest) {
