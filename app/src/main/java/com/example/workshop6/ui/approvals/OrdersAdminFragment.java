@@ -179,7 +179,7 @@ public class OrdersAdminFragment extends Fragment {
             Toast.makeText(requireContext(), R.string.orders_admin_status_unchanged, Toast.LENGTH_SHORT).show();
             return;
         }
-        String denial = transitionDenialMessage(requireContext(), current, nextStatus);
+        String denial = transitionDenialMessage(requireContext(), current, nextStatus, order.orderMethod);
         if (denial != null) {
             Toast.makeText(requireContext(), denial, Toast.LENGTH_LONG).show();
             return;
@@ -245,6 +245,22 @@ public class OrdersAdminFragment extends Fragment {
      * Workshop-5-aligned: forward in {@link #STATUS_FLOW_ORDER} only; {@code cancelled} is always allowed as a target;
      * staff cannot PATCH {@code completed}; no changes from terminal {@code cancelled}.
      */
+    /** {@code picked_up} vs {@code delivered} must match order method (see server validation). */
+    private static boolean fulfillmentMatchesOrderMethod(@Nullable String orderMethod, @Nullable String nextRaw) {
+        if (nextRaw == null || nextRaw.trim().isEmpty()) {
+            return true;
+        }
+        String m = orderMethod == null ? "" : orderMethod.trim().toLowerCase(Locale.ROOT);
+        String n = nextRaw.trim().toLowerCase(Locale.ROOT);
+        if ("picked_up".equals(n) && "delivery".equals(m)) {
+            return false;
+        }
+        if ("delivered".equals(n) && "pickup".equals(m)) {
+            return false;
+        }
+        return true;
+    }
+
     private static boolean canStaffTransition(@Nullable String currentRaw, @Nullable String nextRaw) {
         if (nextRaw == null || nextRaw.trim().isEmpty()) {
             return false;
@@ -278,7 +294,8 @@ public class OrdersAdminFragment extends Fragment {
      * @return human-readable denial for Toast, or {@code null} if the transition is allowed
      */
     @Nullable
-    private static String transitionDenialMessage(Context ctx, @Nullable String currentRaw, @Nullable String nextRaw) {
+    private static String transitionDenialMessage(
+            Context ctx, @Nullable String currentRaw, @Nullable String nextRaw, @Nullable String orderMethod) {
         if (ctx == null) {
             return null;
         }
@@ -290,11 +307,15 @@ public class OrdersAdminFragment extends Fragment {
         if (c.equals(n)) {
             return null;
         }
+        String fromLabel = statusOptionForRaw(currentRaw).label;
+        String toLabel = statusOptionForRaw(nextRaw).label;
+        if (!fulfillmentMatchesOrderMethod(orderMethod, nextRaw)) {
+            return ctx.getString(R.string.orders_admin_denial_intro_fmt,
+                    fromLabel, toLabel, ctx.getString(R.string.orders_admin_denial_fulfillment_method));
+        }
         if (canStaffTransition(currentRaw, nextRaw)) {
             return null;
         }
-        String fromLabel = statusOptionForRaw(currentRaw).label;
-        String toLabel = statusOptionForRaw(nextRaw).label;
         if ("completed".equals(n)) {
             return ctx.getString(R.string.orders_admin_denial_intro_fmt,
                     fromLabel, toLabel, ctx.getString(R.string.orders_admin_denial_staff_completed));
@@ -321,7 +342,8 @@ public class OrdersAdminFragment extends Fragment {
                 fromLabel, toLabel, ctx.getString(R.string.orders_admin_update_failed));
     }
 
-    private static List<StatusOption> staffSpinnerOptionsForCurrent(@Nullable String currentRaw) {
+    private static List<StatusOption> staffSpinnerOptionsForCurrent(
+            @Nullable String currentRaw, @Nullable String orderMethod) {
         String c = normalizeStatusRaw(currentRaw);
         List<StatusOption> out = new ArrayList<>();
         out.add(statusOptionForRaw(currentRaw));
@@ -329,7 +351,7 @@ public class OrdersAdminFragment extends Fragment {
             if (o.raw.equals(c)) {
                 continue;
             }
-            if (canStaffTransition(currentRaw, o.raw)) {
+            if (canStaffTransition(currentRaw, o.raw) && fulfillmentMatchesOrderMethod(orderMethod, o.raw)) {
                 out.add(o);
             }
         }
@@ -395,7 +417,7 @@ public class OrdersAdminFragment extends Fragment {
                     prettyStatus(current)
             ));
 
-            List<StatusOption> statusOptions = staffSpinnerOptionsForCurrent(current);
+            List<StatusOption> statusOptions = staffSpinnerOptionsForCurrent(current, order.orderMethod);
             ArrayAdapter<String> spinnerAdapter = new ArrayAdapter<>(
                     holder.itemView.getContext(),
                     R.layout.spinner_bakery_item,

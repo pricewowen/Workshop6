@@ -38,7 +38,7 @@ public class OrderDto {
     public String deliveredAt;
     public String comment;
     public List<OrderItemDto> items;
-    /** True if customer already used their one location/service review for this order. */
+    /** True when the customer has a pending or approved location review for this order (rejected attempts do not count). */
     @SerializedName("locationReviewSubmitted")
     public boolean locationReviewSubmitted;
 

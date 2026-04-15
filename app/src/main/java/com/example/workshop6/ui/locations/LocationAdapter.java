@@ -46,6 +46,7 @@ public class LocationAdapter extends ListAdapter<BakeryLocationDetails, Location
                             && Objects.equals(oldItem.address, newItem.address)
                             && Objects.equals(oldItem.city, newItem.city)
                             && Objects.equals(oldItem.status, newItem.status)
+                            && Objects.equals(oldItem.isOpenNow, newItem.isOpenNow)
                             && Objects.equals(oldItem.averageRating, newItem.averageRating)
                             && Objects.equals(oldItem.openingHours, newItem.openingHours)
                             && Objects.equals(oldItem.bakeryImageUrl, newItem.bakeryImageUrl)
@@ -122,7 +123,9 @@ public class LocationAdapter extends ListAdapter<BakeryLocationDetails, Location
             }
             address.setText(addressBuilder.toString());
 
-            boolean open = "Open".equalsIgnoreCase(loc.status);
+            boolean open = loc.isOpenNow != null
+                    ? loc.isOpenNow
+                    : "Open".equalsIgnoreCase(loc.status);
             chipStatus.setText(open
                     ? itemView.getContext().getString(R.string.label_open)
                     : itemView.getContext().getString(R.string.label_closed));

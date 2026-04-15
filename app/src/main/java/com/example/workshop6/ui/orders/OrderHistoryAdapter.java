@@ -255,7 +255,8 @@ public class OrderHistoryAdapter extends RecyclerView.Adapter<OrderHistoryAdapte
             int secondary = itemView.getContext().getColor(R.color.bakery_text_secondary);
             int cancelled = itemView.getContext().getColor(R.color.bakery_status_closed);
 
-            if ("completed".equals(status)) {
+            // Backend accrues loyalty when the order is paid; later fulfillment statuses still mean points are on the account.
+            if (orderStatusPointsEarned(status)) {
                 tvDetailPointsLabel.setText(R.string.order_points_label_earned);
                 tvDetailPoints.setText(itemView.getContext().getString(
                         R.string.order_points_earned_value, earnedText));
@@ -276,6 +277,22 @@ public class OrderHistoryAdapter extends RecyclerView.Adapter<OrderHistoryAdapte
                     R.string.order_points_pending_value, earnedText));
             tvDetailPointsLabel.setTextColor(secondary);
             tvDetailPoints.setTextColor(secondary);
+        }
+    }
+
+    /** Matches {@code OrderStatus} after payment (points already granted server-side). */
+    private static boolean orderStatusPointsEarned(String status) {
+        switch (status) {
+            case "paid":
+            case "preparing":
+            case "ready":
+            case "scheduled":
+            case "picked_up":
+            case "delivered":
+            case "completed":
+                return true;
+            default:
+                return false;
         }
     }
 

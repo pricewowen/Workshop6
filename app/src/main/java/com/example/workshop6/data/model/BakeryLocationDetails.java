@@ -15,6 +15,8 @@ public class BakeryLocationDetails {
     public String email;
     public String status;
     public String openingHours;
+    /** Derived on mobile from bakery_hours for "open now" UI/filtering; null when unknown. */
+    public Boolean isOpenNow;
     public double latitude;
     public double longitude;
     /** Average approved review rating for this bakery; null when no approved reviews yet. */

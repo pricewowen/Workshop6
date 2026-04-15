@@ -34,12 +34,14 @@ import com.example.workshop6.data.api.ApiClient;
 import com.example.workshop6.data.api.ApiService;
 import com.example.workshop6.data.api.BakeryLocationMapper;
 import com.example.workshop6.data.api.dto.BakeryDto;
+import com.example.workshop6.data.api.dto.BakeryHourDto;
 import com.example.workshop6.data.api.dto.BatchDto;
 import com.example.workshop6.data.api.dto.ProductDto;
 import com.example.workshop6.data.model.BakeryLocationDetails;
 import com.example.workshop6.data.model.Category;
 import com.example.workshop6.ui.products.CategoriesAdapter;
 import com.example.workshop6.util.LocationSearchHelper;
+import com.example.workshop6.util.BakeryHoursUi;
 import com.example.workshop6.util.LocationUtils;
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationServices;
@@ -263,6 +265,7 @@ public class MapFragment extends Fragment {
                 }
                 applyFilterAndDisplay();
                 loadBakeryAverages();
+                loadOpenNowStatuses();
                 loadCatalogAndBatchProductSearch();
             }
 
@@ -314,13 +317,44 @@ public class MapFragment extends Fragment {
         }
     }
 
+    private void loadOpenNowStatuses() {
+        for (BakeryLocationDetails loc : cachedLocations) {
+            if (loc == null || loc.id <= 0) {
+                continue;
+            }
+            api.getBakeryHours(loc.id).enqueue(new Callback<List<BakeryHourDto>>() {
+                @Override
+                public void onResponse(Call<List<BakeryHourDto>> call, Response<List<BakeryHourDto>> response) {
+                    if (!isAdded()) {
+                        return;
+                    }
+                    loc.isOpenNow = response.isSuccessful() && response.body() != null
+                            ? BakeryHoursUi.isOpenNow(response.body())
+                            : null;
+                    applyFilterAndDisplay();
+                }
+
+                @Override
+                public void onFailure(Call<List<BakeryHourDto>> call, Throwable t) {
+                    if (!isAdded()) {
+                        return;
+                    }
+                    loc.isOpenNow = null;
+                    applyFilterAndDisplay();
+                }
+            });
+        }
+    }
+
     private void applyFilterAndDisplay() {
         LocationSearchHelper.ParsedLocationQuery parsed = LocationSearchHelper.parseQuery(currentSearch);
         List<BakeryLocationDetails> filtered = new ArrayList<>();
         for (BakeryLocationDetails loc : cachedLocations) {
             if (openNowMode) {
-                String status = loc.status != null ? loc.status.toLowerCase(Locale.ROOT) : "";
-                if (!status.contains("open")) {
+                boolean open = loc.isOpenNow != null
+                        ? loc.isOpenNow
+                        : (loc.status != null && loc.status.toLowerCase(Locale.ROOT).contains("open"));
+                if (!open) {
                     continue;
                 }
             }

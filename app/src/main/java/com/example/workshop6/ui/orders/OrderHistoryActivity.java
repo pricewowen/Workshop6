@@ -69,6 +69,7 @@ public class OrderHistoryActivity extends AppCompatActivity implements OrderHist
     private String pendingPayIntentId;
     private final SimpleDateFormat dateFormat = new SimpleDateFormat("MMM dd, yyyy hh:mm a", Locale.CANADA);
     private final NumberFormat currencyFormat = NumberFormat.getCurrencyInstance(Locale.CANADA);
+    private int ordersRequestSequence = 0;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -103,8 +104,6 @@ public class OrderHistoryActivity extends AppCompatActivity implements OrderHist
         rvOrders.setAdapter(adapter);
 
         pendingOrderPaymentSheet = new PaymentSheet(this, this::onPendingOrderPaymentSheetResult);
-
-        loadOrders();
     }
 
     @Override
@@ -118,7 +117,7 @@ public class OrderHistoryActivity extends AppCompatActivity implements OrderHist
             return;
         }
         if (BuildConfig.STRIPE_PUBLISHABLE_KEY.isEmpty()) {
-            Toast.makeText(this, R.string.error_placing_order, Toast.LENGTH_LONG).show();
+            Toast.makeText(this, R.string.checkout_payment_unavailable, Toast.LENGTH_LONG).show();
             return;
         }
         Toast.makeText(this, R.string.redirecting_to_payment, Toast.LENGTH_SHORT).show();
@@ -130,9 +129,7 @@ public class OrderHistoryActivity extends AppCompatActivity implements OrderHist
                     return;
                 }
                 if (!response.isSuccessful() || response.body() == null) {
-                    Toast.makeText(OrderHistoryActivity.this,
-                            getString(R.string.login_error_server, response.code()),
-                            Toast.LENGTH_LONG).show();
+                    Toast.makeText(OrderHistoryActivity.this, R.string.checkout_payment_unavailable, Toast.LENGTH_LONG).show();
                     return;
                 }
                 ResumePaymentSessionResponse body = response.body();
@@ -142,7 +139,7 @@ public class OrderHistoryActivity extends AppCompatActivity implements OrderHist
                     return;
                 }
                 if (body.clientSecret == null || body.paymentIntentId == null || body.orderId == null) {
-                    Toast.makeText(OrderHistoryActivity.this, R.string.error_placing_order, Toast.LENGTH_LONG).show();
+                    Toast.makeText(OrderHistoryActivity.this, R.string.checkout_payment_unavailable, Toast.LENGTH_LONG).show();
                     return;
                 }
                 pendingPayOrderId = body.orderId;
@@ -155,7 +152,7 @@ public class OrderHistoryActivity extends AppCompatActivity implements OrderHist
             @Override
             public void onFailure(Call<ResumePaymentSessionResponse> call, Throwable t) {
                 Log.e("OrderHistory", "resume payment failed", t);
-                Toast.makeText(OrderHistoryActivity.this, R.string.login_error_no_connection, Toast.LENGTH_SHORT).show();
+                Toast.makeText(OrderHistoryActivity.this, R.string.checkout_payment_unavailable, Toast.LENGTH_LONG).show();
             }
         });
     }
@@ -171,8 +168,35 @@ public class OrderHistoryActivity extends AppCompatActivity implements OrderHist
             if (message == null) {
                 message = getString(R.string.error_placing_order);
             }
-            Snackbar.make(findViewById(android.R.id.content), message, Snackbar.LENGTH_LONG).show();
+            if (isStripeConfigurationError(message) || isStripeConnectionOrCredentialError(message)) {
+                Toast.makeText(this, R.string.checkout_payment_unavailable, Toast.LENGTH_LONG).show();
+            } else {
+                Toast.makeText(this, R.string.checkout_payment_failed, Toast.LENGTH_LONG).show();
+            }
         }
+    }
+
+    private boolean isStripeConfigurationError(@Nullable String message) {
+        if (message == null) {
+            return false;
+        }
+        String lower = message.toLowerCase(Locale.ROOT);
+        return lower.contains("paymentconfiguration")
+                && lower.contains("not initialized");
+    }
+
+    private boolean isStripeConnectionOrCredentialError(@Nullable String message) {
+        if (message == null) {
+            return false;
+        }
+        String lower = message.toLowerCase(Locale.ROOT);
+        return lower.contains("api_key")
+                || lower.contains("publishable key")
+                || lower.contains("authentication")
+                || lower.contains("network")
+                || lower.contains("connection")
+                || lower.contains("timed out")
+                || lower.contains("unable to resolve host");
     }
 
     private void clearPendingPaySession() {
@@ -236,6 +260,7 @@ public class OrderHistoryActivity extends AppCompatActivity implements OrderHist
             return;
         }
         sessionManager.touch();
+        loadOrders();
     }
 
     @Override
@@ -247,6 +272,7 @@ public class OrderHistoryActivity extends AppCompatActivity implements OrderHist
     }
 
     private void loadOrders() {
+        final int requestSeq = ++ordersRequestSequence;
         if (sessionManager.getUserUuid().isEmpty() && sessionManager.getUserId() <= 0) {
             Toast.makeText(this, R.string.toast_sign_in_required, Toast.LENGTH_SHORT).show();
             finish();
@@ -263,6 +289,9 @@ public class OrderHistoryActivity extends AppCompatActivity implements OrderHist
         api.getOrders().enqueue(new Callback<List<OrderDto>>() {
             @Override
             public void onResponse(Call<List<OrderDto>> call, Response<List<OrderDto>> response) {
+                if (!isLatestOrdersRequest(requestSeq)) {
+                    return;
+                }
                 loadingView.setVisibility(View.GONE);
                 if (response.code() == 401 || response.code() == 403) {
                     redirectToLogin();
@@ -299,10 +328,17 @@ public class OrderHistoryActivity extends AppCompatActivity implements OrderHist
 
             @Override
             public void onFailure(Call<List<OrderDto>> call, Throwable t) {
+                if (!isLatestOrdersRequest(requestSeq)) {
+                    return;
+                }
                 loadingView.setVisibility(View.GONE);
                 Toast.makeText(OrderHistoryActivity.this, R.string.login_error_no_connection, Toast.LENGTH_SHORT).show();
             }
         });
+    }
+
+    private boolean isLatestOrdersRequest(int requestSeq) {
+        return !isFinishing() && requestSeq == ordersRequestSequence;
     }
 
     private void showOrderDetails(OrderWithDetails order) {

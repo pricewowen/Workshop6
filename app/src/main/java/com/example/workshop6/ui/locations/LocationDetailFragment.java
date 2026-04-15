@@ -44,6 +44,7 @@ import com.google.android.material.button.MaterialButton;
 import com.google.android.material.chip.Chip;
 import com.example.workshop6.util.LocationUtils;
 import com.example.workshop6.util.ReviewNav;
+import com.example.workshop6.util.BakeryHoursUi;
 import com.example.workshop6.util.ProductReviewListHelper;
 import com.example.workshop6.util.ReviewFilterPillUi;
 import com.example.workshop6.util.ReviewModerationUi;
@@ -222,6 +223,7 @@ public class LocationDetailFragment extends Fragment {
                                     ? response2.body()
                                     : new ArrayList<>();
                             BakeryLocationDetails loc = BakeryLocationMapper.fromDto(bakery, "");
+                            loc.isOpenNow = BakeryHoursUi.isOpenNow(hourRows);
                             hoursAdapter.submit(hourRows);
                             populateDetail(view, loc);
                             loadBakeryReviews(locationId);
@@ -230,6 +232,7 @@ public class LocationDetailFragment extends Fragment {
                         @Override
                         public void onFailure(Call<List<BakeryHourDto>> call2, Throwable t) {
                             BakeryLocationDetails loc = BakeryLocationMapper.fromDto(bakery, "");
+                            loc.isOpenNow = null;
                             hoursAdapter.submit(new ArrayList<>());
                             populateDetail(view, loc);
                             loadBakeryReviews(locationId);
@@ -702,7 +705,9 @@ public class LocationDetailFragment extends Fragment {
         }
 
         Chip chipStatus = view.findViewById(R.id.chip_detail_status);
-        boolean open = loc.status != null && loc.status.toLowerCase(Locale.ROOT).contains("open");
+        boolean open = loc.isOpenNow != null
+                ? loc.isOpenNow
+                : (loc.status != null && loc.status.toLowerCase(Locale.ROOT).contains("open"));
         chipStatus.setText(open ? getString(R.string.label_open) : getString(R.string.label_closed));
         chipStatus.setChipBackgroundColorResource(
                 open ? R.color.bakery_status_open : R.color.bakery_status_closed);

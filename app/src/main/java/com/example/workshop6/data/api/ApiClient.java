@@ -38,13 +38,16 @@ public class ApiClient {
                 .addInterceptor(logging)
                 .addInterceptor(chain -> {
                     Request original = chain.request();
-                    if (jwtToken == null) {
-                        return chain.proceed(original);
+                    Request.Builder requestBuilder = original.newBuilder();
+                    // Avoid stale profile/order reads from intermediate caches in same app session.
+                    if ("GET".equalsIgnoreCase(original.method())) {
+                        requestBuilder.header("Cache-Control", "no-cache");
+                        requestBuilder.header("Pragma", "no-cache");
                     }
-                    Request authenticated = original.newBuilder()
-                            .header("Authorization", "Bearer " + jwtToken)
-                            .build();
-                    return chain.proceed(authenticated);
+                    if (jwtToken != null) {
+                        requestBuilder.header("Authorization", "Bearer " + jwtToken);
+                    }
+                    return chain.proceed(requestBuilder.build());
                 })
                 .build();
 
@@ -88,13 +91,16 @@ public class ApiClient {
                 .addInterceptor(logging)
                 .addInterceptor(chain -> {
                     Request original = chain.request();
-                    if (jwtToken == null) {
-                        return chain.proceed(original);
+                    Request.Builder requestBuilder = original.newBuilder();
+                    // Avoid stale profile/order reads from intermediate caches in same app session.
+                    if ("GET".equalsIgnoreCase(original.method())) {
+                        requestBuilder.header("Cache-Control", "no-cache");
+                        requestBuilder.header("Pragma", "no-cache");
                     }
-                    Request authenticated = original.newBuilder()
-                            .header("Authorization", "Bearer " + jwtToken)
-                            .build();
-                    return chain.proceed(authenticated);
+                    if (jwtToken != null) {
+                        requestBuilder.header("Authorization", "Bearer " + jwtToken);
+                    }
+                    return chain.proceed(requestBuilder.build());
                 })
                 .build();
 

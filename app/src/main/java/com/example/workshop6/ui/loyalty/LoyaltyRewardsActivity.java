@@ -47,6 +47,9 @@ public class LoyaltyRewardsActivity extends AppCompatActivity {
     private View cardEmployeeDiscount;
     private final NumberFormat pointsFormat = NumberFormat.getNumberInstance(Locale.US);
     private final List<RewardTierDto> rewardTiers = new ArrayList<>();
+    /** After first successful bind, refresh on resume without blocking overlay (avoids flicker). */
+    private boolean loyaltyUiPopulated;
+    private int loyaltyRequestSequence = 0;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -96,14 +99,21 @@ public class LoyaltyRewardsActivity extends AppCompatActivity {
             return;
         }
         sessionManager.touch();
+        ApiClient.getInstance().setToken(sessionManager.getToken());
         loadLoyalty();
     }
 
     private void loadLoyalty() {
-        loadingOverlay.setVisibility(View.VISIBLE);
+        final int requestSeq = ++loyaltyRequestSequence;
+        if (!loyaltyUiPopulated) {
+            loadingOverlay.setVisibility(View.VISIBLE);
+        }
         api.getCustomerMe().enqueue(new Callback<CustomerDto>() {
             @Override
             public void onResponse(Call<CustomerDto> call, Response<CustomerDto> response) {
+                if (!isLatestLoyaltyRequest(requestSeq)) {
+                    return;
+                }
                 if (response.code() == 404) {
                     loadingOverlay.setVisibility(View.GONE);
                     Toast.makeText(LoyaltyRewardsActivity.this, R.string.checkout_need_customer_profile, Toast.LENGTH_LONG).show();
@@ -127,6 +137,9 @@ public class LoyaltyRewardsActivity extends AppCompatActivity {
                 api.getRewardTiers().enqueue(new Callback<List<RewardTierDto>>() {
                     @Override
                     public void onResponse(Call<List<RewardTierDto>> call2, Response<List<RewardTierDto>> response2) {
+                        if (!isLatestLoyaltyRequest(requestSeq)) {
+                            return;
+                        }
                         loadingOverlay.setVisibility(View.GONE);
                         if (!response2.isSuccessful() || response2.body() == null) {
                             Toast.makeText(LoyaltyRewardsActivity.this, R.string.login_error_no_connection, Toast.LENGTH_SHORT).show();
@@ -147,10 +160,14 @@ public class LoyaltyRewardsActivity extends AppCompatActivity {
                                 tvNextTier,
                                 tvPointsNeeded,
                                 progressLoyalty);
+                        loyaltyUiPopulated = true;
                     }
 
                     @Override
                     public void onFailure(Call<List<RewardTierDto>> call2, Throwable t) {
+                        if (!isLatestLoyaltyRequest(requestSeq)) {
+                            return;
+                        }
                         loadingOverlay.setVisibility(View.GONE);
                         Toast.makeText(LoyaltyRewardsActivity.this, R.string.login_error_no_connection, Toast.LENGTH_SHORT).show();
                     }
@@ -159,10 +176,17 @@ public class LoyaltyRewardsActivity extends AppCompatActivity {
 
             @Override
             public void onFailure(Call<CustomerDto> call, Throwable t) {
+                if (!isLatestLoyaltyRequest(requestSeq)) {
+                    return;
+                }
                 loadingOverlay.setVisibility(View.GONE);
                 Toast.makeText(LoyaltyRewardsActivity.this, R.string.login_error_no_connection, Toast.LENGTH_SHORT).show();
             }
         });
+    }
+
+    private boolean isLatestLoyaltyRequest(int requestSeq) {
+        return !isFinishing() && requestSeq == loyaltyRequestSequence;
     }
 
     private void redirectToLogin() {

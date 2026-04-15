@@ -36,6 +36,7 @@ import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationServices;
 import com.google.android.material.card.MaterialCardView;
 
+import com.example.workshop6.BuildConfig;
 import com.example.workshop6.R;
 import com.example.workshop6.auth.SessionManager;
 import com.example.workshop6.data.api.ApiClient;
@@ -1926,6 +1927,11 @@ public class CheckoutActivity extends AppCompatActivity {
             Toast.makeText(this, R.string.error_complete_form, Toast.LENGTH_SHORT).show();
             return;
         }
+        if (BuildConfig.STRIPE_PUBLISHABLE_KEY == null
+                || BuildConfig.STRIPE_PUBLISHABLE_KEY.trim().isEmpty()) {
+            Toast.makeText(this, R.string.checkout_payment_unavailable, Toast.LENGTH_LONG).show();
+            return;
+        }
 
         btnPlaceOrder.setEnabled(false);
 
@@ -2092,8 +2098,7 @@ public class CheckoutActivity extends AppCompatActivity {
                     return;
                 }
                 if (!response.isSuccessful() || response.body() == null || response.body().clientSecret == null || response.body().orderId == null) {
-                    Snackbar.make(findViewById(android.R.id.content),
-                            R.string.error_placing_order, Snackbar.LENGTH_LONG).show();
+                    Toast.makeText(CheckoutActivity.this, R.string.checkout_payment_unavailable, Toast.LENGTH_LONG).show();
                     btnPlaceOrder.setEnabled(true);
                     btnPlaceOrder.setText(R.string.place_order);
                     confirmationLayout.setVisibility(View.GONE);
@@ -2115,8 +2120,7 @@ public class CheckoutActivity extends AppCompatActivity {
             @Override
             public void onFailure(Call<CheckoutSessionResponse> call, Throwable t) {
                 Log.e("Checkout", "checkout failed", t);
-                Snackbar.make(findViewById(android.R.id.content),
-                        R.string.error_placing_order, Snackbar.LENGTH_LONG).show();
+                Toast.makeText(CheckoutActivity.this, R.string.checkout_payment_unavailable, Toast.LENGTH_LONG).show();
                 btnPlaceOrder.setEnabled(true);
                 btnPlaceOrder.setText(R.string.place_order);
                 confirmationLayout.setVisibility(View.GONE);
@@ -2147,12 +2151,39 @@ public class CheckoutActivity extends AppCompatActivity {
             String message = ((PaymentSheetResult.Failed) result).getError().getLocalizedMessage();
             if (message == null) message = getString(R.string.error_placing_order);
             Log.e("Checkout", "PaymentSheet failed: " + message);
-            Snackbar.make(findViewById(android.R.id.content), message, Snackbar.LENGTH_LONG).show();
+            if (isStripeConfigurationError(message) || isStripeConnectionOrCredentialError(message)) {
+                Toast.makeText(this, R.string.checkout_payment_unavailable, Toast.LENGTH_LONG).show();
+            } else {
+                Toast.makeText(this, R.string.checkout_payment_failed, Toast.LENGTH_LONG).show();
+            }
             btnPlaceOrder.setEnabled(true);
             btnPlaceOrder.setText(R.string.place_order);
             confirmationLayout.setVisibility(View.GONE);
             mainLayout.setVisibility(View.VISIBLE);
         }
+    }
+
+    private boolean isStripeConfigurationError(@Nullable String message) {
+        if (message == null) {
+            return false;
+        }
+        String lower = message.toLowerCase(Locale.ROOT);
+        return lower.contains("paymentconfiguration")
+                && lower.contains("not initialized");
+    }
+
+    private boolean isStripeConnectionOrCredentialError(@Nullable String message) {
+        if (message == null) {
+            return false;
+        }
+        String lower = message.toLowerCase(Locale.ROOT);
+        return lower.contains("api_key")
+                || lower.contains("publishable key")
+                || lower.contains("authentication")
+                || lower.contains("network")
+                || lower.contains("connection")
+                || lower.contains("timed out")
+                || lower.contains("unable to resolve host");
     }
 
     private void clearPendingStripeSession() {

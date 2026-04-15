@@ -245,6 +245,8 @@
     <string name="checkout_delivery_free">Free</string>
     <string name="checkout_delivery_free_hint">Free delivery on orders of %1$s or more</string>
     <string name="checkout_delivery_free_unlocked_hint">Your order qualifies for free delivery (orders %1$s and above).</string>
+    <string name="checkout_payment_unavailable">Unable to connect to the payment service. Please try again later.</string>
+    <string name="checkout_payment_failed">Payment could not be completed. Please try again.</string>
     <string name="confirmation_delivery_fee">@string/checkout_delivery_fee</string>
     <string name="product_special_badge">Today\'s special · %1$.0f%% off</string>
 
@@ -503,6 +505,7 @@
     <string name="orders_admin_denial_terminal">Finished or cancelled orders cannot change status.</string>
     <string name="orders_admin_denial_backward">Move status forward only. Cancel when rules allow.</string>
     <string name="orders_admin_denial_unknown_status">Unusual status. Only cancel may work.</string>
+    <string name="orders_admin_denial_fulfillment_method">Use Picked up for pickup orders and Delivered for delivery orders.</string>
     <string name="orders_admin_denial_intro_fmt">Cannot move from %1$s to %2$s. %3$s</string>
     <string name="order_retry_payment">Complete payment</string>
     <string name="order_payment_pending_hint">Payment did not finish. Tap below to pay securely.</string>
@@ -541,7 +544,7 @@
     <string name="order_points_label_earned">Points earned:</string>
     <string name="order_points_label_pending">Points status:</string>
     <string name="order_points_earned_value">%1$s pts earned</string>
-    <string name="order_points_pending_value">%1$s pts pending until order completion</string>
+    <string name="order_points_pending_value">%1$s pts pending</string>
     <string name="order_points_cancelled_value">No points earned (order cancelled)</string>
     <string name="review_approvals_title">Review Approvals</string>
     <string name="review_approvals_subtitle">Approve or reject customer reviews from delivered orders.</string>
