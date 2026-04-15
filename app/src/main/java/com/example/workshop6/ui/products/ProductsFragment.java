@@ -4,6 +4,7 @@ import android.app.Activity;
 import android.os.Bundle;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 import androidx.navigation.Navigation;
 import androidx.recyclerview.widget.LinearLayoutManager;
@@ -55,6 +56,8 @@ public class ProductsFragment extends Fragment {
     private static String cachedFeaturedForDate;
     private static final List<Category> cachedCategories = new ArrayList<>();
     private static final List<Product> cachedProducts = new ArrayList<>();
+    /** Cached normalized tag text by product id, used by local search. */
+    private static final java.util.Map<Integer, String> cachedProductTagSearchText = new java.util.HashMap<>();
     private static Product cachedFeaturedProduct;
     private static Double cachedFeaturedDiscountPercent;
 
@@ -78,6 +81,8 @@ public class ProductsFragment extends Fragment {
     private int featuredProductId = -1;
     private Product featured;
     private final List<Product> allProducts = new ArrayList<>();
+    /** Normalized tag labels keyed by product id for search terms like "pastry". */
+    private final java.util.Map<Integer, String> productTagSearchTextById = new java.util.HashMap<>();
     private ApiService api;
     private SessionManager sessionManager;
 
@@ -141,29 +146,9 @@ public class ProductsFragment extends Fragment {
                 if (productAdapter == null) {
                     return;
                 }
-                        String rawQuery = s.toString().trim();
-                        String query = SearchUtils.normalizeUserSearch(rawQuery);
-                api.getProducts(rawQuery.isEmpty() ? null : query, null).enqueue(new Callback<List<ProductDto>>() {
-                    @Override
-                    public void onResponse(Call<List<ProductDto>> call, Response<List<ProductDto>> response) {
-                        if (!response.isSuccessful() || response.body() == null || productAdapter == null) {
-                            return;
-                        }
-                        List<Product> mapped = new ArrayList<>();
-                        for (ProductDto dto : response.body()) {
-                            Product p = ProductMapper.fromDto(dto);
-                            if (p != null) {
-                                mapped.add(p);
-                            }
-                        }
-                        productAdapter.setProducts(mapped);
-                    }
-
-                    @Override
-                    public void onFailure(Call<List<ProductDto>> call, Throwable t) {
-                        logIfAttached("SEARCH_PRODUCTS", "Network error");
-                    }
-                });
+                String rawQuery = s.toString().trim();
+                String query = SearchUtils.normalizeUserSearch(rawQuery);
+                applySearchFilter(query);
             }
 
             @Override
@@ -340,6 +325,8 @@ public class ProductsFragment extends Fragment {
         if (isCacheFresh(productsCachedAtMs) && !cachedProducts.isEmpty()) {
             allProducts.clear();
             allProducts.addAll(cachedProducts);
+            productTagSearchTextById.clear();
+            productTagSearchTextById.putAll(cachedProductTagSearchText);
             bindCatalogUi(cachedCategories, cachedProducts);
             return;
         }
@@ -359,9 +346,11 @@ public class ProductsFragment extends Fragment {
                     return;
                 }
                 List<Category> categories = new ArrayList<>();
+                java.util.Map<Integer, String> tagNameById = new java.util.HashMap<>();
                 for (TagDto tag : response.body()) {
                     if (tag.id != null && tag.name != null) {
                         categories.add(new Category(tag.id, tag.name));
+                        tagNameById.put(tag.id, SearchUtils.normalizeUserSearch(tag.name));
                     }
                 }
                 api.getProducts(null, null).enqueue(new Callback<List<ProductDto>>() {
@@ -378,16 +367,20 @@ public class ProductsFragment extends Fragment {
                             return;
                         }
                         allProducts.clear();
+                        productTagSearchTextById.clear();
                         for (ProductDto dto : response2.body()) {
                             Product p = ProductMapper.fromDto(dto);
                             if (p != null) {
                                 allProducts.add(p);
+                                productTagSearchTextById.put(p.getProductId(), buildProductTagSearchText(dto, tagNameById));
                             }
                         }
                         cachedCategories.clear();
                         cachedCategories.addAll(categories);
                         cachedProducts.clear();
                         cachedProducts.addAll(allProducts);
+                        cachedProductTagSearchText.clear();
+                        cachedProductTagSearchText.putAll(productTagSearchTextById);
                         productsCachedAtMs = System.currentTimeMillis();
                         if (!isUiReady()) {
                             return;
@@ -480,6 +473,57 @@ public class ProductsFragment extends Fragment {
         });
         rvProducts.setAdapter(productAdapter);
         rvCategories.setAdapter(categoriesAdapter);
+        String initialQuery = etSearch != null
+                ? SearchUtils.normalizeUserSearch(etSearch.getText() != null ? etSearch.getText().toString() : "")
+                : "";
+        applySearchFilter(initialQuery);
+    }
+
+    private void applySearchFilter(@NonNull String normalizedQuery) {
+        if (productAdapter == null) {
+            return;
+        }
+        if (normalizedQuery.isEmpty()) {
+            productAdapter.setProducts(new ArrayList<>(allProducts));
+            return;
+        }
+        List<Product> filtered = new ArrayList<>();
+        for (Product p : allProducts) {
+            if (p == null) {
+                continue;
+            }
+            String name = p.getProductName() != null ? p.getProductName() : "";
+            String desc = p.getProductDescription() != null ? p.getProductDescription() : "";
+            String tagText = productTagSearchTextById.getOrDefault(p.getProductId(), "");
+            String haystack = SearchUtils.normalizeUserSearch(name + " " + desc + " " + tagText);
+            if (haystack.contains(normalizedQuery)) {
+                filtered.add(p);
+            }
+        }
+        productAdapter.setProducts(filtered);
+    }
+
+    @NonNull
+    private static String buildProductTagSearchText(@Nullable ProductDto dto,
+                                                    @NonNull java.util.Map<Integer, String> tagNameById) {
+        if (dto == null || dto.tagIds == null || dto.tagIds.isEmpty()) {
+            return "";
+        }
+        StringBuilder b = new StringBuilder();
+        for (Integer tagId : dto.tagIds) {
+            if (tagId == null) {
+                continue;
+            }
+            String tagName = tagNameById.get(tagId);
+            if (tagName == null || tagName.isEmpty()) {
+                continue;
+            }
+            if (b.length() > 0) {
+                b.append(' ');
+            }
+            b.append(tagName);
+        }
+        return b.toString();
     }
 
     private void showToastIfAttached(int resId, int duration) {

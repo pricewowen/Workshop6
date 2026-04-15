@@ -39,7 +39,6 @@ import retrofit2.Callback;
 import retrofit2.Response;
 
 public class OrdersAdminFragment extends Fragment {
-    private static final int PAGE_SIZE = 5;
 
     /**
      * API {@code order_status} lifecycle order (aligned with Workshop-5 forward-only rules:
@@ -66,10 +65,7 @@ public class OrdersAdminFragment extends Fragment {
     private final NumberFormat currency = NumberFormat.getCurrencyInstance(Locale.CANADA);
     private View loadingOverlay;
     private View contentView;
-    private MaterialButton btnLoadMore;
-
     private final List<OrderDto> allOrders = new ArrayList<>();
-    private int visibleCount = 0;
 
     @Nullable
     @Override
@@ -88,7 +84,6 @@ public class OrdersAdminFragment extends Fragment {
         tvEmpty = view.findViewById(R.id.tv_orders_admin_empty);
         loadingOverlay = view.findViewById(R.id.orders_admin_loading_overlay);
         contentView = view.findViewById(R.id.orders_admin_content);
-        btnLoadMore = view.findViewById(R.id.btn_orders_admin_load_more);
 
         adapter = new OrdersAdminAdapter(new ArrayList<>(), new OrdersAdminAdapter.Listener() {
             @Override
@@ -98,18 +93,6 @@ public class OrdersAdminFragment extends Fragment {
         }, currency);
         rvOrders.setLayoutManager(new LinearLayoutManager(requireContext()));
         rvOrders.setAdapter(adapter);
-
-        btnLoadMore.setOnClickListener(v -> {
-            if (allOrders.isEmpty()) {
-                return;
-            }
-            int nextCount = Math.min(allOrders.size(), visibleCount + PAGE_SIZE);
-            if (nextCount != visibleCount) {
-                visibleCount = nextCount;
-                adapter.submitList(new ArrayList<>(allOrders.subList(0, visibleCount)));
-            }
-            updateLoadMoreVisibility();
-        });
 
         verifyAccessAndLoad();
     }
@@ -162,8 +145,7 @@ public class OrdersAdminFragment extends Fragment {
 
                 allOrders.clear();
                 allOrders.addAll(orders);
-                visibleCount = Math.min(PAGE_SIZE, allOrders.size());
-                adapter.submitList(new ArrayList<>(allOrders.subList(0, visibleCount)));
+                adapter.submitList(new ArrayList<>(allOrders));
 
                 boolean empty = allOrders.isEmpty();
                 tvEmpty.setVisibility(empty ? View.VISIBLE : View.GONE);
@@ -176,7 +158,6 @@ public class OrdersAdminFragment extends Fragment {
                     }
                 }
 
-                updateLoadMoreVisibility();
             }
 
             @Override
@@ -187,14 +168,6 @@ public class OrdersAdminFragment extends Fragment {
                 }
             }
         });
-    }
-
-    private void updateLoadMoreVisibility() {
-        if (btnLoadMore == null) {
-            return;
-        }
-        boolean show = !allOrders.isEmpty() && visibleCount < allOrders.size();
-        btnLoadMore.setVisibility(show ? View.VISIBLE : View.GONE);
     }
 
     private void patchStatus(OrderDto order, String nextStatus) {

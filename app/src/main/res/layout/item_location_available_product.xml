@@ -2,7 +2,7 @@
 <com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="152dp"
-    android:layout_height="wrap_content"
+    android:layout_height="@dimen/available_here_card_height"
     android:layout_marginEnd="10dp"
     app:cardBackgroundColor="@color/bakery_card_white"
     app:cardCornerRadius="12dp"
@@ -10,7 +10,7 @@
 
     <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_height="match_parent"
         android:orientation="vertical"
         android:padding="12dp">
 
@@ -35,7 +35,7 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="6dp"
+            android:layout_marginTop="8dp"
             android:text="@string/location_tap_product_hint"
             android:textColor="@color/bakery_text_secondary"
             android:textSize="11sp" />

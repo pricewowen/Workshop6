@@ -6,6 +6,9 @@
     <!-- Horizontal review carousel: uniform card height + RecyclerView vertical padding (4+4). -->
     <dimen name="review_card_preview_height">140dp</dimen>
     <dimen name="review_horizontal_strip_height">148dp</dimen>
+    <!-- Location detail: Available Here strip/card keep uniform product card heights. -->
+    <dimen name="available_here_card_height">156dp</dimen>
+    <dimen name="available_here_strip_height">164dp</dimen>
     <!-- Toolbar + band + avatar overlap: clears content below overlapping photo -->
     <dimen name="edit_profile_scroll_content_top_pad">188dp</dimen>
     <!-- Toolbar (~56dp) + 24dp: avatar top aligns with straddle point under brown band (see layout). -->
