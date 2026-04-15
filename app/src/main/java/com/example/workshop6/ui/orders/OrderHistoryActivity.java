@@ -117,7 +117,12 @@ public class OrderHistoryActivity extends AppCompatActivity implements OrderHist
             return;
         }
         if (BuildConfig.STRIPE_PUBLISHABLE_KEY.isEmpty()) {
-            Toast.makeText(this, R.string.error_placing_order, Toast.LENGTH_LONG).show();
+            Log.e("OrderHistory", "Stripe publishable key not configured; blocking retry payment");
+            new AlertDialog.Builder(this)
+                    .setTitle(R.string.stripe_unavailable_title)
+                    .setMessage(R.string.stripe_unavailable_message)
+                    .setPositiveButton(android.R.string.ok, null)
+                    .show();
             return;
         }
         Toast.makeText(this, R.string.redirecting_to_payment, Toast.LENGTH_SHORT).show();

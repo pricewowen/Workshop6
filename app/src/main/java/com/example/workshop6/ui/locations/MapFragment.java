@@ -17,6 +17,7 @@ import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.appcompat.app.AlertDialog;
 import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 import androidx.navigation.Navigation;
@@ -91,8 +92,7 @@ public class MapFragment extends Fragment {
                             revertToAllLocationsFilter();
                             View v = getView();
                             if (v != null) {
-                                Snackbar.make(v, R.string.permission_location_rationale,
-                                        Snackbar.LENGTH_LONG).show();
+                                showAnchoredSnackbar(v, getString(R.string.permission_location_rationale));
                             }
                         }
                     }
@@ -221,8 +221,7 @@ public class MapFragment extends Fragment {
                 if (!response.isSuccessful() || response.body() == null) {
                     View v = getView();
                     if (v != null) {
-                        Snackbar.make(v, getString(R.string.login_error_server, response.code()),
-                                Snackbar.LENGTH_LONG).show();
+                        showAnchoredSnackbar(v, getString(R.string.login_error_server, response.code()));
                     }
                     return;
                 }
@@ -244,7 +243,7 @@ public class MapFragment extends Fragment {
                 setMapLoadingUi(false);
                 View v = getView();
                 if (v != null) {
-                    Snackbar.make(v, R.string.login_error_no_connection, Snackbar.LENGTH_LONG).show();
+                    showAnchoredSnackbar(v, getString(R.string.login_error_no_connection));
                 }
             }
         });
@@ -398,6 +397,14 @@ public class MapFragment extends Fragment {
         if (ContextCompat.checkSelfPermission(requireContext(),
                 Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
             fetchUserLocation();
+        } else if (shouldShowRequestPermissionRationale(Manifest.permission.ACCESS_FINE_LOCATION)) {
+            new AlertDialog.Builder(requireContext())
+                    .setTitle(R.string.permission_location_rationale_title)
+                    .setMessage(R.string.permission_location_rationale)
+                    .setPositiveButton(R.string.permission_continue,
+                            (d, w) -> locationPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION))
+                    .setNegativeButton(R.string.btn_cancel, null)
+                    .show();
         } else {
             locationPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION);
         }
@@ -445,7 +452,17 @@ public class MapFragment extends Fragment {
         revertToAllLocationsFilter();
         View v = getView();
         if (v != null) {
-            Snackbar.make(v, R.string.error_could_not_get_location, Snackbar.LENGTH_SHORT).show();
+            showAnchoredSnackbar(v, getString(R.string.error_could_not_get_location));
         }
+    }
+
+    private void showAnchoredSnackbar(@NonNull View v, @NonNull CharSequence text) {
+        Snackbar sb = Snackbar.make(v, text, Snackbar.LENGTH_LONG);
+        android.app.Activity a = getActivity();
+        View anchor = a == null ? null : a.findViewById(R.id.bottom_nav);
+        if (anchor != null) {
+            sb.setAnchorView(anchor);
+        }
+        sb.show();
     }
 }

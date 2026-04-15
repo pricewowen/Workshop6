@@ -1,6 +1,7 @@
 package com.example.workshop6;
 
 import android.app.Application;
+import android.util.Log;
 
 import com.example.workshop6.auth.SessionManager;
 import com.example.workshop6.data.api.ApiClient;
@@ -24,6 +25,10 @@ public class Workshop6App extends Application {
         // Add  stripe.publishable.key=pk_test_...  to your local.properties file.
         if (!BuildConfig.STRIPE_PUBLISHABLE_KEY.isEmpty()) {
             PaymentConfiguration.init(this, BuildConfig.STRIPE_PUBLISHABLE_KEY);
+        } else {
+            Log.w("Workshop6App",
+                    "STRIPE_PUBLISHABLE_KEY is empty in BuildConfig; payment flows will be disabled. "
+                            + "Set stripe.publishable.key in local.properties.");
         }
     }
 }

@@ -21,6 +21,7 @@ import android.widget.Toast;
 
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
+import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
@@ -65,6 +66,10 @@ public class EditProfileActivity extends AppCompatActivity {
 
     /** Shown as password dots in the read-only account password row (not the real password). */
     private static final String ACCOUNT_PASSWORD_ROW_MASK = "12345678";
+
+    private static final String STATE_SELECTED_PHOTO_URI = "edit.selectedPhotoUri";
+    private static final String STATE_CAMERA_PHOTO_URI = "edit.cameraPhotoUri";
+    private static final String STATE_PHOTO_ROTATION_DEG = "edit.pendingPhotoRotationDeg";
 
     private SessionManager sessionManager;
 
@@ -223,7 +228,25 @@ public class EditProfileActivity extends AppCompatActivity {
         btnRotatePhoto.setOnClickListener(v -> rotatePendingPhoto90());
         findViewById(R.id.btn_save).setOnClickListener(v -> attemptSave());
 
+        if (savedInstanceState != null) {
+            selectedPhotoUri = savedInstanceState.getParcelable(STATE_SELECTED_PHOTO_URI);
+            cameraPhotoUri = savedInstanceState.getParcelable(STATE_CAMERA_PHOTO_URI);
+            pendingPhotoRotationDeg = savedInstanceState.getInt(STATE_PHOTO_ROTATION_DEG, 0);
+            if (selectedPhotoUri != null) {
+                renderSelectedPhotoPreview();
+            }
+            updateRotateButtonState();
+        }
+
         loadProfile();
+    }
+
+    @Override
+    protected void onSaveInstanceState(@NonNull Bundle outState) {
+        super.onSaveInstanceState(outState);
+        outState.putParcelable(STATE_SELECTED_PHOTO_URI, selectedPhotoUri);
+        outState.putParcelable(STATE_CAMERA_PHOTO_URI, cameraPhotoUri);
+        outState.putInt(STATE_PHOTO_ROTATION_DEG, pendingPhotoRotationDeg);
     }
 
     private void setEditProfileLoading(boolean loading) {
@@ -304,6 +327,15 @@ public class EditProfileActivity extends AppCompatActivity {
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA)
                 == PackageManager.PERMISSION_GRANTED) {
             launchCameraCapture();
+        } else if (androidx.core.app.ActivityCompat.shouldShowRequestPermissionRationale(
+                this, Manifest.permission.CAMERA)) {
+            new AlertDialog.Builder(this)
+                    .setTitle(R.string.permission_camera_rationale_title)
+                    .setMessage(R.string.permission_camera_rationale)
+                    .setPositiveButton(R.string.permission_continue,
+                            (d, w) -> cameraPermissionLauncher.launch(Manifest.permission.CAMERA))
+                    .setNegativeButton(R.string.btn_cancel, null)
+                    .show();
         } else {
             cameraPermissionLauncher.launch(Manifest.permission.CAMERA);
         }

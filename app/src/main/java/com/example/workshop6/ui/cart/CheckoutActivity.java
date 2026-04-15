@@ -37,6 +37,7 @@ import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationServices;
 import com.google.android.material.card.MaterialCardView;
 
+import com.example.workshop6.BuildConfig;
 import com.example.workshop6.R;
 import com.example.workshop6.auth.SessionManager;
 import com.example.workshop6.data.api.ApiClient;
@@ -1799,6 +1800,16 @@ public class CheckoutActivity extends AppCompatActivity {
     private void placeOrder() {
         if (!validateForm(true)) {
             Toast.makeText(this, R.string.error_complete_form, Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        if (BuildConfig.STRIPE_PUBLISHABLE_KEY.isEmpty()) {
+            Log.e("Checkout", "Stripe publishable key not configured; blocking checkout");
+            new AlertDialog.Builder(this)
+                    .setTitle(R.string.stripe_unavailable_title)
+                    .setMessage(R.string.stripe_unavailable_message)
+                    .setPositiveButton(android.R.string.ok, null)
+                    .show();
             return;
         }
 
