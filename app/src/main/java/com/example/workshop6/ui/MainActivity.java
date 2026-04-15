@@ -10,6 +10,7 @@ import android.os.Looper;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.content.ContextCompat;
 import androidx.navigation.NavBackStackEntry;
 import androidx.navigation.NavController;
 import androidx.navigation.NavDestination;
@@ -24,8 +25,10 @@ import com.example.workshop6.data.api.ApiService;
 import com.example.workshop6.data.api.dto.CustomerDto;
 import com.example.workshop6.data.api.dto.EmployeeDto;
 import com.example.workshop6.payments.PendingStripeConfirm;
+import com.example.workshop6.ui.cart.CartManager;
 import com.example.workshop6.util.NavTransitions;
 import com.example.workshop6.util.NetworkStatus;
+import com.google.android.material.badge.BadgeDrawable;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 import android.view.View;
 import android.widget.Toast;
@@ -58,6 +61,12 @@ public class MainActivity extends AppCompatActivity {
     private boolean staffAccessCheckInFlight = false;
     /** While a review is being moderated, bottom navigation is disabled so the user cannot switch tabs. */
     private boolean reviewSubmissionBlocksBottomNav;
+    private final CartManager.CartChangeListener cartBadgeListener = cart -> {
+        BottomNavigationView bottomNav = findViewById(R.id.bottom_nav);
+        if (bottomNav != null) {
+            updateCartBadge(bottomNav);
+        }
+    };
     private final Handler connectivityHandler = new Handler(Looper.getMainLooper());
     private final Runnable connectivityPollRunnable = new Runnable() {
         @Override
@@ -141,7 +150,15 @@ public class MainActivity extends AppCompatActivity {
         BottomNavigationView bottomNav = findViewById(R.id.bottom_nav);
         configureBottomNav(bottomNav, sessionManager.getUserRole());
 
+        CartManager.getInstance(this).addListener(cartBadgeListener);
+
         applyLaunchIntentExtras(getIntent(), bottomNav);
+    }
+
+    @Override
+    protected void onDestroy() {
+        CartManager.getInstance(this).removeListener(cartBadgeListener);
+        super.onDestroy();
     }
 
     @Override
@@ -233,6 +250,7 @@ public class MainActivity extends AppCompatActivity {
             } else {
                 updateStaffAccess(bottomNav, false);
             }
+            updateCartBadge(bottomNav);
         }
         connectivityHandler.removeCallbacks(connectivityPollRunnable);
         if (sessionManager.isLoggedIn()) {
@@ -408,6 +426,23 @@ public class MainActivity extends AppCompatActivity {
             }
         });
         bottomNav.setEnabled(!reviewSubmissionBlocksBottomNav);
+        updateCartBadge(bottomNav);
+    }
+
+    private void updateCartBadge(BottomNavigationView bottomNav) {
+        if (bottomNav.getMenu().findItem(R.id.nav_cart) == null) {
+            return;
+        }
+        int quantity = CartManager.getInstance(this).getCart().getTotalQuantity();
+        if (quantity <= 0) {
+            bottomNav.removeBadge(R.id.nav_cart);
+            return;
+        }
+        BadgeDrawable badge = bottomNav.getOrCreateBadge(R.id.nav_cart);
+        badge.setNumber(quantity);
+        badge.setMaxCharacterCount(3);
+        badge.setBackgroundColor(ContextCompat.getColor(this, R.color.bakery_gold));
+        badge.setBadgeTextColor(ContextCompat.getColor(this, R.color.bakery_text_light));
     }
 
     /** If the browse tab stack is showing product details from the catalog, pop to the product list. */

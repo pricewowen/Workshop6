@@ -172,6 +172,7 @@ public class CartFragment extends Fragment implements CartAdapter.OnCartItemList
         cart.updateQuantity(productId, newQuantity);
         adapter.updateItems(cart.getItems());
         updateUI();
+        CartManager.getInstance(requireContext()).notifyCartChanged();
     }
 
     @Override
@@ -179,5 +180,6 @@ public class CartFragment extends Fragment implements CartAdapter.OnCartItemList
         cart.removeItem(productId);
         adapter.updateItems(cart.getItems());
         updateUI();
+        CartManager.getInstance(requireContext()).notifyCartChanged();
     }
 }

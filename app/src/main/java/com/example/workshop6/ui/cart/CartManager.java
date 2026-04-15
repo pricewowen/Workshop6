@@ -5,10 +5,17 @@ import android.content.Context;
 import com.example.workshop6.auth.SessionManager;
 import com.example.workshop6.data.model.Cart;
 
+import java.util.concurrent.CopyOnWriteArrayList;
+
 public class CartManager {
+    public interface CartChangeListener {
+        void onCartChanged(Cart cart);
+    }
+
     private static CartManager instance;
     private Cart currentCart;
     private SessionManager sessionManager;
+    private final CopyOnWriteArrayList<CartChangeListener> listeners = new CopyOnWriteArrayList<>();
 
     private CartManager(Context context) {
         sessionManager = new SessionManager(context);
@@ -31,10 +38,27 @@ public class CartManager {
 
     public void clearCart() {
         currentCart = null;
+        notifyCartChanged();
     }
 
     // Called when user logs out
     public void onLogout() {
         currentCart = null;
+        notifyCartChanged();
+    }
+
+    public void addListener(CartChangeListener listener) {
+        listeners.addIfAbsent(listener);
+    }
+
+    public void removeListener(CartChangeListener listener) {
+        listeners.remove(listener);
+    }
+
+    public void notifyCartChanged() {
+        Cart snapshot = getCart();
+        for (CartChangeListener l : listeners) {
+            l.onCartChanged(snapshot);
+        }
     }
 }

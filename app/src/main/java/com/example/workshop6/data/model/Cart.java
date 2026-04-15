@@ -61,6 +61,14 @@ public class Cart {
         return items.size();
     }
 
+    public int getTotalQuantity() {
+        int total = 0;
+        for (CartItem item : items) {
+            total += item.getQuantity();
+        }
+        return total;
+    }
+
     public double getTotalPrice() {
         double afterTier = getMerchandiseSubtotal() - getTierDiscountDollars();
         if (afterTier < 0) {

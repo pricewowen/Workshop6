@@ -280,6 +280,7 @@ public class ProductDetailsFragment extends Fragment {
             if (loadedProduct != null) {
                 CartItem cartItem = new CartItem(loadedProduct, quantCounter);
                     cartManager.getCart().addItem(cartItem);
+                    cartManager.notifyCartChanged();
                 Toast.makeText(requireContext(), R.string.added_to_cart, Toast.LENGTH_SHORT).show();
                         Navigation.findNavController(view).navigateUp();
             }
