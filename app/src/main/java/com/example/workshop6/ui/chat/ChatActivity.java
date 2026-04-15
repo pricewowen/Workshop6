@@ -326,6 +326,9 @@ public class ChatActivity extends AppCompatActivity {
             }
         }
         avatarHeader.setText(initial);
+        if (adapter != null) {
+            adapter.setReceivedAvatarInitial(initial);
+        }
     }
 
     private void bindStaffActions() {

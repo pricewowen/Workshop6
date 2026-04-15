@@ -28,9 +28,15 @@ public class ChatMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHo
 
     private final String currentUserUuid;
     private List<ChatMessageDto> messages = new ArrayList<>();
+    private String receivedAvatarInitial = "?";
 
     public ChatMessageAdapter(String currentUserUuid) {
         this.currentUserUuid = currentUserUuid != null ? currentUserUuid : "";
+    }
+
+    public void setReceivedAvatarInitial(String initial) {
+        this.receivedAvatarInitial = (initial != null && !initial.isEmpty()) ? initial : "?";
+        notifyDataSetChanged();
     }
 
     public void setMessages(List<ChatMessageDto> messages) {
@@ -143,7 +149,7 @@ public class ChatMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHo
         }
     }
 
-    static class ReceivedMessageViewHolder extends RecyclerView.ViewHolder {
+    class ReceivedMessageViewHolder extends RecyclerView.ViewHolder {
         private final TextView textMessage;
         private final TextView textAvatarInitial;
         private final TextView textTime;
@@ -157,12 +163,8 @@ public class ChatMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHo
 
         void bind(ChatMessageDto message) {
             textMessage.setText(message.text != null ? message.text : "");
-            String initial = "?";
-            if (message.senderUserId != null && !message.senderUserId.isEmpty()) {
-                initial = String.valueOf(message.senderUserId.charAt(0)).toUpperCase();
-            }
             if (textAvatarInitial != null) {
-                textAvatarInitial.setText(initial);
+                textAvatarInitial.setText(receivedAvatarInitial);
             }
             String t = formatSentAt(message.sentAt);
             textTime.setText(t);
