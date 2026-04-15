@@ -42,6 +42,7 @@ import com.example.workshop6.data.model.Category;
 import com.example.workshop6.ui.products.CategoriesAdapter;
 import com.example.workshop6.util.LocationSearchHelper;
 import com.example.workshop6.util.BakeryHoursUi;
+import com.example.workshop6.util.DataRefreshBus;
 import com.example.workshop6.util.LocationUtils;
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationServices;
@@ -93,6 +94,7 @@ public class MapFragment extends Fragment {
     private final List<BakeryLocationDetails> cachedLocations = new ArrayList<>();
     private String currentSearch = "";
     private final Map<Integer, ProductDto> productCatalogById = new HashMap<>();
+    private long observedDataVersion = -1L;
 
     private final ActivityResultLauncher<String[]> locationPermissionLauncher =
             registerForActivityResult(
@@ -234,6 +236,16 @@ public class MapFragment extends Fragment {
     public void onDestroyView() {
         mainHandler.removeCallbacks(hideMapLoadingRunnable);
         super.onDestroyView();
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        long currentDataVersion = DataRefreshBus.currentVersion();
+        if (observedDataVersion != currentDataVersion) {
+            observedDataVersion = currentDataVersion;
+            loadBakeries();
+        }
     }
 
     private void loadBakeries() {

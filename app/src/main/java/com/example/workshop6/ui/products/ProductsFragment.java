@@ -31,6 +31,7 @@ import com.example.workshop6.data.model.Category;
 import com.example.workshop6.data.model.Product;
 import com.example.workshop6.logging.ActivityLogger;
 import com.example.workshop6.util.MoneyFormat;
+import com.example.workshop6.util.DataRefreshBus;
 import com.example.workshop6.util.ProductSpecialState;
 import com.example.workshop6.util.SearchUtils;
 import com.example.workshop6.util.SpecialPriceSpan;
@@ -60,6 +61,7 @@ public class ProductsFragment extends Fragment {
     private static final java.util.Map<Integer, String> cachedProductTagSearchText = new java.util.HashMap<>();
     private static Product cachedFeaturedProduct;
     private static Double cachedFeaturedDiscountPercent;
+    private static long cachedDataVersion = -1L;
 
     private RecyclerView rvCategories;
     private CategoriesAdapter categoriesAdapter;
@@ -87,6 +89,17 @@ public class ProductsFragment extends Fragment {
     private SessionManager sessionManager;
 
     public ProductsFragment() {
+    }
+
+    public static void invalidateCatalogCache() {
+        productsCachedAtMs = 0L;
+        featuredCachedAtMs = 0L;
+        cachedFeaturedForDate = null;
+        cachedFeaturedProduct = null;
+        cachedFeaturedDiscountPercent = null;
+        cachedCategories.clear();
+        cachedProducts.clear();
+        cachedProductTagSearchText.clear();
     }
 
     public static ProductsFragment newInstance(String param1, String param2) {
@@ -160,6 +173,21 @@ public class ProductsFragment extends Fragment {
 
         loadFeaturedProduct();
         loadCategoriesAndProducts();
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        long currentDataVersion = DataRefreshBus.currentVersion();
+        if (cachedDataVersion != currentDataVersion) {
+            cachedDataVersion = currentDataVersion;
+            invalidateCatalogCache();
+            ProductSpecialState.clear();
+            if (isUiReady()) {
+                loadFeaturedProduct();
+                loadCategoriesAndProducts();
+            }
+        }
     }
 
     private void loadFeaturedProduct() {

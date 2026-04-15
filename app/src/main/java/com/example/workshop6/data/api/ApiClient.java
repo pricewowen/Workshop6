@@ -1,6 +1,7 @@
 package com.example.workshop6.data.api;
 
 import com.example.workshop6.BuildConfig;
+import com.example.workshop6.util.DataRefreshBus;
 
 import java.util.concurrent.TimeUnit;
 
@@ -39,15 +40,22 @@ public class ApiClient {
                 .addInterceptor(chain -> {
                     Request original = chain.request();
                     Request.Builder requestBuilder = original.newBuilder();
+                    String method = original.method();
                     // Avoid stale profile/order reads from intermediate caches in same app session.
-                    if ("GET".equalsIgnoreCase(original.method())) {
+                    if ("GET".equalsIgnoreCase(method)) {
                         requestBuilder.header("Cache-Control", "no-cache");
                         requestBuilder.header("Pragma", "no-cache");
                     }
                     if (jwtToken != null) {
                         requestBuilder.header("Authorization", "Bearer " + jwtToken);
                     }
-                    return chain.proceed(requestBuilder.build());
+                    okhttp3.Response response = chain.proceed(requestBuilder.build());
+                    if (response.isSuccessful()
+                            && !"GET".equalsIgnoreCase(method)
+                            && !"HEAD".equalsIgnoreCase(method)) {
+                        DataRefreshBus.bumpVersion();
+                    }
+                    return response;
                 })
                 .build();
 
@@ -92,15 +100,22 @@ public class ApiClient {
                 .addInterceptor(chain -> {
                     Request original = chain.request();
                     Request.Builder requestBuilder = original.newBuilder();
+                    String method = original.method();
                     // Avoid stale profile/order reads from intermediate caches in same app session.
-                    if ("GET".equalsIgnoreCase(original.method())) {
+                    if ("GET".equalsIgnoreCase(method)) {
                         requestBuilder.header("Cache-Control", "no-cache");
                         requestBuilder.header("Pragma", "no-cache");
                     }
                     if (jwtToken != null) {
                         requestBuilder.header("Authorization", "Bearer " + jwtToken);
                     }
-                    return chain.proceed(requestBuilder.build());
+                    okhttp3.Response response = chain.proceed(requestBuilder.build());
+                    if (response.isSuccessful()
+                            && !"GET".equalsIgnoreCase(method)
+                            && !"HEAD".equalsIgnoreCase(method)) {
+                        DataRefreshBus.bumpVersion();
+                    }
+                    return response;
                 })
                 .build();
 

@@ -45,6 +45,7 @@ import com.google.android.material.chip.Chip;
 import com.example.workshop6.util.LocationUtils;
 import com.example.workshop6.util.ReviewNav;
 import com.example.workshop6.util.BakeryHoursUi;
+import com.example.workshop6.util.DataRefreshBus;
 import com.example.workshop6.util.ProductReviewListHelper;
 import com.example.workshop6.util.ReviewFilterPillUi;
 import com.example.workshop6.util.ReviewModerationUi;
@@ -92,6 +93,7 @@ public class LocationDetailFragment extends Fragment {
     };
     private BakeryHourRowAdapter hoursAdapter;
     private LocationAvailableProductAdapter productAdapter;
+    private long observedDataVersion = -1L;
 
     private TextView tvBakeryReviewsTitle;
     private TextView tvBakeryReviewsEmpty;
@@ -254,6 +256,16 @@ public class LocationDetailFragment extends Fragment {
     @Override
     public void onResume() {
         super.onResume();
+        long currentDataVersion = DataRefreshBus.currentVersion();
+        if (observedDataVersion != currentDataVersion) {
+            observedDataVersion = currentDataVersion;
+            invalidateAvailableProductsCache();
+            View root = getView();
+            if (root != null && locationId > 0) {
+                loadAvailableProducts(root, locationId);
+                loadBakeryReviews(locationId);
+            }
+        }
         View root = getView();
         if (root == null) {
             return;
@@ -268,6 +280,10 @@ public class LocationDetailFragment extends Fragment {
                 }
             }
         }
+    }
+
+    public static void invalidateAvailableProductsCache() {
+        AVAILABLE_HERE_CACHE.clear();
     }
 
     private void setDetailScrollVisible(boolean visible) {

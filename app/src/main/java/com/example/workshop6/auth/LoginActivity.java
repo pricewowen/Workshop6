@@ -214,9 +214,7 @@ public class LoginActivity extends AppCompatActivity {
 
     private void attemptLogin() {
         String rawIdentity = etEmail.getText() != null ? etEmail.getText().toString().trim() : "";
-        String identityForApi = rawIdentity.contains("@")
-                ? rawIdentity.toLowerCase(Locale.ROOT)
-                : rawIdentity;
+        String identityForApi = rawIdentity;
         String pass  = etPassword.getText() != null ? etPassword.getText().toString() : "";
         long remainingLockoutMs = sessionManager.getRemainingLockoutMs(identityForApi);
 
@@ -304,8 +302,7 @@ public class LoginActivity extends AppCompatActivity {
             tilEmail.setError(getString(R.string.error_email_or_username_required));
             valid = false;
         } else if (identity.contains("@")) {
-            String email = identity.toLowerCase(Locale.ROOT);
-            if (!Validation.isEmailValid(email)) {
+            if (!Validation.isEmailValid(identity)) {
                 tilEmail.setError(getString(R.string.error_email_invalid));
                 valid = false;
             }

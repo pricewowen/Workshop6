@@ -44,13 +44,16 @@ import com.example.workshop6.data.api.dto.ProfilePhotoResponse;
 import com.example.workshop6.data.api.dto.EmployeeDto;
 import com.example.workshop6.logging.ActivityLogger;
 import com.example.workshop6.ui.MainActivity;
+import com.example.workshop6.ui.me.MeFragment;
+import com.example.workshop6.util.DataRefreshBus;
 import com.example.workshop6.util.ImageUtils;
 import com.example.workshop6.util.ProfileInitialsAvatar;
 import com.example.workshop6.util.NavTransitions;
 import com.example.workshop6.util.PhoneFormatTextWatcher;
 import com.example.workshop6.util.PostalCodeFormatTextWatcher;
-import com.example.workshop6.util.SensitiveActionAuthorizer;
 import com.example.workshop6.util.Validation;
+import com.google.gson.Gson;
+import com.google.gson.JsonObject;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.textfield.TextInputEditText;
 import com.google.android.material.textfield.TextInputLayout;
@@ -100,7 +103,8 @@ public class EditProfileActivity extends AppCompatActivity {
     /** Snapshot when account fields were last bound (for dirty checks). */
     private String originalAccountUsername = "";
     private String originalAccountEmail = "";
-    /** New password chosen in the change-password dialog; applied on Save after re-auth. */
+    /** Password values staged in change-password dialog and applied on Save. */
+    private String pendingCurrentPassword = "";
     private String pendingNewPassword = "";
     private ApiService api;
     private View loadingOverlay;
@@ -594,6 +598,7 @@ public class EditProfileActivity extends AppCompatActivity {
         String un = sessionManager.getLoginUsername();
         etAccountUsername.setText(un != null ? un.trim() : "");
         etAccountSignEmail.setText(resolveSignInEmailForDisplay(c, e));
+        pendingCurrentPassword = "";
         pendingNewPassword = "";
         applyAccountPasswordRowDisplay();
         rememberOriginalAccountSnapshot();
@@ -624,7 +629,7 @@ public class EditProfileActivity extends AppCompatActivity {
         originalAccountUsername = etAccountUsername.getText() != null
                 ? etAccountUsername.getText().toString().trim() : "";
         originalAccountEmail = etAccountSignEmail.getText() != null
-                ? etAccountSignEmail.getText().toString().trim().toLowerCase(Locale.ROOT) : "";
+                ? etAccountSignEmail.getText().toString().trim() : "";
     }
 
     private void applyPhotoState(String photoPath, boolean pending) {
@@ -666,7 +671,7 @@ public class EditProfileActivity extends AppCompatActivity {
             }
             String newUser = etAccountUsername.getText() != null ? etAccountUsername.getText().toString().trim() : "";
             String newEm = etAccountSignEmail.getText() != null
-                    ? etAccountSignEmail.getText().toString().trim().toLowerCase(Locale.ROOT) : "";
+                    ? etAccountSignEmail.getText().toString().trim() : "";
             boolean dirtyUser = !newUser.equals(originalAccountUsername);
             boolean dirtyEmail = !newEm.equals(originalAccountEmail);
             boolean dirtyPass = !Validation.isEmpty(pendingNewPassword);
@@ -683,13 +688,7 @@ public class EditProfileActivity extends AppCompatActivity {
                 }
             }
             tvPhotoError.setVisibility(View.GONE);
-            SensitiveActionAuthorizer.promptForPasswordWithCurrent(
-                    this,
-                    sessionManager,
-                    getString(R.string.reauth_title_profile),
-                    getString(R.string.reauth_message_profile),
-                    this::persistCustomerAccountAfterReauth
-            );
+            persistCustomerAccountChanges();
             return;
         }
 
@@ -719,7 +718,7 @@ public class EditProfileActivity extends AppCompatActivity {
         }
 
         String email = etAccountSignEmail.getText() != null
-                ? etAccountSignEmail.getText().toString().trim().toLowerCase(Locale.ROOT) : "";
+                ? etAccountSignEmail.getText().toString().trim() : "";
         if (Validation.isEmpty(email)) {
             tilAccountSignEmail.setError(getString(R.string.error_email_required));
             ok = false;
@@ -813,6 +812,7 @@ public class EditProfileActivity extends AppCompatActivity {
 
         if (!Validation.isEmpty(pendingNewPassword)) {
             builder.setNeutralButton(R.string.account_password_discard_change, (d, w) -> {
+                pendingCurrentPassword = "";
                 pendingNewPassword = "";
                 applyAccountPasswordRowDisplay();
                 if (tilAccountPassword != null) {
@@ -893,6 +893,7 @@ public class EditProfileActivity extends AppCompatActivity {
                     return;
                 }
 
+                pendingCurrentPassword = cur;
                 pendingNewPassword = nw;
                 if (tilAccountPassword != null) {
                     tilAccountPassword.setError(null);
@@ -905,15 +906,15 @@ public class EditProfileActivity extends AppCompatActivity {
         dialog.show();
     }
 
-    private void persistCustomerAccountAfterReauth(String currentPassword) {
+    private void persistCustomerAccountChanges() {
         String newUser = etAccountUsername.getText() != null ? etAccountUsername.getText().toString().trim() : "";
         String newEm = etAccountSignEmail.getText() != null
-                ? etAccountSignEmail.getText().toString().trim().toLowerCase(Locale.ROOT) : "";
+                ? etAccountSignEmail.getText().toString().trim() : "";
         boolean dirtyUser = !newUser.equals(originalAccountUsername);
         boolean dirtyEmail = !newEm.equals(originalAccountEmail);
         boolean dirtyPass = !Validation.isEmpty(pendingNewPassword);
 
-        if (dirtyPass && pendingNewPassword.equals(currentPassword)) {
+        if (dirtyPass && pendingNewPassword.equals(pendingCurrentPassword)) {
             tilAccountPassword.setError(getString(R.string.change_password_reuse_error));
             Toast.makeText(this, R.string.change_password_reuse_error, Toast.LENGTH_LONG).show();
             return;
@@ -933,13 +934,17 @@ public class EditProfileActivity extends AppCompatActivity {
         };
 
         if (!dirtyUser && !dirtyEmail) {
-            runChangePasswordIfNeeded(currentPassword, pendingNewPassword, afterAccount);
+            runChangePasswordIfNeeded(pendingCurrentPassword, pendingNewPassword, afterAccount);
             return;
         }
 
         AccountProfilePatchRequest body = new AccountProfilePatchRequest();
-        body.username = newUser;
-        body.email = newEm;
+        if (dirtyUser) {
+            body.username = newUser;
+        }
+        if (dirtyEmail) {
+            body.email = newEm;
+        }
         api.patchAccountProfile(body).enqueue(new Callback<AuthResponse>() {
             @Override
             public void onResponse(Call<AuthResponse> call, Response<AuthResponse> response) {
@@ -950,7 +955,7 @@ public class EditProfileActivity extends AppCompatActivity {
                 applyAuthResponseToSession(response.body());
                 originalAccountUsername = newUser;
                 originalAccountEmail = newEm;
-                runChangePasswordIfNeeded(currentPassword, pendingNewPassword, afterAccount);
+                runChangePasswordIfNeeded(pendingCurrentPassword, pendingNewPassword, afterAccount);
             }
 
             @Override
@@ -975,10 +980,12 @@ public class EditProfileActivity extends AppCompatActivity {
         String un = auth.username != null ? auth.username : sessionManager.getLoginUsername();
         sessionManager.persistLoginSession(auth.token, uid, role, un, em != null ? em : "");
         sessionManager.touch();
+        MeFragment.invalidateMeCache();
     }
 
     private void runChangePasswordIfNeeded(String currentPassword, String newPass, Runnable then) {
         if (Validation.isEmpty(newPass)) {
+            pendingCurrentPassword = "";
             then.run();
             return;
         }
@@ -992,6 +999,7 @@ public class EditProfileActivity extends AppCompatActivity {
                     Toast.makeText(EditProfileActivity.this, R.string.change_password_failed, Toast.LENGTH_LONG).show();
                     return;
                 }
+                pendingCurrentPassword = "";
                 pendingNewPassword = "";
                 applyAccountPasswordRowDisplay();
                 ActivityLogger.log(EditProfileActivity.this, sessionManager, "CHANGE_PASSWORD", "Password updated");
@@ -1006,13 +1014,58 @@ public class EditProfileActivity extends AppCompatActivity {
     }
 
     private String extractAccountPatchError(Response<?> response) {
-        if (response.code() == 409) {
+        if (response == null) {
+            return getString(R.string.profile_account_update_failed);
+        }
+        String serverMsg = parseApiErrorMessage(response);
+        if (serverMsg != null && !serverMsg.trim().isEmpty()) {
+            return serverMsg.trim();
+        }
+        int code = response.code();
+        if (code == 401) {
+            return getString(R.string.session_expired);
+        }
+        if (code == 403) {
+            return getString(R.string.profile_account_forbidden);
+        }
+        if (code == 409) {
             return getString(R.string.register_error_duplicate_account);
         }
-        if (response.code() == 400) {
-            return getString(R.string.register_error_unexpected);
+        if (code >= 500) {
+            return getString(R.string.profile_account_server_error);
         }
-        return getString(R.string.register_error_unexpected);
+        return getString(R.string.profile_account_update_failed);
+    }
+
+    private static String parseApiErrorMessage(Response<?> response) {
+        if (response == null || response.isSuccessful()) {
+            return null;
+        }
+        try {
+            okhttp3.ResponseBody err = response.errorBody();
+            if (err == null) {
+                return null;
+            }
+            String json = err.string();
+            JsonObject o = new Gson().fromJson(json, JsonObject.class);
+            if (o == null) {
+                return null;
+            }
+            if (o.has("message") && !o.get("message").isJsonNull()) {
+                String m = o.get("message").getAsString();
+                if (m != null && !m.trim().isEmpty()) {
+                    return m.trim();
+                }
+            }
+            if (o.has("detail") && !o.get("detail").isJsonNull()) {
+                String m = o.get("detail").getAsString();
+                if (m != null && !m.trim().isEmpty()) {
+                    return m.trim();
+                }
+            }
+        } catch (Exception ignored) {
+        }
+        return null;
     }
 
     private void persistAccountOnlyPhotoUpload() {
@@ -1051,6 +1104,9 @@ public class EditProfileActivity extends AppCompatActivity {
             if (response.errorBody() != null) {
                 String raw = response.errorBody().string();
                 if (raw != null) {
+                    if (raw.contains("already pending approval")) {
+                        return getString(R.string.photo_change_locked_pending);
+                    }
                     if (raw.contains("Object storage is not configured")) {
                         return "Photo storage is not configured on the server.";
                     }
@@ -1066,6 +1122,9 @@ public class EditProfileActivity extends AppCompatActivity {
         }
         if (response.code() >= 500) {
             return "Server error while uploading photo. Please try again later.";
+        }
+        if (response.code() == 409) {
+            return getString(R.string.photo_change_locked_pending);
         }
         return getString(R.string.error_photo_invalid);
     }
@@ -1126,6 +1185,8 @@ public class EditProfileActivity extends AppCompatActivity {
             applyProfileInitialsAvatar();
             return;
         }
+        String cacheBustedPhotoUrl = withCacheBuster(photoPath);
+        String cacheBustedFallbackUrl = cdnToOriginUrl(cacheBustedPhotoUrl);
         String name = "";
         String email = "";
         if (loadedCustomer != null) {
@@ -1142,14 +1203,13 @@ public class EditProfileActivity extends AppCompatActivity {
         android.graphics.drawable.Drawable ph = ProfileInitialsAvatar.create(
                 this, profileAvatarInnerPx(),
                 ProfileInitialsAvatar.initialsFrom(name, email, sessionManager.getUserName()));
-        String originFallback = cdnToOriginUrl(photoPath);
         Glide.with(this)
-                .load(photoPath)
+                .load(cacheBustedPhotoUrl)
                 .circleCrop()
                 .placeholder(ph)
                 .error(
                         Glide.with(this)
-                                .load(originFallback != null ? originFallback : photoPath)
+                                .load(cacheBustedFallbackUrl != null ? cacheBustedFallbackUrl : cacheBustedPhotoUrl)
                                 .circleCrop()
                                 .placeholder(ph)
                                 .error(ph)
@@ -1161,6 +1221,17 @@ public class EditProfileActivity extends AppCompatActivity {
         if (url == null) return null;
         if (!url.contains(".cdn.digitaloceanspaces.com")) return null;
         return url.replace(".cdn.digitaloceanspaces.com", ".digitaloceanspaces.com");
+    }
+
+    /**
+     * Prevent stale Glide cache when server overwrites photo content at same URL.
+     */
+    private String withCacheBuster(String url) {
+        if (url == null || url.trim().isEmpty()) {
+            return url;
+        }
+        String sep = url.contains("?") ? "&" : "?";
+        return url + sep + "v=" + DataRefreshBus.currentVersion();
     }
 
     private void redirectToLogin() {

@@ -45,6 +45,7 @@ import com.example.workshop6.ui.loyalty.LoyaltyRewardsActivity;
 import com.example.workshop6.ui.orders.OrderHistoryActivity;
 import com.example.workshop6.ui.profile.CustomerProfileSetupActivity;
 import com.example.workshop6.ui.profile.EditProfileActivity;
+import com.example.workshop6.util.DataRefreshBus;
 import com.example.workshop6.util.NavTransitions;
 import com.example.workshop6.util.ProfileInitialsAvatar;
 import com.google.android.material.button.MaterialButton;
@@ -72,6 +73,13 @@ public class MeFragment extends Fragment {
     private static String recommendationsPreferencesFingerprint = null;
     private static List<ProductRecommendationDto> recommendationsCacheSnapshot = null;
 
+    /** Clears cached Me snapshot so latest profile/email is shown immediately. */
+    public static void invalidateMeCache() {
+        meCacheAtMs = 0L;
+        cachedUserKey = null;
+        cachedMeSnapshot = null;
+    }
+
     private SessionManager sessionManager;
     private ApiService api;
 
@@ -89,6 +97,7 @@ public class MeFragment extends Fragment {
     private ProgressBar recommendationsLoading;
     private TextView tvRecommendationsPlaceholder;
     private MeRecommendationAdapter recommendationAdapter;
+    private long observedDataVersion = -1L;
 
     private View cardGuestPrompt;
     private View cardActions;
@@ -204,6 +213,12 @@ public class MeFragment extends Fragment {
     @Override
     public void onResume() {
         super.onResume();
+        long currentDataVersion = DataRefreshBus.currentVersion();
+        if (observedDataVersion != currentDataVersion) {
+            observedDataVersion = currentDataVersion;
+            invalidateMeCache();
+            invalidateAiRecommendationsCache();
+        }
         applyMeRoleLabel();
         View root = getView();
         if (root != null) {
@@ -1051,19 +1066,20 @@ public class MeFragment extends Fragment {
             applyMeInitialsAvatar();
             return;
         }
+        String cacheBustedPhotoUrl = withCacheBuster(photoPath);
+        String cacheBustedFallbackUrl = cdnToOriginUrl(cacheBustedPhotoUrl);
         ivPhoto.setBackgroundResource(R.drawable.me_avatar_ring);
         String name = tvName.getText() != null ? tvName.getText().toString() : "";
         String email = tvEmail.getText() != null ? tvEmail.getText().toString() : "";
         String initials = ProfileInitialsAvatar.initialsFrom(name, email, sessionManager.getUserName());
         android.graphics.drawable.Drawable ph = ProfileInitialsAvatar.create(requireContext(), meAvatarSizePx(), initials);
-        String originFallback = cdnToOriginUrl(photoPath);
         Glide.with(this)
-                .load(photoPath)
+                .load(cacheBustedPhotoUrl)
                 .circleCrop()
                 .placeholder(ph)
                 .error(
                         Glide.with(this)
-                                .load(originFallback != null ? originFallback : photoPath)
+                                .load(cacheBustedFallbackUrl != null ? cacheBustedFallbackUrl : cacheBustedPhotoUrl)
                                 .circleCrop()
                                 .placeholder(ph)
                                 .error(ph)
@@ -1075,5 +1091,17 @@ public class MeFragment extends Fragment {
         if (url == null) return null;
         if (!url.contains(".cdn.digitaloceanspaces.com")) return null;
         return url.replace(".cdn.digitaloceanspaces.com", ".digitaloceanspaces.com");
+    }
+
+    /**
+     * Some backends keep the same photo path after overwrite; bump the query string
+     * so Glide does not serve stale disk/memory cached content.
+     */
+    private String withCacheBuster(String url) {
+        if (url == null || url.trim().isEmpty()) {
+            return url;
+        }
+        String sep = url.contains("?") ? "&" : "?";
+        return url + sep + "v=" + DataRefreshBus.currentVersion();
     }
 }

@@ -228,7 +228,7 @@
     <string name="label_discount_cart"> (10% off!) </string>
     <string name="label_discount_applied">Discount Applied</string>
     <string name="checkout_loyalty_title">Loyalty</string>
-    <string name="checkout_loyalty_balance">Your balance: %1$s pts</string>
+    <string name="checkout_loyalty_balance">Your points: %1$s pts</string>
     <string name="checkout_loyalty_use_tier">Redeem your %1$s benefit: %2$.0f%% off this order for %3$s points.</string>
     <string name="checkout_loyalty_auto_tier">%1$s tier benefit is automatically applied: %2$.0f%% off this order.</string>
     <string name="checkout_redeem_points_button">Redeem (%1$s pts)</string>
@@ -294,6 +294,9 @@
     <string name="btn_save">Save</string>
     <string name="btn_cancel">Cancel</string>
     <string name="profile_saved">Profile saved.</string>
+    <string name="profile_account_update_failed">Could not update sign-in details. Please try again.</string>
+    <string name="profile_account_forbidden">You are not allowed to change these sign-in details.</string>
+    <string name="profile_account_server_error">Server error while updating sign-in. Try again later.</string>
     <string name="password_changed">Password updated successfully.</string>
     <string name="error_user_not_found">User not found</string>
     <string name="change_password_title">Change password</string>
