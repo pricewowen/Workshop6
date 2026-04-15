@@ -13,9 +13,10 @@
         android:id="@+id/text_avatar_initial"
         android:layout_width="28dp"
         android:layout_height="28dp"
-        android:layout_marginBottom="16dp"
+        android:layout_gravity="center_vertical"
         android:background="@drawable/bg_avatar_circle"
         android:gravity="center"
+        android:includeFontPadding="false"
         android:textColor="@color/bakery_text_light"
         android:textSize="13sp"
         android:textStyle="bold" />
