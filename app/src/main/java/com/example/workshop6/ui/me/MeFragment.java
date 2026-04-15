@@ -45,6 +45,7 @@ import com.example.workshop6.ui.profile.CustomerProfileSetupActivity;
 import com.example.workshop6.ui.profile.EditProfileActivity;
 import com.example.workshop6.util.NavTransitions;
 import com.example.workshop6.util.ProfileInitialsAvatar;
+import com.example.workshop6.util.ProfilePhotoCache;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.textfield.TextInputEditText;
@@ -1061,13 +1062,16 @@ public class MeFragment extends Fragment {
         String initials = ProfileInitialsAvatar.initialsFrom(name, email, sessionManager.getUserName());
         android.graphics.drawable.Drawable ph = ProfileInitialsAvatar.create(requireContext(), meAvatarSizePx(), initials);
         String originFallback = cdnToOriginUrl(photoPath);
+        com.bumptech.glide.signature.ObjectKey sig = ProfilePhotoCache.signature(requireContext());
         Glide.with(this)
                 .load(photoPath)
+                .signature(sig)
                 .circleCrop()
                 .placeholder(ph)
                 .error(
                         Glide.with(this)
                                 .load(originFallback != null ? originFallback : photoPath)
+                                .signature(sig)
                                 .circleCrop()
                                 .placeholder(ph)
                                 .error(ph)

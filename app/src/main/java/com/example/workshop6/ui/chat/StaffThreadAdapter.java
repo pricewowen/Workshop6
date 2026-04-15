@@ -29,11 +29,23 @@ public class StaffThreadAdapter extends RecyclerView.Adapter<StaffThreadAdapter.
 
     private final OnThreadClickListener listener;
     private final String viewerRole;
+    private final String currentUserUuid;
+    private final java.util.Set<String> seenAssignedThreadIds;
     private List<ChatThreadDto> threads = new ArrayList<>();
 
-    public StaffThreadAdapter(String viewerRole, OnThreadClickListener listener) {
+    public StaffThreadAdapter(String viewerRole,
+                              String currentUserUuid,
+                              java.util.Set<String> seenAssignedThreadIds,
+                              OnThreadClickListener listener) {
         this.viewerRole = viewerRole != null ? viewerRole : "";
+        this.currentUserUuid = currentUserUuid != null ? currentUserUuid : "";
+        this.seenAssignedThreadIds = seenAssignedThreadIds != null
+                ? seenAssignedThreadIds : new java.util.HashSet<>();
         this.listener = listener;
+    }
+
+    public java.util.Set<String> getSeenAssignedThreadIds() {
+        return seenAssignedThreadIds;
     }
 
     public void setThreads(List<ChatThreadDto> threads) {
@@ -60,13 +72,14 @@ public class StaffThreadAdapter extends RecyclerView.Adapter<StaffThreadAdapter.
         return threads.size();
     }
 
-    static class ThreadViewHolder extends RecyclerView.ViewHolder {
+    class ThreadViewHolder extends RecyclerView.ViewHolder {
         private final TextView textCustomerName;
         private final TextView textLastMessage;
         private final TextView textThreadMeta;
         private final TextView avatar;
         private final TextView time;
         private final View unreadDot;
+        private final TextView pillAssignedToYou;
 
         public ThreadViewHolder(@NonNull View itemView) {
             super(itemView);
@@ -76,9 +89,11 @@ public class StaffThreadAdapter extends RecyclerView.Adapter<StaffThreadAdapter.
             avatar = itemView.findViewById(R.id.avatar_thread);
             time = itemView.findViewById(R.id.text_time);
             unreadDot = itemView.findViewById(R.id.unread_dot);
+            pillAssignedToYou = itemView.findViewById(R.id.pill_assigned_to_you);
         }
 
         void bind(ChatThreadDto item, String viewerRole, OnThreadClickListener listener) {
+            bindAssignedPill(item);
             String title = buildTitle(item, viewerRole);
             textCustomerName.setText(title);
             textLastMessage.setText(firstNonBlank(item.latestMessagePreview, "No messages yet"));
@@ -88,7 +103,23 @@ public class StaffThreadAdapter extends RecyclerView.Adapter<StaffThreadAdapter.
             bindTime(item.latestMessageAt);
             bindUnreadDot(item);
 
-            itemView.setOnClickListener(v -> listener.onThreadClick(item));
+            itemView.setOnClickListener(v -> {
+                if (item.id != null) {
+                    seenAssignedThreadIds.add(String.valueOf(item.id));
+                    notifyItemChanged(getBindingAdapterPosition());
+                }
+                listener.onThreadClick(item);
+            });
+        }
+
+        private void bindAssignedPill(ChatThreadDto item) {
+            if (pillAssignedToYou == null) return;
+            boolean mine = !currentUserUuid.isEmpty()
+                    && item.employeeUserId != null
+                    && currentUserUuid.equalsIgnoreCase(item.employeeUserId);
+            String threadKey = item.id != null ? String.valueOf(item.id) : null;
+            boolean unseen = threadKey != null && !seenAssignedThreadIds.contains(threadKey);
+            pillAssignedToYou.setVisibility(mine && unseen ? View.VISIBLE : View.GONE);
         }
 
         private String buildAvatarInitial(ChatThreadDto item) {

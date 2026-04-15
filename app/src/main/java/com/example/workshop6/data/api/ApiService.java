@@ -12,6 +12,7 @@ import com.example.workshop6.data.api.dto.DeactivateAccountRequest;
 import com.example.workshop6.data.api.dto.CheckoutRequest;
 import com.example.workshop6.data.api.dto.CheckoutSessionResponse;
 import com.example.workshop6.data.api.dto.ConfirmStripePaymentRequest;
+import com.example.workshop6.data.api.dto.CreateThreadRequest;
 import com.example.workshop6.data.api.dto.CustomerBootstrapRequest;
 import com.example.workshop6.data.api.dto.CustomerDto;
 import com.example.workshop6.data.api.dto.CustomerPatchRequest;
@@ -181,7 +182,7 @@ public interface ApiService {
     Call<ChatThreadDto> getMyOpenChatThread();
 
     @POST("api/v1/chat/threads")
-    Call<ChatThreadDto> createChatThread();
+    Call<ChatThreadDto> createChatThread(@retrofit2.http.Body CreateThreadRequest body);
 
     @GET("api/v1/chat/threads/{threadId}/messages")
     Call<List<ChatMessageDto>> getChatMessages(@Path("threadId") int threadId);

@@ -40,6 +40,9 @@ public class StaffChatInboxFragment extends Fragment {
     private Button buttonNewChat;
     private StaffThreadAdapter adapter;
 
+    private static final String PREFS_SEEN = "chat_assigned_seen";
+    private static final String KEY_SEEN = "seen";
+
     private SessionManager sessionManager;
     private ApiService api;
 
@@ -99,7 +102,12 @@ public class StaffChatInboxFragment extends Fragment {
             textInboxSubtitle.setText(R.string.chat_inbox_subtitle_staff);
         }
 
-        adapter = new StaffThreadAdapter(role, item -> {
+        android.content.SharedPreferences seenPrefs =
+                requireContext().getSharedPreferences(PREFS_SEEN, android.content.Context.MODE_PRIVATE);
+        java.util.Set<String> seenSet = new java.util.HashSet<>(
+                seenPrefs.getStringSet(KEY_SEEN, new java.util.HashSet<>()));
+
+        adapter = new StaffThreadAdapter(role, sessionManager.getUserUuid(), seenSet, item -> {
             if (isCustomer) {
                 launchChat(item);
                 return;
@@ -132,6 +140,12 @@ public class StaffChatInboxFragment extends Fragment {
     public void onPause() {
         super.onPause();
         handler.removeCallbacks(refreshRunnable);
+        if (adapter != null) {
+            requireContext().getSharedPreferences(PREFS_SEEN, android.content.Context.MODE_PRIVATE)
+                    .edit()
+                    .putStringSet(KEY_SEEN, new java.util.HashSet<>(adapter.getSeenAssignedThreadIds()))
+                    .apply();
+        }
     }
 
     private void loadThreads() {
@@ -176,43 +190,63 @@ public class StaffChatInboxFragment extends Fragment {
                 if (!isAdded()) {
                     return;
                 }
-                if (response.isSuccessful() && response.body() != null && response.body().id != null) {
-                    Toast.makeText(requireContext(), R.string.chat_open_existing_thread, Toast.LENGTH_SHORT).show();
-                    launchChat(response.body());
-                    return;
-                }
-                createFreshChatThread();
+                ChatThreadDto existing = (response.isSuccessful()
+                        && response.body() != null
+                        && response.body().id != null)
+                        ? response.body() : null;
+                showTopicPicker(existing);
             }
 
             @Override
             public void onFailure(Call<ChatThreadDto> call, Throwable t) {
-                createFreshChatThread();
+                if (!isAdded()) {
+                    return;
+                }
+                showTopicPicker(null);
             }
         });
     }
 
-    private void createFreshChatThread() {
-        api.createChatThread().enqueue(new Callback<ChatThreadDto>() {
+    private void showTopicPicker(ChatThreadDto existing) {
+        TopicPickerDialogFragment picker = TopicPickerDialogFragment.newInstance(existing);
+        picker.setListener(new TopicPickerDialogFragment.Listener() {
             @Override
-            public void onResponse(Call<ChatThreadDto> call, Response<ChatThreadDto> response) {
-                if (!isAdded()) {
-                    return;
-                }
-                if (response.isSuccessful() && response.body() != null && response.body().id != null) {
-                    launchChat(response.body());
-                    return;
-                }
-                Toast.makeText(requireContext(), R.string.login_error_no_connection, Toast.LENGTH_SHORT).show();
+            public void onTopicPicked(String category) {
+                createFreshChatThread(category);
             }
 
             @Override
-            public void onFailure(Call<ChatThreadDto> call, Throwable t) {
-                if (!isAdded()) {
-                    return;
-                }
-                Toast.makeText(requireContext(), R.string.login_error_no_connection, Toast.LENGTH_SHORT).show();
+            public void onResumeExisting(ChatThreadDto existingThread) {
+                if (!isAdded()) return;
+                Toast.makeText(requireContext(), R.string.chat_open_existing_thread,
+                        Toast.LENGTH_SHORT).show();
+                launchChat(existingThread);
             }
         });
+        picker.show(getParentFragmentManager(), "TopicPicker");
+    }
+
+    private void createFreshChatThread(String category) {
+        api.createChatThread(new com.example.workshop6.data.api.dto.CreateThreadRequest(category))
+                .enqueue(new Callback<ChatThreadDto>() {
+                    @Override
+                    public void onResponse(Call<ChatThreadDto> call, Response<ChatThreadDto> response) {
+                        if (!isAdded()) return;
+                        if (response.isSuccessful() && response.body() != null && response.body().id != null) {
+                            launchChat(response.body());
+                            return;
+                        }
+                        Toast.makeText(requireContext(), R.string.login_error_no_connection,
+                                Toast.LENGTH_SHORT).show();
+                    }
+
+                    @Override
+                    public void onFailure(Call<ChatThreadDto> call, Throwable t) {
+                        if (!isAdded()) return;
+                        Toast.makeText(requireContext(), R.string.login_error_no_connection,
+                                Toast.LENGTH_SHORT).show();
+                    }
+                });
     }
 
     private void hydrateThreadPreviews(List<ChatThreadDto> threads) {

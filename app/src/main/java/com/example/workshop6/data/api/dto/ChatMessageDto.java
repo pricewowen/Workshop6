@@ -11,4 +11,6 @@ public class ChatMessageDto {
     public String text;
     public String sentAt;
     public boolean read;
+    @SerializedName("isSystem")
+    public boolean isSystem;
 }

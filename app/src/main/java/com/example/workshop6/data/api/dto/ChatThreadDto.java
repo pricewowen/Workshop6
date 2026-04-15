@@ -15,6 +15,8 @@ public class ChatThreadDto {
     @SerializedName("employeeUserId")
     public String employeeUserId;
     public String status;
+    @SerializedName("category")
+    public String category;
     public String createdAt;
     public String updatedAt;
 

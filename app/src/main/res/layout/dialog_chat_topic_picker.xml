@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@color/bakery_background"
+    android:orientation="vertical"
+    android:padding="20dp">
+
+    <TextView
+        android:id="@+id/text_topic_picker_title"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/chat_topic_picker_title"
+        android:textColor="@color/bakery_primary"
+        android:textSize="18sp"
+        android:textStyle="bold" />
+
+    <LinearLayout
+        android:id="@+id/group_resume_existing"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        android:background="@android:color/transparent"
+        android:orientation="vertical"
+        android:visibility="gone">
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/chat_topic_picker_resume_header"
+            android:textColor="@color/bakery_primary"
+            android:textSize="12sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/text_resume_category"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:textColor="@color/bakery_primary"
+            android:textSize="14sp"
+            android:textStyle="bold" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/button_resume_existing"
+            style="@style/Widget.MaterialComponents.Button.TextButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:text="@string/chat_topic_picker_resume_button"
+            android:textAllCaps="false"
+            android:textColor="@color/bakery_gold" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="@string/chat_topic_or_start_new"
+            android:textColor="@color/bakery_primary"
+            android:textSize="12sp" />
+    </LinearLayout>
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/button_topic_general"
+        style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        android:text="@string/chat_topic_general"
+        android:textAllCaps="false"
+        android:textColor="@color/bakery_primary"
+        app:strokeColor="@color/bakery_gold" />
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/button_topic_order_issue"
+        style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:text="@string/chat_topic_order_issue"
+        android:textAllCaps="false"
+        android:textColor="@color/bakery_primary"
+        app:strokeColor="@color/bakery_gold" />
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/button_topic_account_help"
+        style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:text="@string/chat_topic_account_help"
+        android:textAllCaps="false"
+        android:textColor="@color/bakery_primary"
+        app:strokeColor="@color/bakery_gold" />
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/button_topic_feedback"
+        style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:text="@string/chat_topic_feedback"
+        android:textAllCaps="false"
+        android:textColor="@color/bakery_primary"
+        app:strokeColor="@color/bakery_gold" />
+</LinearLayout>

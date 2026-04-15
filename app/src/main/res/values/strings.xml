@@ -540,4 +540,14 @@
     <string name="me_bakery_loading">Bakery: Loading...</string>
     <string name="me_position_label">Position: %1$s</string>
     <string name="chat_typing">typing…</string>
+    <string name="chat_topic_picker_title">How can we help you today?</string>
+    <string name="chat_topic_picker_resume_header">Previous conversation</string>
+    <string name="chat_topic_picker_resume_button">Resume conversation</string>
+    <string name="chat_topic_general">General Support</string>
+    <string name="chat_topic_order_issue">Order Issue</string>
+    <string name="chat_topic_account_help">Account Help</string>
+    <string name="chat_topic_feedback">Feedback</string>
+    <string name="chat_topic_or_start_new">Or start a new one:</string>
+    <string name="chat_assigned_to_you">Assigned to you</string>
+    <string name="chat_system_no_staff_online">No staff online right now, we\'ll respond as soon as possible.</string>
 </resources>

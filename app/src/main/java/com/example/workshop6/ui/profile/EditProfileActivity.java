@@ -44,6 +44,7 @@ import com.example.workshop6.logging.ActivityLogger;
 import com.example.workshop6.ui.MainActivity;
 import com.example.workshop6.util.ImageUtils;
 import com.example.workshop6.util.ProfileInitialsAvatar;
+import com.example.workshop6.util.ProfilePhotoCache;
 import com.example.workshop6.util.NavTransitions;
 import com.example.workshop6.util.PhoneFormatTextWatcher;
 import com.example.workshop6.util.PostalCodeFormatTextWatcher;
@@ -937,6 +938,7 @@ public class EditProfileActivity extends AppCompatActivity {
                     return;
                 }
                 selectedPhotoUri = null;
+                ProfilePhotoCache.touch(EditProfileActivity.this);
                 ActivityLogger.log(EditProfileActivity.this, sessionManager, "UPDATE_PROFILE", "Profile photo uploaded");
                 Toast.makeText(getApplicationContext(), R.string.profile_saved, Toast.LENGTH_SHORT).show();
                 Intent intent = new Intent(EditProfileActivity.this, MainActivity.class);
@@ -1050,13 +1052,16 @@ public class EditProfileActivity extends AppCompatActivity {
                 this, profileAvatarInnerPx(),
                 ProfileInitialsAvatar.initialsFrom(name, email, sessionManager.getUserName()));
         String originFallback = cdnToOriginUrl(photoPath);
+        com.bumptech.glide.signature.ObjectKey sig = ProfilePhotoCache.signature(this);
         Glide.with(this)
                 .load(photoPath)
+                .signature(sig)
                 .circleCrop()
                 .placeholder(ph)
                 .error(
                         Glide.with(this)
                                 .load(originFallback != null ? originFallback : photoPath)
+                                .signature(sig)
                                 .circleCrop()
                                 .placeholder(ph)
                                 .error(ph)

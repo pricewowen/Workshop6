@@ -342,19 +342,24 @@ public class ChatActivity extends AppCompatActivity {
 
     private void claimThread() {
         if (threadId == -1) return;
+        buttonStaffClaim.setEnabled(false);
         api.assignChatThread(threadId).enqueue(new Callback<ChatThreadDto>() {
             @Override
             public void onResponse(Call<ChatThreadDto> call, Response<ChatThreadDto> response) {
                 if (isFinishing()) return;
-                int msg = response.isSuccessful()
-                        ? R.string.chat_staff_claim_success
-                        : R.string.chat_staff_claim_failed;
-                Toast.makeText(ChatActivity.this, msg, Toast.LENGTH_SHORT).show();
+                if (response.isSuccessful()) {
+                    buttonStaffClaim.setVisibility(View.GONE);
+                    Toast.makeText(ChatActivity.this, R.string.chat_staff_claim_success, Toast.LENGTH_SHORT).show();
+                } else {
+                    buttonStaffClaim.setEnabled(true);
+                    Toast.makeText(ChatActivity.this, R.string.chat_staff_claim_failed, Toast.LENGTH_SHORT).show();
+                }
             }
 
             @Override
             public void onFailure(Call<ChatThreadDto> call, Throwable t) {
                 if (isFinishing()) return;
+                buttonStaffClaim.setEnabled(true);
                 Toast.makeText(ChatActivity.this, R.string.chat_staff_claim_failed, Toast.LENGTH_SHORT).show();
             }
         });
@@ -362,10 +367,12 @@ public class ChatActivity extends AppCompatActivity {
 
     private void markReadExplicit() {
         if (threadId == -1) return;
+        buttonStaffMarkRead.setEnabled(false);
         api.markChatThreadRead(threadId).enqueue(new Callback<Void>() {
             @Override
             public void onResponse(Call<Void> call, Response<Void> response) {
                 if (isFinishing()) return;
+                buttonStaffMarkRead.setEnabled(true);
                 int msg = response.isSuccessful()
                         ? R.string.chat_staff_mark_read_success
                         : R.string.chat_staff_mark_read_failed;
@@ -375,6 +382,7 @@ public class ChatActivity extends AppCompatActivity {
             @Override
             public void onFailure(Call<Void> call, Throwable t) {
                 if (isFinishing()) return;
+                buttonStaffMarkRead.setEnabled(true);
                 Toast.makeText(ChatActivity.this, R.string.chat_staff_mark_read_failed, Toast.LENGTH_SHORT).show();
             }
         });

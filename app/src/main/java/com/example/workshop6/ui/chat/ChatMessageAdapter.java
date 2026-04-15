@@ -24,6 +24,7 @@ public class ChatMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHo
 
     private static final int TYPE_SENT = 1;
     private static final int TYPE_RECEIVED = 2;
+    private static final int TYPE_SYSTEM = 3;
 
     private final String currentUserUuid;
     private List<ChatMessageDto> messages = new ArrayList<>();
@@ -53,6 +54,9 @@ public class ChatMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHo
     @Override
     public int getItemViewType(int position) {
         ChatMessageDto message = messages.get(position);
+        if (message.isSystem) {
+            return TYPE_SYSTEM;
+        }
         boolean sent = currentUserUuid != null
                 && message.senderUserId != null
                 && Objects.equals(message.senderUserId, currentUserUuid);
@@ -69,20 +73,25 @@ public class ChatMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHo
     public RecyclerView.ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
         LayoutInflater inflater = LayoutInflater.from(parent.getContext());
 
+        if (viewType == TYPE_SYSTEM) {
+            View view = inflater.inflate(R.layout.item_chat_message_system, parent, false);
+            return new SystemMessageViewHolder(view);
+        }
         if (viewType == TYPE_SENT) {
             View view = inflater.inflate(R.layout.item_chat_message_sent, parent, false);
             return new SentMessageViewHolder(view);
-        } else {
-            View view = inflater.inflate(R.layout.item_chat_message_received, parent, false);
-            return new ReceivedMessageViewHolder(view);
         }
+        View view = inflater.inflate(R.layout.item_chat_message_received, parent, false);
+        return new ReceivedMessageViewHolder(view);
     }
 
     @Override
     public void onBindViewHolder(@NonNull RecyclerView.ViewHolder holder, int position) {
         ChatMessageDto message = messages.get(position);
 
-        if (holder instanceof SentMessageViewHolder) {
+        if (holder instanceof SystemMessageViewHolder) {
+            ((SystemMessageViewHolder) holder).bind(message);
+        } else if (holder instanceof SentMessageViewHolder) {
             ((SentMessageViewHolder) holder).bind(message);
         } else if (holder instanceof ReceivedMessageViewHolder) {
             ((ReceivedMessageViewHolder) holder).bind(message);
@@ -158,6 +167,19 @@ public class ChatMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHo
             String t = formatSentAt(message.sentAt);
             textTime.setText(t);
             textTime.setVisibility(t.isEmpty() ? View.GONE : View.VISIBLE);
+        }
+    }
+
+    static class SystemMessageViewHolder extends RecyclerView.ViewHolder {
+        private final TextView textMessage;
+
+        public SystemMessageViewHolder(@NonNull View itemView) {
+            super(itemView);
+            textMessage = itemView.findViewById(R.id.text_message);
+        }
+
+        void bind(ChatMessageDto message) {
+            textMessage.setText(message.text != null ? message.text : "");
         }
     }
 }
