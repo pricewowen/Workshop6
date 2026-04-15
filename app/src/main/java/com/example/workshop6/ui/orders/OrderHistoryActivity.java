@@ -248,7 +248,7 @@ public class OrderHistoryActivity extends AppCompatActivity implements OrderHist
 
     private void loadOrders() {
         if (sessionManager.getUserUuid().isEmpty() && sessionManager.getUserId() <= 0) {
-            Toast.makeText(this, "User not logged in", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, R.string.toast_sign_in_required, Toast.LENGTH_SHORT).show();
             finish();
             NavTransitions.applyBackwardPending(this);
             return;

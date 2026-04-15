@@ -546,7 +546,7 @@ public class CheckoutActivity extends AppCompatActivity {
                 bakeryId = bakeryList.get(0).id;
             }
             if (bakeryId <= 0) {
-                Toast.makeText(this, "Please wait while bakeries load", Toast.LENGTH_SHORT).show();
+                Toast.makeText(this, R.string.toast_wait_bakeries, Toast.LENGTH_SHORT).show();
                 return;
             }
             fetchBakeryHoursAndShowPicker(bakeryId);
@@ -1262,14 +1262,14 @@ public class CheckoutActivity extends AppCompatActivity {
                 runOnUiThread(() -> btnSelectTime.setEnabled(true));
                 if (!response.isSuccessful() || response.body() == null) {
                     runOnUiThread(() -> Toast.makeText(CheckoutActivity.this,
-                            "Could not load bakery hours", Toast.LENGTH_SHORT).show());
+                            R.string.toast_bakery_hours_failed, Toast.LENGTH_SHORT).show());
                     return;
                 }
                 List<List<Calendar>> slots = buildSlots(response.body());
                 runOnUiThread(() -> {
                     if (slots.isEmpty()) {
                         Toast.makeText(CheckoutActivity.this,
-                                "No available time slots in the next two weeks",
+                                R.string.toast_no_pickup_slots,
                                 Toast.LENGTH_LONG).show();
                         return;
                     }
@@ -1282,7 +1282,7 @@ public class CheckoutActivity extends AppCompatActivity {
                 runOnUiThread(() -> {
                     btnSelectTime.setEnabled(true);
                     Toast.makeText(CheckoutActivity.this,
-                            "Could not load bakery hours", Toast.LENGTH_SHORT).show();
+                            R.string.toast_bakery_hours_failed, Toast.LENGTH_SHORT).show();
                 });
             }
         });

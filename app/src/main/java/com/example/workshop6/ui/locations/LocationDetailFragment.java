@@ -18,12 +18,13 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 import androidx.navigation.Navigation;
+
+import com.example.workshop6.R;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.bumptech.glide.Glide;
 import com.bumptech.glide.request.RequestOptions;
-import com.example.workshop6.R;
 import com.example.workshop6.data.api.ApiClient;
 import com.example.workshop6.data.api.ApiService;
 import com.example.workshop6.data.api.BakeryLocationMapper;
@@ -41,9 +42,10 @@ import com.example.workshop6.ui.products.ReviewAdapter;
 import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.chip.Chip;
-import com.google.android.material.chip.ChipGroup;
 import com.example.workshop6.util.LocationUtils;
+import com.example.workshop6.util.ReviewNav;
 import com.example.workshop6.util.ProductReviewListHelper;
+import com.example.workshop6.util.ReviewFilterPillUi;
 import com.example.workshop6.util.ReviewModerationUi;
 
 import java.util.ArrayList;
@@ -94,11 +96,20 @@ public class LocationDetailFragment extends Fragment {
     private TextView tvBakeryReviewsEmpty;
     private RecyclerView rvBakeryReviews;
     private View hsvBakeryReviewFilters;
-    private ChipGroup chipGroupBakeryReviewFilter;
+    @Nullable
+    private TextView tvBakeryReviewFilterAll;
+    @Nullable
+    private TextView tvBakeryReviewFilterVerified;
+    @Nullable
+    private TextView tvBakeryReviewFilterPurchased;
+    private int bakeryReviewFilterCheckedId = R.id.tv_bakery_review_filter_all;
     @Nullable
     private List<ReviewDto> bakeryReviewsApprovedAll;
     @Nullable
     private ReviewAdapter bakeryReviewAdapter;
+    /** Bakery display name for review detail toolbar (reviewer - location). */
+    @NonNull
+    private String bakeryNameForReviewHeader = "";
 
     @Nullable
     @Override
@@ -154,19 +165,29 @@ public class LocationDetailFragment extends Fragment {
         tvBakeryReviewsEmpty = view.findViewById(R.id.tv_bakery_reviews_empty);
         rvBakeryReviews = view.findViewById(R.id.rv_bakery_reviews);
         hsvBakeryReviewFilters = view.findViewById(R.id.hsv_bakery_review_filters);
-        chipGroupBakeryReviewFilter = view.findViewById(R.id.chip_group_bakery_review_filter);
+        tvBakeryReviewFilterAll = view.findViewById(R.id.tv_bakery_review_filter_all);
+        tvBakeryReviewFilterVerified = view.findViewById(R.id.tv_bakery_review_filter_verified);
+        tvBakeryReviewFilterPurchased = view.findViewById(R.id.tv_bakery_review_filter_purchased);
         if (rvBakeryReviews != null && rvBakeryReviews.getLayoutManager() == null) {
             rvBakeryReviews.setLayoutManager(
                     new LinearLayoutManager(requireContext(), LinearLayoutManager.HORIZONTAL, false));
             rvBakeryReviews.setNestedScrollingEnabled(false);
             rvBakeryReviews.setHasFixedSize(true);
         }
-        if (chipGroupBakeryReviewFilter != null) {
-            chipGroupBakeryReviewFilter.setOnCheckedStateChangeListener((group, checkedIds) -> {
-                if (isAdded() && bakeryReviewsApprovedAll != null) {
-                    applyBakeryReviewFilter();
+        if (tvBakeryReviewFilterAll != null
+                && tvBakeryReviewFilterVerified != null
+                && tvBakeryReviewFilterPurchased != null) {
+            View.OnClickListener pillClick = v -> {
+                if (!isAdded() || bakeryReviewsApprovedAll == null) {
+                    return;
                 }
-            });
+                bakeryReviewFilterCheckedId = v.getId();
+                applyBakeryReviewFilterPillStyles();
+                applyBakeryReviewFilter();
+            };
+            tvBakeryReviewFilterAll.setOnClickListener(pillClick);
+            tvBakeryReviewFilterVerified.setOnClickListener(pillClick);
+            tvBakeryReviewFilterPurchased.setOnClickListener(pillClick);
         }
 
         MaterialButton btnLeaveBakeryReview = view.findViewById(R.id.btn_leave_bakery_review);
@@ -431,22 +452,44 @@ public class LocationDetailFragment extends Fragment {
             if (hsvBakeryReviewFilters != null) {
                 hsvBakeryReviewFilters.setVisibility(View.VISIBLE);
             }
-            if (chipGroupBakeryReviewFilter != null) {
-                chipGroupBakeryReviewFilter.check(R.id.chip_bakery_review_all);
-            }
+            bakeryReviewFilterCheckedId = R.id.tv_bakery_review_filter_all;
+            applyBakeryReviewFilterPillStyles();
         }
         applyBakeryReviewFilter();
     }
 
+    private void applyBakeryReviewFilterPillStyles() {
+        if (tvBakeryReviewFilterAll == null
+                || tvBakeryReviewFilterVerified == null
+                || tvBakeryReviewFilterPurchased == null) {
+            return;
+        }
+        if (bakeryReviewFilterCheckedId == R.id.tv_bakery_review_filter_verified) {
+            ReviewFilterPillUi.setSelected(
+                    tvBakeryReviewFilterVerified,
+                    tvBakeryReviewFilterAll,
+                    tvBakeryReviewFilterPurchased);
+        } else if (bakeryReviewFilterCheckedId == R.id.tv_bakery_review_filter_purchased) {
+            ReviewFilterPillUi.setSelected(
+                    tvBakeryReviewFilterPurchased,
+                    tvBakeryReviewFilterAll,
+                    tvBakeryReviewFilterVerified);
+        } else {
+            ReviewFilterPillUi.setSelected(
+                    tvBakeryReviewFilterAll,
+                    tvBakeryReviewFilterVerified,
+                    tvBakeryReviewFilterPurchased);
+        }
+    }
+
     private ProductReviewListHelper.ReviewBadgeFilter resolveBakeryReviewFilter() {
-        if (chipGroupBakeryReviewFilter == null) {
+        if (tvBakeryReviewFilterAll == null) {
             return ProductReviewListHelper.ReviewBadgeFilter.ALL;
         }
-        int id = chipGroupBakeryReviewFilter.getCheckedChipId();
-        if (id == R.id.chip_bakery_review_verified) {
+        if (bakeryReviewFilterCheckedId == R.id.tv_bakery_review_filter_verified) {
             return ProductReviewListHelper.ReviewBadgeFilter.VERIFIED;
         }
-        if (id == R.id.chip_bakery_review_purchased) {
+        if (bakeryReviewFilterCheckedId == R.id.tv_bakery_review_filter_purchased) {
             return ProductReviewListHelper.ReviewBadgeFilter.PURCHASED;
         }
         return ProductReviewListHelper.ReviewBadgeFilter.ALL;
@@ -489,6 +532,10 @@ public class LocationDetailFragment extends Fragment {
         rvBakeryReviews.setVisibility(View.VISIBLE);
         if (bakeryReviewAdapter == null) {
             bakeryReviewAdapter = new ReviewAdapter(filtered);
+            bakeryReviewAdapter.setOnReviewSelectedListener(review ->
+                    Navigation.findNavController(requireView()).navigate(
+                            R.id.action_location_to_review_detail,
+                            ReviewNav.bundle(review, bakeryNameForReviewHeader)));
             rvBakeryReviews.setAdapter(bakeryReviewAdapter);
         } else {
             bakeryReviewAdapter.replaceReviews(filtered);
@@ -501,6 +548,9 @@ public class LocationDetailFragment extends Fragment {
         mainHandler.removeCallbacks(hideLocationLoadingRunnable);
         bakeryReviewsApprovedAll = null;
         bakeryReviewAdapter = null;
+        tvBakeryReviewFilterAll = null;
+        tvBakeryReviewFilterVerified = null;
+        tvBakeryReviewFilterPurchased = null;
         super.onDestroyView();
     }
 
@@ -630,6 +680,7 @@ public class LocationDetailFragment extends Fragment {
 
     private void populateDetail(View view, BakeryLocationDetails loc) {
         MaterialToolbar toolbar = view.findViewById(R.id.toolbar_detail);
+        bakeryNameForReviewHeader = loc.name != null ? loc.name.trim() : "";
         toolbar.setTitle(loc.name);
 
         ImageView ivHero = view.findViewById(R.id.iv_hero);

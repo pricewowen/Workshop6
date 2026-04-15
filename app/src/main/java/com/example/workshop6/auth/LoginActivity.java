@@ -30,6 +30,7 @@ import com.example.workshop6.util.ApiReachability;
 import com.example.workshop6.util.NavTransitions;
 import com.example.workshop6.util.NetworkStatus;
 import com.example.workshop6.util.Validation;
+import com.google.android.material.button.MaterialButton;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.textfield.TextInputEditText;
 import com.google.android.material.textfield.TextInputLayout;
@@ -434,6 +435,47 @@ public class LoginActivity extends AppCompatActivity {
             String lockoutIdentifier,
             String password,
             LoginRoleChoiceErrorBody body) {
+        String msg = (body.message != null && !body.message.trim().isEmpty())
+                ? body.message.trim()
+                : getString(R.string.login_role_choice_body);
+
+        LoginRoleChoiceErrorBody.Choice employeeChoice = findLinkedLoginChoiceByRole(body.choices, "employee");
+        LoginRoleChoiceErrorBody.Choice customerChoice = findLinkedLoginChoiceByRole(body.choices, "customer");
+
+        if (employeeChoice != null
+                && customerChoice != null
+                && hasUsername(employeeChoice)
+                && hasUsername(customerChoice)) {
+            View custom = LayoutInflater.from(this).inflate(R.layout.dialog_login_role_choice, null);
+            TextView tvMsg = custom.findViewById(R.id.tv_login_role_choice_message);
+            tvMsg.setText(msg);
+            MaterialButton btnEmployee = custom.findViewById(R.id.btn_role_employee);
+            MaterialButton btnCustomer = custom.findViewById(R.id.btn_role_customer);
+            MaterialButton btnCancel = custom.findViewById(R.id.btn_role_cancel);
+            AlertDialog dialog = new MaterialAlertDialogBuilder(this)
+                    .setTitle(R.string.login_role_choice_title)
+                    .setView(custom)
+                    .create();
+            btnEmployee.setOnClickListener(v -> {
+                dialog.dismiss();
+                submitLoginRequest(
+                        LoginRequest.forResolvedUsername(employeeChoice.username.trim(), password),
+                        lockoutIdentifier);
+            });
+            btnCustomer.setOnClickListener(v -> {
+                dialog.dismiss();
+                submitLoginRequest(
+                        LoginRequest.forResolvedUsername(customerChoice.username.trim(), password),
+                        lockoutIdentifier);
+            });
+            btnCancel.setOnClickListener(v -> dialog.dismiss());
+            dialog.show();
+            return;
+        }
+
+        MaterialAlertDialogBuilder builder = new MaterialAlertDialogBuilder(this)
+                .setTitle(R.string.login_role_choice_title)
+                .setMessage(msg);
         int n = body.choices.size();
         String[] items = new String[n];
         for (int i = 0; i < n; i++) {
@@ -441,13 +483,7 @@ public class LoginActivity extends AppCompatActivity {
             String label = (c.label != null && !c.label.trim().isEmpty()) ? c.label.trim() : c.role;
             items[i] = label != null ? label : c.username;
         }
-        String msg = (body.message != null && !body.message.trim().isEmpty())
-                ? body.message.trim()
-                : getString(R.string.login_role_choice_body);
-        new MaterialAlertDialogBuilder(this)
-                .setTitle(R.string.login_role_choice_title)
-                .setMessage(msg)
-                .setItems(items, (d, which) -> {
+        builder.setItems(items, (d, which) -> {
                     LoginRoleChoiceErrorBody.Choice chosen = body.choices.get(which);
                     if (chosen != null && chosen.username != null && !chosen.username.trim().isEmpty()) {
                         submitLoginRequest(
@@ -457,6 +493,25 @@ public class LoginActivity extends AppCompatActivity {
                 })
                 .setNegativeButton(android.R.string.cancel, null)
                 .show();
+    }
+
+    private static boolean hasUsername(LoginRoleChoiceErrorBody.Choice c) {
+        return c != null && c.username != null && !c.username.trim().isEmpty();
+    }
+
+    /** Match API {@code role} values: {@code employee}, {@code customer}, etc. */
+    private static LoginRoleChoiceErrorBody.Choice findLinkedLoginChoiceByRole(
+            java.util.List<LoginRoleChoiceErrorBody.Choice> choices,
+            String role) {
+        if (choices == null || role == null) {
+            return null;
+        }
+        for (LoginRoleChoiceErrorBody.Choice c : choices) {
+            if (c != null && c.role != null && role.equalsIgnoreCase(c.role.trim())) {
+                return c;
+            }
+        }
+        return null;
     }
 
     private void goToMain() {

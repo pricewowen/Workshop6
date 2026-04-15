@@ -22,9 +22,11 @@
     <color name="bakery_text_tertiary">#8A8078</color>
     <color name="bakery_divider">#D4CEC7</color>
 
-    <!-- Review list chips (align with web menu) -->
-    <color name="review_badge_verified">#15803D</color>
-    <color name="review_badge_purchased">#B45309</color>
+    <!-- Review pills (product + location lists): mint / peach capsules -->
+    <color name="review_badge_verified_text">#14532D</color>
+    <color name="review_badge_verified_bg">#D1FAE5</color>
+    <color name="review_badge_purchased_text">#9A3412</color>
+    <color name="review_badge_purchased_bg">#FFFBEB</color>
 
     <!-- AI recommendations panel (green — distinct from warm bakery browns/orange) -->
     <color name="ai_recommendations_panel">#DCFCE7</color>

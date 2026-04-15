@@ -18,7 +18,6 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.chip.Chip;
-import com.google.android.material.chip.ChipGroup;
 
 import android.view.LayoutInflater;
 import android.view.View;
@@ -50,7 +49,9 @@ import com.example.workshop6.data.model.Product;
 import com.example.workshop6.ui.MainActivity;
 import com.example.workshop6.ui.cart.CartManager;
 import com.example.workshop6.util.MoneyFormat;
+import com.example.workshop6.util.ReviewNav;
 import com.example.workshop6.util.ProductReviewListHelper;
+import com.example.workshop6.util.ReviewFilterPillUi;
 import com.example.workshop6.util.ProductSpecialState;
 import com.example.workshop6.util.ReviewModerationUi;
 import com.example.workshop6.util.SpecialPriceSpan;
@@ -76,7 +77,7 @@ public class ProductDetailsFragment extends Fragment {
     private TextView tvProductSpecialBadge;
     private TextView tvProductPrice;
     private TextView tvProductDescription;
-    private ChipGroup chipGroupProductTags;
+    private com.google.android.material.chip.ChipGroup chipGroupProductTags;
     private TextView tvQuantity;
     private TextView tvReviewsTitle;
     private TextView tvReviewsEmpty;
@@ -90,7 +91,13 @@ public class ProductDetailsFragment extends Fragment {
 
     private RecyclerView rvReviews;
     private View hsvProductReviewFilters;
-    private ChipGroup chipGroupProductReviewFilter;
+    @Nullable
+    private TextView tvProductReviewFilterAll;
+    @Nullable
+    private TextView tvProductReviewFilterVerified;
+    @Nullable
+    private TextView tvProductReviewFilterPurchased;
+    private int productReviewFilterCheckedId = R.id.tv_product_review_filter_all;
     private View productDetailsLoadingOverlay;
     private View productDetailsContent;
 
@@ -156,19 +163,31 @@ public class ProductDetailsFragment extends Fragment {
         productDetailsContent = view.findViewById(R.id.product_details_content);
 
         rvReviews = view.findViewById(R.id.rvReviews);
+        // Horizontal strip inside a fixed-height frame (same pattern as Available Here) so each
+        // card can use wrap_content height without vertical clipping from NestedScrollView.
         rvReviews.setLayoutManager(
                 new LinearLayoutManager(requireContext(), LinearLayoutManager.HORIZONTAL, false));
         rvReviews.setNestedScrollingEnabled(false);
         rvReviews.setHasFixedSize(true);
 
         hsvProductReviewFilters = view.findViewById(R.id.hsv_product_review_filters);
-        chipGroupProductReviewFilter = view.findViewById(R.id.chip_group_product_review_filter);
-        if (chipGroupProductReviewFilter != null) {
-            chipGroupProductReviewFilter.setOnCheckedStateChangeListener((group, checkedIds) -> {
-                if (isUiReady() && productReviewsApprovedAll != null) {
-                    applyProductReviewFilter();
+        tvProductReviewFilterAll = view.findViewById(R.id.tv_product_review_filter_all);
+        tvProductReviewFilterVerified = view.findViewById(R.id.tv_product_review_filter_verified);
+        tvProductReviewFilterPurchased = view.findViewById(R.id.tv_product_review_filter_purchased);
+        if (tvProductReviewFilterAll != null
+                && tvProductReviewFilterVerified != null
+                && tvProductReviewFilterPurchased != null) {
+            View.OnClickListener pillClick = v -> {
+                if (!isUiReady() || productReviewsApprovedAll == null) {
+                    return;
                 }
-            });
+                productReviewFilterCheckedId = v.getId();
+                applyProductReviewFilterPillStyles();
+                applyProductReviewFilter();
+            };
+            tvProductReviewFilterAll.setOnClickListener(pillClick);
+            tvProductReviewFilterVerified.setOnClickListener(pillClick);
+            tvProductReviewFilterPurchased.setOnClickListener(pillClick);
         }
 
         btnLeaveReview = view.findViewById(R.id.btnLeaveReview);
@@ -627,22 +646,44 @@ public class ProductDetailsFragment extends Fragment {
             if (hsvProductReviewFilters != null) {
                 hsvProductReviewFilters.setVisibility(View.VISIBLE);
             }
-            if (chipGroupProductReviewFilter != null) {
-                chipGroupProductReviewFilter.check(R.id.chip_product_review_all);
-            }
+            productReviewFilterCheckedId = R.id.tv_product_review_filter_all;
+            applyProductReviewFilterPillStyles();
         }
         applyProductReviewFilter();
     }
 
+    private void applyProductReviewFilterPillStyles() {
+        if (tvProductReviewFilterAll == null
+                || tvProductReviewFilterVerified == null
+                || tvProductReviewFilterPurchased == null) {
+            return;
+        }
+        if (productReviewFilterCheckedId == R.id.tv_product_review_filter_verified) {
+            ReviewFilterPillUi.setSelected(
+                    tvProductReviewFilterVerified,
+                    tvProductReviewFilterAll,
+                    tvProductReviewFilterPurchased);
+        } else if (productReviewFilterCheckedId == R.id.tv_product_review_filter_purchased) {
+            ReviewFilterPillUi.setSelected(
+                    tvProductReviewFilterPurchased,
+                    tvProductReviewFilterAll,
+                    tvProductReviewFilterVerified);
+        } else {
+            ReviewFilterPillUi.setSelected(
+                    tvProductReviewFilterAll,
+                    tvProductReviewFilterVerified,
+                    tvProductReviewFilterPurchased);
+        }
+    }
+
     private ProductReviewListHelper.ReviewBadgeFilter resolveProductReviewFilter() {
-        if (chipGroupProductReviewFilter == null) {
+        if (tvProductReviewFilterAll == null) {
             return ProductReviewListHelper.ReviewBadgeFilter.ALL;
         }
-        int id = chipGroupProductReviewFilter.getCheckedChipId();
-        if (id == R.id.chip_product_review_verified) {
+        if (productReviewFilterCheckedId == R.id.tv_product_review_filter_verified) {
             return ProductReviewListHelper.ReviewBadgeFilter.VERIFIED;
         }
-        if (id == R.id.chip_product_review_purchased) {
+        if (productReviewFilterCheckedId == R.id.tv_product_review_filter_purchased) {
             return ProductReviewListHelper.ReviewBadgeFilter.PURCHASED;
         }
         return ProductReviewListHelper.ReviewBadgeFilter.ALL;
@@ -685,6 +726,12 @@ public class ProductDetailsFragment extends Fragment {
         rvReviews.setVisibility(View.VISIBLE);
         if (productReviewAdapter == null) {
             productReviewAdapter = new ReviewAdapter(filtered);
+            productReviewAdapter.setOnReviewSelectedListener(review -> {
+                String productName = loadedProduct != null ? loadedProduct.getProductName() : null;
+                Navigation.findNavController(requireView()).navigate(
+                        R.id.action_product_to_review_detail,
+                        ReviewNav.bundle(review, productName));
+            });
             rvReviews.setAdapter(productReviewAdapter);
         } else {
             productReviewAdapter.replaceReviews(filtered);
@@ -696,6 +743,9 @@ public class ProductDetailsFragment extends Fragment {
     public void onDestroyView() {
         productReviewsApprovedAll = null;
         productReviewAdapter = null;
+        tvProductReviewFilterAll = null;
+        tvProductReviewFilterVerified = null;
+        tvProductReviewFilterPurchased = null;
         super.onDestroyView();
     }
 }

@@ -3,6 +3,9 @@
     <!-- Product + location detail review blocks (keep in sync) -->
     <dimen name="review_section_title_margin_top">24dp</dimen>
     <dimen name="review_section_stack_spacing">8dp</dimen>
+    <!-- Horizontal review carousel: uniform card height + RecyclerView vertical padding (4+4). -->
+    <dimen name="review_card_preview_height">140dp</dimen>
+    <dimen name="review_horizontal_strip_height">148dp</dimen>
     <!-- Toolbar + band + avatar overlap: clears content below overlapping photo -->
     <dimen name="edit_profile_scroll_content_top_pad">188dp</dimen>
     <!-- Toolbar (~56dp) + 24dp: avatar top aligns with straddle point under brown band (see layout). -->

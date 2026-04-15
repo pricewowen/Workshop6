@@ -1,34 +1,60 @@
 <?xml version="1.0" encoding="utf-8"?>
 <com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    android:layout_width="260dp"
-    android:layout_height="wrap_content"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="272dp"
+    android:layout_height="@dimen/review_card_preview_height"
     android:layout_marginEnd="10dp"
+    android:clickable="true"
+    android:focusable="true"
     app:cardBackgroundColor="@color/bakery_card_white"
-    app:cardCornerRadius="12dp"
-    app:cardElevation="2dp">
+    app:cardCornerRadius="14dp"
+    app:cardElevation="3dp"
+    app:rippleColor="@color/bakery_nav_ripple">
 
     <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_height="match_parent"
         android:orientation="vertical"
-        android:padding="12dp">
+        android:paddingHorizontal="14dp"
+        android:paddingTop="12dp"
+        android:paddingBottom="12dp">
 
-        <TextView
-            android:id="@+id/tvReviewAuthor"
+        <!-- Row 1: reviewer + star line (saves vertical space, clearer hierarchy) -->
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:ellipsize="end"
-            android:maxLines="1"
-            android:textColor="@color/bakery_text_dark"
-            android:textSize="14sp"
-            android:textStyle="bold" />
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <TextView
+                android:id="@+id/tvReviewAuthor"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginEnd="10dp"
+                android:ellipsize="end"
+                android:maxLines="1"
+                android:textColor="@color/bakery_text_dark"
+                android:textSize="14sp"
+                android:textStyle="bold"
+                tools:text="PeelinGood B." />
+
+            <TextView
+                android:id="@+id/tvReviewRatingStars"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:letterSpacing="0.02"
+                android:textColor="@color/bakery_gold"
+                android:textSize="15sp"
+                tools:text="★★★★★" />
+        </LinearLayout>
 
         <LinearLayout
             android:id="@+id/llReviewBadges"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
+            android:layout_marginTop="8dp"
             android:gravity="center_vertical"
             android:orientation="horizontal"
             android:visibility="gone">
@@ -38,7 +64,11 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginEnd="6dp"
-                android:textSize="10sp"
+                android:background="@drawable/bg_review_badge_verified"
+                android:paddingHorizontal="10dp"
+                android:paddingVertical="4dp"
+                android:textColor="@color/review_badge_verified_text"
+                android:textSize="11sp"
                 android:textStyle="bold"
                 android:visibility="gone" />
 
@@ -46,30 +76,28 @@
                 android:id="@+id/tvReviewPurchased"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:textSize="10sp"
+                android:background="@drawable/bg_review_badge_purchased"
+                android:paddingHorizontal="10dp"
+                android:paddingVertical="4dp"
+                android:textColor="@color/review_badge_purchased_text"
+                android:textSize="11sp"
                 android:textStyle="bold"
                 android:visibility="gone" />
         </LinearLayout>
 
-        <RatingBar
-            android:id="@+id/ratingBar"
-            style="?android:attr/ratingBarStyleSmall"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
-            android:isIndicator="true"
-            android:numStars="5"
-            android:stepSize="1" />
-
+        <!-- Fills remaining height; centers short snippets so the card does not look top-heavy -->
         <TextView
             android:id="@+id/tvComment"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
+            android:layout_height="0dp"
+            android:layout_marginTop="10dp"
+            android:layout_weight="1"
             android:ellipsize="end"
-            android:maxLines="5"
+            android:gravity="center_vertical"
+            android:lineSpacingMultiplier="1.12"
+            android:maxLines="3"
             android:textColor="@color/bakery_text_secondary"
-            android:textSize="13sp" />
-
+            android:textSize="13sp"
+            tools:text="Great staff!" />
     </LinearLayout>
 </com.google.android.material.card.MaterialCardView>

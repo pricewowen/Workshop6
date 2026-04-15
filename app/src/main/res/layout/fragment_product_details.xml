@@ -192,48 +192,47 @@
                     android:scrollbars="none"
                     android:visibility="gone">
 
-                    <com.google.android.material.chip.ChipGroup
-                        android:id="@+id/chip_group_product_review_filter"
+                    <LinearLayout
+                        android:id="@+id/row_product_review_filters"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        app:selectionRequired="true"
-                        app:singleLine="true"
-                        app:singleSelection="true">
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal">
 
-                        <com.google.android.material.chip.Chip
-                            android:id="@+id/chip_product_review_all"
-                            style="@style/Widget.MaterialComponents.Chip.Choice"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:checked="true"
+                        <TextView
+                            android:id="@+id/tv_product_review_filter_all"
+                            style="@style/Widget.Bakery.ReviewFilterPill"
+                            android:background="@drawable/bg_category_chip_selected"
                             android:text="@string/review_filter_all"
-                            android:textColor="@color/bakery_text_dark" />
+                            android:textColor="@color/bakery_text_light" />
 
-                        <com.google.android.material.chip.Chip
-                            android:id="@+id/chip_product_review_verified"
-                            style="@style/Widget.MaterialComponents.Chip.Choice"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
+                        <TextView
+                            android:id="@+id/tv_product_review_filter_verified"
+                            style="@style/Widget.Bakery.ReviewFilterPill"
+                            android:background="@drawable/bg_category_chip"
                             android:text="@string/review_filter_verified"
                             android:textColor="@color/bakery_text_dark" />
 
-                        <com.google.android.material.chip.Chip
-                            android:id="@+id/chip_product_review_purchased"
-                            style="@style/Widget.MaterialComponents.Chip.Choice"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
+                        <TextView
+                            android:id="@+id/tv_product_review_filter_purchased"
+                            style="@style/Widget.Bakery.ReviewFilterPill"
+                            android:background="@drawable/bg_category_chip"
                             android:text="@string/review_filter_purchased"
                             android:textColor="@color/bakery_text_dark" />
-                    </com.google.android.material.chip.ChipGroup>
+                    </LinearLayout>
                 </HorizontalScrollView>
 
                 <FrameLayout
-                    style="@style/Widget.Bakery.ReviewListFrame"
-                    android:layout_marginTop="@dimen/review_section_stack_spacing">
+                    android:layout_width="match_parent"
+                    android:layout_height="@dimen/review_horizontal_strip_height"
+                    android:layout_marginTop="@dimen/review_section_stack_spacing"
+                    android:minHeight="@dimen/review_horizontal_strip_height">
 
                     <androidx.recyclerview.widget.RecyclerView
                         android:id="@+id/rvReviews"
                         style="@style/Widget.Bakery.ReviewsRecyclerView"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
                         android:visibility="gone" />
                 </FrameLayout>
 

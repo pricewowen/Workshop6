@@ -33,6 +33,21 @@
         <item name="android:textColor">@color/bakery_text_secondary</item>
     </style>
 
+    <!-- Same metrics as browse category row ({@code item_category}). -->
+    <style name="Widget.Bakery.ReviewFilterPill" parent="android:Widget.TextView">
+        <item name="android:layout_width">wrap_content</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:paddingHorizontal">20dp</item>
+        <item name="android:paddingVertical">8dp</item>
+        <item name="android:textSize">13sp</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:layout_marginStart">8dp</item>
+        <item name="android:layout_marginTop">8dp</item>
+        <item name="android:layout_marginBottom">8dp</item>
+        <item name="android:clickable">true</item>
+        <item name="android:focusable">true</item>
+    </style>
+
     <!-- Bottom nav: same look for customer / staff / admin (shared BottomNavigationView). -->
     <style name="TextAppearance.Bakery.BottomNav.Active" parent="TextAppearance.AppCompat.Caption">
         <item name="android:textSize">11sp</item>
@@ -85,5 +100,12 @@
         <item name="android:textStyle">bold</item>
         <item name="android:backgroundTint">@color/bakery_gold</item>
         <item name="cornerRadius">28dp</item>
+    </style>
+
+    <!-- Full review screen: standard (non-small) indicator bar; uses theme secondary for fill. -->
+    <style name="Widget.Bakery.ReviewDetailRatingBar" parent="Widget.AppCompat.RatingBar">
+        <item name="android:isIndicator">true</item>
+        <item name="android:numStars">5</item>
+        <item name="android:stepSize">1</item>
     </style>
 </resources>

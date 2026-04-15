@@ -82,6 +82,10 @@
         <action
             android:id="@+id/action_location_to_product"
             app:destination="@id/productDetailFragment" />
+
+        <action
+            android:id="@+id/action_location_to_review_detail"
+            app:destination="@id/reviewDetailFragment" />
     </fragment>
 
     <fragment
@@ -94,6 +98,26 @@
             android:name="productId"
             android:defaultValue="-1"
             app:argType="integer" />
+
+        <action
+            android:id="@+id/action_product_to_review_detail"
+            app:destination="@id/reviewDetailFragment" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/reviewDetailFragment"
+        android:name="com.example.workshop6.ui.reviews.ReviewDetailFragment"
+        android:label="@string/review_detail_title"
+        tools:layout="@layout/fragment_review_detail">
+
+        <argument
+            android:name="reviewJson"
+            app:argType="string" />
+
+        <argument
+            android:name="reviewSubjectTitle"
+            android:defaultValue=""
+            app:argType="string" />
     </fragment>
 
     <action
