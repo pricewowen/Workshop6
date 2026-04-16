@@ -21,19 +21,22 @@ import com.example.workshop6.R;
 import com.example.workshop6.auth.SessionManager;
 import com.example.workshop6.data.api.ApiClient;
 import com.example.workshop6.data.api.ApiService;
+import com.example.workshop6.data.api.dto.ChatMessageDto;
 import com.example.workshop6.data.api.dto.ChatThreadDto;
-import com.example.workshop6.util.NavTransitions;
 
-import java.util.Collections;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Comparator;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
 
+
 public class StaffChatInboxFragment extends Fragment {
 
-    private static final long THREAD_REFRESH_INTERVAL_MS = 5000L;
+    private static final long POLL_INTERVAL_MS = 1500L;
 
     private RecyclerView recyclerThreads;
     private TextView textEmpty;
@@ -43,12 +46,17 @@ public class StaffChatInboxFragment extends Fragment {
     private SessionManager sessionManager;
     private ApiService api;
 
+    /**
+     * Prevent stale async poll results from overwriting newer ones.
+     */
+    private int loadGeneration = 0;
+
     private final Handler handler = new Handler(Looper.getMainLooper());
     private final Runnable refreshRunnable = new Runnable() {
         @Override
         public void run() {
             loadThreads();
-            handler.postDelayed(this, THREAD_REFRESH_INTERVAL_MS);
+            handler.postDelayed(this, POLL_INTERVAL_MS);
         }
     };
 
@@ -68,7 +76,6 @@ public class StaffChatInboxFragment extends Fragment {
         recyclerThreads = view.findViewById(R.id.recycler_staff_threads);
         textEmpty = view.findViewById(R.id.text_staff_chat_empty);
         buttonNewChat = view.findViewById(R.id.button_new_chat);
-
         recyclerThreads.setLayoutManager(new LinearLayoutManager(requireContext()));
 
         sessionManager = new SessionManager(requireContext().getApplicationContext());
@@ -90,7 +97,7 @@ public class StaffChatInboxFragment extends Fragment {
 
         if (isCustomer) {
             buttonNewChat.setVisibility(View.VISIBLE);
-            buttonNewChat.setOnClickListener(v -> openOrCreateCustomerChat());
+            buttonNewChat.setOnClickListener(v -> createAndOpenChat());
             textEmpty.setText(R.string.customer_chat_empty_threads);
         } else {
             buttonNewChat.setVisibility(View.GONE);
@@ -98,10 +105,6 @@ public class StaffChatInboxFragment extends Fragment {
         }
 
         adapter = new StaffThreadAdapter(item -> {
-            if (item == null || item.id == null) {
-                return;
-            }
-
             if (isCustomer) {
                 launchChat(item.id);
                 return;
@@ -144,88 +147,115 @@ public class StaffChatInboxFragment extends Fragment {
         if (!isCustomer && !isStaff) {
             return;
         }
-
         if (adapter == null) {
             return;
         }
 
-        if (isCustomer) {
-            loadCustomerThread();
-            return;
-        }
+        final int generation = ++loadGeneration;
 
         api.getChatThreads().enqueue(new Callback<List<ChatThreadDto>>() {
             @Override
             public void onResponse(Call<List<ChatThreadDto>> call, Response<List<ChatThreadDto>> response) {
-                if (!isAdded()) {
+                if (!isAdded() || getActivity() == null) {
                     return;
                 }
-
+                if (generation != loadGeneration) {
+                    return;
+                }
                 if (!response.isSuccessful() || response.body() == null) {
                     return;
                 }
 
                 List<ChatThreadDto> threads = response.body();
-                adapter.setThreads(threads);
 
-                boolean empty = threads.isEmpty();
-                recyclerThreads.setVisibility(empty ? View.GONE : View.VISIBLE);
-                textEmpty.setVisibility(empty ? View.VISIBLE : View.GONE);
+                if (threads.isEmpty()) {
+                    applyVisibleThreads(generation, new ArrayList<>());
+                    return;
+                }
+
+                filterThreadsWithMessages(threads, generation);
             }
 
             @Override
             public void onFailure(Call<List<ChatThreadDto>> call, Throwable t) {
-                // Keep the current UI state on refresh failure.
             }
         });
     }
 
-    private void loadCustomerThread() {
-        api.getMyOpenChatThread().enqueue(new Callback<ChatThreadDto>() {
+    private void filterThreadsWithMessages(List<ChatThreadDto> threads, int generation) {
+        List<ChatThreadDto> visibleThreads = new ArrayList<>();
+        AtomicInteger remaining = new AtomicInteger(threads.size());
+
+        for (ChatThreadDto thread : threads) {
+            if (thread == null || thread.id == null) {
+                if (remaining.decrementAndGet() == 0) {
+                    applyVisibleThreads(generation, visibleThreads);
+                }
+                continue;
+            }
+
+            api.getChatMessages(thread.id).enqueue(new Callback<List<ChatMessageDto>>() {
+                @Override
+                public void onResponse(Call<List<ChatMessageDto>> call, Response<List<ChatMessageDto>> response) {
+                    if (!isAdded() || getActivity() == null) {
+                        return;
+                    }
+                    if (generation != loadGeneration) {
+                        return;
+                    }
+
+                    if (response.isSuccessful() && response.body() != null && !response.body().isEmpty()) {
+                        visibleThreads.add(thread);
+                    }
+
+                    if (remaining.decrementAndGet() == 0) {
+                        applyVisibleThreads(generation, visibleThreads);
+                    }
+                }
+
+                @Override
+                public void onFailure(Call<List<ChatMessageDto>> call, Throwable t) {
+                    if (!isAdded() || getActivity() == null) {
+                        return;
+                    }
+                    if (generation != loadGeneration) {
+                        return;
+                    }
+
+                    if (remaining.decrementAndGet() == 0) {
+                        applyVisibleThreads(generation, visibleThreads);
+                    }
+                }
+            });
+        }
+    }
+
+    private void applyVisibleThreads(int generation, List<ChatThreadDto> visibleThreads) {
+        if (!isAdded() || getActivity() == null) {
+            return;
+        }
+        if (generation != loadGeneration) {
+            return;
+        }
+
+        sortThreadsCanonical(visibleThreads);
+        adapter.setThreads(visibleThreads);
+        boolean empty = visibleThreads.isEmpty();
+        recyclerThreads.setVisibility(empty ? View.GONE : View.VISIBLE);
+        textEmpty.setVisibility(empty ? View.VISIBLE : View.GONE);
+    }
+
+    private void createAndOpenChat() {
+        api.createChatThread().enqueue(new Callback<ChatThreadDto>() {
             @Override
             public void onResponse(Call<ChatThreadDto> call, Response<ChatThreadDto> response) {
                 if (!isAdded()) {
                     return;
                 }
-
-                if (response.isSuccessful() && response.body() != null) {
-                    adapter.setThreads(Collections.singletonList(response.body()));
-                    recyclerThreads.setVisibility(View.VISIBLE);
-                    textEmpty.setVisibility(View.GONE);
-                    return;
-                }
-
-                adapter.setThreads(Collections.emptyList());
-                recyclerThreads.setVisibility(View.GONE);
-                textEmpty.setVisibility(View.VISIBLE);
-            }
-
-            @Override
-            public void onFailure(Call<ChatThreadDto> call, Throwable t) {
-                if (!isAdded()) {
-                    return;
-                }
-
-                adapter.setThreads(Collections.emptyList());
-                recyclerThreads.setVisibility(View.GONE);
-                textEmpty.setVisibility(View.VISIBLE);
-            }
-        });
-    }
-
-    private void openOrCreateCustomerChat() {
-        api.getMyOpenChatThread().enqueue(new Callback<ChatThreadDto>() {
-            @Override
-            public void onResponse(Call<ChatThreadDto> call, Response<ChatThreadDto> response) {
-                if (!isAdded()) {
-                    return;
-                }
-
                 if (response.isSuccessful() && response.body() != null && response.body().id != null) {
                     launchChat(response.body().id);
                     return;
                 }
-
                 Toast.makeText(requireContext(), R.string.login_error_no_connection, Toast.LENGTH_SHORT).show();
             }
 
@@ -234,7 +264,6 @@ public class StaffChatInboxFragment extends Fragment {
                 if (!isAdded()) {
                     return;
                 }
-
                 Toast.makeText(requireContext(), R.string.login_error_no_connection, Toast.LENGTH_SHORT).show();
             }
         });
@@ -244,9 +273,12 @@ public class StaffChatInboxFragment extends Fragment {
         if (!isAdded()) {
             return;
         }
-
         Intent intent = new Intent(requireContext(), ChatActivity.class);
         intent.putExtra(ChatActivity.EXTRA_THREAD_ID, threadId);
-        NavTransitions.startActivityWithForward(requireActivity(), intent);
+        startActivity(intent);
+    }
+
+    private void sortThreadsCanonical(List<ChatThreadDto> threads) {
+        threads.sort(Comparator.comparingInt(t -> t.id));
     }
 }
