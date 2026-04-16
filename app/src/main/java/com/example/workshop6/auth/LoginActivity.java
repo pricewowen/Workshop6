@@ -15,7 +15,6 @@ import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.example.workshop6.R;
-import com.example.workshop6.data.api.ApiBaseUrl;
 import com.example.workshop6.data.api.ApiClient;
 import com.example.workshop6.data.api.ApiService;
 import com.example.workshop6.data.api.dto.AuthResponse;
@@ -112,12 +111,6 @@ public class LoginActivity extends AppCompatActivity {
                 tilPassword.setError(null);
             }
         });
-
-        TextView tvServerLink = findViewById(R.id.tv_server_link);
-        if (tvServerLink != null) {
-            refreshServerLink(tvServerLink);
-            tvServerLink.setOnClickListener(v -> showServerDialog(tvServerLink));
-        }
 
         String sessionMessage = getIntent().getStringExtra("session_message");
         if (!Validation.isEmpty(sessionMessage)) {
@@ -479,51 +472,4 @@ public class LoginActivity extends AppCompatActivity {
                 });
     }
 
-    private void refreshServerLink(TextView label) {
-        label.setText(getString(R.string.server_link_label_fmt, ApiBaseUrl.get()));
-    }
-
-    private void showServerDialog(TextView label) {
-        View view = LayoutInflater.from(this).inflate(R.layout.dialog_server_url, null);
-        com.google.android.material.textfield.TextInputEditText input =
-                view.findViewById(R.id.et_server_url);
-        TextView tvDefault = view.findViewById(R.id.tv_server_default);
-        input.setText(ApiBaseUrl.hasOverride() ? ApiBaseUrl.get() : "");
-        tvDefault.setText(getString(R.string.server_link_label_fmt, ApiBaseUrl.getDefault()));
-
-        AlertDialog dialog = new MaterialAlertDialogBuilder(this)
-                .setTitle(R.string.server_dialog_title)
-                .setMessage(R.string.server_dialog_message)
-                .setView(view)
-                .setPositiveButton(R.string.server_dialog_save, null)
-                .setNeutralButton(R.string.server_dialog_reset, (d, w) -> {
-                    ApiBaseUrl.clear();
-                    ApiClient.reset();
-                    refreshServerLink(label);
-                    Toast.makeText(this,
-                            getString(R.string.server_dialog_cleared_fmt, ApiBaseUrl.get()),
-                            Toast.LENGTH_SHORT).show();
-                })
-                .setNegativeButton(android.R.string.cancel, null)
-                .create();
-
-        dialog.setOnShowListener(d -> dialog.getButton(AlertDialog.BUTTON_POSITIVE)
-                .setOnClickListener(v -> {
-                    String raw = input.getText() == null ? "" : input.getText().toString();
-                    String normalized = ApiBaseUrl.normalize(raw);
-                    if (normalized == null) {
-                        input.setError(getString(R.string.server_dialog_hint));
-                        return;
-                    }
-                    ApiBaseUrl.set(normalized);
-                    ApiClient.reset();
-                    refreshServerLink(label);
-                    Toast.makeText(this,
-                            getString(R.string.server_dialog_saved_fmt, normalized),
-                            Toast.LENGTH_SHORT).show();
-                    dialog.dismiss();
-                }));
-
-        dialog.show();
-    }
 }
