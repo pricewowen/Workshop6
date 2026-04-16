@@ -16,6 +16,7 @@ import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.LinearLayout;
 import android.widget.NumberPicker;
 import android.widget.RadioButton;
 import android.widget.RadioGroup;
@@ -106,7 +107,24 @@ public class CheckoutActivity extends AppCompatActivity {
     private View mainLayout;
     private Button btnPlaceOrder;
     private Button btnEditOrder;
-    private TextView tvConfirmationText;
+    private LinearLayout confirmItemsContainer;
+    private TextView tvConfirmMethod;
+    private View confirmBakeryRow;
+    private TextView tvConfirmBakery;
+    private TextView tvConfirmScheduled;
+    private View confirmAddressRow;
+    private TextView tvConfirmAddress;
+    private View confirmContactRow;
+    private TextView tvConfirmContact;
+    private View confirmCommentRow;
+    private TextView tvConfirmComment;
+    private TextView tvConfirmSubtotal;
+    private View confirmDeliveryRow;
+    private TextView tvConfirmDeliveryFee;
+    private TextView tvConfirmTaxLabel;
+    private TextView tvConfirmTax;
+    private TextView tvConfirmTotal;
+    private TextView tvConfirmPoints;
     private Spinner spinnerBakery;
     private TextView tvCheckoutFulfillmentDetails;
     private FusedLocationProviderClient fusedLocationClient;
@@ -323,7 +341,24 @@ public class CheckoutActivity extends AppCompatActivity {
         mainLayout = findViewById(R.id.mainLayout);
         btnPlaceOrder = findViewById(R.id.btnPlaceOrder);
         btnEditOrder = findViewById(R.id.btnEditOrder);
-        tvConfirmationText = findViewById(R.id.tvConfirmationText);
+        confirmItemsContainer = findViewById(R.id.confirmItemsContainer);
+        tvConfirmMethod = findViewById(R.id.tvConfirmMethod);
+        confirmBakeryRow = findViewById(R.id.confirmBakeryRow);
+        tvConfirmBakery = findViewById(R.id.tvConfirmBakery);
+        tvConfirmScheduled = findViewById(R.id.tvConfirmScheduled);
+        confirmAddressRow = findViewById(R.id.confirmAddressRow);
+        tvConfirmAddress = findViewById(R.id.tvConfirmAddress);
+        confirmContactRow = findViewById(R.id.confirmContactRow);
+        tvConfirmContact = findViewById(R.id.tvConfirmContact);
+        confirmCommentRow = findViewById(R.id.confirmCommentRow);
+        tvConfirmComment = findViewById(R.id.tvConfirmComment);
+        tvConfirmSubtotal = findViewById(R.id.tvConfirmSubtotal);
+        confirmDeliveryRow = findViewById(R.id.confirmDeliveryRow);
+        tvConfirmDeliveryFee = findViewById(R.id.tvConfirmDeliveryFee);
+        tvConfirmTaxLabel = findViewById(R.id.tvConfirmTaxLabel);
+        tvConfirmTax = findViewById(R.id.tvConfirmTax);
+        tvConfirmTotal = findViewById(R.id.tvConfirmTotal);
+        tvConfirmPoints = findViewById(R.id.tvConfirmPoints);
         spinnerBakery = findViewById(R.id.spinnerBakery);
         tvCheckoutFulfillmentDetails = findViewById(R.id.tv_checkout_fulfillment_details);
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
@@ -1693,16 +1728,6 @@ public class CheckoutActivity extends AppCompatActivity {
             return;
         }
 
-        StringBuilder confirmationText = new StringBuilder();
-        confirmationText.append(getString(R.string.confirmation_order_summary)).append("\n\n");
-
-        for (CartItem item : cart.getItems()) {
-            confirmationText.append(String.format("%s x%d - %s\n",
-                    item.getProduct().getProductName(),
-                    item.getQuantity(),
-                    MoneyFormat.formatCad(currencyFormat, item.getTotalPrice())));
-        }
-
         double subtotal = cart.getTotalPrice();
         double deliveryFee = computeDeliveryFee(subtotal);
         double tax = calculateTaxAmount(subtotal);
@@ -1710,74 +1735,122 @@ public class CheckoutActivity extends AppCompatActivity {
         // Points stay based on the pre-tax subtotal to match backend reward earning logic.
         int estimatedPointsEarned = Math.max(1, (int) Math.floor(subtotal * 1000.0));
 
-        confirmationText.append("\n").append(getString(R.string.confirmation_subtotal))
-                .append(": ").append(MoneyFormat.formatCad(currencyFormat, subtotal)).append("\n");
-        if ("delivery".equals(deliveryMethod)) {
-            confirmationText.append(getString(R.string.confirmation_delivery_fee)).append(": ");
-            if (deliveryFee <= 0.005) {
-                confirmationText.append(getString(R.string.checkout_delivery_free));
-            } else {
-                confirmationText.append(MoneyFormat.formatCad(currencyFormat, deliveryFee));
-            }
-            confirmationText.append("\n");
-        }
-        confirmationText.append(getString(
-                        R.string.tax_with_percent,
-                        CanadianTaxRates.formatTaxPercent(CHECKOUT_TAX_RATE_PERCENT)))
-                .append(": ").append(MoneyFormat.formatCad(currencyFormat, tax)).append("\n");
-        confirmationText.append(getString(R.string.confirmation_total))
-                .append(": ").append(MoneyFormat.formatCad(currencyFormat, total)).append("\n\n");
-        confirmationText.append(getString(
-                        R.string.confirmation_points_earned_fmt,
-                        loyaltyPointsFormat.format(Math.max(estimatedPointsEarned, 1))))
-                .append("\n\n");
-
-        confirmationText.append(getString(R.string.confirmation_delivery_method))
-                .append(": ").append(deliveryMethod).append("\n");
-
-        if (sessionManager.isGuestMode()) {
-            GuestCustomerRequest g = buildGuestFromFields();
-            if (g.email != null && !g.email.trim().isEmpty()) {
-                confirmationText.append("Contact email: ").append(g.email.trim()).append("\n");
-            }
-            if (g.phone != null && !g.phone.trim().isEmpty()) {
-                confirmationText.append("Contact phone: ").append(g.phone.trim()).append("\n");
-            }
-        }
-
-        if ("delivery".equals(deliveryMethod) && currentCustomer != null && currentCustomer.address != null) {
-            AddressDto a = currentCustomer.address;
-            if (a.line1 != null && !a.line1.trim().isEmpty()) {
-                confirmationText.append("Deliver to: ").append(a.line1.trim());
-                if (a.line2 != null && !a.line2.trim().isEmpty()) {
-                    confirmationText.append(", ").append(a.line2.trim());
-                }
-                confirmationText.append("\n").append(a.city).append(", ")
-                        .append(a.province).append(" ").append(a.postalCode).append("\n");
-            }
-        }
-
-        if (selectedBakery != null) {
-            confirmationText.append(getString(R.string.checkout_confirm_fulfilling_bakery, selectedBakery.name))
-                    .append("\n");
-            String bakeryAddr = formatOneLineBakeryAddress(selectedBakery);
-            if (!bakeryAddr.isEmpty()) {
-                confirmationText.append(bakeryAddr).append("\n");
-            }
-        }
-
-        confirmationText.append(getString(R.string.confirmation_scheduled_time))
-                .append(": ").append(dateTimeFormat.format(selectedDateTime.getTime())).append("\n");
-
-        if (!orderComment.isEmpty()) {
-            confirmationText.append(getString(R.string.confirmation_comment))
-                    .append(": ").append(orderComment);
-        }
-
-        tvConfirmationText.setText(confirmationText.toString());
+        bindConfirmItems();
+        bindConfirmFulfilment();
+        bindConfirmTotals(subtotal, deliveryFee, tax, total, estimatedPointsEarned);
 
         mainLayout.setVisibility(View.GONE);
         confirmationLayout.setVisibility(View.VISIBLE);
+    }
+
+    private void bindConfirmItems() {
+        confirmItemsContainer.removeAllViews();
+        LayoutInflater inflater = LayoutInflater.from(this);
+        for (CartItem item : cart.getItems()) {
+            View row = inflater.inflate(android.R.layout.simple_list_item_2, confirmItemsContainer, false);
+            ((android.view.ViewGroup.MarginLayoutParams) row.getLayoutParams()).bottomMargin = dp(6);
+
+            TextView name = row.findViewById(android.R.id.text1);
+            TextView trailing = row.findViewById(android.R.id.text2);
+
+            String qty = getString(R.string.confirm_item_qty_fmt, item.getQuantity());
+            name.setText(item.getProduct().getProductName() + "  " + qty);
+            name.setTextColor(getResources().getColor(R.color.bakery_text_dark));
+            name.setTextSize(14f);
+
+            trailing.setText(MoneyFormat.formatCad(currencyFormat, item.getTotalPrice()));
+            trailing.setTextColor(getResources().getColor(R.color.bakery_text_secondary));
+            trailing.setTextSize(13f);
+
+            confirmItemsContainer.addView(row);
+        }
+    }
+
+    private void bindConfirmFulfilment() {
+        boolean isDelivery = "delivery".equals(deliveryMethod);
+        tvConfirmMethod.setText(isDelivery
+                ? getString(R.string.delivery)
+                : getString(R.string.pickup));
+
+        if (selectedBakery != null && selectedBakery.name != null) {
+            tvConfirmBakery.setText(selectedBakery.name);
+            confirmBakeryRow.setVisibility(View.VISIBLE);
+        } else {
+            confirmBakeryRow.setVisibility(View.GONE);
+        }
+
+        tvConfirmScheduled.setText(dateTimeFormat.format(selectedDateTime.getTime()));
+
+        if (isDelivery && currentCustomer != null && currentCustomer.address != null
+                && currentCustomer.address.line1 != null
+                && !currentCustomer.address.line1.trim().isEmpty()) {
+            AddressDto a = currentCustomer.address;
+            StringBuilder sb = new StringBuilder(a.line1.trim());
+            if (a.line2 != null && !a.line2.trim().isEmpty()) {
+                sb.append(", ").append(a.line2.trim());
+            }
+            sb.append("\n").append(a.city).append(", ")
+                    .append(a.province).append(" ").append(a.postalCode);
+            tvConfirmAddress.setText(sb.toString());
+            confirmAddressRow.setVisibility(View.VISIBLE);
+        } else {
+            confirmAddressRow.setVisibility(View.GONE);
+        }
+
+        if (sessionManager.isGuestMode()) {
+            GuestCustomerRequest g = buildGuestFromFields();
+            String email = g.email != null ? g.email.trim() : "";
+            String phone = g.phone != null ? g.phone.trim() : "";
+            String contact;
+            if (!email.isEmpty() && !phone.isEmpty()) {
+                contact = email + " · " + phone;
+            } else if (!email.isEmpty()) {
+                contact = email;
+            } else {
+                contact = phone;
+            }
+            if (!contact.isEmpty()) {
+                tvConfirmContact.setText(contact);
+                confirmContactRow.setVisibility(View.VISIBLE);
+            } else {
+                confirmContactRow.setVisibility(View.GONE);
+            }
+        } else {
+            confirmContactRow.setVisibility(View.GONE);
+        }
+
+        if (orderComment != null && !orderComment.isEmpty()) {
+            tvConfirmComment.setText(orderComment);
+            confirmCommentRow.setVisibility(View.VISIBLE);
+        } else {
+            confirmCommentRow.setVisibility(View.GONE);
+        }
+    }
+
+    private void bindConfirmTotals(double subtotal, double deliveryFee, double tax,
+                                   double total, int estimatedPointsEarned) {
+        tvConfirmSubtotal.setText(MoneyFormat.formatCad(currencyFormat, subtotal));
+
+        if ("delivery".equals(deliveryMethod)) {
+            String feeText = deliveryFee <= 0.005
+                    ? getString(R.string.checkout_delivery_free)
+                    : MoneyFormat.formatCad(currencyFormat, deliveryFee);
+            tvConfirmDeliveryFee.setText(feeText);
+            confirmDeliveryRow.setVisibility(View.VISIBLE);
+        } else {
+            confirmDeliveryRow.setVisibility(View.GONE);
+        }
+
+        tvConfirmTaxLabel.setText(getString(R.string.tax_with_percent,
+                CanadianTaxRates.formatTaxPercent(CHECKOUT_TAX_RATE_PERCENT)));
+        tvConfirmTax.setText(MoneyFormat.formatCad(currencyFormat, tax));
+        tvConfirmTotal.setText(MoneyFormat.formatCad(currencyFormat, total));
+        tvConfirmPoints.setText(getString(R.string.confirm_points_value_fmt,
+                loyaltyPointsFormat.format(Math.max(estimatedPointsEarned, 1))));
+    }
+
+    private int dp(int value) {
+        return (int) (value * getResources().getDisplayMetrics().density);
     }
 
     private double getOrderTotal() {

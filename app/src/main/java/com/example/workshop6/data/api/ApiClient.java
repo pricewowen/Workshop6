@@ -1,7 +1,5 @@
 package com.example.workshop6.data.api;
 
-import com.example.workshop6.BuildConfig;
-
 import java.util.concurrent.TimeUnit;
 
 import okhttp3.OkHttpClient;
@@ -13,11 +11,12 @@ import retrofit2.converter.gson.GsonConverterFactory;
 /**
  * Singleton Retrofit client for the Spring Boot API.
  *
- * Base URL defaults to emulator host loopback; override with {@code api.base.url} in {@code local.properties}.
+ * Base URL is read from {@link ApiBaseUrl#get()} (override in app, then BuildConfig default).
+ * Call {@link #reset()} after changing the override so the next {@link #getInstance()} rebuilds.
  */
 public class ApiClient {
 
-    private static final String BASE_URL = BuildConfig.API_BASE_URL;
+    private final String baseUrl;
     /** LLM-backed endpoints can exceed default read timeouts (retries + provider latency). */
     private static final int READ_TIMEOUT_SEC = 90;
     private static final int CALL_TIMEOUT_SEC = 90;
@@ -27,6 +26,7 @@ public class ApiClient {
     private String jwtToken;
 
     private ApiClient() {
+        this.baseUrl = ApiBaseUrl.get();
         HttpLoggingInterceptor logging = new HttpLoggingInterceptor();
         logging.setLevel(HttpLoggingInterceptor.Level.BODY);
 
@@ -49,7 +49,7 @@ public class ApiClient {
                 .build();
 
         Retrofit retrofit = new Retrofit.Builder()
-                .baseUrl(BASE_URL)
+                .baseUrl(baseUrl)
                 .client(httpClient)
                 .addConverterFactory(GsonConverterFactory.create())
                 .build();
@@ -57,11 +57,19 @@ public class ApiClient {
         service = retrofit.create(ApiService.class);
     }
 
-    public static ApiClient getInstance() {
+    public static synchronized ApiClient getInstance() {
         if (instance == null) {
             instance = new ApiClient();
         }
         return instance;
+    }
+
+    /**
+     * Discard the current Retrofit instance. The next {@link #getInstance()} call rebuilds
+     * with the latest {@link ApiBaseUrl#get()} value. Caller-held tokens are not preserved.
+     */
+    public static synchronized void reset() {
+        instance = null;
     }
 
     public ApiService getService() {
@@ -99,7 +107,7 @@ public class ApiClient {
                 .build();
 
         Retrofit retrofit = new Retrofit.Builder()
-                .baseUrl(BASE_URL)
+                .baseUrl(baseUrl)
                 .client(httpClient)
                 .addConverterFactory(GsonConverterFactory.create())
                 .build();

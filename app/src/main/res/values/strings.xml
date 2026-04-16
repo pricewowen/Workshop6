@@ -459,6 +459,37 @@
     <string name="order_confirm_failed">Could not confirm payment with the server. You can retry if your card was charged.</string>
     <string name="action_retry">Retry</string>
     <string name="payment_cancelled">Payment cancelled. Your order was not placed.</string>
+    <string name="checkout_return_title">Order confirmation</string>
+    <string name="checkout_return_success_title">Thanks for your order!</string>
+    <string name="checkout_return_success_subtitle">We\'ve received your payment and started preparing your order.</string>
+    <string name="checkout_return_order_number_fmt">Order #%1$s</string>
+    <string name="checkout_return_loading">Confirming your order…</string>
+    <string name="checkout_return_view_order">View order</string>
+    <string name="checkout_return_continue_shopping">Continue shopping</string>
+    <string name="checkout_return_cancel_title">Payment cancelled</string>
+    <string name="checkout_return_cancel_subtitle">Your order was not placed and your card was not charged.</string>
+    <string name="checkout_return_back_to_cart">Back to cart</string>
+    <string name="checkout_return_load_failed">Payment received, but we couldn\'t load the full order details. You can find it in your order history.</string>
+    <string name="checkout_return_method_label">Method</string>
+    <string name="checkout_return_bakery_label">Bakery</string>
+    <string name="checkout_return_scheduled_label">Scheduled</string>
+    <string name="checkout_return_items_label">Items</string>
+    <string name="checkout_return_item_qty_fmt">× %1$d</string>
+
+    <string name="server_link_label_fmt">Server: %1$s</string>
+    <string name="server_dialog_title">API server</string>
+    <string name="server_dialog_message">Enter the laptop\'s LAN IP and port (must be on the same Wi-Fi).</string>
+    <string name="server_dialog_hint">192.168.1.42:8080</string>
+    <string name="server_dialog_save">Save</string>
+    <string name="server_dialog_reset">Reset to default</string>
+    <string name="server_dialog_saved_fmt">Server set to %1$s</string>
+    <string name="server_dialog_cleared_fmt">Server reset to %1$s</string>
+
+    <string name="confirm_address_label">Address</string>
+    <string name="confirm_contact_label">Contact</string>
+    <string name="confirm_points_earned_label">Points you\'ll earn</string>
+    <string name="confirm_points_value_fmt">+ %1$s pts</string>
+    <string name="confirm_item_qty_fmt">× %1$d</string>
     <string name="redirecting_to_payment">Redirecting to secure payment...</string>
     <string name="error_placing_order">Error placing order, please try again</string>
     <string name="error_complete_form">Please complete all required fields</string>

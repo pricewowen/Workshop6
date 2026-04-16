@@ -270,7 +270,7 @@ public class OrderHistoryAdapter extends RecyclerView.Adapter<OrderHistoryAdapte
         return s.substring(0, 1).toUpperCase() + s.substring(1);
     }
 
-    static Date parseIsoDate(String iso) {
+    public static Date parseIsoDate(String iso) {
         if (iso == null || iso.isEmpty()) {
             return null;
         }
