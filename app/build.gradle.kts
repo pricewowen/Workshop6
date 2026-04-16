@@ -10,11 +10,10 @@ val localProperties = Properties().apply {
 }
 
 /**
- * Dev API base URL; override in local.properties as api.base.url=
- * Default 127.0.0.1 with adb reverse: adb reverse tcp:8080 tcp:8080
- * For Wi‑Fi-only device without adb reverse, set api.base.url to your PC LAN IP.
+ * API base URL; override in local.properties as api.base.url=
+ * Defaults to the deployed Workshop 7 API.
  */
-val apiBaseUrl = (localProperties.getProperty("api.base.url") ?: "http://127.0.0.1:8080/")
+val apiBaseUrl = (localProperties.getProperty("api.base.url") ?: "https://peelin-good-kdeft.ondigitalocean.app/")
     .trim()
     .let { if (it.endsWith("/")) it else "$it/" }
 

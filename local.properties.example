@@ -4,9 +4,8 @@
 # Android SDK (required):
 # sdk.dir=C\:\\Users\\YourName\\AppData\\Local\\Android\\Sdk
 #
-# Workshop 7 API (optional). Emulator default is already http://10.0.2.2:8080/
-# Use your PC LAN IP for a physical device on the same Wi‑Fi:
-# api.base.url=http://192.168.1.105:8080/
+# Workshop 7 API (optional). Default is the deployed API:
+# api.base.url=https://peelin-good-kdeft.ondigitalocean.app/
 #
 # Stripe publishable key (required for payments). Find yours at:
 # https://dashboard.stripe.com/test/apikeys
