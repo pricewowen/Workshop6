@@ -29,6 +29,7 @@ import com.example.workshop6.data.api.dto.PostChatMessageRequest;
 import com.example.workshop6.data.api.dto.ProductDto;
 import com.example.workshop6.data.api.dto.ProductRecommendationDto;
 import com.example.workshop6.data.api.dto.ProductSpecialTodayDto;
+import com.example.workshop6.data.api.dto.RegisterAvailabilityResponse;
 import com.example.workshop6.data.api.dto.RegisterRequest;
 import com.example.workshop6.data.api.dto.ReviewCreateRequest;
 import com.example.workshop6.data.api.dto.ReviewDto;
@@ -59,6 +60,11 @@ public interface ApiService {
 
     @POST("api/v1/auth/forgot-password")
     Call<Void> forgotPassword(@Body ForgotPasswordRequest request);
+
+    @GET("api/v1/auth/register/availability")
+    Call<RegisterAvailabilityResponse> registerAvailability(
+            @Query("username") String username,
+            @Query("email") String email);
 
     @POST("api/v1/auth/register")
     Call<AuthResponse> register(@Body RegisterRequest request);

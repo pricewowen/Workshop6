@@ -70,6 +70,7 @@ public class RegisterActivity extends AppCompatActivity {
 
     private int registrationStep = 1;
     private boolean step2PriorGuest;
+    private boolean step2EmployeeLinkOffered;
     private String pendingEmployeeToastMessage;
 
     @Override
@@ -254,7 +255,49 @@ public class RegisterActivity extends AppCompatActivity {
         if (!validateStep1Fields()) {
             return;
         }
-        advanceToStep2WithoutApi();
+
+        String username = etUsername.getText() != null ? etUsername.getText().toString().trim() : "";
+        String email = etEmail.getText() != null
+                ? etEmail.getText().toString().trim().toLowerCase(Locale.ROOT) : "";
+
+        btnContinue.setEnabled(false);
+        api.registerAvailability(username, email).enqueue(new Callback<com.example.workshop6.data.api.dto.RegisterAvailabilityResponse>() {
+            @Override
+            public void onResponse(Call<com.example.workshop6.data.api.dto.RegisterAvailabilityResponse> call,
+                                   Response<com.example.workshop6.data.api.dto.RegisterAvailabilityResponse> response) {
+                if (isFinishing() || isDestroyed()) return;
+                btnContinue.setEnabled(true);
+
+                com.example.workshop6.data.api.dto.RegisterAvailabilityResponse body = response.body();
+                if (!response.isSuccessful() || body == null) {
+                    // API unreachable — proceed without pre-check
+                    step2EmployeeLinkOffered = false;
+                    advanceToStep2WithoutApi();
+                    return;
+                }
+
+                if (!body.usernameAvailable) {
+                    tilUsername.setError(getString(R.string.error_username_taken));
+                    return;
+                }
+                if (!body.emailAvailable) {
+                    tilEmail.setError(getString(R.string.error_email_taken));
+                    return;
+                }
+
+                step2EmployeeLinkOffered = body.employeeLinkOffered;
+                advanceToStep2WithoutApi();
+            }
+
+            @Override
+            public void onFailure(Call<com.example.workshop6.data.api.dto.RegisterAvailabilityResponse> call, Throwable t) {
+                if (isFinishing() || isDestroyed()) return;
+                btnContinue.setEnabled(true);
+                // Network failure — proceed without pre-check
+                step2EmployeeLinkOffered = false;
+                advanceToStep2WithoutApi();
+            }
+        });
     }
 
     private void clearRegisterFieldErrorsForConnectionMessage() {
@@ -371,12 +414,18 @@ public class RegisterActivity extends AppCompatActivity {
     }
 
     private void applyStep2UiMode() {
-        tvRegisterStep2EmployeeMessage.setVisibility(View.GONE);
-        tvRegisterStep2GuestMessage.setVisibility(step2PriorGuest ? View.VISIBLE : View.GONE);
-        if (step2PriorGuest) {
-            tvRegisterStep2GuestMessage.setText(R.string.register_step2_guest_link_body);
+        if (step2EmployeeLinkOffered) {
+            tvRegisterStep2EmployeeMessage.setVisibility(View.VISIBLE);
+            tvRegisterStep2GuestMessage.setVisibility(View.GONE);
+            llRegisterPersonalForm.setVisibility(View.GONE);
+        } else {
+            tvRegisterStep2EmployeeMessage.setVisibility(View.GONE);
+            tvRegisterStep2GuestMessage.setVisibility(step2PriorGuest ? View.VISIBLE : View.GONE);
+            if (step2PriorGuest) {
+                tvRegisterStep2GuestMessage.setText(R.string.register_step2_guest_link_body);
+            }
+            llRegisterPersonalForm.setVisibility(View.VISIBLE);
         }
-        llRegisterPersonalForm.setVisibility(View.VISIBLE);
         clearStep2FieldErrors();
     }
 
@@ -506,7 +555,7 @@ public class RegisterActivity extends AppCompatActivity {
             return;
         }
 
-        if (!validateStep2ProfileFields()) {
+        if (!step2EmployeeLinkOffered && !validateStep2ProfileFields()) {
             btnCompleteRegistration.setEnabled(true);
             updateRegisterAvailabilityForNetwork();
             ActivityLogger.logFailure(this, null, "REGISTER", "Registration step 2 validation failed");

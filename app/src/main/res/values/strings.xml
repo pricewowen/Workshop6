@@ -490,6 +490,8 @@
     <string name="confirm_points_earned_label">Points you\'ll earn</string>
     <string name="confirm_points_value_fmt">+ %1$s pts</string>
     <string name="confirm_item_qty_fmt">× %1$d</string>
+    <string name="error_username_taken">This username is already taken</string>
+    <string name="error_email_taken">This email is already in use</string>
     <string name="redirecting_to_payment">Redirecting to secure payment...</string>
     <string name="error_placing_order">Error placing order, please try again</string>
     <string name="error_complete_form">Please complete all required fields</string>
