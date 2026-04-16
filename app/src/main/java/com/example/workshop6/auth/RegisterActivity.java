@@ -57,6 +57,8 @@ public class RegisterActivity extends AppCompatActivity {
     private TextView tvRegisterStep2Error;
     private MaterialButton btnCompleteRegistration;
     private View llRegisterPersonalForm;
+    private TextInputLayout tilEmployeeLinkPassword;
+    private TextInputEditText etEmployeeLinkPassword;
 
     private TextInputLayout tilFirstName, tilMiddleInitial, tilLastName, tilPhone, tilBusinessPhone;
     private TextInputLayout tilAddress1, tilAddress2, tilCity, tilPostal;
@@ -118,6 +120,8 @@ public class RegisterActivity extends AppCompatActivity {
         tvRegisterStep2Error = findViewById(R.id.tv_register_step2_error);
         btnCompleteRegistration = findViewById(R.id.btn_complete_registration);
         llRegisterPersonalForm = findViewById(R.id.ll_register_personal_form);
+        tilEmployeeLinkPassword = findViewById(R.id.til_employee_link_password);
+        etEmployeeLinkPassword = findViewById(R.id.et_employee_link_password);
 
         tilFirstName = findViewById(R.id.til_first_name);
         tilMiddleInitial = findViewById(R.id.til_middle_initial);
@@ -416,10 +420,12 @@ public class RegisterActivity extends AppCompatActivity {
     private void applyStep2UiMode() {
         if (step2EmployeeLinkOffered) {
             tvRegisterStep2EmployeeMessage.setVisibility(View.VISIBLE);
+            tilEmployeeLinkPassword.setVisibility(View.VISIBLE);
             tvRegisterStep2GuestMessage.setVisibility(View.GONE);
             llRegisterPersonalForm.setVisibility(View.GONE);
         } else {
             tvRegisterStep2EmployeeMessage.setVisibility(View.GONE);
+            tilEmployeeLinkPassword.setVisibility(View.GONE);
             tvRegisterStep2GuestMessage.setVisibility(step2PriorGuest ? View.VISIBLE : View.GONE);
             if (step2PriorGuest) {
                 tvRegisterStep2GuestMessage.setText(R.string.register_step2_guest_link_body);
@@ -555,7 +561,21 @@ public class RegisterActivity extends AppCompatActivity {
             return;
         }
 
-        if (!step2EmployeeLinkOffered && !validateStep2ProfileFields()) {
+        if (step2EmployeeLinkOffered) {
+            String empPass = etEmployeeLinkPassword.getText() != null
+                    ? etEmployeeLinkPassword.getText().toString() : "";
+            if (empPass.isEmpty()) {
+                tilEmployeeLinkPassword.setError(getString(R.string.error_employee_link_password_required));
+                btnCompleteRegistration.setEnabled(true);
+                updateRegisterAvailabilityForNetwork();
+                return;
+            }
+            tilEmployeeLinkPassword.setError(null);
+            registerAccountThenFinishProfile(null);
+            return;
+        }
+
+        if (!validateStep2ProfileFields()) {
             btnCompleteRegistration.setEnabled(true);
             updateRegisterAvailabilityForNetwork();
             ActivityLogger.logFailure(this, null, "REGISTER", "Registration step 2 validation failed");
@@ -736,6 +756,9 @@ public class RegisterActivity extends AppCompatActivity {
         }
 
         RegisterRequest registerRequest = new RegisterRequest(username, email, pass, phoneOpt);
+        if (step2EmployeeLinkOffered && etEmployeeLinkPassword.getText() != null) {
+            registerRequest.employeeLinkPassword = etEmployeeLinkPassword.getText().toString();
+        }
 
         api.register(registerRequest).enqueue(new Callback<AuthResponse>() {
             @Override
@@ -807,6 +830,12 @@ public class RegisterActivity extends AppCompatActivity {
                     return;
                 }
 
+                if (pendingPatch == null) {
+                    // Employee link was expected but backend didn't confirm; proceed anyway
+                    sessionManager.clearGuestProfile();
+                    refreshCustomerDisplayNameThenFinish(false);
+                    return;
+                }
                 String patchEmail = sessionManager.getLoginEmail();
                 pendingPatch.email = patchEmail != null ? patchEmail : pendingPatch.email;
                 enqueuePatchCustomerMe(pendingPatch);

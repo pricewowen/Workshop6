@@ -311,6 +311,30 @@
                             android:textSize="15sp"
                             android:visibility="gone" />
 
+                        <com.google.android.material.textfield.TextInputLayout
+                            android:id="@+id/til_employee_link_password"
+                            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="16dp"
+                            android:hint="@string/register_employee_link_password_hint"
+                            app:boxCornerRadiusBottomEnd="12dp"
+                            app:boxCornerRadiusBottomStart="12dp"
+                            app:boxCornerRadiusTopEnd="12dp"
+                            app:boxCornerRadiusTopStart="12dp"
+                            app:passwordToggleEnabled="true"
+                            android:visibility="gone">
+
+                            <com.google.android.material.textfield.TextInputEditText
+                                android:id="@+id/et_employee_link_password"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:imeOptions="actionDone"
+                                android:inputType="textPassword"
+                                android:maxLength="128"
+                                android:maxLines="1" />
+                        </com.google.android.material.textfield.TextInputLayout>
+
                         <TextView
                             android:id="@+id/tv_register_step2_guest_message"
                             android:layout_width="match_parent"

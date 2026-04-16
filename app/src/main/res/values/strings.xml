@@ -492,6 +492,8 @@
     <string name="confirm_item_qty_fmt">× %1$d</string>
     <string name="error_username_taken">This username is already taken</string>
     <string name="error_email_taken">This email is already in use</string>
+    <string name="register_employee_link_password_hint">Employee account password</string>
+    <string name="error_employee_link_password_required">Enter your employee password to link your accounts</string>
     <string name="redirecting_to_payment">Redirecting to secure payment...</string>
     <string name="error_placing_order">Error placing order, please try again</string>
     <string name="error_complete_form">Please complete all required fields</string>
