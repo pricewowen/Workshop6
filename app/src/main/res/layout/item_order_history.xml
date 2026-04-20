@@ -349,10 +349,11 @@
             android:orientation="horizontal">
 
             <TextView
+                android:id="@+id/tvDetailPointsLabel"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:text="Points Earned:"
+                android:text="@string/order_points_awarded_label"
                 android:textColor="@color/bakery_gold"
                 android:textSize="14sp"
                 android:textStyle="bold" />

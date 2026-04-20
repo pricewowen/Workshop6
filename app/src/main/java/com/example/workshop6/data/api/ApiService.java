@@ -64,7 +64,8 @@ public interface ApiService {
     @GET("api/v1/auth/register/availability")
     Call<RegisterAvailabilityResponse> registerAvailability(
             @Query("username") String username,
-            @Query("email") String email);
+            @Query("email") String email,
+            @Query("phone") String phone);
 
     @POST("api/v1/auth/register")
     Call<AuthResponse> register(@Body RegisterRequest request);
@@ -183,6 +184,9 @@ public interface ApiService {
 
     @GET("api/v1/chat/threads")
     Call<List<ChatThreadDto>> getChatThreads();
+
+    @GET("api/v1/chat/threads/archived")
+    Call<List<ChatThreadDto>> getArchivedChatThreads();
 
     @GET("api/v1/chat/threads/me/open")
     Call<ChatThreadDto> getMyOpenChatThread();

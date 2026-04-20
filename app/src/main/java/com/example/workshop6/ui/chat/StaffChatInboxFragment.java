@@ -4,6 +4,8 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.text.Editable;
+import android.text.TextWatcher;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -25,21 +27,40 @@ import com.example.workshop6.data.api.ApiClient;
 import com.example.workshop6.data.api.ApiService;
 import com.example.workshop6.data.api.dto.ChatMessageDto;
 import com.example.workshop6.data.api.dto.ChatThreadDto;
+import com.example.workshop6.data.model.Category;
+import com.example.workshop6.ui.products.CategoriesAdapter;
+import com.google.android.material.textfield.TextInputEditText;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
 
 public class StaffChatInboxFragment extends Fragment {
+    private static final int FILTER_GENERAL = -101;
+    private static final int FILTER_ORDER_ISSUE = -102;
+    private static final int FILTER_ACCOUNT_HELP = -103;
+    private static final int FILTER_FEEDBACK = -104;
+    private static final int FILTER_ARCHIVED = -105;
 
     private RecyclerView recyclerThreads;
     private TextView textEmpty;
-    private TextView textInboxSubtitle;
     private Button buttonNewChat;
+    private TextInputEditText etChatSearch;
+    private RecyclerView rvChatFilters;
     private StaffThreadAdapter adapter;
+    private CategoriesAdapter filtersAdapter;
+    private final List<ChatThreadDto> allThreads = new ArrayList<>();
+    private final Map<Integer, ThreadPreviewState> previewStateByThreadId = new HashMap<>();
+    private String currentQuery = "";
+    private int selectedFilterId = -1;
+    private boolean isCustomerUser = false;
+    private boolean isAdminUser = false;
 
     private static final String PREFS_SEEN = "chat_assigned_seen";
     private static final String KEY_SEEN = "seen";
@@ -71,9 +92,12 @@ public class StaffChatInboxFragment extends Fragment {
 
         recyclerThreads = view.findViewById(R.id.recycler_staff_threads);
         textEmpty = view.findViewById(R.id.text_staff_chat_empty);
-        textInboxSubtitle = view.findViewById(R.id.text_chat_inbox_subtitle);
         buttonNewChat = view.findViewById(R.id.button_new_chat);
+        etChatSearch = view.findViewById(R.id.et_chat_search);
+        rvChatFilters = view.findViewById(R.id.rv_chat_filters);
         recyclerThreads.setLayoutManager(new LinearLayoutManager(requireContext()));
+        rvChatFilters.setLayoutManager(new LinearLayoutManager(
+                requireContext(), LinearLayoutManager.HORIZONTAL, false));
 
         sessionManager = new SessionManager(requireContext().getApplicationContext());
         api = ApiClient.getInstance().getService();
@@ -81,6 +105,8 @@ public class StaffChatInboxFragment extends Fragment {
 
         String role = sessionManager.getUserRole();
         boolean isCustomer = Roles.isCustomer(role);
+        isCustomerUser = isCustomer;
+        isAdminUser = Roles.isAdmin(role);
         boolean isStaff = Roles.isStaff(role);
         boolean canAccessStaffChat = isCustomer || isStaff;
 
@@ -96,11 +122,9 @@ public class StaffChatInboxFragment extends Fragment {
             buttonNewChat.setVisibility(View.VISIBLE);
             buttonNewChat.setOnClickListener(v -> createAndOpenChat());
             textEmpty.setText(R.string.customer_chat_empty_threads);
-            textInboxSubtitle.setText(R.string.chat_inbox_subtitle_customer);
         } else {
             buttonNewChat.setVisibility(View.GONE);
             textEmpty.setText(R.string.staff_chat_empty_threads);
-            textInboxSubtitle.setText(R.string.chat_inbox_subtitle_staff);
         }
 
         android.content.SharedPreferences seenPrefs =
@@ -128,7 +152,41 @@ public class StaffChatInboxFragment extends Fragment {
         });
 
         recyclerThreads.setAdapter(adapter);
+        setupSearchAndFilters();
         loadThreads();
+    }
+
+    private void setupSearchAndFilters() {
+        if (etChatSearch != null) {
+            etChatSearch.addTextChangedListener(new TextWatcher() {
+                @Override
+                public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+                }
+
+                @Override
+                public void onTextChanged(CharSequence s, int start, int before, int count) {
+                    currentQuery = s != null ? s.toString().trim().toLowerCase(Locale.ROOT) : "";
+                    applyThreadFilters();
+                }
+
+                @Override
+                public void afterTextChanged(Editable s) {
+                }
+            });
+        }
+        List<Category> fixedFilters = new ArrayList<>();
+        fixedFilters.add(new Category(FILTER_GENERAL, getString(R.string.chat_topic_general)));
+        fixedFilters.add(new Category(FILTER_ORDER_ISSUE, getString(R.string.chat_topic_order_issue)));
+        fixedFilters.add(new Category(FILTER_ACCOUNT_HELP, getString(R.string.chat_topic_account_help)));
+        fixedFilters.add(new Category(FILTER_FEEDBACK, getString(R.string.chat_topic_feedback)));
+        if (isAdminUser) {
+            fixedFilters.add(new Category(FILTER_ARCHIVED, getString(R.string.chat_filter_archived)));
+        }
+        filtersAdapter = new CategoriesAdapter(fixedFilters, tagId -> {
+            selectedFilterId = tagId;
+            applyThreadFilters();
+        });
+        rvChatFilters.setAdapter(filtersAdapter);
     }
 
     @Override
@@ -159,7 +217,10 @@ public class StaffChatInboxFragment extends Fragment {
         if (adapter == null) {
             return;
         }
-        api.getChatThreads().enqueue(new Callback<List<ChatThreadDto>>() {
+        Call<List<ChatThreadDto>> request = (isAdminUser && selectedFilterId == FILTER_ARCHIVED)
+                ? api.getArchivedChatThreads()
+                : api.getChatThreads();
+        request.enqueue(new Callback<List<ChatThreadDto>>() {
             @Override
             public void onResponse(Call<List<ChatThreadDto>> call, Response<List<ChatThreadDto>> response) {
                 if (getActivity() == null) {
@@ -169,11 +230,13 @@ public class StaffChatInboxFragment extends Fragment {
                     return;
                 }
                 List<ChatThreadDto> threads = response.body();
-                adapter.setThreads(threads);
-                boolean empty = threads.isEmpty();
-                recyclerThreads.setVisibility(empty ? View.GONE : View.VISIBLE);
-                textEmpty.setVisibility(empty ? View.VISIBLE : View.GONE);
-                if (!empty) {
+                for (ChatThreadDto thread : threads) {
+                    applyCachedPreviewState(thread);
+                }
+                allThreads.clear();
+                allThreads.addAll(threads);
+                applyThreadFilters();
+                if (!threads.isEmpty()) {
                     hydrateThreadPreviews(threads);
                 }
             }
@@ -182,6 +245,79 @@ public class StaffChatInboxFragment extends Fragment {
             public void onFailure(Call<List<ChatThreadDto>> call, Throwable t) {
             }
         });
+    }
+
+    private void applyThreadFilters() {
+        if (adapter == null) {
+            return;
+        }
+        List<ChatThreadDto> filtered = new ArrayList<>();
+        for (ChatThreadDto thread : allThreads) {
+            if (thread == null) {
+                continue;
+            }
+            if (!matchesSelectedFilter(thread)) {
+                continue;
+            }
+            if (!currentQuery.isEmpty()) {
+                String haystack = (
+                        safe(thread.customerDisplayName) + " " +
+                        safe(thread.customerUsername) + " " +
+                        safe(thread.customerEmail) + " " +
+                        safe(thread.latestMessagePreview) + " " +
+                        safe(thread.category)
+                ).toLowerCase(Locale.ROOT);
+                if (!haystack.contains(currentQuery)) {
+                    continue;
+                }
+            }
+            filtered.add(thread);
+        }
+        adapter.setThreads(filtered);
+        boolean empty = filtered.isEmpty();
+        if (empty) {
+            if (isCustomerUser && allThreads.isEmpty()) {
+                textEmpty.setText(R.string.customer_chat_empty_threads);
+            } else if (allThreads.isEmpty()) {
+                textEmpty.setText(R.string.staff_chat_empty_threads);
+            } else {
+                textEmpty.setText(R.string.chat_filter_no_matches);
+            }
+        }
+        recyclerThreads.setVisibility(empty ? View.GONE : View.VISIBLE);
+        textEmpty.setVisibility(empty ? View.VISIBLE : View.GONE);
+    }
+
+    private String safe(String s) {
+        return s == null ? "" : s.trim();
+    }
+
+    private boolean matchesSelectedFilter(ChatThreadDto thread) {
+        if (selectedFilterId == -1) {
+            return true; // All
+        }
+        String category = safe(thread.category).toLowerCase(Locale.ROOT);
+        switch (selectedFilterId) {
+            case FILTER_GENERAL:
+                return category.isEmpty() || "general".equals(category);
+            case FILTER_ORDER_ISSUE:
+                return "order_issue".equals(category);
+            case FILTER_ACCOUNT_HELP:
+                return "account_help".equals(category);
+            case FILTER_FEEDBACK:
+                return "feedback".equals(category);
+            case FILTER_ARCHIVED:
+                return isArchivedStatus(thread.status);
+            default:
+                return true;
+        }
+    }
+
+    private boolean isArchivedStatus(String rawStatus) {
+        String status = safe(rawStatus).toLowerCase(Locale.ROOT);
+        return "closed".equals(status)
+                || "archived".equals(status)
+                || "resolved".equals(status);
     }
 
     private void createAndOpenChat() {
@@ -267,6 +403,7 @@ public class StaffChatInboxFragment extends Fragment {
                         ChatMessageDto last = messages.get(messages.size() - 1);
                         thread.latestMessagePreview = summarize(last.text);
                         thread.latestMessageAt = last.sentAt;
+                        cachePreviewState(thread);
                         adapter.notifyDataSetChanged();
                     }
                 }
@@ -287,6 +424,42 @@ public class StaffChatInboxFragment extends Fragment {
             return trimmed;
         }
         return trimmed.substring(0, 69) + "...";
+    }
+
+    private void applyCachedPreviewState(ChatThreadDto thread) {
+        if (thread == null || thread.id == null) {
+            return;
+        }
+        ThreadPreviewState cached = previewStateByThreadId.get(thread.id);
+        if (cached == null) {
+            cachePreviewState(thread);
+            return;
+        }
+        if (safe(thread.latestMessagePreview).isEmpty() && !safe(cached.preview).isEmpty()) {
+            thread.latestMessagePreview = cached.preview;
+        }
+        if (safe(thread.latestMessageAt).isEmpty() && !safe(cached.latestAt).isEmpty()) {
+            thread.latestMessageAt = cached.latestAt;
+        }
+        cachePreviewState(thread);
+    }
+
+    private void cachePreviewState(ChatThreadDto thread) {
+        if (thread == null || thread.id == null) {
+            return;
+        }
+        previewStateByThreadId.put(thread.id,
+                new ThreadPreviewState(thread.latestMessagePreview, thread.latestMessageAt));
+    }
+
+    private static final class ThreadPreviewState {
+        final String preview;
+        final String latestAt;
+
+        ThreadPreviewState(String preview, String latestAt) {
+            this.preview = preview;
+            this.latestAt = latestAt;
+        }
     }
 
     private void launchChat(ChatThreadDto thread) {

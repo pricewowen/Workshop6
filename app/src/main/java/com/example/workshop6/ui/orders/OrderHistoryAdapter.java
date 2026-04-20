@@ -76,7 +76,7 @@ public class OrderHistoryAdapter extends RecyclerView.Adapter<OrderHistoryAdapte
         LinearLayout llPendingPaymentActions;
         LinearLayout llDeliveredActions;
         TextView tvPendingPaymentHint;
-        TextView tvDetailMethod, tvDetailBakery, tvDetailTime, tvDetailSubtotal, tvDetailTaxLabel, tvDetailTax, tvDetailFinalTotal, tvDetailComment, tvDetailPoints;
+        TextView tvDetailMethod, tvDetailBakery, tvDetailTime, tvDetailSubtotal, tvDetailTaxLabel, tvDetailTax, tvDetailFinalTotal, tvDetailComment, tvDetailPoints, tvDetailPointsLabel;
         com.google.android.material.button.MaterialButton btnRetryPayment;
         com.google.android.material.button.MaterialButton btnAcceptDelivery;
 
@@ -106,6 +106,7 @@ public class OrderHistoryAdapter extends RecyclerView.Adapter<OrderHistoryAdapte
             tvDetailFinalTotal = itemView.findViewById(R.id.tvDetailFinalTotal);
             tvDetailComment = itemView.findViewById(R.id.tvDetailComment);
             tvDetailPoints = itemView.findViewById(R.id.tvDetailPoints);
+            tvDetailPointsLabel = itemView.findViewById(R.id.tvDetailPointsLabel);
             btnRetryPayment = itemView.findViewById(R.id.btnRetryPayment);
             btnAcceptDelivery = itemView.findViewById(R.id.btnAcceptDelivery);
         }
@@ -240,8 +241,34 @@ public class OrderHistoryAdapter extends RecyclerView.Adapter<OrderHistoryAdapte
 
                 llItemsContainer.addView(itemView);
             }
+            String status = o.status != null ? o.status : "";
             int earnedPoints = computeEarnedPoints(o, orderWithDetails.items);
-            tvDetailPoints.setText(pointsFormat.format(earnedPoints) + " pts");
+            bindPointsState(status, earnedPoints);
+        }
+
+        private void bindPointsState(String statusRaw, int points) {
+            String status = statusRaw != null ? statusRaw.toLowerCase(Locale.ROOT) : "";
+            if ("cancelled".equals(status)) {
+                tvDetailPointsLabel.setText(R.string.order_points_refunded_label);
+                tvDetailPoints.setText(itemView.getContext().getString(
+                        R.string.order_points_value_refunded_fmt,
+                        pointsFormat.format(points)));
+                return;
+            }
+            if (isPrePaymentStatus(status)) {
+                tvDetailPointsLabel.setText(R.string.order_points_pending_label);
+            } else {
+                tvDetailPointsLabel.setText(R.string.order_points_awarded_label);
+            }
+            tvDetailPoints.setText(itemView.getContext().getString(
+                    R.string.order_points_value_fmt,
+                    pointsFormat.format(points)));
+        }
+
+        private boolean isPrePaymentStatus(String status) {
+            return "pending".equals(status)
+                    || "placed".equals(status)
+                    || "pending_payment".equals(status);
         }
     }
 

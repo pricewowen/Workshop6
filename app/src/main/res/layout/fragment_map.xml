@@ -51,7 +51,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="8dp"
-                android:text="@string/label_categories"
+                android:text="@string/label_categories_filters"
                 android:textColor="@color/bakery_text_tertiary"
                 android:textSize="11sp"
                 android:textStyle="bold" />
@@ -82,6 +82,17 @@
                 android:clipToPadding="false"
                 android:nestedScrollingEnabled="false"
                 android:overScrollMode="never" />
+
+            <TextView
+                android:id="@+id/tv_map_empty"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:gravity="center_horizontal"
+                android:text="@string/map_filter_no_matches"
+                android:textColor="@color/bakery_text_secondary"
+                android:textSize="16sp"
+                android:visibility="gone" />
 
         </LinearLayout>
     </androidx.core.widget.NestedScrollView>

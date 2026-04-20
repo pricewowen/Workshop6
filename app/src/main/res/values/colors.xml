@@ -7,6 +7,8 @@
     <!-- Accent: terracotta (was gold — links, prices, active nav, progress) -->
     <color name="bakery_gold">#C25F1A</color>
     <color name="bakery_gold_bright">#C25F1A</color>
+    <!-- Registration linking hints (distinct from field error red / default helper text) -->
+    <color name="register_link_hint">#E65100</color>
 
     <!-- Surfaces -->
     <color name="bakery_background">#EAE7E2</color>

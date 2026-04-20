@@ -77,7 +77,6 @@ dependencies {
     // Retrofit + OkHttp
     implementation(libs.retrofit)
     implementation(libs.retrofit.gson)
-    implementation(libs.okhttp.logging)
     implementation(libs.gson)
     implementation(libs.glide)
     implementation(libs.browser)

@@ -3,7 +3,6 @@ package com.example.workshop6.ui.orders;
 import android.content.Intent;
 import android.os.Bundle;
 import android.text.InputType;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.ArrayAdapter;
@@ -117,7 +116,6 @@ public class OrderHistoryActivity extends AppCompatActivity implements OrderHist
             return;
         }
         if (BuildConfig.STRIPE_PUBLISHABLE_KEY.isEmpty()) {
-            Log.e("OrderHistory", "Stripe publishable key not configured; blocking retry payment");
             new AlertDialog.Builder(this)
                     .setTitle(R.string.stripe_unavailable_title)
                     .setMessage(R.string.stripe_unavailable_message)
@@ -158,7 +156,6 @@ public class OrderHistoryActivity extends AppCompatActivity implements OrderHist
 
             @Override
             public void onFailure(Call<ResumePaymentSessionResponse> call, Throwable t) {
-                Log.e("OrderHistory", "resume payment failed", t);
                 Toast.makeText(OrderHistoryActivity.this, R.string.login_error_no_connection, Toast.LENGTH_SHORT).show();
             }
         });

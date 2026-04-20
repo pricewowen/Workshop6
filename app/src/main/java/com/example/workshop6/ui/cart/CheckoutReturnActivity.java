@@ -22,7 +22,6 @@ import com.example.workshop6.data.api.ApiService;
 import com.example.workshop6.data.api.dto.ConfirmStripePaymentRequest;
 import com.example.workshop6.data.api.dto.OrderDto;
 import com.example.workshop6.data.api.dto.OrderItemDto;
-import com.example.workshop6.logging.ActivityLogger;
 import com.example.workshop6.payments.PendingStripeConfirm;
 import com.example.workshop6.ui.MainActivity;
 import com.example.workshop6.ui.orders.OrderHistoryAdapter;
@@ -172,7 +171,6 @@ public class CheckoutReturnActivity extends AppCompatActivity {
             }
         }
 
-        ActivityLogger.log(this, sessionManager, "PAYMENT_SUCCESS", "Stripe checkout completed");
         CartManager.getInstance(this).clearCart();
 
         if (orderId == null || paymentIntentId == null) {

@@ -7,6 +7,7 @@ import android.text.TextWatcher;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.Button;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 import android.text.format.DateUtils;
@@ -22,17 +23,19 @@ import com.example.workshop6.data.api.dto.ForgotPasswordRequest;
 import com.example.workshop6.data.api.dto.LoginRequest;
 import com.example.workshop6.data.api.dto.LoginRoleChoiceErrorBody;
 import com.google.gson.Gson;
-import com.example.workshop6.logging.ActivityLogger;
 import com.example.workshop6.payments.PendingStripeConfirm;
 import com.example.workshop6.ui.MainActivity;
 import com.example.workshop6.util.ApiReachability;
 import com.example.workshop6.util.NavTransitions;
 import com.example.workshop6.util.NetworkStatus;
 import com.example.workshop6.util.Validation;
+import com.google.android.material.button.MaterialButton;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.textfield.TextInputEditText;
 import com.google.android.material.textfield.TextInputLayout;
 import okhttp3.ResponseBody;
+
+import java.util.Locale;
 
 import retrofit2.Call;
 import retrofit2.Callback;
@@ -270,7 +273,6 @@ public class LoginActivity extends AppCompatActivity {
                             || auth.username == null || auth.username.trim().isEmpty()) {
                         tvError.setText(R.string.register_error_unexpected);
                         tvError.setVisibility(View.VISIBLE);
-                        ActivityLogger.logFailure(LoginActivity.this, null, "LOGIN", "Malformed auth response");
                         return;
                     }
 
@@ -288,7 +290,6 @@ public class LoginActivity extends AppCompatActivity {
                             sessionEmail
                     );
 
-                    ActivityLogger.log(LoginActivity.this, "USER@" + auth.username, "LOGIN", "Login succeeded");
                     goToMain();
 
                 } else if (response.code() == 409) {
@@ -304,21 +305,19 @@ public class LoginActivity extends AppCompatActivity {
                     } catch (Exception ignored) {
                         // fall through
                     }
-                    tvError.setText(R.string.login_error_invalid_username_or_email);
+                    tvError.setText(getCredentialErrorRes(lockoutIdentifier));
                     tvError.setVisibility(View.VISIBLE);
 
                 } else if (response.code() == 401 || response.code() == 403) {
                     sessionManager.recordFailedLogin(lockoutIdentifier);
                     long nextRemainingLockoutMs = sessionManager.getRemainingLockoutMs(lockoutIdentifier);
-                    ActivityLogger.logFailure(LoginActivity.this, null, "LOGIN", "Login failed");
-
                     if (nextRemainingLockoutMs > 0) {
                         tvError.setText(getString(
                                 R.string.login_error_locked_out,
                                 DateUtils.formatElapsedTime((nextRemainingLockoutMs + 999) / 1000)
                         ));
                     } else {
-                        tvError.setText(R.string.login_error_invalid_username_or_email);
+                        tvError.setText(getCredentialErrorRes(lockoutIdentifier));
                     }
                     tvError.setVisibility(View.VISIBLE);
 
@@ -336,9 +335,29 @@ public class LoginActivity extends AppCompatActivity {
                 btnLogin.setEnabled(true);
                 tvError.setText(R.string.login_error_no_connection);
                 tvError.setVisibility(View.VISIBLE);
-                ActivityLogger.logFailure(LoginActivity.this, null, "LOGIN", "Network error: " + t.getMessage());
             }
         });
+    }
+
+    private int getCredentialErrorRes(String identifier) {
+        String raw = identifier != null ? identifier.trim() : "";
+        return raw.contains("@")
+                ? R.string.login_error_invalid
+                : R.string.login_error_invalid_username;
+    }
+
+    /** Display "Customer" / "Employee" instead of legacy "… account" labels from the API. */
+    private static String shortenLinkedRoleButtonLabel(String label) {
+        if (label == null) {
+            return "";
+        }
+        String t = label.trim();
+        String suffix = " account";
+        if (t.length() >= suffix.length()
+                && t.substring(t.length() - suffix.length()).toLowerCase(Locale.ROOT).equals(suffix)) {
+            return t.substring(0, t.length() - suffix.length()).trim();
+        }
+        return t;
     }
 
     private void showLinkedAccountRoleDialog(
@@ -346,28 +365,62 @@ public class LoginActivity extends AppCompatActivity {
             String password,
             LoginRoleChoiceErrorBody body) {
         int n = body.choices.size();
-        String[] items = new String[n];
-        for (int i = 0; i < n; i++) {
-            LoginRoleChoiceErrorBody.Choice c = body.choices.get(i);
-            String label = (c.label != null && !c.label.trim().isEmpty()) ? c.label.trim() : c.role;
-            items[i] = label != null ? label : c.username;
-        }
         String msg = (body.message != null && !body.message.trim().isEmpty())
                 ? body.message.trim()
                 : getString(R.string.login_role_choice_body);
-        new MaterialAlertDialogBuilder(this)
+
+        // Custom view: readable body + text-style actions in one row with Cancel (do not use setMessage+setItems).
+        View content = LayoutInflater.from(this).inflate(R.layout.dialog_login_role_choice, null);
+        TextView tvMessage = content.findViewById(R.id.tv_login_role_choice_message);
+        LinearLayout actions = content.findViewById(R.id.ll_login_role_choice_actions);
+        MaterialButton btnCancel = content.findViewById(R.id.btn_login_role_choice_cancel);
+        tvMessage.setText(msg);
+
+        float density = getResources().getDisplayMetrics().density;
+        int gapBetweenRoles = (int) (4 * density);
+
+        MaterialAlertDialogBuilder builder = new MaterialAlertDialogBuilder(this)
                 .setTitle(R.string.login_role_choice_title)
-                .setMessage(msg)
-                .setItems(items, (d, which) -> {
-                    LoginRoleChoiceErrorBody.Choice chosen = body.choices.get(which);
-                    if (chosen != null && chosen.username != null && !chosen.username.trim().isEmpty()) {
-                        submitLoginRequest(
-                                LoginRequest.forResolvedUsername(chosen.username.trim(), password),
-                                lockoutIdentifier);
-                    }
-                })
-                .setNegativeButton(android.R.string.cancel, null)
-                .show();
+                .setView(content);
+
+        AlertDialog dialog = builder.create();
+
+        btnCancel.setOnClickListener(v -> dialog.dismiss());
+
+        for (int i = 0; i < n; i++) {
+            LoginRoleChoiceErrorBody.Choice c = body.choices.get(i);
+            String label = (c.label != null && !c.label.trim().isEmpty()) ? c.label.trim() : c.role;
+            if (label == null || label.isEmpty()) {
+                label = c.username != null ? c.username : "";
+            }
+            label = shortenLinkedRoleButtonLabel(label);
+
+            MaterialButton btn = (MaterialButton) LayoutInflater.from(this)
+                    .inflate(R.layout.item_login_role_choice_button, actions, false);
+            btn.setText(label);
+
+            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.WRAP_CONTENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT);
+            if (i > 0) {
+                lp.setMarginStart(gapBetweenRoles);
+            }
+            btn.setLayoutParams(lp);
+
+            int idx = i;
+            btn.setOnClickListener(v -> {
+                dialog.dismiss();
+                LoginRoleChoiceErrorBody.Choice chosen = body.choices.get(idx);
+                if (chosen != null && chosen.username != null && !chosen.username.trim().isEmpty()) {
+                    submitLoginRequest(
+                            LoginRequest.forResolvedUsername(chosen.username.trim(), password),
+                            lockoutIdentifier);
+                }
+            });
+            actions.addView(btn);
+        }
+
+        dialog.show();
     }
 
     private void goToMain() {
@@ -445,8 +498,6 @@ public class LoginActivity extends AppCompatActivity {
                             dialog.dismiss();
                             Toast.makeText(LoginActivity.this, R.string.forgot_password_success, Toast.LENGTH_LONG)
                                     .show();
-                            ActivityLogger.log(LoginActivity.this, sessionManager, "FORGOT_PASSWORD",
-                                    "Request submitted");
                             return;
                         }
                         if (response.code() == 400) {
@@ -466,8 +517,6 @@ public class LoginActivity extends AppCompatActivity {
                         positiveBtn.setEnabled(true);
                         Toast.makeText(LoginActivity.this, R.string.login_error_no_connection, Toast.LENGTH_LONG)
                                 .show();
-                        ActivityLogger.logFailure(LoginActivity.this, sessionManager, "FORGOT_PASSWORD",
-                                "Network error: " + t.getMessage());
                     }
                 });
     }

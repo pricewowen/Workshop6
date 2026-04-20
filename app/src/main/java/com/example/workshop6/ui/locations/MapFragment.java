@@ -12,6 +12,7 @@ import android.text.TextWatcher;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.TextView;
 
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
@@ -29,6 +30,7 @@ import com.example.workshop6.data.api.ApiClient;
 import com.example.workshop6.data.api.ApiService;
 import com.example.workshop6.data.api.BakeryLocationMapper;
 import com.example.workshop6.data.api.dto.BakeryDto;
+import com.example.workshop6.data.api.dto.BakeryHourDto;
 import com.example.workshop6.data.api.dto.BatchDto;
 import com.example.workshop6.data.api.dto.ProductDto;
 import com.example.workshop6.data.model.BakeryLocationDetails;
@@ -59,9 +61,14 @@ public class MapFragment extends Fragment {
     private static final long MAP_LOAD_MIN_MS = 400L;
     /** Synthetic tag id for the "Nearby" chip (Browse uses positive API tag ids). */
     private static final int MAP_FILTER_TAG_NEARBY = -2;
+    private static final int MAP_FILTER_TAG_4_PLUS_STARS = -3;
+    private static final int MAP_FILTER_TAG_OPEN_NOW = -4;
+    private static final int MAP_FILTER_TAG_HAS_RATINGS = -5;
 
     private LocationAdapter adapter;
     private CategoriesAdapter mapFilterAdapter;
+    private RecyclerView rvLocations;
+    private TextView tvMapEmpty;
     private ApiService api;
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
     private long mapLoadStartElapsed;
@@ -79,6 +86,7 @@ public class MapFragment extends Fragment {
     private final List<BakeryLocationDetails> cachedLocations = new ArrayList<>();
     private String currentSearch = "";
     private final Map<Integer, ProductDto> productCatalogById = new HashMap<>();
+    private int selectedMapFilterTagId = -1;
 
     private final ActivityResultLauncher<String> locationPermissionLauncher =
             registerForActivityResult(
@@ -113,8 +121,9 @@ public class MapFragment extends Fragment {
         api = ApiClient.getInstance().getService();
         fusedClient = LocationServices.getFusedLocationProviderClient(requireActivity());
 
-        RecyclerView rv = view.findViewById(R.id.rv_locations);
-        rv.setLayoutManager(new LinearLayoutManager(requireContext()));
+        rvLocations = view.findViewById(R.id.rv_locations);
+        tvMapEmpty = view.findViewById(R.id.tv_map_empty);
+        rvLocations.setLayoutManager(new LinearLayoutManager(requireContext()));
         adapter = new LocationAdapter(false, new LocationAdapter.Listener() {
             @Override
             public void onLocationClick(BakeryLocationDetails loc) {
@@ -129,24 +138,27 @@ public class MapFragment extends Fragment {
                 LocationUtils.openBakeryInMaps(requireContext(), loc);
             }
         });
-        rv.setAdapter(adapter);
+        rvLocations.setAdapter(adapter);
 
         RecyclerView rvMapFilters = view.findViewById(R.id.rv_map_filters);
         rvMapFilters.setLayoutManager(new LinearLayoutManager(
                 requireContext(),
                 LinearLayoutManager.HORIZONTAL,
                 false));
-        List<Category> nearbyOnly = Collections.singletonList(
-                new Category(MAP_FILTER_TAG_NEARBY, getString(R.string.btn_show_nearby)));
-        mapFilterAdapter = new CategoriesAdapter(new ArrayList<>(nearbyOnly), tagId -> {
-            if (tagId == -1) {
-                nearbyMode = false;
+        List<Category> filters = new ArrayList<>();
+        filters.add(new Category(MAP_FILTER_TAG_NEARBY, getString(R.string.btn_show_nearby)));
+        filters.add(new Category(MAP_FILTER_TAG_4_PLUS_STARS, getString(R.string.map_filter_4_plus_stars)));
+        filters.add(new Category(MAP_FILTER_TAG_OPEN_NOW, getString(R.string.map_filter_open_now)));
+        filters.add(new Category(MAP_FILTER_TAG_HAS_RATINGS, getString(R.string.map_filter_has_ratings)));
+        mapFilterAdapter = new CategoriesAdapter(filters, tagId -> {
+            selectedMapFilterTagId = tagId;
+            nearbyMode = tagId == MAP_FILTER_TAG_NEARBY;
+            if (!nearbyMode) {
                 adapter.setNearbyMode(false, 0, 0);
                 applyFilterAndDisplay();
-            } else if (tagId == MAP_FILTER_TAG_NEARBY) {
-                nearbyMode = true;
-                requestOrFetchLocation();
+                return;
             }
+            requestOrFetchLocation();
         });
         rvMapFilters.setAdapter(mapFilterAdapter);
 
@@ -172,6 +184,7 @@ public class MapFragment extends Fragment {
 
     private void revertToAllLocationsFilter() {
         nearbyMode = false;
+        selectedMapFilterTagId = -1;
         if (mapFilterAdapter != null) {
             mapFilterAdapter.setSelectedPosition(0);
         }
@@ -228,8 +241,12 @@ public class MapFragment extends Fragment {
                 cachedLocations.clear();
                 productCatalogById.clear();
                 for (BakeryDto b : response.body()) {
-                    cachedLocations.add(BakeryLocationMapper.fromDto(b, ""));
+                    BakeryLocationDetails loc = BakeryLocationMapper.fromDto(b, "");
+                    // Do not trust API bakery.status for live open/closed on list cards.
+                    loc.status = "Closed";
+                    cachedLocations.add(loc);
                 }
+                loadBakeryOpenStatuses();
                 applyFilterAndDisplay();
                 loadBakeryAverages();
                 loadCatalogAndBatchProductSearch();
@@ -276,11 +293,59 @@ public class MapFragment extends Fragment {
         }
     }
 
+    private void loadBakeryOpenStatuses() {
+        for (BakeryLocationDetails loc : cachedLocations) {
+            if (loc == null || loc.id <= 0) {
+                continue;
+            }
+            final BakeryLocationDetails target = loc;
+            api.getBakeryHours(loc.id).enqueue(new Callback<List<BakeryHourDto>>() {
+                @Override
+                public void onResponse(Call<List<BakeryHourDto>> call,
+                                       Response<List<BakeryHourDto>> response) {
+                    if (!isAdded()) {
+                        return;
+                    }
+                    List<BakeryHourDto> rows =
+                            response.isSuccessful() && response.body() != null ? response.body() : Collections.emptyList();
+                    target.status = LocationUtils.isOpenNow(rows) ? "Open" : "Closed";
+                    applyFilterAndDisplay();
+                }
+
+                @Override
+                public void onFailure(Call<List<BakeryHourDto>> call, Throwable t) {
+                    if (!isAdded()) {
+                        return;
+                    }
+                    target.status = "Closed";
+                    applyFilterAndDisplay();
+                }
+            });
+        }
+    }
+
     private void applyFilterAndDisplay() {
-        LocationSearchHelper.ParsedLocationQuery parsed = LocationSearchHelper.parseQuery(currentSearch);
+        LocationSearchHelper.ParsedLocationQuery parsed = LocationSearchHelper.parseQuery(currentSearch != null ? currentSearch : "");
+        Double effectiveMinRating = parsed.minRating;
+        if (selectedMapFilterTagId == MAP_FILTER_TAG_4_PLUS_STARS) {
+            effectiveMinRating = (effectiveMinRating == null)
+                    ? 4.0
+                    : Math.max(4.0, effectiveMinRating);
+        }
+        boolean openOnly = selectedMapFilterTagId == MAP_FILTER_TAG_OPEN_NOW;
+        boolean hasRatingsOnly = selectedMapFilterTagId == MAP_FILTER_TAG_HAS_RATINGS;
         List<BakeryLocationDetails> filtered = new ArrayList<>();
         for (BakeryLocationDetails loc : cachedLocations) {
-            if (!LocationSearchHelper.ratingSatisfies(loc.averageRating, parsed.minRating)) {
+            if (loc == null) {
+                continue;
+            }
+            if (!LocationSearchHelper.ratingSatisfies(loc.averageRating, effectiveMinRating)) {
+                continue;
+            }
+            if (openOnly && !"Open".equalsIgnoreCase(loc.status)) {
+                continue;
+            }
+            if (hasRatingsOnly && (loc.averageRating == null || loc.averageRating.isNaN())) {
                 continue;
             }
             String haystack = LocationSearchHelper.buildHaystack(loc, loc.productSearchText);
@@ -384,12 +449,20 @@ public class MapFragment extends Fragment {
     }
 
     private void onLocationsUpdated(List<BakeryLocationDetails> locs) {
+        List<BakeryLocationDetails> safe = locs != null ? locs : new ArrayList<>();
         if (nearbyMode && hasUserLocation) {
             adapter.setNearbyMode(true, userLat, userLon);
-            adapter.submitList(LocationUtils.sortByDistance(locs, userLat, userLon));
+            adapter.submitList(LocationUtils.sortByDistance(safe, userLat, userLon));
         } else {
             adapter.setNearbyMode(false, 0, 0);
-            adapter.submitList(locs);
+            adapter.submitList(safe);
+        }
+        boolean hasRows = !safe.isEmpty();
+        if (rvLocations != null) {
+            rvLocations.setVisibility(hasRows ? View.VISIBLE : View.GONE);
+        }
+        if (tvMapEmpty != null) {
+            tvMapEmpty.setVisibility(hasRows ? View.GONE : View.VISIBLE);
         }
     }
 

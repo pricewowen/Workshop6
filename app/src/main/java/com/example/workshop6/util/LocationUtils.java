@@ -4,8 +4,10 @@ import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
 
+import com.example.workshop6.data.api.dto.BakeryHourDto;
 import com.example.workshop6.data.model.BakeryLocationDetails;
 
+import java.util.Calendar;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -72,6 +74,86 @@ public class LocationUtils {
             context.startActivity(intent);
         } else {
             context.startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(uri)));
+        }
+    }
+
+    /**
+     * Computes whether a bakery is open right now from weekly bakery_hours.
+     * Handles overnight ranges (e.g. 18:00 -> 02:00) by checking previous-day carry-over.
+     */
+    public static boolean isOpenNow(List<BakeryHourDto> hours) {
+        if (hours == null || hours.isEmpty()) {
+            return false;
+        }
+        Calendar now = Calendar.getInstance();
+        int currentDay = calendarDayToApiDay(now.get(Calendar.DAY_OF_WEEK));
+        int minuteOfDay = (now.get(Calendar.HOUR_OF_DAY) * 60) + now.get(Calendar.MINUTE);
+        int prevDay = (currentDay + 6) % 7;
+
+        for (BakeryHourDto h : hours) {
+            if (h == null || h.closed) {
+                continue;
+            }
+            int[] open = parseHourMinute(h.openTime);
+            int[] close = parseHourMinute(h.closeTime);
+            if (open == null || close == null) {
+                continue;
+            }
+            int openMin = (open[0] * 60) + open[1];
+            int closeMin = (close[0] * 60) + close[1];
+            boolean overnight = closeMin <= openMin;
+
+            if (h.dayOfWeek == currentDay) {
+                if (!overnight && minuteOfDay >= openMin && minuteOfDay < closeMin) {
+                    return true;
+                }
+                if (overnight && minuteOfDay >= openMin) {
+                    return true;
+                }
+            }
+            if (overnight && h.dayOfWeek == prevDay && minuteOfDay < closeMin) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static int calendarDayToApiDay(int calendarDay) {
+        switch (calendarDay) {
+            case Calendar.SUNDAY:
+                return 0;
+            case Calendar.MONDAY:
+                return 1;
+            case Calendar.TUESDAY:
+                return 2;
+            case Calendar.WEDNESDAY:
+                return 3;
+            case Calendar.THURSDAY:
+                return 4;
+            case Calendar.FRIDAY:
+                return 5;
+            default:
+                return 6;
+        }
+    }
+
+    private static int[] parseHourMinute(String value) {
+        if (value == null || value.trim().isEmpty()) {
+            return null;
+        }
+        String[] parts = value.trim().split(":");
+        if (parts.length < 2) {
+            return null;
+        }
+        try {
+            int hour = Integer.parseInt(parts[0]);
+            int minute = Integer.parseInt(parts[1]);
+            if (hour < 0 || hour > 23 || minute < 0 || minute > 59) {
+                return null;
+            }
+            return new int[]{hour, minute};
+        } catch (NumberFormatException ignored) {
+            return null;
         }
     }
 }

@@ -40,6 +40,7 @@ public class CustomerPreferencesActivity extends AppCompatActivity {
     private LinearLayout container;
     private View loadingOverlay;
     private final List<Row> rows = new ArrayList<>();
+    private final Map<Integer, Integer> initialSelectionByTag = new HashMap<>();
 
     private static final class Row {
         final int tagId;
@@ -139,6 +140,7 @@ public class CustomerPreferencesActivity extends AppCompatActivity {
     private void buildRows(List<TagDto> tags, Map<Integer, PreferenceType> existing) {
         container.removeAllViews();
         rows.clear();
+        initialSelectionByTag.clear();
         LayoutInflater inflater = LayoutInflater.from(this);
         if (tags == null || tags.isEmpty()) {
             TextView empty = new TextView(this);
@@ -160,9 +162,11 @@ public class CustomerPreferencesActivity extends AppCompatActivity {
             adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
             spinner.setAdapter(adapter);
             PreferenceType pref = existing.get(tag.id);
-            spinner.setSelection(indexForPreference(pref));
+            int initialIndex = indexForPreference(pref);
+            spinner.setSelection(initialIndex);
             container.addView(row);
             rows.add(new Row(tag.id, spinner));
+            initialSelectionByTag.put(tag.id, initialIndex);
         }
     }
 
@@ -201,6 +205,10 @@ public class CustomerPreferencesActivity extends AppCompatActivity {
     }
 
     private void save() {
+        if (!hasPreferenceChanges()) {
+            Toast.makeText(this, R.string.nothing_to_save_profile, Toast.LENGTH_SHORT).show();
+            return;
+        }
         List<CustomerPreferenceSaveRequest.PreferenceEntry> entries = new ArrayList<>();
         for (Row row : rows) {
             PreferenceType t = preferenceForIndex(row.spinner.getSelectedItemPosition());
@@ -242,6 +250,17 @@ public class CustomerPreferencesActivity extends AppCompatActivity {
                         R.string.login_error_no_connection, Toast.LENGTH_SHORT).show();
             }
         });
+    }
+
+    private boolean hasPreferenceChanges() {
+        for (Row row : rows) {
+            Integer initial = initialSelectionByTag.get(row.tagId);
+            int current = row.spinner.getSelectedItemPosition();
+            if (initial == null || initial != current) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private void redirectLogin() {

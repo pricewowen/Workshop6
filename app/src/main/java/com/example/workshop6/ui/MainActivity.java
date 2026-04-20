@@ -175,9 +175,6 @@ public class MainActivity extends AppCompatActivity {
         if (intent.getBooleanExtra(EXTRA_OPEN_ME_TAB, false) && bottomNav != null && navController != null) {
             bottomNav.post(() -> bottomNav.setSelectedItemId(R.id.nav_me));
         }
-        if (intent.getBooleanExtra(EXTRA_PROMPT_CUSTOMER_PROFILE, false)) {
-            Toast.makeText(this, R.string.toast_account_created, Toast.LENGTH_LONG).show();
-        }
         int productId = intent.getIntExtra(EXTRA_OPEN_PRODUCT_ID, -1);
         if (productId > 0 && bottomNav != null && navController != null) {
             final int pid = productId;
@@ -387,9 +384,14 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void configureBottomNav(BottomNavigationView bottomNav, String role) {
-        int menuResId = ("CUSTOMER".equalsIgnoreCase(role) || sessionManager.isGuestMode())
-                ? R.menu.bottom_nav_customer_menu
-                : R.menu.bottom_nav_staff_menu;
+        int menuResId;
+        if (sessionManager.isGuestMode()) {
+            menuResId = R.menu.bottom_nav_guest_menu;
+        } else if ("CUSTOMER".equalsIgnoreCase(role)) {
+            menuResId = R.menu.bottom_nav_customer_menu;
+        } else {
+            menuResId = R.menu.bottom_nav_staff_menu;
+        }
         if (currentBottomNavMenuResId == menuResId) {
             return;
         }

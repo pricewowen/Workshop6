@@ -25,7 +25,6 @@ import com.example.workshop6.data.api.dto.CustomerPatchRequest;
 import com.example.workshop6.data.api.dto.EmployeeDto;
 import com.example.workshop6.data.api.dto.EmployeePatchRequest;
 import com.example.workshop6.data.api.dto.GuestCustomerRequest;
-import com.example.workshop6.logging.ActivityLogger;
 import com.example.workshop6.ui.MainActivity;
 import com.example.workshop6.ui.cart.CheckoutActivity;
 import com.example.workshop6.util.NavTransitions;
@@ -86,6 +85,17 @@ public class CustomerProfileSetupActivity extends AppCompatActivity {
     private boolean minimalContactGuest;
     /** When launched for checkout: whether to {@code startActivity(CheckoutActivity)} on success (vs. {@code setResult} only). */
     private boolean openCheckoutAfterSave;
+    private String initialFirstName = "";
+    private String initialMiddleInitial = "";
+    private String initialLastName = "";
+    private String initialEmail = "";
+    private String initialPhoneDigits = "";
+    private String initialBusinessPhoneDigits = "";
+    private String initialAddress1 = "";
+    private String initialAddress2 = "";
+    private String initialCity = "";
+    private String initialPostal = "";
+    private int initialProvincePos = 0;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -249,6 +259,7 @@ public class CustomerProfileSetupActivity extends AppCompatActivity {
             setProvinceSelection(e.address.province);
             tvProvinceError.setVisibility(TextView.GONE);
         }
+        captureInitialValues();
     }
 
     private void loadExistingCustomerProfile() {
@@ -297,6 +308,7 @@ public class CustomerProfileSetupActivity extends AppCompatActivity {
             setProvinceSelection(c.address.province);
             tvProvinceError.setVisibility(TextView.GONE);
         }
+        captureInitialValues();
     }
 
     private void bindFromGuestProfile(GuestCustomerRequest guest) {
@@ -304,6 +316,7 @@ public class CustomerProfileSetupActivity extends AppCompatActivity {
             if (sessionManager.isLoggedIn() && etEmail != null) {
                 etEmail.setText(sessionManager.getLoginEmail());
             }
+            captureInitialValues();
             return;
         }
         etFirstName.setText(emptyToBlank(guest.firstName));
@@ -318,6 +331,7 @@ public class CustomerProfileSetupActivity extends AppCompatActivity {
         etPostal.setText(emptyToBlank(guest.postalCode));
         setProvinceSelection(guest.province);
         tvProvinceError.setVisibility(TextView.GONE);
+        captureInitialValues();
     }
 
     private static String emptyToBlank(String s) {
@@ -361,6 +375,10 @@ public class CustomerProfileSetupActivity extends AppCompatActivity {
     }
 
     private void attemptSave() {
+        if (!launchedForCheckout && !hasProfileChanges()) {
+            Toast.makeText(this, R.string.nothing_to_save_profile, Toast.LENGTH_SHORT).show();
+            return;
+        }
         if (guestMode) {
             saveAfterReachability();
             return;
@@ -595,7 +613,6 @@ public class CustomerProfileSetupActivity extends AppCompatActivity {
                         displayName,
                         sessionManager.getLoginEmail()
                 );
-                ActivityLogger.log(CustomerProfileSetupActivity.this, sessionManager, "UPDATE_PROFILE", "Employee personal info updated");
                 Toast.makeText(CustomerProfileSetupActivity.this, R.string.customer_profile_saved, Toast.LENGTH_SHORT).show();
                 Intent intent = new Intent(CustomerProfileSetupActivity.this, MainActivity.class);
                 intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
@@ -687,7 +704,6 @@ public class CustomerProfileSetupActivity extends AppCompatActivity {
         guest.postalCode = "";
 
         sessionManager.saveGuestProfile(guest);
-        ActivityLogger.log(this, sessionManager, "GUEST_PROFILE", "Minimal guest contact saved");
         btnSave.setEnabled(true);
         onGuestProfilePersistSuccess();
     }
@@ -905,7 +921,6 @@ public class CustomerProfileSetupActivity extends AppCompatActivity {
                     return;
                 }
                 CustomerDto c = response.body();
-                ActivityLogger.log(CustomerProfileSetupActivity.this, sessionManager, "CUSTOMER_PROFILE", "Delivery profile created");
                 onProfilePersistSuccess(c);
             }
 
@@ -972,7 +987,6 @@ public class CustomerProfileSetupActivity extends AppCompatActivity {
                     return;
                 }
                 CustomerDto c = response.body();
-                ActivityLogger.log(CustomerProfileSetupActivity.this, sessionManager, "CUSTOMER_PROFILE", "Delivery profile updated");
                 onProfilePersistSuccess(c);
             }
 
@@ -1026,6 +1040,34 @@ public class CustomerProfileSetupActivity extends AppCompatActivity {
 
     private static String digits(TextInputEditText et) {
         return et.getText() != null ? et.getText().toString().replaceAll("\\D", "") : "";
+    }
+
+    private void captureInitialValues() {
+        initialFirstName = text(etFirstName);
+        initialMiddleInitial = text(etMiddleInitial);
+        initialLastName = text(etLastName);
+        initialEmail = text(etEmail).toLowerCase(Locale.ROOT).trim();
+        initialPhoneDigits = digits(etPhone);
+        initialBusinessPhoneDigits = digits(etBusinessPhone);
+        initialAddress1 = text(etAddress1);
+        initialAddress2 = text(etAddress2);
+        initialCity = text(etCity);
+        initialPostal = text(etPostal).toUpperCase(Locale.ROOT).trim();
+        initialProvincePos = spinnerProvince.getSelectedItemPosition();
+    }
+
+    private boolean hasProfileChanges() {
+        if (!initialFirstName.equals(text(etFirstName))) return true;
+        if (!initialMiddleInitial.equals(text(etMiddleInitial))) return true;
+        if (!initialLastName.equals(text(etLastName))) return true;
+        if (!initialEmail.equals(text(etEmail).toLowerCase(Locale.ROOT).trim())) return true;
+        if (!initialPhoneDigits.equals(digits(etPhone))) return true;
+        if (!initialBusinessPhoneDigits.equals(digits(etBusinessPhone))) return true;
+        if (!initialAddress1.equals(text(etAddress1))) return true;
+        if (!initialAddress2.equals(text(etAddress2))) return true;
+        if (!initialCity.equals(text(etCity))) return true;
+        if (!initialPostal.equals(text(etPostal).toUpperCase(Locale.ROOT).trim())) return true;
+        return initialProvincePos != spinnerProvince.getSelectedItemPosition();
     }
 
     private void finishFromToolbar() {
