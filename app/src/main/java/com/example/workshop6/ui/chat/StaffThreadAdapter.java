@@ -10,6 +10,7 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.bumptech.glide.Glide;
 import com.example.workshop6.R;
+import com.example.workshop6.auth.Roles;
 import com.example.workshop6.data.api.dto.ChatThreadDto;
 import com.google.android.material.imageview.ShapeableImageView;
 
@@ -21,7 +22,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class StaffThreadAdapter extends RecyclerView.Adapter<StaffThreadAdapter.ThreadViewHolder> {
-    private static final String ROLE_CUSTOMER = "CUSTOMER";
     private static final String STATUS_OPEN = "OPEN";
     private static final DateTimeFormatter MONTH_DAY = DateTimeFormatter.ofPattern("MMM d");
 
@@ -131,7 +131,7 @@ public class StaffThreadAdapter extends RecyclerView.Adapter<StaffThreadAdapter.
             if (avatarImage == null) return;
             String url = item.customerProfilePhotoPath;
             boolean hasUrl = url != null && !url.trim().isEmpty()
-                    && !ROLE_CUSTOMER.equalsIgnoreCase(viewerRole);
+                    && Roles.isStaff(viewerRole);
             if (!hasUrl) {
                 avatarImage.setVisibility(View.GONE);
                 return;
@@ -217,7 +217,7 @@ public class StaffThreadAdapter extends RecyclerView.Adapter<StaffThreadAdapter.
         }
 
         private String buildTitle(ChatThreadDto item, String viewerRole) {
-            if (ROLE_CUSTOMER.equalsIgnoreCase(viewerRole)) {
+            if (Roles.isCustomer(viewerRole)) {
                 return "Bakery staff";
             }
             return firstNonBlank(
@@ -231,7 +231,7 @@ public class StaffThreadAdapter extends RecyclerView.Adapter<StaffThreadAdapter.
 
         private String buildMeta(ChatThreadDto item, String viewerRole) {
             String participant;
-            if (ROLE_CUSTOMER.equalsIgnoreCase(viewerRole)) {
+            if (Roles.isCustomer(viewerRole)) {
                 participant = item.employeeUserId != null && !item.employeeUserId.trim().isEmpty()
                         ? "Assigned to staff"
                         : "Awaiting staff reply";

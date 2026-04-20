@@ -246,7 +246,7 @@
         android:id="@+id/text_closed_banner"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="#1AC4714A"
+        android:background="@color/chat_banner_warn_bg"
         android:gravity="center"
         android:paddingHorizontal="16dp"
         android:paddingVertical="12dp"

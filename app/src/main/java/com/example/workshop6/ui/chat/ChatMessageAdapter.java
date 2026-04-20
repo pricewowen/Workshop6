@@ -9,6 +9,8 @@ import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
+import androidx.core.content.ContextCompat;
+
 import com.example.workshop6.R;
 import com.example.workshop6.data.api.dto.ChatMessageDto;
 
@@ -184,13 +186,13 @@ public class ChatMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHo
             String stamp = formatSentAt(message.sentAt);
             String body = message.text != null ? message.text : "";
             String full;
+            int colorRes = message.staffOnly ? R.color.chat_audit_green : R.color.chat_system_text;
             if (message.staffOnly) {
                 full = "AUDIT · " + body + (stamp.isEmpty() ? "" : "  ·  " + stamp);
-                textMessage.setTextColor(0xFF6B8268);
             } else {
                 full = body + (stamp.isEmpty() ? "" : "  ·  " + stamp);
-                textMessage.setTextColor(0xFF5C4A3E);
             }
+            textMessage.setTextColor(ContextCompat.getColor(textMessage.getContext(), colorRes));
             textMessage.setText(full);
         }
     }

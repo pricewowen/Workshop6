@@ -54,4 +54,9 @@
     <color name="bakery_nav_icon_inactive">#9A918A</color>
     <!-- Subtle terracotta ripple on nav pill (customer + staff share one bar) -->
     <color name="bakery_nav_ripple">#33C25F1A</color>
+
+    <!-- Chat: audit/system message colors + closed-thread banner -->
+    <color name="chat_audit_green">#FF6B8268</color>
+    <color name="chat_system_text">#FF5C4A3E</color>
+    <color name="chat_banner_warn_bg">#1AC4714A</color>
 </resources>

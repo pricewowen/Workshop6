@@ -30,7 +30,9 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.example.workshop6.BuildConfig;
 import com.example.workshop6.R;
 import com.example.workshop6.auth.LoginActivity;
+import com.example.workshop6.auth.Roles;
 import com.example.workshop6.auth.SessionManager;
+import com.example.workshop6.data.ws.ChatTopics;
 import com.example.workshop6.data.api.ApiClient;
 import com.example.workshop6.data.api.ApiService;
 import com.example.workshop6.data.api.dto.ChatMessageDto;
@@ -334,17 +336,17 @@ public class ChatActivity extends AppCompatActivity {
         String subtitle = getIntent().getStringExtra(EXTRA_THREAD_SUBTITLE);
 
         if (title == null || title.trim().isEmpty()) {
-            title = "CUSTOMER".equalsIgnoreCase(sessionManager.getUserRole())
+            title = Roles.isCustomer(sessionManager.getUserRole())
                     ? getString(R.string.staff_chat)
                     : getString(R.string.nav_chat_short);
         }
         if (subtitle == null || subtitle.trim().isEmpty()) {
-            subtitle = "CUSTOMER".equalsIgnoreCase(sessionManager.getUserRole())
+            subtitle = Roles.isCustomer(sessionManager.getUserRole())
                     ? getString(R.string.chat_subtitle_customer_waiting)
                     : getString(R.string.chat_subtitle_staff_view);
         }
         String username = getIntent().getStringExtra(EXTRA_THREAD_USERNAME);
-        boolean isStaffRole = !"CUSTOMER".equalsIgnoreCase(sessionManager.getUserRole());
+        boolean isStaffRole = Roles.isStaff(sessionManager.getUserRole());
         if (isStaffRole && username != null && !username.trim().isEmpty()) {
             String usernamePrefix = "@" + username.trim();
             if (subtitle == null || !subtitle.startsWith(usernamePrefix)) {
@@ -373,8 +375,7 @@ public class ChatActivity extends AppCompatActivity {
         }
 
         if (avatarHeaderImage == null) return;
-        String role = sessionManager != null ? sessionManager.getUserRole() : null;
-        boolean isStaff = "ADMIN".equalsIgnoreCase(role) || "EMPLOYEE".equalsIgnoreCase(role);
+        boolean isStaff = Roles.isStaff(sessionManager != null ? sessionManager.getUserRole() : null);
         String photoUrl = getIntent().getStringExtra(EXTRA_THREAD_PHOTO_URL);
         if (isStaff && photoUrl != null && !photoUrl.trim().isEmpty()) {
             avatarHeaderImage.setVisibility(View.VISIBLE);
@@ -388,7 +389,7 @@ public class ChatActivity extends AppCompatActivity {
 
     private void bindStaffActions() {
         String role = sessionManager.getUserRole();
-        boolean isStaff = "ADMIN".equalsIgnoreCase(role) || "EMPLOYEE".equalsIgnoreCase(role);
+        boolean isStaff = Roles.isStaff(role);
         int vis = isStaff ? View.VISIBLE : View.GONE;
         if (layoutStaffActions != null) layoutStaffActions.setVisibility(vis);
         if (dividerStaffActions != null) dividerStaffActions.setVisibility(vis);
@@ -428,8 +429,8 @@ public class ChatActivity extends AppCompatActivity {
 
     private void refreshStaffActionButtons() {
         String role = sessionManager != null ? sessionManager.getUserRole() : null;
-        boolean isStaff = "ADMIN".equalsIgnoreCase(role) || "EMPLOYEE".equalsIgnoreCase(role);
-        boolean isAdmin = "ADMIN".equalsIgnoreCase(role);
+        boolean isStaff = Roles.isStaff(role);
+        boolean isAdmin = Roles.isAdmin(role);
         if (!isStaff) return;
 
         boolean closed = currentThread != null && "closed".equalsIgnoreCase(currentThread.status);
@@ -602,7 +603,7 @@ public class ChatActivity extends AppCompatActivity {
     }
 
     private void bindEmptyState() {
-        boolean isCustomer = "CUSTOMER".equalsIgnoreCase(sessionManager.getUserRole());
+        boolean isCustomer = Roles.isCustomer(sessionManager.getUserRole());
         textEmpty.setText(isCustomer
                 ? R.string.chat_empty_state_customer
                 : R.string.chat_empty_state_staff);
@@ -620,7 +621,7 @@ public class ChatActivity extends AppCompatActivity {
             public void onConnected() {
                 Log.d("ChatWS", "STOMP connected, subscribing thread " + threadId);
                 messagesSubId = stomp.subscribe(
-                        "/topic/chat/thread/" + threadId + "/messages",
+                        ChatTopics.messages(threadId),
                         body -> {
                             Log.d("ChatWS", "message frame: " + body);
                             try {
@@ -637,11 +638,10 @@ public class ChatActivity extends AppCompatActivity {
                             } catch (Exception ignored) {
                             }
                         });
-                String role = sessionManager != null ? sessionManager.getUserRole() : null;
-                boolean isStaffWs = "ADMIN".equalsIgnoreCase(role) || "EMPLOYEE".equalsIgnoreCase(role);
+                boolean isStaffWs = Roles.isStaff(sessionManager != null ? sessionManager.getUserRole() : null);
                 if (isStaffWs) {
                     staffMessagesSubId = stomp.subscribe(
-                            "/topic/chat/thread/" + threadId + "/staff-messages",
+                            ChatTopics.staffMessages(threadId),
                             body -> {
                                 try {
                                     ChatMessageDto dto = gson.fromJson(body, ChatMessageDto.class);
@@ -656,7 +656,7 @@ public class ChatActivity extends AppCompatActivity {
                             });
                 }
                 typingSubId = stomp.subscribe(
-                        "/topic/chat/thread/" + threadId + "/typing",
+                        ChatTopics.typing(threadId),
                         body -> {
                             Log.d("ChatWS", "typing frame: " + body + " myUuid=" + userUuid);
                             try {
@@ -677,12 +677,12 @@ public class ChatActivity extends AppCompatActivity {
                             }
                         });
                 readSubId = stomp.subscribe(
-                        "/topic/chat/thread/" + threadId + "/read",
+                        ChatTopics.read(threadId),
                         body -> {
                             // Reserved hook for read receipts; no UI in this scope.
                         });
                 statusSubId = stomp.subscribe(
-                        "/topic/chat/thread/" + threadId + "/status",
+                        ChatTopics.status(threadId),
                         body -> {
                             try {
                                 ChatThreadDto dto = gson.fromJson(body, ChatThreadDto.class);
@@ -729,7 +729,7 @@ public class ChatActivity extends AppCompatActivity {
         TypingPayload payload = new TypingPayload(userUuid, isTyping);
         String json = gson.toJson(payload);
         try {
-            stomp.send("/app/chat/thread/" + threadId + "/typing", json);
+            stomp.send(ChatTopics.typingPublish(threadId), json);
         } catch (Exception ignored) {
         }
         lastPublishedIsTyping = isTyping;

@@ -19,6 +19,7 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.workshop6.R;
 import com.example.workshop6.util.NavTransitions;
+import com.example.workshop6.auth.Roles;
 import com.example.workshop6.auth.SessionManager;
 import com.example.workshop6.data.api.ApiClient;
 import com.example.workshop6.data.api.ApiService;
@@ -79,8 +80,8 @@ public class StaffChatInboxFragment extends Fragment {
         ApiClient.getInstance().setToken(sessionManager.getToken());
 
         String role = sessionManager.getUserRole();
-        boolean isCustomer = "CUSTOMER".equalsIgnoreCase(role);
-        boolean isStaff = "ADMIN".equalsIgnoreCase(role) || "EMPLOYEE".equalsIgnoreCase(role);
+        boolean isCustomer = Roles.isCustomer(role);
+        boolean isStaff = Roles.isStaff(role);
         boolean canAccessStaffChat = isCustomer || isStaff;
 
         if (!canAccessStaffChat) {
@@ -150,8 +151,8 @@ public class StaffChatInboxFragment extends Fragment {
 
     private void loadThreads() {
         String role = sessionManager.getUserRole();
-        boolean isCustomer = "CUSTOMER".equalsIgnoreCase(role);
-        boolean isStaff = "ADMIN".equalsIgnoreCase(role) || "EMPLOYEE".equalsIgnoreCase(role);
+        boolean isCustomer = Roles.isCustomer(role);
+        boolean isStaff = Roles.isStaff(role);
         if (!isCustomer && !isStaff) {
             return;
         }
@@ -296,7 +297,7 @@ public class StaffChatInboxFragment extends Fragment {
       intent.putExtra(ChatActivity.EXTRA_THREAD_ID, thread.id);
       intent.putExtra(ChatActivity.EXTRA_THREAD_TITLE, buildThreadTitle(thread));
       intent.putExtra(ChatActivity.EXTRA_THREAD_SUBTITLE, buildThreadSubtitle(thread));
-      if (!"CUSTOMER".equalsIgnoreCase(sessionManager.getUserRole())) {
+      if (Roles.isStaff(sessionManager.getUserRole())) {
           intent.putExtra(ChatActivity.EXTRA_THREAD_PHOTO_URL, thread.customerProfilePhotoPath);
           intent.putExtra(ChatActivity.EXTRA_THREAD_USERNAME, thread.customerUsername);
           intent.putExtra(ChatActivity.EXTRA_THREAD_STATUS, thread.status);
@@ -306,7 +307,7 @@ public class StaffChatInboxFragment extends Fragment {
     }
 
     private String buildThreadTitle(ChatThreadDto thread) {
-        if ("CUSTOMER".equalsIgnoreCase(sessionManager.getUserRole())) {
+        if (Roles.isCustomer(sessionManager.getUserRole())) {
             return getString(R.string.staff_chat);
         }
         if (thread.customerDisplayName != null && !thread.customerDisplayName.trim().isEmpty()) {
@@ -322,7 +323,7 @@ public class StaffChatInboxFragment extends Fragment {
     }
 
     private String buildThreadSubtitle(ChatThreadDto thread) {
-        if ("CUSTOMER".equalsIgnoreCase(sessionManager.getUserRole())) {
+        if (Roles.isCustomer(sessionManager.getUserRole())) {
             return getString(R.string.chat_subtitle_customer_waiting);
         }
         StringBuilder sb = new StringBuilder();
