@@ -410,6 +410,7 @@
     <string name="chat_inbox_subtitle_customer">Message bakery staff about your order or account</string>
     <string name="chat_subtitle_default">Conversation details will appear here</string>
     <string name="chat_subtitle_customer_waiting">You are chatting with bakery staff</string>
+    <string name="chat_subtitle_agent_connected">Connected with %1$s</string>
     <string name="chat_subtitle_staff_view">Customer support thread</string>
     <string name="chat_empty_state_customer">Your conversation with bakery staff will appear here once messages are sent.</string>
     <string name="chat_empty_state_staff">No messages in this thread yet. The customer has not sent anything yet.</string>

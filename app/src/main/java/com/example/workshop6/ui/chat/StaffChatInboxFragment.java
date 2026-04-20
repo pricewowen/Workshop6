@@ -297,11 +297,13 @@ public class StaffChatInboxFragment extends Fragment {
       intent.putExtra(ChatActivity.EXTRA_THREAD_ID, thread.id);
       intent.putExtra(ChatActivity.EXTRA_THREAD_TITLE, buildThreadTitle(thread));
       intent.putExtra(ChatActivity.EXTRA_THREAD_SUBTITLE, buildThreadSubtitle(thread));
+      intent.putExtra(ChatActivity.EXTRA_THREAD_STATUS, thread.status);
+      intent.putExtra(ChatActivity.EXTRA_THREAD_ASSIGNEE, thread.employeeUserId);
       if (Roles.isStaff(sessionManager.getUserRole())) {
           intent.putExtra(ChatActivity.EXTRA_THREAD_PHOTO_URL, thread.customerProfilePhotoPath);
           intent.putExtra(ChatActivity.EXTRA_THREAD_USERNAME, thread.customerUsername);
-          intent.putExtra(ChatActivity.EXTRA_THREAD_STATUS, thread.status);
-          intent.putExtra(ChatActivity.EXTRA_THREAD_ASSIGNEE, thread.employeeUserId);
+      } else {
+          intent.putExtra(ChatActivity.EXTRA_THREAD_USERNAME, resolveEmployeeName(thread));
       }
       NavTransitions.startActivityWithForward(requireActivity(), intent);
     }
@@ -322,8 +324,22 @@ public class StaffChatInboxFragment extends Fragment {
         return thread.id != null ? "Thread #" + thread.id : getString(R.string.nav_chat_short);
     }
 
+    private String resolveEmployeeName(ChatThreadDto thread) {
+        if (thread.employeeDisplayName != null && !thread.employeeDisplayName.trim().isEmpty()) {
+            return thread.employeeDisplayName.trim();
+        }
+        if (thread.employeeUsername != null && !thread.employeeUsername.trim().isEmpty()) {
+            return thread.employeeUsername.trim();
+        }
+        return null;
+    }
+
     private String buildThreadSubtitle(ChatThreadDto thread) {
         if (Roles.isCustomer(sessionManager.getUserRole())) {
+            String agentName = resolveEmployeeName(thread);
+            if (agentName != null) {
+                return getString(R.string.chat_subtitle_agent_connected, agentName);
+            }
             return getString(R.string.chat_subtitle_customer_waiting);
         }
         StringBuilder sb = new StringBuilder();

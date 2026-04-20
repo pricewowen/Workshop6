@@ -335,27 +335,45 @@ public class ChatActivity extends AppCompatActivity {
         String title = getIntent().getStringExtra(EXTRA_THREAD_TITLE);
         String subtitle = getIntent().getStringExtra(EXTRA_THREAD_SUBTITLE);
 
+        boolean isCustomer = Roles.isCustomer(sessionManager.getUserRole());
+        boolean isStaffRole = Roles.isStaff(sessionManager.getUserRole());
+        String username = getIntent().getStringExtra(EXTRA_THREAD_USERNAME);
+
         if (title == null || title.trim().isEmpty()) {
-            title = Roles.isCustomer(sessionManager.getUserRole())
-                    ? getString(R.string.staff_chat)
-                    : getString(R.string.nav_chat_short);
+            if (isCustomer && username != null && !username.trim().isEmpty()) {
+                title = username.trim();
+            } else {
+                title = isCustomer ? getString(R.string.staff_chat) : getString(R.string.nav_chat_short);
+            }
         }
         if (subtitle == null || subtitle.trim().isEmpty()) {
-            subtitle = Roles.isCustomer(sessionManager.getUserRole())
+            subtitle = isCustomer
                     ? getString(R.string.chat_subtitle_customer_waiting)
                     : getString(R.string.chat_subtitle_staff_view);
         }
-        String username = getIntent().getStringExtra(EXTRA_THREAD_USERNAME);
-        boolean isStaffRole = Roles.isStaff(sessionManager.getUserRole());
         if (isStaffRole && username != null && !username.trim().isEmpty()) {
             String usernamePrefix = "@" + username.trim();
-            if (subtitle == null || !subtitle.startsWith(usernamePrefix)) {
-                subtitle = usernamePrefix + (subtitle != null && !subtitle.isEmpty() ? " · " + subtitle : "");
+            if (!subtitle.startsWith(usernamePrefix)) {
+                subtitle = usernamePrefix + (!subtitle.isEmpty() ? " · " + subtitle : "");
             }
         }
 
         textTitle.setText(title);
         textSubtitle.setText(subtitle);
+    }
+
+    private void updateHeaderForEmployee(ChatThreadDto dto) {
+        if (textTitle == null || textSubtitle == null) return;
+        String name = null;
+        if (dto.employeeDisplayName != null && !dto.employeeDisplayName.trim().isEmpty()) {
+            name = dto.employeeDisplayName.trim();
+        } else if (dto.employeeUsername != null && !dto.employeeUsername.trim().isEmpty()) {
+            name = dto.employeeUsername.trim();
+        }
+        if (name != null) {
+            textTitle.setText(name);
+            textSubtitle.setText(getString(R.string.chat_subtitle_agent_connected, name));
+        }
     }
 
     private void bindHeaderAvatar() {
@@ -688,7 +706,12 @@ public class ChatActivity extends AppCompatActivity {
                                 ChatThreadDto dto = gson.fromJson(body, ChatThreadDto.class);
                                 if (dto == null) return;
                                 currentThread = dto;
-                                runOnUiThread(ChatActivity.this::applyClosedState);
+                                runOnUiThread(() -> {
+                                    applyClosedState();
+                                    if (Roles.isCustomer(sessionManager.getUserRole())) {
+                                        updateHeaderForEmployee(dto);
+                                    }
+                                });
                             } catch (Exception ignored) {
                             }
                         });
