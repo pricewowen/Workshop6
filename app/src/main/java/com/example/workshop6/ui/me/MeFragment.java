@@ -37,7 +37,6 @@ import com.example.workshop6.auth.LoginActivity;
 import com.example.workshop6.auth.SessionManager;
 import com.example.workshop6.data.api.ApiClient;
 import com.example.workshop6.data.api.ApiService;
-import com.example.workshop6.data.api.dto.GuestCustomerRequest;
 import com.example.workshop6.data.api.dto.CustomerDto;
 import com.example.workshop6.data.api.dto.CustomerPreferenceDto;
 import com.example.workshop6.data.api.dto.EmployeeDto;
@@ -591,18 +590,8 @@ public class MeFragment extends Fragment {
     }
 
     private void renderGuestMe() {
-        GuestCustomerRequest guest = sessionManager.getGuestProfile();
-        String name = getString(R.string.guest_display_name);
+        String name = getString(R.string.guest_display_name_full);
         String email = "";
-        if (guest != null) {
-            String first = guest.firstName != null ? guest.firstName : "";
-            String last = guest.lastName != null ? guest.lastName : "";
-            String combined = (first + " " + last).trim();
-            if (!combined.isEmpty()) {
-                name = combined;
-            }
-            email = guest.email != null ? guest.email : "";
-        }
         tvName.setText(name);
         tvEmail.setText(email);
         if (tvBakery != null) {

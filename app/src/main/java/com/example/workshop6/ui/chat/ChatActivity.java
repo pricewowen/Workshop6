@@ -60,6 +60,10 @@ public class ChatActivity extends AppCompatActivity {
     public static final String EXTRA_THREAD_USERNAME = "thread_username";
     public static final String EXTRA_THREAD_STATUS = "thread_status";
     public static final String EXTRA_THREAD_ASSIGNEE = "thread_assignee";
+    public static final String EXTRA_THREAD_EMPLOYEE_DISPLAY_NAME = "thread_employee_display_name";
+    public static final String EXTRA_THREAD_EMPLOYEE_USERNAME = "thread_employee_username";
+    public static final String EXTRA_THREAD_EMPLOYEE_PHOTO_URL = "thread_employee_photo_url";
+    public static final String EXTRA_THREAD_CUSTOMER_PHOTO_PENDING = "thread_customer_photo_pending";
 
     private RecyclerView recyclerMessages;
     private EditText editMessage;
@@ -183,6 +187,16 @@ public class ChatActivity extends AppCompatActivity {
             finish();
             NavTransitions.applyBackwardPending(this);
             return;
+        }
+        if (Roles.isCustomer(sessionManager.getUserRole())) {
+            ChatThreadDto seed = new ChatThreadDto();
+            seed.id = threadId;
+            seed.status = getIntent().getStringExtra(EXTRA_THREAD_STATUS);
+            seed.employeeUserId = getIntent().getStringExtra(EXTRA_THREAD_ASSIGNEE);
+            seed.employeeDisplayName = getIntent().getStringExtra(EXTRA_THREAD_EMPLOYEE_DISPLAY_NAME);
+            seed.employeeUsername = getIntent().getStringExtra(EXTRA_THREAD_EMPLOYEE_USERNAME);
+            seed.employeeProfilePhotoPath = getIntent().getStringExtra(EXTRA_THREAD_EMPLOYEE_PHOTO_URL);
+            currentThread = seed;
         }
 
         bindConversationHeader();
@@ -372,31 +386,34 @@ public class ChatActivity extends AppCompatActivity {
         if (name != null) {
             textTitle.setText(name);
             textSubtitle.setText(getString(R.string.chat_subtitle_agent_connected, name));
+        } else {
+            textTitle.setText(getString(R.string.staff_chat));
+            textSubtitle.setText(getString(R.string.chat_subtitle_customer_waiting));
         }
     }
 
     private void bindHeaderAvatar() {
         if (avatarHeader == null) return;
-        String title = textTitle.getText() != null ? textTitle.getText().toString() : "";
-        String initial = "?";
-        for (int i = 0; i < title.length(); i++) {
-            char c = title.charAt(i);
-            if (!Character.isWhitespace(c)) {
-                initial = String.valueOf(c).toUpperCase();
-                break;
-            }
-        }
+        boolean isCustomer = Roles.isCustomer(sessionManager != null ? sessionManager.getUserRole() : null);
+        String initial = isCustomer ? buildCustomerAvatarInitial() : buildFirstLetterInitial(
+                textTitle.getText() != null ? textTitle.getText().toString() : "");
         avatarHeader.setText(initial);
         if (adapter != null) {
             adapter.setReceivedAvatarInitial(initial);
         }
 
         if (avatarHeaderImage == null) return;
-        boolean isStaff = Roles.isStaff(sessionManager != null ? sessionManager.getUserRole() : null);
-        String photoUrl = getIntent().getStringExtra(EXTRA_THREAD_PHOTO_URL);
-        if (isStaff && photoUrl != null && !photoUrl.trim().isEmpty()) {
+        String photoUrl = isCustomer
+                ? safe(currentThread != null ? currentThread.employeeProfilePhotoPath : null)
+                : safe(getIntent().getStringExtra(EXTRA_THREAD_PHOTO_URL));
+        boolean customerPhotoPending = !isCustomer
+                && getIntent().getBooleanExtra(EXTRA_THREAD_CUSTOMER_PHOTO_PENDING, false);
+        boolean canShowPhoto = !photoUrl.isEmpty()
+                && (!isCustomer || safe(currentThread != null ? currentThread.employeeUserId : null).length() > 0)
+                && (!customerPhotoPending);
+        if (canShowPhoto) {
             avatarHeaderImage.setVisibility(View.VISIBLE);
-            Glide.with(this).load(photoUrl.trim()).centerCrop()
+            Glide.with(this).load(photoUrl).centerCrop()
                     .error(android.R.color.transparent)
                     .into(avatarHeaderImage);
         } else {
@@ -704,6 +721,7 @@ public class ChatActivity extends AppCompatActivity {
                                     applyClosedState();
                                     if (Roles.isCustomer(sessionManager.getUserRole())) {
                                         updateHeaderForEmployee(dto);
+                                        bindHeaderAvatar();
                                     }
                                 });
                             } catch (Exception ignored) {
@@ -783,5 +801,39 @@ public class ChatActivity extends AppCompatActivity {
         if (dot1 != null) dot1.clearAnimation();
         if (dot2 != null) dot2.clearAnimation();
         if (dot3 != null) dot3.clearAnimation();
+    }
+
+    private String buildCustomerAvatarInitial() {
+        String assignee = safe(currentThread != null ? currentThread.employeeUserId : null);
+        if (assignee.isEmpty()) {
+            return "S";
+        }
+        String display = safe(currentThread != null ? currentThread.employeeDisplayName : null);
+        if (display.isEmpty()) {
+            display = safe(currentThread != null ? currentThread.employeeUsername : null);
+        }
+        String initials = initialsFromName(display);
+        return initials.isEmpty() ? "S" : initials;
+    }
+
+    private String buildFirstLetterInitial(String raw) {
+        String value = safe(raw);
+        if (value.isEmpty()) return "?";
+        return String.valueOf(Character.toUpperCase(value.charAt(0)));
+    }
+
+    private String initialsFromName(String raw) {
+        String value = safe(raw);
+        if (value.isEmpty()) return "";
+        String[] parts = value.split("[\\s._-]+");
+        if (parts.length == 0) return "";
+        char first = Character.toUpperCase(parts[0].charAt(0));
+        if (parts.length == 1) return String.valueOf(first);
+        char last = Character.toUpperCase(parts[parts.length - 1].charAt(0));
+        return "" + first + last;
+    }
+
+    private String safe(String raw) {
+        return raw == null ? "" : raw.trim();
     }
 }

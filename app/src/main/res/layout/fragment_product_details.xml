@@ -175,15 +175,6 @@
                     android:text="@string/section_product_reviews"
                     android:textAppearance="@style/TextAppearance.Bakery.ReviewSectionTitle" />
 
-                <TextView
-                    android:id="@+id/tvReviewsEmpty"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="@dimen/review_section_stack_spacing"
-                    android:text="@string/product_reviews_none_yet"
-                    android:textAppearance="@style/TextAppearance.Bakery.ReviewSectionEmpty"
-                    android:visibility="gone" />
-
                 <HorizontalScrollView
                     android:id="@+id/hsv_product_review_filters"
                     android:layout_width="match_parent"
@@ -202,30 +193,36 @@
 
                         <com.google.android.material.chip.Chip
                             android:id="@+id/chip_product_review_all"
-                            style="@style/Widget.MaterialComponents.Chip.Choice"
+                            style="@style/Widget.Bakery.ReviewFilterChip"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:checked="true"
-                            android:text="@string/review_filter_all"
-                            android:textColor="@color/bakery_text_dark" />
+                            android:text="@string/review_filter_all" />
 
                         <com.google.android.material.chip.Chip
                             android:id="@+id/chip_product_review_verified"
-                            style="@style/Widget.MaterialComponents.Chip.Choice"
+                            style="@style/Widget.Bakery.ReviewFilterChip"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="@string/review_filter_verified"
-                            android:textColor="@color/bakery_text_dark" />
+                            android:text="@string/review_filter_verified" />
 
                         <com.google.android.material.chip.Chip
                             android:id="@+id/chip_product_review_purchased"
-                            style="@style/Widget.MaterialComponents.Chip.Choice"
+                            style="@style/Widget.Bakery.ReviewFilterChip"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="@string/review_filter_purchased"
-                            android:textColor="@color/bakery_text_dark" />
+                            android:text="@string/review_filter_purchased" />
                     </com.google.android.material.chip.ChipGroup>
                 </HorizontalScrollView>
+
+                <TextView
+                    android:id="@+id/tvReviewsEmpty"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/review_section_stack_spacing"
+                    android:text="@string/product_reviews_none_yet"
+                    android:textAppearance="@style/TextAppearance.Bakery.ReviewSectionEmpty"
+                    android:visibility="gone" />
 
                 <FrameLayout
                     style="@style/Widget.Bakery.ReviewListFrame"

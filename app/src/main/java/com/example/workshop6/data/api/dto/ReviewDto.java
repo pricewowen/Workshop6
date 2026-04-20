@@ -32,4 +32,8 @@ public class ReviewDto {
     /** {@code true} when the reviewer is linked to a registered account. */
     @SerializedName("verifiedAccount")
     public Boolean verifiedAccount;
+    @SerializedName("reviewerPhotoUrl")
+    public String reviewerPhotoUrl;
+    @SerializedName("reviewerPhotoApprovalPending")
+    public Boolean reviewerPhotoApprovalPending;
 }

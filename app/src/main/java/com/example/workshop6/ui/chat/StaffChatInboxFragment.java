@@ -472,8 +472,15 @@ public class StaffChatInboxFragment extends Fragment {
       intent.putExtra(ChatActivity.EXTRA_THREAD_SUBTITLE, buildThreadSubtitle(thread));
       intent.putExtra(ChatActivity.EXTRA_THREAD_STATUS, thread.status);
       intent.putExtra(ChatActivity.EXTRA_THREAD_ASSIGNEE, thread.employeeUserId);
+      intent.putExtra(ChatActivity.EXTRA_THREAD_EMPLOYEE_DISPLAY_NAME, thread.employeeDisplayName);
+      intent.putExtra(ChatActivity.EXTRA_THREAD_EMPLOYEE_USERNAME, thread.employeeUsername);
+      intent.putExtra(ChatActivity.EXTRA_THREAD_EMPLOYEE_PHOTO_URL, thread.employeeProfilePhotoPath);
       if (Roles.isStaff(sessionManager.getUserRole())) {
           intent.putExtra(ChatActivity.EXTRA_THREAD_PHOTO_URL, thread.customerProfilePhotoPath);
+          intent.putExtra(
+                  ChatActivity.EXTRA_THREAD_CUSTOMER_PHOTO_PENDING,
+                  thread.customerPhotoApprovalPending
+          );
           intent.putExtra(ChatActivity.EXTRA_THREAD_USERNAME, thread.customerUsername);
       } else {
           intent.putExtra(ChatActivity.EXTRA_THREAD_USERNAME, resolveEmployeeName(thread));

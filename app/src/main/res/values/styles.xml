@@ -87,6 +87,16 @@
         <item name="cornerRadius">28dp</item>
     </style>
 
+    <style name="Widget.Bakery.ReviewFilterChip" parent="Widget.MaterialComponents.Chip.Choice">
+        <item name="chipBackgroundColor">@color/review_filter_chip_bg</item>
+        <item name="chipStrokeColor">@color/bakery_gold</item>
+        <item name="chipStrokeWidth">1dp</item>
+        <item name="chipMinHeight">32dp</item>
+        <item name="chipCornerRadius">50dp</item>
+        <item name="checkedIconVisible">false</item>
+        <item name="android:textColor">@color/review_filter_chip_text</item>
+    </style>
+
     <style name="ShapeAppearance.Bakery.Avatar.Circular" parent="">
         <item name="cornerFamily">rounded</item>
         <item name="cornerSize">50%</item>

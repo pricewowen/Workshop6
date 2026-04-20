@@ -83,6 +83,7 @@
     <string name="btn_logout">Log Out</string>
     <string name="btn_sign_in_or_create_account">Sign In or Create Account</string>
     <string name="guest_display_name">Guest</string>
+    <string name="guest_display_name_full">Guest Customer</string>
     <string name="guest_profile_saved">Guest details saved</string>
     <string name="guest_profile_hint_email">Add your email so we can reuse your customer info and order history later.</string>
 

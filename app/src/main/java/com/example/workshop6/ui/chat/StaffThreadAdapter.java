@@ -136,9 +136,13 @@ public class StaffThreadAdapter extends RecyclerView.Adapter<StaffThreadAdapter.
 
         private void bindAvatarImage(ChatThreadDto item) {
             if (avatarImage == null) return;
-            String url = item.customerProfilePhotoPath;
+            boolean customerView = Roles.isCustomer(viewerRole);
+            String url = customerView ? item.employeeProfilePhotoPath : item.customerProfilePhotoPath;
             boolean hasUrl = url != null && !url.trim().isEmpty()
-                    && Roles.isStaff(viewerRole);
+                    && (!customerView || item.employeeUserId != null);
+            if (!customerView && item.customerPhotoApprovalPending) {
+                hasUrl = false;
+            }
             if (!hasUrl) {
                 avatarImage.setVisibility(View.GONE);
                 return;
@@ -150,19 +154,22 @@ public class StaffThreadAdapter extends RecyclerView.Adapter<StaffThreadAdapter.
         }
 
         private String buildAvatarInitial(ChatThreadDto item) {
+            if (Roles.isCustomer(viewerRole)) {
+                if (item.employeeUserId == null || item.employeeUserId.trim().isEmpty()) {
+                    return "S";
+                }
+                String source = firstNonBlank(item.employeeDisplayName, item.employeeUsername);
+                String initials = initialsFromName(source);
+                return initials.isEmpty() ? "S" : initials;
+            }
             String source = firstNonBlank(
                     item.customerDisplayName,
                     item.customerUsername,
                     item.customerEmail,
                     "?"
             );
-            for (int i = 0; i < source.length(); i++) {
-                char c = source.charAt(i);
-                if (!Character.isWhitespace(c)) {
-                    return String.valueOf(Character.toUpperCase(c));
-                }
-            }
-            return "?";
+            String initials = initialsFromName(source);
+            return initials.isEmpty() ? "?" : initials.substring(0, 1);
         }
 
         private void bindTime(String latestMessageAt) {
@@ -285,6 +292,23 @@ public class StaffThreadAdapter extends RecyclerView.Adapter<StaffThreadAdapter.
                 }
             }
             return "";
+        }
+
+        private String initialsFromName(String raw) {
+            String value = firstNonBlank(raw);
+            if (value.isEmpty()) {
+                return "";
+            }
+            String[] parts = value.trim().split("[\\s._-]+");
+            if (parts.length == 0) {
+                return "";
+            }
+            char first = Character.toUpperCase(parts[0].charAt(0));
+            if (parts.length == 1) {
+                return String.valueOf(first);
+            }
+            char last = Character.toUpperCase(parts[parts.length - 1].charAt(0));
+            return "" + first + last;
         }
     }
 }

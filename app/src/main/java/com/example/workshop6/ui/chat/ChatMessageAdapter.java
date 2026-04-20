@@ -153,21 +153,16 @@ public class ChatMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHo
 
     class ReceivedMessageViewHolder extends RecyclerView.ViewHolder {
         private final TextView textMessage;
-        private final TextView textAvatarInitial;
         private final TextView textTime;
 
         public ReceivedMessageViewHolder(@NonNull View itemView) {
             super(itemView);
             textMessage = itemView.findViewById(R.id.text_message);
-            textAvatarInitial = itemView.findViewById(R.id.text_avatar_initial);
             textTime = itemView.findViewById(R.id.text_time);
         }
 
         void bind(ChatMessageDto message) {
             textMessage.setText(message.text != null ? message.text : "");
-            if (textAvatarInitial != null) {
-                textAvatarInitial.setText(receivedAvatarInitial);
-            }
             String t = formatSentAt(message.sentAt);
             textTime.setText(t);
             textTime.setVisibility(t.isEmpty() ? View.GONE : View.VISIBLE);
