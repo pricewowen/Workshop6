@@ -1,8 +1,12 @@
 package com.example.workshop6.ui.me;
 
+import android.Manifest;
 import android.content.Intent;
+import android.content.pm.PackageManager;
+import android.graphics.Bitmap;
 import android.graphics.ColorMatrix;
 import android.graphics.ColorMatrixColorFilter;
+import android.net.Uri;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -10,14 +14,18 @@ import android.view.ViewOutlineProvider;
 import android.view.ViewGroup;
 import android.content.res.ColorStateList;
 import android.widget.Button;
+import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
+import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
@@ -35,14 +43,15 @@ import com.example.workshop6.data.api.dto.CustomerPreferenceDto;
 import com.example.workshop6.data.api.dto.EmployeeDto;
 import com.example.workshop6.data.api.dto.BakeryDto;
 import com.example.workshop6.data.api.dto.DeactivateAccountRequest;
+import com.example.workshop6.data.api.dto.ProfilePhotoResponse;
 import com.example.workshop6.data.api.dto.ProductRecommendationDto;
-import com.example.workshop6.logging.ActivityLogger;
 import com.example.workshop6.ui.MainActivity;
 import com.example.workshop6.ui.cart.CartManager;
 import com.example.workshop6.ui.loyalty.LoyaltyRewardsActivity;
 import com.example.workshop6.ui.orders.OrderHistoryActivity;
 import com.example.workshop6.ui.profile.CustomerProfileSetupActivity;
 import com.example.workshop6.ui.profile.EditProfileActivity;
+import com.example.workshop6.util.ImageUtils;
 import com.example.workshop6.util.NavTransitions;
 import com.example.workshop6.util.ProfileInitialsAvatar;
 import com.example.workshop6.util.ProfilePhotoCache;
@@ -50,6 +59,10 @@ import com.google.android.material.button.MaterialButton;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.textfield.TextInputEditText;
 import com.google.android.material.textfield.TextInputLayout;
+
+import okhttp3.MediaType;
+import okhttp3.MultipartBody;
+import okhttp3.RequestBody;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -81,6 +94,19 @@ public class MeFragment extends Fragment {
     private TextView tvBakery;
     private TextView tvPosition;
     private TextView tvPhotoStatus;
+    private TextView tvMePhotoError;
+    private View flMePhoto;
+    private ImageButton btnMePhotoCamera;
+
+    private ActivityResultLauncher<String> meGalleryPickerLauncher;
+    private ActivityResultLauncher<Uri> meCameraLauncher;
+    private ActivityResultLauncher<String> meCameraPermissionLauncher;
+
+    private Uri meSelectedPhotoUri;
+    private Uri meCameraPhotoUri;
+    private boolean meServerPhotoPending;
+    private boolean mePhotoUploadSupported;
+
     private View meLoadingOverlay;
     private View meScrollContent;
     private View cardAiRecommendations;
@@ -90,8 +116,41 @@ public class MeFragment extends Fragment {
     private MeRecommendationAdapter recommendationAdapter;
 
     private View cardGuestPrompt;
+    private View cardEmployeeDiscountHint;
     private View cardActions;
     private TextView tvDeactivateAccount;
+
+    @Override
+    public void onCreate(@Nullable Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        meGalleryPickerLauncher = registerForActivityResult(
+                new ActivityResultContracts.GetContent(),
+                uri -> {
+                    if (uri == null) {
+                        return;
+                    }
+                    handleMePhotoChosen(uri);
+                }
+        );
+        meCameraLauncher = registerForActivityResult(
+                new ActivityResultContracts.TakePicture(),
+                success -> {
+                    if (success && meCameraPhotoUri != null) {
+                        handleMePhotoChosen(meCameraPhotoUri);
+                    }
+                }
+        );
+        meCameraPermissionLauncher = registerForActivityResult(
+                new ActivityResultContracts.RequestPermission(),
+                granted -> {
+                    if (granted) {
+                        launchMeCameraCapture();
+                    } else {
+                        Toast.makeText(requireContext(), R.string.permission_camera_required, Toast.LENGTH_SHORT).show();
+                    }
+                }
+        );
+    }
 
     @Nullable
     @Override
@@ -122,6 +181,9 @@ public class MeFragment extends Fragment {
         tvBakery = view.findViewById(R.id.tv_me_bakery);
         tvPosition = view.findViewById(R.id.tv_me_position);
         tvPhotoStatus = view.findViewById(R.id.tv_me_photo_status);
+        tvMePhotoError = view.findViewById(R.id.tv_me_photo_error);
+        flMePhoto = view.findViewById(R.id.fl_me_photo);
+        btnMePhotoCamera = view.findViewById(R.id.btn_me_photo_camera);
         meLoadingOverlay = view.findViewById(R.id.me_loading_overlay);
         meScrollContent = view.findViewById(R.id.me_scroll_content);
         cardAiRecommendations = view.findViewById(R.id.card_me_ai_recommendations);
@@ -140,11 +202,13 @@ public class MeFragment extends Fragment {
         }
 
         cardGuestPrompt = view.findViewById(R.id.card_me_guest_prompt);
+        cardEmployeeDiscountHint = view.findViewById(R.id.card_me_employee_discount_hint);
         cardActions = view.findViewById(R.id.card_me_actions);
         tvDeactivateAccount = view.findViewById(R.id.tv_deactivate_account);
 
         applyMeRoleLabel();
         setupMeShell(view);
+        setupMeProfilePhotoControls();
 
         if (sessionManager.isGuestMode()) {
             view.findViewById(R.id.btn_edit_account).setVisibility(View.GONE);
@@ -153,6 +217,7 @@ public class MeFragment extends Fragment {
             view.findViewById(R.id.btn_loyalty_rewards).setVisibility(View.GONE);
             view.findViewById(R.id.btn_order_history).setVisibility(View.GONE);
             hideAiRecommendationsCard();
+            if (cardEmployeeDiscountHint != null) cardEmployeeDiscountHint.setVisibility(View.GONE);
         } else if ("CUSTOMER".equalsIgnoreCase(sessionManager.getUserRole())) {
             view.findViewById(R.id.btn_edit_account).setVisibility(View.VISIBLE);
             view.findViewById(R.id.btn_customer_details).setVisibility(View.VISIBLE);
@@ -167,6 +232,7 @@ public class MeFragment extends Fragment {
             btnTaste.setOnClickListener(v ->
                     NavTransitions.startActivityWithForward(requireActivity(),
                             new Intent(requireContext(), CustomerPreferencesActivity.class)));
+            if (cardEmployeeDiscountHint != null) cardEmployeeDiscountHint.setVisibility(View.GONE);
         } else {
             // Staff: same two-entry pattern as customers — account (credentials, photo) vs personal info.
             view.findViewById(R.id.btn_edit_account).setVisibility(View.VISIBLE);
@@ -180,6 +246,7 @@ public class MeFragment extends Fragment {
             view.findViewById(R.id.btn_taste_preferences).setVisibility(View.GONE);
             view.findViewById(R.id.btn_loyalty_rewards).setVisibility(View.GONE);
             hideAiRecommendationsCard();
+            if (cardEmployeeDiscountHint != null) cardEmployeeDiscountHint.setVisibility(View.GONE);
         }
 
         view.findViewById(R.id.btn_order_history).setOnClickListener(v ->
@@ -262,6 +329,7 @@ public class MeFragment extends Fragment {
             renderGuestMe();
             return;
         }
+        mePhotoUploadSupported = false;
         if (sessionManager.getUserUuid().isEmpty() && sessionManager.getUserId() <= 0) {
             setMeLoadingUi(false);
             return;
@@ -328,6 +396,7 @@ public class MeFragment extends Fragment {
                     tvEmail.setText(c.email != null ? c.email : sessionManager.getUserName());
                     boolean pending = c.photoApprovalPending;
                     String photoPath = c.profilePhotoPath;
+                    mePhotoUploadSupported = true;
                     applyPhotoUI(photoPath, pending);
                     View root = getView();
                     if (root != null) {
@@ -408,6 +477,7 @@ public class MeFragment extends Fragment {
                     }
                     tvName.setText(nameText);
                     tvEmail.setText(e.workEmail != null ? e.workEmail : sessionManager.getUserName());
+                    mePhotoUploadSupported = true;
                     applyPhotoUI(e.profilePhotoPath, e.photoApprovalPending);
                     String position = e.position != null ? e.position.trim() : "";
                     final String positionText = position.isEmpty() ? "" : getString(R.string.me_position_label, position);
@@ -424,6 +494,9 @@ public class MeFragment extends Fragment {
                     if (root != null) {
                         root.findViewById(R.id.btn_order_history).setVisibility(View.GONE);
                         root.findViewById(R.id.btn_loyalty_rewards).setVisibility(View.GONE);
+                    }
+                    if (cardEmployeeDiscountHint != null) {
+                        cardEmployeeDiscountHint.setVisibility(e.customerLinkEligible ? View.VISIBLE : View.GONE);
                     }
 
                     Integer bakeryId = e.bakeryId;
@@ -539,6 +612,8 @@ public class MeFragment extends Fragment {
             tvPosition.setVisibility(View.GONE);
         }
         applyMeInitialsAvatar();
+        mePhotoUploadSupported = false;
+        updateMePhotoCameraVisibility();
         setMeLoadingUi(false);
         hideAiRecommendationsCard();
     }
@@ -578,6 +653,15 @@ public class MeFragment extends Fragment {
         } else {
             hideAiRecommendationsCard();
         }
+        if (cachedMeSnapshot != null && !sessionManager.isGuestMode()) {
+            String rk = sessionManager.getUserRole();
+            mePhotoUploadSupported = "EMPLOYEE".equalsIgnoreCase(rk)
+                    || ("CUSTOMER".equalsIgnoreCase(rk) && cachedMeSnapshot.hasCustomerProfile)
+                    || ("ADMIN".equalsIgnoreCase(rk) && cachedMeSnapshot.showPosition);
+        } else {
+            mePhotoUploadSupported = false;
+        }
+        updateMePhotoCameraVisibility();
         return true;
     }
 
@@ -880,22 +964,32 @@ public class MeFragment extends Fragment {
     }
 
     private void applyPhotoUI(String photoPath, boolean pending) {
+        if (meSelectedPhotoUri != null) {
+            renderMeSelectedPhotoPreview();
+            if (tvPhotoStatus != null) {
+                tvPhotoStatus.setVisibility(View.GONE);
+            }
+            updateMePhotoCameraVisibility();
+            return;
+        }
+        meServerPhotoPending = pending;
         if (pending) {
             loadRemotePhoto(photoPath);
-                    applyPendingPhotoStyle(ivPhoto);
-                    tvPhotoStatus.setVisibility(View.VISIBLE);
-                    tvPhotoStatus.setText(R.string.photo_pending_approval);
-                } else if (photoPath != null && !photoPath.isEmpty()) {
+            applyPendingPhotoStyle(ivPhoto);
+            tvPhotoStatus.setVisibility(View.VISIBLE);
+            tvPhotoStatus.setText(R.string.photo_pending_approval);
+        } else if (photoPath != null && !photoPath.isEmpty()) {
             loadRemotePhoto(photoPath);
-                        ivPhoto.clearColorFilter();
-                        ivPhoto.setImageAlpha(255);
-                        tvPhotoStatus.setVisibility(View.GONE);
-                    } else {
-                        applyMeInitialsAvatar();
-                        ivPhoto.clearColorFilter();
-                        ivPhoto.setImageAlpha(255);
-                        tvPhotoStatus.setVisibility(View.GONE);
-                    }
+            ivPhoto.clearColorFilter();
+            ivPhoto.setImageAlpha(255);
+            tvPhotoStatus.setVisibility(View.GONE);
+        } else {
+            applyMeInitialsAvatar();
+            ivPhoto.clearColorFilter();
+            ivPhoto.setImageAlpha(255);
+            tvPhotoStatus.setVisibility(View.GONE);
+        }
+        updateMePhotoCameraVisibility();
     }
 
     private int meAvatarSizePx() {
@@ -909,6 +1003,9 @@ public class MeFragment extends Fragment {
         MaterialButton btnLogout = view.findViewById(R.id.btn_logout);
         if (sessionManager.isGuestMode()) {
             cardGuestPrompt.setVisibility(View.VISIBLE);
+            if (cardEmployeeDiscountHint != null) {
+                cardEmployeeDiscountHint.setVisibility(View.GONE);
+            }
             cardActions.setVisibility(View.GONE);
             tvDeactivateAccount.setVisibility(View.GONE);
             btnLogout.setText(R.string.btn_sign_in_or_create_account);
@@ -945,7 +1042,6 @@ public class MeFragment extends Fragment {
     }
 
     private void performFullLogout() {
-        ActivityLogger.log(requireContext(), sessionManager, "LOGOUT", "User logged out");
         CartManager.getInstance(requireContext()).onLogout();
         sessionManager.logout();
         invalidateAiRecommendationsCache();
@@ -1003,7 +1099,6 @@ public class MeFragment extends Fragment {
                 setMeLoadingUi(false);
                 if (response.isSuccessful()) {
                     Toast.makeText(requireContext(), R.string.account_deactivated, Toast.LENGTH_LONG).show();
-                    ActivityLogger.log(requireContext(), sessionManager, "DEACTIVATE_ACCOUNT", "Self-service deactivation");
                     performFullLogout();
                     return;
                 }
@@ -1083,5 +1178,214 @@ public class MeFragment extends Fragment {
         if (url == null) return null;
         if (!url.contains(".cdn.digitaloceanspaces.com")) return null;
         return url.replace(".cdn.digitaloceanspaces.com", ".digitaloceanspaces.com");
+    }
+
+    private void setupMeProfilePhotoControls() {
+        if (btnMePhotoCamera == null) {
+            return;
+        }
+        mePhotoUploadSupported = false;
+        View.OnClickListener openChooser = v -> onMePhotoCameraClicked();
+        btnMePhotoCamera.setOnClickListener(openChooser);
+        if (flMePhoto != null) {
+            flMePhoto.setOnClickListener(openChooser);
+        }
+        updateMePhotoCameraVisibility();
+    }
+
+    private void onMePhotoCameraClicked() {
+        if (!isAdded() || sessionManager.isGuestMode() || !mePhotoUploadSupported) {
+            return;
+        }
+        if (meServerPhotoPending) {
+            Toast.makeText(requireContext(), R.string.photo_change_locked_pending, Toast.LENGTH_SHORT).show();
+            return;
+        }
+        showMePhotoChooser();
+    }
+
+    private void showMePhotoChooser() {
+        new MaterialAlertDialogBuilder(requireContext())
+                .setTitle(R.string.photo_picker_title)
+                .setItems(new CharSequence[]{
+                        getString(R.string.photo_take),
+                        getString(R.string.photo_choose_gallery)
+                }, (dialog, which) -> {
+                    if (which == 0) {
+                        requestCameraAndLaunchMe();
+                    } else {
+                        meGalleryPickerLauncher.launch("image/*");
+                    }
+                })
+                .setNegativeButton(R.string.photo_cancel, null)
+                .show();
+    }
+
+    private void requestCameraAndLaunchMe() {
+        if (ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.CAMERA)
+                == PackageManager.PERMISSION_GRANTED) {
+            launchMeCameraCapture();
+        } else if (ActivityCompat.shouldShowRequestPermissionRationale(requireActivity(), Manifest.permission.CAMERA)) {
+            new AlertDialog.Builder(requireContext())
+                    .setTitle(R.string.permission_camera_rationale_title)
+                    .setMessage(R.string.permission_camera_rationale)
+                    .setPositiveButton(R.string.permission_continue,
+                            (d, w) -> meCameraPermissionLauncher.launch(Manifest.permission.CAMERA))
+                    .setNegativeButton(R.string.btn_cancel, null)
+                    .show();
+        } else {
+            meCameraPermissionLauncher.launch(Manifest.permission.CAMERA);
+        }
+    }
+
+    private void launchMeCameraCapture() {
+        meCameraPhotoUri = ImageUtils.createCameraImageUri(requireContext());
+        if (meCameraPhotoUri == null) {
+            Toast.makeText(requireContext(), R.string.error_photo_read, Toast.LENGTH_SHORT).show();
+            return;
+        }
+        meCameraLauncher.launch(meCameraPhotoUri);
+    }
+
+    private void handleMePhotoChosen(Uri uri) {
+        String err = ImageUtils.validateProfilePhoto(requireContext(), uri);
+        if (err != null) {
+            meSelectedPhotoUri = null;
+            if (tvMePhotoError != null) {
+                tvMePhotoError.setText(err);
+                tvMePhotoError.setVisibility(View.VISIBLE);
+            }
+            updateMePhotoCameraVisibility();
+            return;
+        }
+        if (tvMePhotoError != null) {
+            tvMePhotoError.setVisibility(View.GONE);
+        }
+        meSelectedPhotoUri = uri;
+        renderMeSelectedPhotoPreview();
+        updateMePhotoCameraVisibility();
+        uploadMePhoto();
+    }
+
+    private void renderMeSelectedPhotoPreview() {
+        if (meSelectedPhotoUri == null || ivPhoto == null || !isAdded()) {
+            return;
+        }
+        ivPhoto.setBackgroundResource(R.drawable.me_avatar_ring);
+        Glide.with(this)
+                .load(meSelectedPhotoUri)
+                .circleCrop()
+                .into(ivPhoto);
+        ivPhoto.clearColorFilter();
+        ivPhoto.setImageAlpha(255);
+    }
+
+    private void updateMePhotoCameraVisibility() {
+        if (btnMePhotoCamera == null) {
+            return;
+        }
+        if (!isAdded() || sessionManager.isGuestMode() || !sessionManager.isLoggedIn()) {
+            btnMePhotoCamera.setVisibility(View.GONE);
+            return;
+        }
+        if (!mePhotoUploadSupported) {
+            btnMePhotoCamera.setVisibility(View.GONE);
+            return;
+        }
+        if (meServerPhotoPending && meSelectedPhotoUri == null) {
+            btnMePhotoCamera.setVisibility(View.GONE);
+            return;
+        }
+        if (meSelectedPhotoUri != null) {
+            btnMePhotoCamera.setVisibility(View.GONE);
+            return;
+        }
+        btnMePhotoCamera.setVisibility(View.VISIBLE);
+    }
+
+    private void uploadMePhoto() {
+        if (meSelectedPhotoUri == null || !isAdded()) {
+            return;
+        }
+        MultipartBody.Part part = buildMePhotoPart(meSelectedPhotoUri);
+        if (part == null) {
+            meSelectedPhotoUri = null;
+            updateMePhotoCameraVisibility();
+            Toast.makeText(requireContext(), R.string.error_photo_invalid, Toast.LENGTH_SHORT).show();
+            return;
+        }
+        setMeLoadingUi(true);
+        api.uploadProfilePhoto(part).enqueue(new Callback<ProfilePhotoResponse>() {
+            @Override
+            public void onResponse(@NonNull Call<ProfilePhotoResponse> call, @NonNull Response<ProfilePhotoResponse> response) {
+                if (!isAdded()) {
+                    return;
+                }
+                setMeLoadingUi(false);
+                if (!response.isSuccessful() || response.body() == null) {
+                    meSelectedPhotoUri = null;
+                    updateMePhotoCameraVisibility();
+                    Toast.makeText(requireContext(), extractMePhotoUploadError(response), Toast.LENGTH_LONG).show();
+                    return;
+                }
+                meSelectedPhotoUri = null;
+                meCameraPhotoUri = null;
+                ProfilePhotoCache.touch(requireContext());
+                Toast.makeText(requireContext(), R.string.profile_saved, Toast.LENGTH_SHORT).show();
+                meCacheAtMs = 0L;
+                loadMe();
+            }
+
+            @Override
+            public void onFailure(@NonNull Call<ProfilePhotoResponse> call, @NonNull Throwable t) {
+                if (isAdded()) {
+                    setMeLoadingUi(false);
+                    meSelectedPhotoUri = null;
+                    updateMePhotoCameraVisibility();
+                    Toast.makeText(requireContext(), R.string.login_error_no_connection, Toast.LENGTH_SHORT).show();
+                }
+            }
+        });
+    }
+
+    private MultipartBody.Part buildMePhotoPart(Uri uri) {
+        if (uri == null) {
+            return null;
+        }
+        Bitmap bitmap = ImageUtils.decodeForUpload(requireContext(), uri);
+        if (bitmap == null) {
+            return null;
+        }
+        byte[] bytes = ImageUtils.compressBitmapJpeg(bitmap, ImageUtils.MAX_PHOTO_BYTES);
+        bitmap.recycle();
+        if (bytes == null) {
+            return null;
+        }
+        RequestBody body = RequestBody.create(MediaType.parse("image/jpeg"), bytes);
+        return MultipartBody.Part.createFormData("photo", "profile.jpg", body);
+    }
+
+    private String extractMePhotoUploadError(Response<?> response) {
+        try {
+            if (response.errorBody() != null) {
+                String raw = response.errorBody().string();
+                if (raw != null) {
+                    if (raw.contains("Object storage is not configured")) {
+                        return "Photo storage is not configured on the server.";
+                    }
+                    if (raw.contains("Only JPG and PNG images are allowed")) {
+                        return getString(R.string.error_photo_format);
+                    }
+                    if (raw.contains("Photo exceeds 5MB limit")) {
+                        return "Photo is too large for server upload (max 5MB after compression).";
+                    }
+                }
+            }
+        } catch (Exception ignored) {
+        }
+        if (response.code() >= 500) {
+            return "Server error while uploading photo. Please try again later.";
+        }
+        return getString(R.string.error_photo_invalid);
     }
 }

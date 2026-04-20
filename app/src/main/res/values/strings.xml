@@ -33,6 +33,7 @@
     <string name="link_continue_as_guest_prompt">Prefer not to sign in?</string>
     <string name="link_continue_as_guest">Continue as guest</string>
     <string name="login_error_invalid">Invalid email or password</string>
+    <string name="login_error_invalid_username">Invalid username or password</string>
     <string name="login_error_invalid_username_or_email">Invalid username/email or password</string>
     <string name="login_error_account_inactive">This account has been deactivated. Please contact staff.</string>
     <string name="login_error_locked_out">Too many failed attempts. Try again in %1$s.</string>
@@ -51,7 +52,10 @@
     <string name="register_step2_title">Personal details</string>
     <string name="btn_continue">Continue</string>
     <string name="btn_complete_registration">Complete registration</string>
-    <string name="register_step2_employee_linked_body">We matched this account to your employee profile. Your name, contact information, and address from your employee record have been copied to your customer profile. Tap below to finish. You do not need to fill in this form.</string>
+    <string name="register_step2_employee_linked_body">This email matches an existing employee profile. Enter your employee password to link this customer account and unlock your 20% employee discount. Your details are copied automatically.</string>
+    <string name="register_hint_employee_discount">Email eligible for employee linking and 20% discount</string>
+    <string name="register_hint_guest_email_link">Email eligible to link previous guest orders</string>
+    <string name="register_hint_guest_phone_link">Phone eligible to link previous guest orders</string>
     <string name="register_step2_guest_link_body">You previously checked out as a guest. Confirm or update your details below. Your guest orders and contact information will be linked to this new customer account.</string>
     <string name="label_photo">Photo</string>
     <string name="social_divider_register">or manually</string>
@@ -100,11 +104,11 @@
     <string name="error_email_invalid">Enter a valid email address</string>
     <string name="error_phone_required">Phone number is required</string>
     <string name="error_phone_invalid">Enter a valid 10-digit phone number</string>
-    <string name="error_password_required">Password is required</string>
+    <string name="error_password_required">Enter a password</string>
     <string name="error_password_too_short">Password is too short</string>
     <string name="error_password_too_long">Password is too long</string>
-    <string name="error_password_invalid">Enter a valid password</string>
-    <string name="error_password_strength">Use at least 8 characters with uppercase, lowercase, a number, and a symbol</string>
+    <string name="error_password_invalid">Password format is invalid</string>
+    <string name="error_password_strength">Password is too weak</string>
     <string name="hint_confirm_password">Confirm Password</string>
     <string name="error_password_mismatch">Passwords do not match</string>
 
@@ -120,12 +124,17 @@
     <string name="staff_chat">Staff Chat</string>
     <string name="nav_chat_short">Chat</string>
     <string name="chat_new">New chat</string>
-    <string name="customer_chat_empty_threads">No chats yet. Tap New chat to start one.</string>
+    <string name="customer_chat_empty_threads">No chats yet. Tap New chat to start one</string>
+    <string name="chat_filter_no_matches">No chats match this filter</string>
 
     <!-- Map / Locations -->
     <string name="locations_title">Find a Bakery</string>
     <string name="search_locations_hint">Search Locations...</string>
     <string name="btn_show_nearby">Nearby</string>
+    <string name="map_filter_4_plus_stars">4+ Stars</string>
+    <string name="map_filter_open_now">Open Now</string>
+    <string name="map_filter_has_ratings">Has Ratings</string>
+    <string name="map_filter_no_matches">No locations match this filter</string>
     <string name="btn_show_all">All</string>
     <string name="permission_location_rationale">Location permission is needed to find nearby bakeries.</string>
     <string name="permission_location_rationale_title">Use your location?</string>
@@ -197,6 +206,13 @@
     <string name="label_highest_tier_reached">You are at the highest loyalty tier</string>
     <string name="btn_redeem">Redeem →</string>
     <string name="label_categories">Categories</string>
+    <string name="label_categories_filters">Filters</string>
+    <string name="chat_filters">Chat Type</string>
+    <string name="chats_header">Chats</string>
+    <string name="search_chats_hint">Search chats</string>
+    <string name="chat_type_label_fmt">Type: %1$s</string>
+    <string name="chat_type_general">General</string>
+    <string name="chat_filter_archived">Archived</string>
     <string name="label_category">Category</string>
     <string name="label_products">Products</string>
     <string name="label_selected_product_name">Selected Product</string>
@@ -288,7 +304,7 @@
     <string name="change_password_current">Current password</string>
     <string name="change_password_new">New password</string>
     <string name="change_password_confirm">Confirm new password</string>
-    <string name="change_password_reuse_error">Choose a different password from your current one</string>
+    <string name="change_password_reuse_error">New password must be different</string>
     <string name="change_password_success">Password updated</string>
     <string name="change_password_failed">Could not change password. Try again.</string>
     <string name="reauth_title_profile">Confirm profile changes</string>
@@ -296,7 +312,7 @@
     <string name="reauth_title_checkout">Confirm high-value order</string>
     <string name="reauth_message_checkout">Orders over %1$s require password confirmation before placing them.</string>
     <string name="reauth_confirm">Confirm</string>
-    <string name="reauth_error_invalid">Password confirmation failed</string>
+    <string name="reauth_error_invalid">Password is incorrect</string>
 
     <string name="label_address">Address (optional)</string>
     <string name="label_address_header">Address</string>
@@ -322,7 +338,7 @@
     <string name="btn_your_details">Personal Info</string>
     <string name="btn_taste_preferences">Preferences</string>
     <string name="title_taste_preferences">Preferences</string>
-    <string name="btn_save_preferences">Save preferences</string>
+    <string name="btn_save_preferences">Update Preferences</string>
     <string name="preferences_saved">Preferences saved</string>
     <string name="preferences_need_customer_profile">Create your customer profile first.</string>
     <string name="preferences_no_tags">No product tags are available yet.</string>
@@ -337,18 +353,22 @@
     <string name="order_review_submitted_rejected_reason">Couldn\'t post that review: %1$s</string>
     <string name="me_employee_discount_title">20% employee discount</string>
     <string name="me_employee_discount_badge">You are eligible at checkout. This applies after today\'s specials and your loyalty tier discount.</string>
+    <string name="me_employee_discount_hint_title">Employee discount available</string>
+    <string name="me_employee_discount_hint_body">Register a customer account with your work email to get 20% off orders</string>
     <string name="me_guest_card_title">Sign in for the full experience</string>
     <string name="me_guest_card_body">Create an account or sign in to save orders, earn rewards, and keep your details in sync.</string>
+    <string name="me_photo_camera_cd">Change profile photo</string>
+    <string name="me_photo_upload">Upload</string>
     <string name="me_section_account_hub">Profile</string>
     <string name="me_deactivate_account">Deactivate account</string>
     <string name="me_deactivate_dialog_title">Deactivate your account?</string>
     <string name="me_deactivate_dialog_message">You will be signed out. Contact support if you need your account reactivated. Enter your password to confirm.</string>
     <string name="me_deactivate_password_hint">Password</string>
     <string name="me_deactivate_confirm">Deactivate</string>
-    <string name="me_deactivate_error_password">That password does not match. Try again.</string>
+    <string name="me_deactivate_error_password">Password is incorrect</string>
     <string name="me_deactivate_error_network">Could not reach the server.</string>
     <string name="me_deactivate_error_generic">Could not deactivate. Try again.</string>
-    <string name="register_toast_employee_discount_linked">Your account is linked to your employee profile. You get 20% off eligible orders at checkout (after today\'s specials and your loyalty tier).</string>
+    <string name="register_toast_employee_discount_linked">Your account is linked to your employee profile.</string>
     <string name="checkout_employee_discount_line">Employee discount (20%)</string>
 
     <string name="btn_edit_account">Account</string>
@@ -378,7 +398,6 @@
     <string name="guest_minimal_contact_hint">* We use this to reach you about your order.</string>
     <string name="guest_contact_required">Enter an email or phone number</string>
     <string name="register_phone_optional">Mobile phone (optional)</string>
-    <string name="toast_account_created">Account created.</string>
     <string name="account_label_username">Username</string>
     <string name="account_label_sign_email">Sign-in email</string>
     <string name="account_label_password">Password</string>
@@ -389,7 +408,7 @@
     <string name="role_display_guest">Guest</string>
     <string name="role_display_employee">Employee</string>
     <string name="role_display_admin">Admin</string>
-    <string name="nothing_to_save_profile">Choose a new photo to save, or go back if you are done.</string>
+    <string name="nothing_to_save_profile">No changes to save</string>
     <string name="error_postal_invalid">Postal/ZIP code is invalid</string>
     <string name="error_postal_required">Postal/ZIP code is required</string>
 
@@ -503,8 +522,10 @@
     <string name="confirm_item_qty_fmt">× %1$d</string>
     <string name="error_username_taken">This username is already taken</string>
     <string name="error_email_taken">This email is already in use</string>
-    <string name="register_employee_link_password_hint">Employee account password</string>
-    <string name="error_employee_link_password_required">Enter your employee password to link your accounts</string>
+    <string name="register_employee_link_password_hint">Password</string>
+    <string name="register_employee_link_password_label">Employee account password</string>
+    <string name="error_employee_link_password_required">Enter your password</string>
+    <string name="error_employee_link_password_invalid">Password is incorrect</string>
     <string name="redirecting_to_payment">Redirecting to secure payment...</string>
     <string name="error_placing_order">Error placing order, please try again</string>
     <string name="error_complete_form">Please complete all required fields</string>
@@ -538,6 +559,11 @@
     <string name="orders_admin_update_failed">Could not update order status.</string>
     <string name="order_retry_payment">Complete payment</string>
     <string name="order_payment_pending_hint">Payment did not finish. Tap below to pay securely.</string>
+    <string name="order_points_pending_label">Points Pending</string>
+    <string name="order_points_awarded_label">Points Awarded</string>
+    <string name="order_points_refunded_label">Points Refunded</string>
+    <string name="order_points_value_fmt">%1$s pts</string>
+    <string name="order_points_value_refunded_fmt">-%1$s pts</string>
     <string name="order_accept_delivery">Accept Delivery</string>
     <string name="order_accept_delivery_prompt">Would you like to leave a review for this delivered order?</string>
     <string name="order_accept_without_review">No, finish order</string>
@@ -564,6 +590,7 @@
     <string name="review_filter_verified">Verified</string>
     <string name="review_filter_purchased">Purchased</string>
     <string name="review_filter_no_matches">No reviews match this filter.</string>
+    <string name="products_filter_no_matches">No matches found for this filter</string>
     <string name="review_guest_name_label">Your name (optional)</string>
     <string name="review_guest_name_hint">How you\'d like to appear</string>
     <string name="product_review_comment_hint">Share feedback about this product such as taste texture freshness and value. Optional.</string>

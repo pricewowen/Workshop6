@@ -24,7 +24,6 @@ import com.example.workshop6.data.api.ApiClient;
 import com.example.workshop6.data.api.ApiService;
 import com.example.workshop6.data.api.dto.UserActivePatchRequest;
 import com.example.workshop6.data.api.dto.UserSummaryDto;
-import com.example.workshop6.logging.ActivityLogger;
 import com.google.android.material.button.MaterialButton;
 
 import java.util.ArrayList;
@@ -156,12 +155,6 @@ public class AccountAdminFragment extends Fragment {
                     Toast.makeText(requireContext(), R.string.account_admin_permission_denied, Toast.LENGTH_SHORT).show();
                     return;
                 }
-                ActivityLogger.log(
-                        requireContext(),
-                        sessionManager,
-                        nextState ? "REACTIVATE_ACCOUNT" : "DEACTIVATE_ACCOUNT",
-                        "userId=" + row.userId
-                );
                 Toast.makeText(requireContext(),
                         nextState ? R.string.account_reactivated : R.string.account_deactivated,
                         Toast.LENGTH_SHORT).show();

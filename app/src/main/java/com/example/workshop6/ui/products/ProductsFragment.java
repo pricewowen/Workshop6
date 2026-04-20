@@ -26,7 +26,6 @@ import com.example.workshop6.data.api.dto.ProductSpecialTodayDto;
 import com.example.workshop6.data.api.dto.TagDto;
 import com.example.workshop6.data.model.Category;
 import com.example.workshop6.data.model.Product;
-import com.example.workshop6.logging.ActivityLogger;
 import com.example.workshop6.util.MoneyFormat;
 import com.example.workshop6.util.ProductSpecialState;
 import com.example.workshop6.util.SearchUtils;
@@ -60,6 +59,7 @@ public class ProductsFragment extends Fragment {
     private CategoriesAdapter categoriesAdapter;
     private ProductAdapter productAdapter;
     private RecyclerView rvProducts;
+    private TextView tvProductsEmpty;
     private TextInputEditText etSearch;
     private MaterialCardView cardFeatured;
     private View featuredEmptyPanel;
@@ -105,6 +105,7 @@ public class ProductsFragment extends Fragment {
 
         rvCategories = view.findViewById(R.id.rvCategories);
         rvProducts = view.findViewById(R.id.rvProducts);
+        tvProductsEmpty = view.findViewById(R.id.tv_products_empty);
         etSearch = view.findViewById(R.id.etSearch);
         cardFeatured = view.findViewById(R.id.card_featured);
         featuredEmptyPanel = view.findViewById(R.id.featured_empty_panel);
@@ -144,7 +145,11 @@ public class ProductsFragment extends Fragment {
                 api.getProducts(rawQuery.isEmpty() ? null : query, null).enqueue(new Callback<List<ProductDto>>() {
                     @Override
                     public void onResponse(Call<List<ProductDto>> call, Response<List<ProductDto>> response) {
-                        if (!response.isSuccessful() || response.body() == null || productAdapter == null) {
+                        if (productAdapter == null) {
+                            return;
+                        }
+                        if (!response.isSuccessful() || response.body() == null) {
+                            setFilteredProducts(new ArrayList<>());
                             return;
                         }
                         List<Product> mapped = new ArrayList<>();
@@ -154,12 +159,12 @@ public class ProductsFragment extends Fragment {
                                 mapped.add(p);
                             }
                         }
-                        productAdapter.setProducts(mapped);
+                        setFilteredProducts(mapped);
                     }
 
                     @Override
                     public void onFailure(Call<List<ProductDto>> call, Throwable t) {
-                        logIfAttached("SEARCH_PRODUCTS", "Network error");
+                        setFilteredProducts(new ArrayList<>());
                     }
                 });
             }
@@ -387,7 +392,6 @@ public class ProductsFragment extends Fragment {
 
                     @Override
                     public void onFailure(Call<List<ProductDto>> call2, Throwable t) {
-                        logIfAttached("PRODUCTS", "Network error loading products");
                         if (isUiReady()) {
                             setProductsPageLoading(false);
                         }
@@ -397,7 +401,6 @@ public class ProductsFragment extends Fragment {
 
             @Override
             public void onFailure(Call<List<TagDto>> call, Throwable t) {
-                logIfAttached("PRODUCTS", "Network error loading tags");
                 if (isUiReady()) {
                     setProductsPageLoading(false);
                 }
@@ -432,13 +435,17 @@ public class ProductsFragment extends Fragment {
                 return;
             }
             if (tagId == -1) {
-                productAdapter.setProducts(new ArrayList<>(allProducts));
+                setFilteredProducts(new ArrayList<>(allProducts));
                 return;
             }
             api.getProducts(null, tagId).enqueue(new Callback<List<ProductDto>>() {
                 @Override
                 public void onResponse(Call<List<ProductDto>> call, Response<List<ProductDto>> response) {
-                    if (!response.isSuccessful() || response.body() == null || !isUiReady() || productAdapter == null) {
+                    if (!isUiReady() || productAdapter == null) {
+                        return;
+                    }
+                    if (!response.isSuccessful() || response.body() == null) {
+                        setFilteredProducts(new ArrayList<>());
                         return;
                     }
                     List<Product> mapped = new ArrayList<>();
@@ -448,11 +455,12 @@ public class ProductsFragment extends Fragment {
                             mapped.add(p);
                         }
                     }
-                    productAdapter.setProducts(mapped);
+                    setFilteredProducts(mapped);
                 }
 
                 @Override
                 public void onFailure(Call<List<ProductDto>> call, Throwable t) {
+                    setFilteredProducts(new ArrayList<>());
                 }
             });
         });
@@ -466,6 +474,25 @@ public class ProductsFragment extends Fragment {
         });
         rvProducts.setAdapter(productAdapter);
         rvCategories.setAdapter(categoriesAdapter);
+        updateProductsEmptyState(products != null && !products.isEmpty());
+    }
+
+    private void setFilteredProducts(List<Product> products) {
+        if (productAdapter == null) {
+            return;
+        }
+        List<Product> safe = products != null ? products : new ArrayList<>();
+        productAdapter.setProducts(safe);
+        updateProductsEmptyState(!safe.isEmpty());
+    }
+
+    private void updateProductsEmptyState(boolean hasProducts) {
+        if (rvProducts != null) {
+            rvProducts.setVisibility(hasProducts ? View.VISIBLE : View.GONE);
+        }
+        if (tvProductsEmpty != null) {
+            tvProductsEmpty.setVisibility(hasProducts ? View.GONE : View.VISIBLE);
+        }
     }
 
     private void showToastIfAttached(int resId, int duration) {
@@ -480,12 +507,5 @@ public class ProductsFragment extends Fragment {
             return;
         }
         Toast.makeText(requireContext(), message, duration).show();
-    }
-
-    private void logIfAttached(String action, String details) {
-        if (!isAdded()) {
-            return;
-        }
-        ActivityLogger.log(requireContext(), sessionManager, action, details);
     }
 }

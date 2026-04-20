@@ -4,74 +4,38 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:clipChildren="false">
+    android:background="@color/bakery_background">
 
-    <androidx.core.widget.NestedScrollView
-        android:id="@+id/edit_profile_scroll_content"
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:background="@color/bakery_card_white"
-        android:clipToPadding="false"
-        android:fillViewport="true"
-        android:paddingTop="@dimen/edit_profile_scroll_content_top_pad">
+        android:orientation="vertical">
+
+        <androidx.appcompat.widget.Toolbar
+            android:id="@+id/toolbar"
+            android:layout_width="match_parent"
+            android:layout_height="?attr/actionBarSize"
+            android:background="@color/bakery_background"
+            app:navigationIcon="@drawable/ic_arrow_back"
+            app:navigationIconTint="@color/bakery_text_dark"
+            app:title="@string/title_edit_account"
+            app:titleTextColor="@color/bakery_text_dark" />
+
+        <androidx.core.widget.NestedScrollView
+            android:id="@+id/edit_profile_scroll_content"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="@color/bakery_card_white"
+            android:clipToPadding="false"
+            android:fillViewport="true">
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
                 android:paddingHorizontal="28dp"
-                android:paddingTop="8dp"
+                android:paddingTop="24dp"
                 android:paddingBottom="32dp">
-
-            <LinearLayout
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_gravity="center_horizontal"
-                android:orientation="horizontal"
-                android:layout_marginBottom="4dp">
-
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/btn_choose_photo"
-                    style="@style/Widget.MaterialComponents.Button.TextButton"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="@string/btn_change_photo"
-                    android:textAllCaps="false"
-                    android:textColor="@color/bakery_primary"
-                    app:rippleColor="#408D6E63" />
-
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/btn_rotate_photo"
-                    style="@style/Widget.MaterialComponents.Button.TextButton"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:enabled="false"
-                    android:text="@string/btn_rotate_photo"
-                    android:textAllCaps="false"
-                    android:textColor="@color/bakery_primary"
-                    app:rippleColor="#408D6E63" />
-            </LinearLayout>
-
-            <TextView
-                android:id="@+id/tv_photo_error"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginBottom="8dp"
-                android:textColor="@color/bakery_status_closed"
-                android:textSize="12sp"
-                android:visibility="gone"
-                tools:text="Photo must be under 2MB and 1024x1024." />
-
-            <TextView
-                android:id="@+id/tv_photo_status"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_gravity="center_horizontal"
-                android:layout_marginBottom="16dp"
-                android:textColor="@color/bakery_text_secondary"
-                android:textSize="12sp"
-                android:visibility="gone"
-                tools:text="Profile photo pending approval" />
 
             <LinearLayout
                 android:id="@+id/ll_account_summary"
@@ -511,53 +475,7 @@
 
         </LinearLayout>
     </androidx.core.widget.NestedScrollView>
-
-    <LinearLayout
-        android:id="@+id/edit_profile_header"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:background="@android:color/transparent"
-        android:clipChildren="false"
-        android:elevation="12dp"
-        android:orientation="vertical">
-
-        <androidx.appcompat.widget.Toolbar
-            android:id="@+id/toolbar"
-            android:layout_width="match_parent"
-            android:layout_height="?attr/actionBarSize"
-            android:background="@color/bakery_primary"
-            app:navigationIcon="@drawable/ic_arrow_back"
-            app:title="@string/title_edit_account"
-            app:titleTextColor="@color/bakery_text_light" />
-
-        <FrameLayout
-            android:layout_width="match_parent"
-            android:layout_height="80dp"
-            android:background="@color/bakery_primary"
-            android:clipChildren="false" />
     </LinearLayout>
-
-    <FrameLayout
-        android:id="@+id/edit_profile_avatar_float"
-        android:layout_width="112dp"
-        android:layout_height="112dp"
-        android:layout_gravity="center_horizontal|top"
-        android:layout_marginTop="@dimen/edit_profile_avatar_margin_top"
-        android:background="@drawable/circle_white_filled"
-        android:clipChildren="false"
-        android:elevation="24dp"
-        android:outlineProvider="background"
-        android:padding="4dp">
-
-        <ImageView
-            android:id="@+id/iv_profile_photo"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:background="@drawable/circle_bg_gray"
-            android:clipToOutline="true"
-            android:contentDescription="@string/label_photo"
-            android:scaleType="centerCrop" />
-    </FrameLayout>
 
     <FrameLayout
         android:id="@+id/edit_profile_loading_overlay"

@@ -21,7 +21,6 @@ import com.example.workshop6.data.api.ApiClient;
 import com.example.workshop6.data.api.ApiService;
 import com.example.workshop6.data.api.dto.OrderDto;
 import com.example.workshop6.data.api.dto.OrderStatusPatchRequest;
-import com.example.workshop6.logging.ActivityLogger;
 import com.example.workshop6.util.MoneyFormat;
 import com.google.android.material.button.MaterialButton;
 
@@ -193,12 +192,6 @@ public class OrdersAdminFragment extends Fragment {
                     Toast.makeText(requireContext(), R.string.orders_admin_update_failed, Toast.LENGTH_SHORT).show();
                     return;
                 }
-                ActivityLogger.log(
-                        requireContext(),
-                        sessionManager,
-                        "UPDATE_ORDER_STATUS",
-                        "orderId=" + order.id + ", from=" + current + ", to=" + nextStatus
-                );
                 Toast.makeText(requireContext(), R.string.orders_admin_status_updated, Toast.LENGTH_SHORT).show();
                 loadOrders();
             }

@@ -20,6 +20,7 @@ import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 public class StaffThreadAdapter extends RecyclerView.Adapter<StaffThreadAdapter.ThreadViewHolder> {
     private static final String STATUS_OPEN = "OPEN";
@@ -83,6 +84,7 @@ public class StaffThreadAdapter extends RecyclerView.Adapter<StaffThreadAdapter.
         private final TextView time;
         private final View unreadDot;
         private final TextView pillAssignedToYou;
+        private final TextView textChatType;
 
         public ThreadViewHolder(@NonNull View itemView) {
             super(itemView);
@@ -94,6 +96,7 @@ public class StaffThreadAdapter extends RecyclerView.Adapter<StaffThreadAdapter.
             time = itemView.findViewById(R.id.text_time);
             unreadDot = itemView.findViewById(R.id.unread_dot);
             pillAssignedToYou = itemView.findViewById(R.id.pill_assigned_to_you);
+            textChatType = itemView.findViewById(R.id.text_chat_type);
         }
 
         void bind(ChatThreadDto item, String viewerRole, OnThreadClickListener listener) {
@@ -102,6 +105,10 @@ public class StaffThreadAdapter extends RecyclerView.Adapter<StaffThreadAdapter.
             textCustomerName.setText(title);
             textLastMessage.setText(firstNonBlank(item.latestMessagePreview, "No messages yet"));
             textThreadMeta.setText(buildMeta(item, viewerRole));
+            if (textChatType != null) {
+                textChatType.setText(itemView.getContext().getString(
+                        R.string.chat_type_label_fmt, prettyCategory(item.category)));
+            }
 
             avatar.setText(buildAvatarInitial(item));
             bindAvatarImage(item);
@@ -246,6 +253,26 @@ public class StaffThreadAdapter extends RecyclerView.Adapter<StaffThreadAdapter.
 
             String status = firstNonBlank(item.status, "OPEN");
             return participant + " • " + status;
+        }
+
+        private String prettyCategory(String categoryRaw) {
+            String raw = firstNonBlank(categoryRaw);
+            if (raw.isEmpty()) {
+                return itemView.getContext().getString(R.string.chat_type_general);
+            }
+            String normalized = raw.trim().replace('_', ' ').replace('-', ' ');
+            String[] parts = normalized.split("\\s+");
+            StringBuilder sb = new StringBuilder();
+            for (String part : parts) {
+                if (part.isEmpty()) continue;
+                String lower = part.toLowerCase(Locale.ROOT);
+                if (sb.length() > 0) sb.append(' ');
+                sb.append(Character.toUpperCase(lower.charAt(0)));
+                if (lower.length() > 1) {
+                    sb.append(lower.substring(1));
+                }
+            }
+            return sb.length() > 0 ? sb.toString() : itemView.getContext().getString(R.string.chat_type_general);
         }
 
         private String firstNonBlank(String... values) {

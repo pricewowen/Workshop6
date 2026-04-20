@@ -4,7 +4,6 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
-import android.util.Log;
 import android.text.Editable;
 import android.text.TextUtils;
 import android.text.TextWatcher;
@@ -637,11 +636,9 @@ public class ChatActivity extends AppCompatActivity {
         stomp.connect(new StompClient.ConnectionListener() {
             @Override
             public void onConnected() {
-                Log.d("ChatWS", "STOMP connected, subscribing thread " + threadId);
                 messagesSubId = stomp.subscribe(
                         ChatTopics.messages(threadId),
                         body -> {
-                            Log.d("ChatWS", "message frame: " + body);
                             try {
                                 ChatMessageDto dto = gson.fromJson(body, ChatMessageDto.class);
                                 if (dto == null) return;
@@ -676,11 +673,9 @@ public class ChatActivity extends AppCompatActivity {
                 typingSubId = stomp.subscribe(
                         ChatTopics.typing(threadId),
                         body -> {
-                            Log.d("ChatWS", "typing frame: " + body + " myUuid=" + userUuid);
                             try {
                                 TypingPayload payload = gson.fromJson(body, TypingPayload.class);
                                 if (payload == null) return;
-                                Log.d("ChatWS", "parsed userId=" + payload.userId + " typing=" + payload.typing);
                                 if (payload.userId != null
                                         && !payload.userId.equals(userUuid)
                                         && payload.typing) {
@@ -690,8 +685,7 @@ public class ChatActivity extends AppCompatActivity {
                                 } else {
                                     hideTypingRow();
                                 }
-                            } catch (Exception e) {
-                                Log.w("ChatWS", "typing parse failed", e);
+                            } catch (Exception ignored) {
                             }
                         });
                 readSubId = stomp.subscribe(
@@ -719,7 +713,6 @@ public class ChatActivity extends AppCompatActivity {
 
             @Override
             public void onDisconnected(Throwable cause) {
-                Log.w("ChatWS", "STOMP disconnected", cause);
             }
         });
     }

@@ -20,33 +20,41 @@
             app:title="@string/title_taste_preferences"
             app:titleTextColor="@color/bakery_text_dark" />
 
-        <ScrollView
+        <androidx.core.widget.NestedScrollView
             android:id="@+id/scroll_preferences"
             android:layout_width="match_parent"
-            android:layout_height="0dp"
-            android:layout_weight="1"
+            android:layout_height="match_parent"
             android:background="@color/bakery_card_white"
-            android:fillViewport="true">
+            android:fillViewport="true"
+            android:clipToPadding="false">
 
             <LinearLayout
-                android:id="@+id/container_tags"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
-                android:padding="16dp" />
-        </ScrollView>
+                android:paddingHorizontal="28dp"
+                android:paddingTop="24dp"
+                android:paddingBottom="32dp">
 
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btn_save_preferences"
-            android:layout_width="match_parent"
-            android:layout_height="56dp"
-            android:layout_margin="16dp"
-            android:text="@string/btn_save_preferences"
-            android:textSize="16sp"
-            android:textStyle="normal"
-            android:textColor="@color/bakery_text_light"
-            app:backgroundTint="@color/bakery_gold"
-            app:cornerRadius="28dp" />
+                <LinearLayout
+                    android:id="@+id/container_tags"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btn_save_preferences"
+                    android:layout_width="match_parent"
+                    android:layout_height="56dp"
+                    android:layout_marginTop="16dp"
+                    android:text="@string/btn_save_preferences"
+                    android:textSize="16sp"
+                    android:textStyle="normal"
+                    android:textColor="@color/bakery_text_light"
+                    app:backgroundTint="@color/bakery_gold"
+                    app:cornerRadius="28dp" />
+            </LinearLayout>
+        </androidx.core.widget.NestedScrollView>
     </LinearLayout>
 
     <FrameLayout

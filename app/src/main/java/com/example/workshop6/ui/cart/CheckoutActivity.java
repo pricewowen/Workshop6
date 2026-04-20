@@ -9,7 +9,6 @@ import android.location.Location;
 import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextWatcher;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.AdapterView;
@@ -60,7 +59,6 @@ import com.example.workshop6.data.api.dto.OrderDto;
 import com.example.workshop6.data.api.dto.RewardTierDto;
 import com.example.workshop6.data.model.BakeryLocationDetails;
 import com.example.workshop6.data.model.CartItem;
-import com.example.workshop6.logging.ActivityLogger;
 import com.example.workshop6.ui.loyalty.LoyaltyTierUi;
 import com.example.workshop6.util.CanadianTaxRates;
 import com.example.workshop6.util.MoneyFormat;
@@ -1877,7 +1875,6 @@ public class CheckoutActivity extends AppCompatActivity {
         }
 
         if (BuildConfig.STRIPE_PUBLISHABLE_KEY.isEmpty()) {
-            Log.e("Checkout", "Stripe publishable key not configured; blocking checkout");
             new AlertDialog.Builder(this)
                     .setTitle(R.string.stripe_unavailable_title)
                     .setMessage(R.string.stripe_unavailable_message)
@@ -2062,18 +2059,11 @@ public class CheckoutActivity extends AppCompatActivity {
                 CheckoutSessionResponse session = response.body();
                 pendingCheckoutOrderId = session.orderId;
                 pendingPaymentIntentId = session.paymentIntentId;
-                ActivityLogger.log(
-                        CheckoutActivity.this,
-                        sessionManager,
-                        "CREATE_ORDER",
-                        "Order created, presenting Stripe payment sheet"
-                );
                 presentPaymentSheet(session.clientSecret);
             }
 
             @Override
             public void onFailure(Call<CheckoutSessionResponse> call, Throwable t) {
-                Log.e("Checkout", "checkout failed", t);
                 Snackbar.make(findViewById(android.R.id.content),
                         R.string.error_placing_order, Snackbar.LENGTH_LONG).setAnchorView(btnPlaceOrder).show();
                 btnPlaceOrder.setEnabled(true);
@@ -2092,7 +2082,6 @@ public class CheckoutActivity extends AppCompatActivity {
 
     private void onPaymentSheetResult(PaymentSheetResult result) {
         if (result instanceof PaymentSheetResult.Completed) {
-            ActivityLogger.log(this, sessionManager, "PAYMENT_SHEET_COMPLETED", "Stripe sheet completed; confirming with server");
             confirmStripePaymentWithServer();
         } else if (result instanceof PaymentSheetResult.Canceled) {
             clearPendingStripeSession();
@@ -2105,7 +2094,6 @@ public class CheckoutActivity extends AppCompatActivity {
             clearPendingStripeSession();
             String message = ((PaymentSheetResult.Failed) result).getError().getLocalizedMessage();
             if (message == null) message = getString(R.string.error_placing_order);
-            Log.e("Checkout", "PaymentSheet failed: " + message);
             Snackbar.make(findViewById(android.R.id.content), message, Snackbar.LENGTH_LONG).setAnchorView(btnPlaceOrder).show();
             btnPlaceOrder.setEnabled(true);
             btnPlaceOrder.setText(R.string.place_order);
@@ -2121,7 +2109,6 @@ public class CheckoutActivity extends AppCompatActivity {
 
     private void confirmStripePaymentWithServer() {
         if (pendingCheckoutOrderId == null || pendingPaymentIntentId == null) {
-            Log.w("Checkout", "Missing order or payment intent after sheet; finishing without server confirm");
             finishCheckoutSuccessAfterPayment();
             return;
         }
@@ -2148,7 +2135,6 @@ public class CheckoutActivity extends AppCompatActivity {
 
             @Override
             public void onFailure(Call<OrderDto> call, Throwable t) {
-                Log.e("Checkout", "confirm payment failed", t);
                 Snackbar.make(findViewById(android.R.id.content), R.string.order_confirm_failed, Snackbar.LENGTH_LONG)
                         .setAnchorView(btnPlaceOrder)
                         .setAction(R.string.action_retry, v -> confirmStripePaymentWithServer())
@@ -2159,7 +2145,6 @@ public class CheckoutActivity extends AppCompatActivity {
 
     private void finishCheckoutSuccessAfterPayment() {
         PendingStripeConfirm.clear(this);
-        ActivityLogger.log(this, sessionManager, "PAYMENT_SUCCESS", "Order confirmed paid");
         CartManager.getInstance(this).clearCart();
         Toast.makeText(this, R.string.order_placed_success, Toast.LENGTH_LONG).show();
         Intent intent = new Intent(this, com.example.workshop6.ui.MainActivity.class);

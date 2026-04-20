@@ -26,7 +26,6 @@ import com.example.workshop6.auth.SessionManager;
 import com.example.workshop6.data.api.ApiClient;
 import com.example.workshop6.data.api.ApiService;
 import com.example.workshop6.data.api.dto.CustomerDto;
-import com.example.workshop6.logging.ActivityLogger;
 import com.example.workshop6.util.ProfileInitialsAvatar;
 
 import java.util.ArrayList;
@@ -187,12 +186,6 @@ public class PhotoApprovalsFragment extends Fragment {
                     Toast.makeText(requireContext(), messageRes, Toast.LENGTH_SHORT).show();
                     return;
                 }
-                ActivityLogger.log(
-                        requireContext(),
-                        sessionManager,
-                        approve ? "APPROVE_PHOTO" : "REJECT_PHOTO",
-                        "customerId=" + customer.id
-                );
                 Toast.makeText(requireContext(),
                         approve ? R.string.photo_approved : R.string.photo_rejected,
                         Toast.LENGTH_SHORT).show();

@@ -2,6 +2,10 @@ package com.example.workshop6.auth;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
+import android.text.Editable;
+import android.text.TextWatcher;
 import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.ScrollView;
@@ -23,7 +27,6 @@ import com.example.workshop6.data.api.dto.CustomerDto;
 import com.example.workshop6.data.api.dto.CustomerPatchRequest;
 import com.example.workshop6.data.api.dto.GuestCustomerRequest;
 import com.example.workshop6.data.api.dto.RegisterRequest;
-import com.example.workshop6.logging.ActivityLogger;
 import com.example.workshop6.ui.MainActivity;
 import com.example.workshop6.util.ApiReachability;
 import com.example.workshop6.util.NavTransitions;
@@ -48,6 +51,8 @@ public class RegisterActivity extends AppCompatActivity {
     private TextInputLayout tilUsername, tilEmail, tilRegisterPhone, tilPassword, tilConfirmPassword;
     private TextInputEditText etUsername, etEmail, etRegisterPhone, etPassword, etConfirmPassword;
     private TextView tvError;
+    private TextView tvRegisterEmailHint;
+    private TextView tvRegisterPhoneHint;
     private MaterialButton btnContinue;
 
     private ScrollView svStep1;
@@ -59,6 +64,7 @@ public class RegisterActivity extends AppCompatActivity {
     private View llRegisterPersonalForm;
     private TextInputLayout tilEmployeeLinkPassword;
     private TextInputEditText etEmployeeLinkPassword;
+    private TextView tvEmployeeLinkPasswordLabel;
 
     private TextInputLayout tilFirstName, tilMiddleInitial, tilLastName, tilPhone, tilBusinessPhone;
     private TextInputLayout tilAddress1, tilAddress2, tilCity, tilPostal;
@@ -69,6 +75,10 @@ public class RegisterActivity extends AppCompatActivity {
 
     private SessionManager sessionManager;
     private ApiService api;
+
+    private final Handler linkHintHandler = new Handler(Looper.getMainLooper());
+    private Runnable linkHintDebouncedTask;
+    private static final long LINK_HINT_DEBOUNCE_MS = 400L;
 
     private int registrationStep = 1;
     private boolean step2PriorGuest;
@@ -110,8 +120,58 @@ public class RegisterActivity extends AppCompatActivity {
         etRegisterPhone.addTextChangedListener(new PhoneFormatTextWatcher(etRegisterPhone));
 
         tvError = findViewById(R.id.tv_error);
+        tvRegisterEmailHint = findViewById(R.id.tv_register_email_hint);
+        tvRegisterPhoneHint = findViewById(R.id.tv_register_phone_hint);
         btnContinue = findViewById(R.id.btn_register_continue);
         btnContinue.setOnClickListener(v -> attemptContinueStep1());
+
+        etUsername.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+            }
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+            }
+
+            @Override
+            public void afterTextChanged(Editable s) {
+                tilUsername.setError(null);
+                scheduleStep1LinkHintsRefresh();
+            }
+        });
+        etEmail.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+            }
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+            }
+
+            @Override
+            public void afterTextChanged(Editable s) {
+                tilEmail.setError(null);
+                tvRegisterEmailHint.setVisibility(View.GONE);
+                scheduleStep1LinkHintsRefresh();
+            }
+        });
+        etRegisterPhone.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+            }
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+            }
+
+            @Override
+            public void afterTextChanged(Editable s) {
+                tilRegisterPhone.setError(null);
+                tvRegisterPhoneHint.setVisibility(View.GONE);
+                scheduleStep1LinkHintsRefresh();
+            }
+        });
 
         svStep1 = findViewById(R.id.sv_register_step1);
         svStep2 = findViewById(R.id.sv_register_step2);
@@ -122,6 +182,7 @@ public class RegisterActivity extends AppCompatActivity {
         llRegisterPersonalForm = findViewById(R.id.ll_register_personal_form);
         tilEmployeeLinkPassword = findViewById(R.id.til_employee_link_password);
         etEmployeeLinkPassword = findViewById(R.id.et_employee_link_password);
+        tvEmployeeLinkPasswordLabel = findViewById(R.id.tv_employee_link_password_label);
 
         tilFirstName = findViewById(R.id.til_first_name);
         tilMiddleInitial = findViewById(R.id.til_middle_initial);
@@ -241,6 +302,53 @@ public class RegisterActivity extends AppCompatActivity {
         updateRegisterAvailabilityForNetwork();
     }
 
+    @Override
+    protected void onDestroy() {
+        if (linkHintDebouncedTask != null) {
+            linkHintHandler.removeCallbacks(linkHintDebouncedTask);
+            linkHintDebouncedTask = null;
+        }
+        super.onDestroy();
+    }
+
+    private void scheduleStep1LinkHintsRefresh() {
+        if (registrationStep != 1) {
+            return;
+        }
+        if (linkHintDebouncedTask != null) {
+            linkHintHandler.removeCallbacks(linkHintDebouncedTask);
+        }
+        linkHintDebouncedTask = () -> {
+            linkHintDebouncedTask = null;
+            if (isFinishing() || isDestroyed() || registrationStep != 1) {
+                return;
+            }
+            refreshStep1LinkHints();
+        };
+        linkHintHandler.postDelayed(linkHintDebouncedTask, LINK_HINT_DEBOUNCE_MS);
+    }
+
+    private String getStep1UsernameTrimmed() {
+        if (etUsername.getText() == null) {
+            return "";
+        }
+        return etUsername.getText().toString().trim();
+    }
+
+    private String getStep1EmailNormalized() {
+        if (etEmail.getText() == null) {
+            return "";
+        }
+        return etEmail.getText().toString().trim().toLowerCase(Locale.ROOT);
+    }
+
+    private String getStep1PhoneTrimmed() {
+        if (etRegisterPhone.getText() == null) {
+            return "";
+        }
+        return etRegisterPhone.getText().toString().trim();
+    }
+
     private void updateRegisterAvailabilityForNetwork() {
         boolean online = NetworkStatus.isOnline(this);
         if (btnContinue != null) {
@@ -263,9 +371,11 @@ public class RegisterActivity extends AppCompatActivity {
         String username = etUsername.getText() != null ? etUsername.getText().toString().trim() : "";
         String email = etEmail.getText() != null
                 ? etEmail.getText().toString().trim().toLowerCase(Locale.ROOT) : "";
+        String phone = etRegisterPhone.getText() != null
+                ? etRegisterPhone.getText().toString().trim() : "";
 
         btnContinue.setEnabled(false);
-        api.registerAvailability(username, email).enqueue(new Callback<com.example.workshop6.data.api.dto.RegisterAvailabilityResponse>() {
+        api.registerAvailability(username, email, phone).enqueue(new Callback<com.example.workshop6.data.api.dto.RegisterAvailabilityResponse>() {
             @Override
             public void onResponse(Call<com.example.workshop6.data.api.dto.RegisterAvailabilityResponse> call,
                                    Response<com.example.workshop6.data.api.dto.RegisterAvailabilityResponse> response) {
@@ -290,6 +400,7 @@ public class RegisterActivity extends AppCompatActivity {
                 }
 
                 step2EmployeeLinkOffered = body.employeeLinkOffered;
+                showStep1LinkHints(body);
                 advanceToStep2WithoutApi();
             }
 
@@ -302,6 +413,95 @@ public class RegisterActivity extends AppCompatActivity {
                 advanceToStep2WithoutApi();
             }
         });
+    }
+
+    private void refreshStep1LinkHints() {
+        if (registrationStep != 1) {
+            return;
+        }
+        if (!NetworkStatus.isOnline(this)) {
+            tvRegisterEmailHint.setVisibility(View.GONE);
+            tvRegisterPhoneHint.setVisibility(View.GONE);
+            return;
+        }
+        String email = getStep1EmailNormalized();
+        String phone = getStep1PhoneTrimmed();
+        if (email.isEmpty() && phone.isEmpty()) {
+            tvRegisterEmailHint.setVisibility(View.GONE);
+            tvRegisterPhoneHint.setVisibility(View.GONE);
+            return;
+        }
+        final String snapUsername = getStep1UsernameTrimmed();
+        final String snapEmail = email;
+        final String snapPhone = phone;
+        api.registerAvailability(snapUsername, snapEmail, snapPhone).enqueue(new Callback<com.example.workshop6.data.api.dto.RegisterAvailabilityResponse>() {
+            @Override
+            public void onResponse(Call<com.example.workshop6.data.api.dto.RegisterAvailabilityResponse> call,
+                                   Response<com.example.workshop6.data.api.dto.RegisterAvailabilityResponse> response) {
+                if (isFinishing() || isDestroyed() || registrationStep != 1) {
+                    return;
+                }
+                if (!snapUsername.equals(getStep1UsernameTrimmed())
+                        || !snapEmail.equals(getStep1EmailNormalized())
+                        || !snapPhone.equals(getStep1PhoneTrimmed())) {
+                    return;
+                }
+                com.example.workshop6.data.api.dto.RegisterAvailabilityResponse body = response.body();
+                if (body == null) {
+                    tvRegisterEmailHint.setVisibility(View.GONE);
+                    tvRegisterPhoneHint.setVisibility(View.GONE);
+                    return;
+                }
+                applyStep1LinkHintVisibility(body);
+            }
+
+            @Override
+            public void onFailure(Call<com.example.workshop6.data.api.dto.RegisterAvailabilityResponse> call, Throwable t) {
+                // hints are optional
+            }
+        });
+    }
+
+    private void showStep1LinkHints(com.example.workshop6.data.api.dto.RegisterAvailabilityResponse body) {
+        applyStep1LinkHintVisibility(body);
+    }
+
+    /**
+     * Linking hints use the same slot as {@link TextInputLayout} helper/error text: never show both.
+     * Orange hint only when the field has no error and passes the same format checks as step 1 validation.
+     */
+    private void applyStep1LinkHintVisibility(com.example.workshop6.data.api.dto.RegisterAvailabilityResponse body) {
+        if (body == null) {
+            tvRegisterEmailHint.setVisibility(View.GONE);
+            tvRegisterPhoneHint.setVisibility(View.GONE);
+            return;
+        }
+        String email = getStep1EmailNormalized();
+        boolean emailOkForHint = !email.isEmpty()
+                && Validation.isEmailValid(email)
+                && tilEmail.getError() == null;
+
+        if (emailOkForHint && body.employeeLinkOffered) {
+            tvRegisterEmailHint.setText(R.string.register_hint_employee_discount);
+            tvRegisterEmailHint.setVisibility(View.VISIBLE);
+        } else if (emailOkForHint && body.guestEmailLinkOffered) {
+            tvRegisterEmailHint.setText(R.string.register_hint_guest_email_link);
+            tvRegisterEmailHint.setVisibility(View.VISIBLE);
+        } else {
+            tvRegisterEmailHint.setVisibility(View.GONE);
+        }
+
+        String phone = getStep1PhoneTrimmed();
+        boolean phoneOkForHint = !phone.isEmpty()
+                && Validation.isPhoneNumberValid(phone)
+                && tilRegisterPhone.getError() == null;
+
+        if (phoneOkForHint && body.guestPhoneLinkOffered) {
+            tvRegisterPhoneHint.setText(R.string.register_hint_guest_phone_link);
+            tvRegisterPhoneHint.setVisibility(View.VISIBLE);
+        } else {
+            tvRegisterPhoneHint.setVisibility(View.GONE);
+        }
     }
 
     private void clearRegisterFieldErrorsForConnectionMessage() {
@@ -396,9 +596,6 @@ public class RegisterActivity extends AppCompatActivity {
             tilConfirmPassword.setError(null);
         }
 
-        if (!valid) {
-            ActivityLogger.logFailure(this, null, "REGISTER", "Registration step 1 validation failed");
-        }
         return valid;
     }
 
@@ -420,11 +617,13 @@ public class RegisterActivity extends AppCompatActivity {
     private void applyStep2UiMode() {
         if (step2EmployeeLinkOffered) {
             tvRegisterStep2EmployeeMessage.setVisibility(View.VISIBLE);
+            tvEmployeeLinkPasswordLabel.setVisibility(View.VISIBLE);
             tilEmployeeLinkPassword.setVisibility(View.VISIBLE);
             tvRegisterStep2GuestMessage.setVisibility(View.GONE);
             llRegisterPersonalForm.setVisibility(View.GONE);
         } else {
             tvRegisterStep2EmployeeMessage.setVisibility(View.GONE);
+            tvEmployeeLinkPasswordLabel.setVisibility(View.GONE);
             tilEmployeeLinkPassword.setVisibility(View.GONE);
             tvRegisterStep2GuestMessage.setVisibility(step2PriorGuest ? View.VISIBLE : View.GONE);
             if (step2PriorGuest) {
@@ -570,6 +769,12 @@ public class RegisterActivity extends AppCompatActivity {
                 updateRegisterAvailabilityForNetwork();
                 return;
             }
+            if (!Validation.isPasswordValid(empPass)) {
+                tilEmployeeLinkPassword.setError(getString(R.string.error_password_invalid));
+                btnCompleteRegistration.setEnabled(true);
+                updateRegisterAvailabilityForNetwork();
+                return;
+            }
             tilEmployeeLinkPassword.setError(null);
             registerAccountThenFinishProfile(null);
             return;
@@ -578,7 +783,6 @@ public class RegisterActivity extends AppCompatActivity {
         if (!validateStep2ProfileFields()) {
             btnCompleteRegistration.setEnabled(true);
             updateRegisterAvailabilityForNetwork();
-            ActivityLogger.logFailure(this, null, "REGISTER", "Registration step 2 validation failed");
             return;
         }
 
@@ -770,7 +974,14 @@ public class RegisterActivity extends AppCompatActivity {
                     btnCompleteRegistration.setEnabled(true);
                     updateRegisterAvailabilityForNetwork();
                     returnToStep1ForAccountConflict();
-                    ActivityLogger.logFailure(RegisterActivity.this, null, "REGISTER", "Conflict from API");
+                    return;
+                }
+                if (step2EmployeeLinkOffered
+                        && (response.code() == 400 || response.code() == 401 || response.code() == 403)) {
+                    btnCompleteRegistration.setEnabled(true);
+                    updateRegisterAvailabilityForNetwork();
+                    tilEmployeeLinkPassword.setError(getString(R.string.error_employee_link_password_invalid));
+                    tvRegisterStep2Error.setVisibility(View.GONE);
                     return;
                 }
                 if (!response.isSuccessful() || response.body() == null) {
@@ -778,7 +989,6 @@ public class RegisterActivity extends AppCompatActivity {
                     updateRegisterAvailabilityForNetwork();
                     tvRegisterStep2Error.setText(R.string.register_error_unexpected);
                     tvRegisterStep2Error.setVisibility(View.VISIBLE);
-                    ActivityLogger.logFailure(RegisterActivity.this, null, "REGISTER", "HTTP " + response.code());
                     return;
                 }
                 AuthResponse auth = response.body();
@@ -789,7 +999,6 @@ public class RegisterActivity extends AppCompatActivity {
                     updateRegisterAvailabilityForNetwork();
                     tvRegisterStep2Error.setText(R.string.register_error_unexpected);
                     tvRegisterStep2Error.setVisibility(View.VISIBLE);
-                    ActivityLogger.logFailure(RegisterActivity.this, null, "REGISTER", "Malformed auth response");
                     return;
                 }
 
@@ -804,12 +1013,6 @@ public class RegisterActivity extends AppCompatActivity {
                         auth.role.toUpperCase(Locale.ROOT),
                         auth.username,
                         sessionEmail
-                );
-                ActivityLogger.log(
-                        RegisterActivity.this,
-                        "USER@" + auth.username,
-                        "REGISTER",
-                        "Account created via API (registration complete)"
                 );
 
                 if (Boolean.TRUE.equals(auth.priorGuestCheckout)) {
@@ -850,7 +1053,6 @@ public class RegisterActivity extends AppCompatActivity {
                 updateRegisterAvailabilityForNetwork();
                 tvRegisterStep2Error.setText(R.string.login_error_no_connection);
                 tvRegisterStep2Error.setVisibility(View.VISIBLE);
-                ActivityLogger.logFailure(RegisterActivity.this, null, "REGISTER", "Network error");
             }
         });
     }
@@ -887,7 +1089,6 @@ public class RegisterActivity extends AppCompatActivity {
                         sessionManager.getLoginEmail()
                 );
                 sessionManager.clearGuestProfile();
-                ActivityLogger.log(RegisterActivity.this, sessionManager, "REGISTER", "Customer profile completed after registration");
                 Toast.makeText(RegisterActivity.this, R.string.customer_profile_saved, Toast.LENGTH_SHORT).show();
                 goToMain(false);
             }

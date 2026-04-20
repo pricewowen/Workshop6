@@ -9,4 +9,8 @@ public class RegisterAvailabilityResponse {
     public boolean emailAvailable;
     @SerializedName("employeeLinkOffered")
     public boolean employeeLinkOffered;
+    @SerializedName("guestEmailLinkOffered")
+    public boolean guestEmailLinkOffered;
+    @SerializedName("guestPhoneLinkOffered")
+    public boolean guestPhoneLinkOffered;
 }

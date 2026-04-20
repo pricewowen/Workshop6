@@ -40,15 +40,41 @@
                     android:orientation="horizontal"
                     android:padding="20dp">
 
-                    <ImageView
-                        android:id="@+id/iv_me_photo"
+                    <FrameLayout
+                        android:id="@+id/fl_me_photo"
                         android:layout_width="80dp"
                         android:layout_height="80dp"
-                        android:background="@drawable/me_avatar_ring"
-                        android:clipToOutline="true"
-                        android:contentDescription="@string/label_photo"
-                        android:elevation="2dp"
-                        android:scaleType="centerCrop" />
+                        android:clickable="true"
+                        android:clipChildren="false"
+                        android:focusable="true"
+                        android:foreground="?attr/selectableItemBackgroundBorderless">
+
+                        <ImageView
+                            android:id="@+id/iv_me_photo"
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:background="@drawable/me_avatar_ring"
+                            android:clipToOutline="true"
+                            android:contentDescription="@string/label_photo"
+                            android:elevation="2dp"
+                            android:scaleType="centerCrop" />
+
+                        <ImageButton
+                            android:id="@+id/btn_me_photo_camera"
+                            android:layout_width="26dp"
+                            android:layout_height="26dp"
+                            android:layout_gravity="bottom|end"
+                            android:layout_marginEnd="2dp"
+                            android:layout_marginBottom="2dp"
+                            android:background="@drawable/me_photo_camera_chip"
+                            android:contentDescription="@string/me_photo_camera_cd"
+                            android:elevation="2dp"
+                            android:padding="4dp"
+                            android:scaleType="centerInside"
+                            android:visibility="gone"
+                            app:srcCompat="@drawable/ic_me_photo_camera"
+                            app:tint="@color/bakery_gold_bright" />
+                    </FrameLayout>
 
                     <LinearLayout
                         android:layout_width="0dp"
@@ -125,6 +151,16 @@
                             android:textColor="@color/bakery_text_tertiary"
                             android:textSize="11sp"
                             android:visibility="gone" />
+
+                        <TextView
+                            android:id="@+id/tv_me_photo_error"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="4dp"
+                            android:textColor="@color/bakery_status_closed"
+                            android:textSize="12sp"
+                            android:visibility="gone" />
+
                     </LinearLayout>
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
@@ -316,6 +352,42 @@
                         app:iconGravity="textStart"
                         app:iconPadding="14dp"
                         app:iconTint="@color/white" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/card_me_employee_discount_hint"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="14dp"
+                android:visibility="gone"
+                app:cardBackgroundColor="@color/bakery_card_white"
+                app:cardCornerRadius="18dp"
+                app:cardElevation="2dp"
+                app:strokeColor="@color/bakery_divider"
+                app:strokeWidth="1dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="18dp">
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="@string/me_employee_discount_hint_title"
+                        android:textColor="@color/bakery_text_dark"
+                        android:textSize="16sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="4dp"
+                        android:text="@string/me_employee_discount_hint_body"
+                        android:textColor="@color/bakery_text_secondary"
+                        android:textSize="13sp" />
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
