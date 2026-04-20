@@ -202,6 +202,19 @@ public interface ApiService {
     @POST("api/v1/chat/threads/{threadId}/assign")
     Call<ChatThreadDto> assignChatThread(@Path("threadId") int threadId);
 
+    @POST("api/v1/chat/threads/{threadId}/transfer")
+    Call<ChatThreadDto> transferChatThread(@Path("threadId") int threadId,
+                                           @Body com.example.workshop6.data.api.dto.TransferThreadRequest body);
+
+    @POST("api/v1/chat/threads/{threadId}/reopen")
+    Call<ChatThreadDto> reopenChatThread(@Path("threadId") int threadId);
+
+    @POST("api/v1/chat/threads/{threadId}/close")
+    Call<ChatThreadDto> closeChatThread(@Path("threadId") int threadId);
+
+    @GET("api/v1/messages/recipients")
+    Call<List<com.example.workshop6.data.api.dto.StaffRecipientDto>> getStaffRecipients();
+
     @GET("api/v1/admin/customers/pending-photos")
     Call<List<CustomerDto>> getPendingPhotoCustomers();
 

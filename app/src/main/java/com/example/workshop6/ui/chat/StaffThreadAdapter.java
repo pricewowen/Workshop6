@@ -8,8 +8,10 @@ import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.bumptech.glide.Glide;
 import com.example.workshop6.R;
 import com.example.workshop6.data.api.dto.ChatThreadDto;
+import com.google.android.material.imageview.ShapeableImageView;
 
 import java.time.Duration;
 import java.time.OffsetDateTime;
@@ -77,6 +79,7 @@ public class StaffThreadAdapter extends RecyclerView.Adapter<StaffThreadAdapter.
         private final TextView textLastMessage;
         private final TextView textThreadMeta;
         private final TextView avatar;
+        private final ShapeableImageView avatarImage;
         private final TextView time;
         private final View unreadDot;
         private final TextView pillAssignedToYou;
@@ -87,6 +90,7 @@ public class StaffThreadAdapter extends RecyclerView.Adapter<StaffThreadAdapter.
             textLastMessage = itemView.findViewById(R.id.text_last_message);
             textThreadMeta = itemView.findViewById(R.id.text_thread_meta);
             avatar = itemView.findViewById(R.id.avatar_thread);
+            avatarImage = itemView.findViewById(R.id.image_avatar_thread);
             time = itemView.findViewById(R.id.text_time);
             unreadDot = itemView.findViewById(R.id.unread_dot);
             pillAssignedToYou = itemView.findViewById(R.id.pill_assigned_to_you);
@@ -100,6 +104,7 @@ public class StaffThreadAdapter extends RecyclerView.Adapter<StaffThreadAdapter.
             textThreadMeta.setText(buildMeta(item, viewerRole));
 
             avatar.setText(buildAvatarInitial(item));
+            bindAvatarImage(item);
             bindTime(item.latestMessageAt);
             bindUnreadDot(item);
 
@@ -120,6 +125,21 @@ public class StaffThreadAdapter extends RecyclerView.Adapter<StaffThreadAdapter.
             String threadKey = item.id != null ? String.valueOf(item.id) : null;
             boolean unseen = threadKey != null && !seenAssignedThreadIds.contains(threadKey);
             pillAssignedToYou.setVisibility(mine && unseen ? View.VISIBLE : View.GONE);
+        }
+
+        private void bindAvatarImage(ChatThreadDto item) {
+            if (avatarImage == null) return;
+            String url = item.customerProfilePhotoPath;
+            boolean hasUrl = url != null && !url.trim().isEmpty()
+                    && !ROLE_CUSTOMER.equalsIgnoreCase(viewerRole);
+            if (!hasUrl) {
+                avatarImage.setVisibility(View.GONE);
+                return;
+            }
+            avatarImage.setVisibility(View.VISIBLE);
+            Glide.with(itemView).load(url.trim()).centerCrop()
+                    .error(android.R.color.transparent)
+                    .into(avatarImage);
         }
 
         private String buildAvatarInitial(ChatThreadDto item) {

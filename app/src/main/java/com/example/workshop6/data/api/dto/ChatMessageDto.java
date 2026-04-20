@@ -13,4 +13,6 @@ public class ChatMessageDto {
     public boolean read;
     @SerializedName("isSystem")
     public boolean isSystem;
+    @SerializedName("staffOnly")
+    public boolean staffOnly;
 }

@@ -421,6 +421,16 @@
     <string name="chat_staff_claim_failed">Could not claim thread</string>
     <string name="chat_staff_mark_read_success">Thread marked as read</string>
     <string name="chat_staff_mark_read_failed">Could not mark as read</string>
+    <string name="chat_staff_transfer">Transfer</string>
+    <string name="chat_staff_reopen">Reopen</string>
+    <string name="chat_staff_transfer_title">Transfer to which staff member?</string>
+    <string name="chat_staff_transfer_loading">Loading staff…</string>
+    <string name="chat_staff_transfer_empty">No other staff available</string>
+    <string name="chat_staff_transfer_success">Thread transferred</string>
+    <string name="chat_staff_transfer_failed">Could not transfer thread</string>
+    <string name="chat_staff_reopen_success">Thread reopened for audit</string>
+    <string name="chat_staff_reopen_failed">Could not reopen thread</string>
+    <string name="chat_closed_banner">This conversation has been ended.</string>
     <string name="staff_purchase_blocked">Admin and employee accounts cannot purchase products</string>
 
     <!-- Cart -->

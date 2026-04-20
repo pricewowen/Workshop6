@@ -12,6 +12,8 @@ public class ChatThreadDto {
     public String customerUsername;
     @SerializedName("customerEmail")
     public String customerEmail;
+    @SerializedName("customerProfilePhotoPath")
+    public String customerProfilePhotoPath;
     @SerializedName("employeeUserId")
     public String employeeUserId;
     public String status;

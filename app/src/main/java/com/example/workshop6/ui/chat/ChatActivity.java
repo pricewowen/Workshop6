@@ -17,8 +17,10 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.bumptech.glide.Glide;
 import com.example.workshop6.data.api.dto.ChatThreadDto;
 import com.google.android.material.button.MaterialButton;
+import com.google.android.material.imageview.ShapeableImageView;
 
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
@@ -33,6 +35,8 @@ import com.example.workshop6.data.api.ApiClient;
 import com.example.workshop6.data.api.ApiService;
 import com.example.workshop6.data.api.dto.ChatMessageDto;
 import com.example.workshop6.data.api.dto.PostChatMessageRequest;
+import com.example.workshop6.data.api.dto.StaffRecipientDto;
+import com.example.workshop6.data.api.dto.TransferThreadRequest;
 import com.example.workshop6.data.api.dto.TypingPayload;
 import com.example.workshop6.data.ws.StompClient;
 import com.example.workshop6.util.NavTransitions;
@@ -51,6 +55,10 @@ public class ChatActivity extends AppCompatActivity {
     public static final String EXTRA_THREAD_ID = "thread_id";
     public static final String EXTRA_THREAD_TITLE = "thread_title";
     public static final String EXTRA_THREAD_SUBTITLE = "thread_subtitle";
+    public static final String EXTRA_THREAD_PHOTO_URL = "thread_photo_url";
+    public static final String EXTRA_THREAD_USERNAME = "thread_username";
+    public static final String EXTRA_THREAD_STATUS = "thread_status";
+    public static final String EXTRA_THREAD_ASSIGNEE = "thread_assignee";
 
     private RecyclerView recyclerMessages;
     private EditText editMessage;
@@ -60,11 +68,17 @@ public class ChatActivity extends AppCompatActivity {
     private TextView textTitle;
     private TextView textSubtitle;
     private LinearLayout layoutChatInput;
+    private TextView textClosedBanner;
+    private String statusSubId;
     private TextView avatarHeader;
+    private ShapeableImageView avatarHeaderImage;
     private View layoutStaffActions;
     private View dividerStaffActions;
     private MaterialButton buttonStaffClaim;
+    private MaterialButton buttonStaffTransfer;
+    private MaterialButton buttonStaffReopen;
     private MaterialButton buttonStaffMarkRead;
+    private ChatThreadDto currentThread;
     private View layoutTypingRow;
     private View dot1;
     private View dot2;
@@ -78,6 +92,7 @@ public class ChatActivity extends AppCompatActivity {
 
     private StompClient stomp;
     private String messagesSubId;
+    private String staffMessagesSubId;
     private String typingSubId;
     private String readSubId;
     private final Handler typingIdleHandler = new Handler(Looper.getMainLooper());
@@ -122,10 +137,14 @@ public class ChatActivity extends AppCompatActivity {
         textTitle = findViewById(R.id.text_chat_title);
         textSubtitle = findViewById(R.id.text_chat_subtitle);
         layoutChatInput = findViewById(R.id.layout_chat_input);
+        textClosedBanner = findViewById(R.id.text_closed_banner);
         avatarHeader = findViewById(R.id.avatar_header);
+        avatarHeaderImage = findViewById(R.id.image_avatar_header);
         layoutStaffActions = findViewById(R.id.layout_staff_actions);
         dividerStaffActions = findViewById(R.id.divider_staff_actions);
         buttonStaffClaim = findViewById(R.id.button_staff_claim);
+        buttonStaffTransfer = findViewById(R.id.button_staff_transfer);
+        buttonStaffReopen = findViewById(R.id.button_staff_reopen);
         buttonStaffMarkRead = findViewById(R.id.button_staff_mark_read);
         layoutTypingRow = findViewById(R.id.layout_typing_row);
         dot1 = findViewById(R.id.view_typing_dot_1);
@@ -262,6 +281,11 @@ public class ChatActivity extends AppCompatActivity {
         if (threadId == -1) {
             return;
         }
+        if (currentThread != null && "closed".equalsIgnoreCase(currentThread.status)) {
+            Toast.makeText(this, R.string.chat_closed_banner, Toast.LENGTH_SHORT).show();
+            applyClosedState();
+            return;
+        }
 
         String text = editMessage.getText().toString().trim();
         String bounded = Validation.limitLength(text, Validation.CHAT_MESSAGE_MAX_LENGTH);
@@ -276,8 +300,18 @@ public class ChatActivity extends AppCompatActivity {
         api.postChatMessage(threadId, new PostChatMessageRequest(boundedText)).enqueue(new Callback<ChatMessageDto>() {
             @Override
             public void onResponse(Call<ChatMessageDto> call, Response<ChatMessageDto> response) {
-                editMessage.setText("");
-                loadMessages();
+                if (response.isSuccessful()) {
+                    editMessage.setText("");
+                    loadMessages();
+                    return;
+                }
+                if (response.code() == 400) {
+                    // Most common 400 here is "Thread is closed" — reflect it in the UI instead of failing silently.
+                    if (currentThread == null) currentThread = new ChatThreadDto();
+                    currentThread.status = "closed";
+                    applyClosedState();
+                    Toast.makeText(ChatActivity.this, R.string.chat_closed_banner, Toast.LENGTH_SHORT).show();
+                }
             }
 
             @Override
@@ -309,6 +343,14 @@ public class ChatActivity extends AppCompatActivity {
                     ? getString(R.string.chat_subtitle_customer_waiting)
                     : getString(R.string.chat_subtitle_staff_view);
         }
+        String username = getIntent().getStringExtra(EXTRA_THREAD_USERNAME);
+        boolean isStaffRole = !"CUSTOMER".equalsIgnoreCase(sessionManager.getUserRole());
+        if (isStaffRole && username != null && !username.trim().isEmpty()) {
+            String usernamePrefix = "@" + username.trim();
+            if (subtitle == null || !subtitle.startsWith(usernamePrefix)) {
+                subtitle = usernamePrefix + (subtitle != null && !subtitle.isEmpty() ? " · " + subtitle : "");
+            }
+        }
 
         textTitle.setText(title);
         textSubtitle.setText(subtitle);
@@ -329,6 +371,19 @@ public class ChatActivity extends AppCompatActivity {
         if (adapter != null) {
             adapter.setReceivedAvatarInitial(initial);
         }
+
+        if (avatarHeaderImage == null) return;
+        String role = sessionManager != null ? sessionManager.getUserRole() : null;
+        boolean isStaff = "ADMIN".equalsIgnoreCase(role) || "EMPLOYEE".equalsIgnoreCase(role);
+        String photoUrl = getIntent().getStringExtra(EXTRA_THREAD_PHOTO_URL);
+        if (isStaff && photoUrl != null && !photoUrl.trim().isEmpty()) {
+            avatarHeaderImage.setVisibility(View.VISIBLE);
+            Glide.with(this).load(photoUrl.trim()).centerCrop()
+                    .error(android.R.color.transparent)
+                    .into(avatarHeaderImage);
+        } else {
+            avatarHeaderImage.setVisibility(View.GONE);
+        }
     }
 
     private void bindStaffActions() {
@@ -341,6 +396,158 @@ public class ChatActivity extends AppCompatActivity {
 
         buttonStaffClaim.setOnClickListener(v -> claimThread());
         buttonStaffMarkRead.setOnClickListener(v -> markReadExplicit());
+        if (buttonStaffTransfer != null) buttonStaffTransfer.setOnClickListener(v -> openTransferPicker());
+        if (buttonStaffReopen != null) buttonStaffReopen.setOnClickListener(v -> reopenThread());
+
+        // Seed currentThread from intent extras so button visibility is correct on first paint.
+        ChatThreadDto seed = new ChatThreadDto();
+        seed.id = threadId;
+        seed.status = getIntent().getStringExtra(EXTRA_THREAD_STATUS);
+        seed.employeeUserId = getIntent().getStringExtra(EXTRA_THREAD_ASSIGNEE);
+        currentThread = seed;
+        refreshStaffActionButtons();
+        applyClosedState();
+    }
+
+    private void applyClosedState() {
+        boolean closed = currentThread != null && "closed".equalsIgnoreCase(currentThread.status);
+        if (textClosedBanner != null) {
+            textClosedBanner.setVisibility(closed ? View.VISIBLE : View.GONE);
+        }
+        if (layoutChatInput != null) {
+            layoutChatInput.setVisibility(closed ? View.GONE : View.VISIBLE);
+        }
+        if (editMessage != null) {
+            editMessage.setEnabled(!closed);
+        }
+        if (buttonSend != null) {
+            buttonSend.setEnabled(!closed);
+        }
+        refreshStaffActionButtons();
+    }
+
+    private void refreshStaffActionButtons() {
+        String role = sessionManager != null ? sessionManager.getUserRole() : null;
+        boolean isStaff = "ADMIN".equalsIgnoreCase(role) || "EMPLOYEE".equalsIgnoreCase(role);
+        boolean isAdmin = "ADMIN".equalsIgnoreCase(role);
+        if (!isStaff) return;
+
+        boolean closed = currentThread != null && "closed".equalsIgnoreCase(currentThread.status);
+        boolean mine = currentThread != null
+                && userUuid != null
+                && currentThread.employeeUserId != null
+                && userUuid.equalsIgnoreCase(currentThread.employeeUserId);
+
+        if (buttonStaffClaim != null) {
+            boolean canClaim = !closed && currentThread != null && currentThread.employeeUserId == null;
+            buttonStaffClaim.setVisibility(canClaim ? View.VISIBLE : View.GONE);
+            buttonStaffClaim.setEnabled(canClaim);
+        }
+        if (buttonStaffTransfer != null) {
+            buttonStaffTransfer.setVisibility(!closed && mine ? View.VISIBLE : View.GONE);
+        }
+        if (buttonStaffReopen != null) {
+            buttonStaffReopen.setVisibility(closed && isAdmin ? View.VISIBLE : View.GONE);
+        }
+        if (buttonStaffMarkRead != null) {
+            buttonStaffMarkRead.setVisibility(mine && !closed ? View.VISIBLE : View.GONE);
+        }
+    }
+
+    private void openTransferPicker() {
+        if (threadId == -1) return;
+        buttonStaffTransfer.setEnabled(false);
+        api.getStaffRecipients().enqueue(new Callback<List<StaffRecipientDto>>() {
+            @Override
+            public void onResponse(Call<List<StaffRecipientDto>> call, Response<List<StaffRecipientDto>> response) {
+                if (isFinishing()) return;
+                buttonStaffTransfer.setEnabled(true);
+                if (!response.isSuccessful() || response.body() == null) {
+                    Toast.makeText(ChatActivity.this, R.string.chat_staff_transfer_failed, Toast.LENGTH_SHORT).show();
+                    return;
+                }
+                List<StaffRecipientDto> staff = response.body();
+                if (staff.isEmpty()) {
+                    Toast.makeText(ChatActivity.this, R.string.chat_staff_transfer_empty, Toast.LENGTH_SHORT).show();
+                    return;
+                }
+                showTransferDialog(staff);
+            }
+
+            @Override
+            public void onFailure(Call<List<StaffRecipientDto>> call, Throwable t) {
+                if (isFinishing()) return;
+                buttonStaffTransfer.setEnabled(true);
+                Toast.makeText(ChatActivity.this, R.string.chat_staff_transfer_failed, Toast.LENGTH_SHORT).show();
+            }
+        });
+    }
+
+    private void showTransferDialog(List<StaffRecipientDto> staff) {
+        CharSequence[] labels = new CharSequence[staff.size()];
+        for (int i = 0; i < staff.size(); i++) {
+            StaffRecipientDto s = staff.get(i);
+            String role = s.role != null ? " (" + s.role.toLowerCase() + ")" : "";
+            labels[i] = (s.username != null ? s.username : "unknown") + role;
+        }
+        new androidx.appcompat.app.AlertDialog.Builder(this)
+                .setTitle(R.string.chat_staff_transfer_title)
+                .setItems(labels, (dialog, which) -> doTransfer(staff.get(which)))
+                .setNegativeButton(android.R.string.cancel, null)
+                .show();
+    }
+
+    private void doTransfer(StaffRecipientDto target) {
+        if (threadId == -1 || target == null || target.userId == null) return;
+        buttonStaffTransfer.setEnabled(false);
+        api.transferChatThread(threadId, new TransferThreadRequest(target.userId))
+                .enqueue(new Callback<ChatThreadDto>() {
+                    @Override
+                    public void onResponse(Call<ChatThreadDto> call, Response<ChatThreadDto> response) {
+                        if (isFinishing()) return;
+                        if (response.isSuccessful()) {
+                            Toast.makeText(ChatActivity.this, R.string.chat_staff_transfer_success, Toast.LENGTH_SHORT).show();
+                            finish();
+                            NavTransitions.applyBackwardPending(ChatActivity.this);
+                        } else {
+                            buttonStaffTransfer.setEnabled(true);
+                            Toast.makeText(ChatActivity.this, R.string.chat_staff_transfer_failed, Toast.LENGTH_SHORT).show();
+                        }
+                    }
+
+                    @Override
+                    public void onFailure(Call<ChatThreadDto> call, Throwable t) {
+                        if (isFinishing()) return;
+                        buttonStaffTransfer.setEnabled(true);
+                        Toast.makeText(ChatActivity.this, R.string.chat_staff_transfer_failed, Toast.LENGTH_SHORT).show();
+                    }
+                });
+    }
+
+    private void reopenThread() {
+        if (threadId == -1) return;
+        buttonStaffReopen.setEnabled(false);
+        api.reopenChatThread(threadId).enqueue(new Callback<ChatThreadDto>() {
+            @Override
+            public void onResponse(Call<ChatThreadDto> call, Response<ChatThreadDto> response) {
+                if (isFinishing()) return;
+                buttonStaffReopen.setEnabled(true);
+                if (response.isSuccessful() && response.body() != null) {
+                    currentThread = response.body();
+                    Toast.makeText(ChatActivity.this, R.string.chat_staff_reopen_success, Toast.LENGTH_SHORT).show();
+                    refreshStaffActionButtons();
+                } else {
+                    Toast.makeText(ChatActivity.this, R.string.chat_staff_reopen_failed, Toast.LENGTH_SHORT).show();
+                }
+            }
+
+            @Override
+            public void onFailure(Call<ChatThreadDto> call, Throwable t) {
+                if (isFinishing()) return;
+                buttonStaffReopen.setEnabled(true);
+                Toast.makeText(ChatActivity.this, R.string.chat_staff_reopen_failed, Toast.LENGTH_SHORT).show();
+            }
+        });
     }
 
     private void claimThread() {
@@ -351,8 +558,11 @@ public class ChatActivity extends AppCompatActivity {
             public void onResponse(Call<ChatThreadDto> call, Response<ChatThreadDto> response) {
                 if (isFinishing()) return;
                 if (response.isSuccessful()) {
-                    buttonStaffClaim.setVisibility(View.GONE);
+                    if (response.body() != null) {
+                        currentThread = response.body();
+                    }
                     Toast.makeText(ChatActivity.this, R.string.chat_staff_claim_success, Toast.LENGTH_SHORT).show();
+                    refreshStaffActionButtons();
                 } else {
                     buttonStaffClaim.setEnabled(true);
                     Toast.makeText(ChatActivity.this, R.string.chat_staff_claim_failed, Toast.LENGTH_SHORT).show();
@@ -427,6 +637,24 @@ public class ChatActivity extends AppCompatActivity {
                             } catch (Exception ignored) {
                             }
                         });
+                String role = sessionManager != null ? sessionManager.getUserRole() : null;
+                boolean isStaffWs = "ADMIN".equalsIgnoreCase(role) || "EMPLOYEE".equalsIgnoreCase(role);
+                if (isStaffWs) {
+                    staffMessagesSubId = stomp.subscribe(
+                            "/topic/chat/thread/" + threadId + "/staff-messages",
+                            body -> {
+                                try {
+                                    ChatMessageDto dto = gson.fromJson(body, ChatMessageDto.class);
+                                    if (dto == null) return;
+                                    adapter.appendOne(dto);
+                                    int count = adapter.getItemCount();
+                                    if (count > 0) {
+                                        recyclerMessages.scrollToPosition(count - 1);
+                                    }
+                                } catch (Exception ignored) {
+                                }
+                            });
+                }
                 typingSubId = stomp.subscribe(
                         "/topic/chat/thread/" + threadId + "/typing",
                         body -> {
@@ -452,6 +680,17 @@ public class ChatActivity extends AppCompatActivity {
                         "/topic/chat/thread/" + threadId + "/read",
                         body -> {
                             // Reserved hook for read receipts; no UI in this scope.
+                        });
+                statusSubId = stomp.subscribe(
+                        "/topic/chat/thread/" + threadId + "/status",
+                        body -> {
+                            try {
+                                ChatThreadDto dto = gson.fromJson(body, ChatThreadDto.class);
+                                if (dto == null) return;
+                                currentThread = dto;
+                                runOnUiThread(ChatActivity.this::applyClosedState);
+                            } catch (Exception ignored) {
+                            }
                         });
             }
 

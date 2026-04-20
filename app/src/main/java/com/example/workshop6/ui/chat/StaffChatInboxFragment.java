@@ -296,6 +296,12 @@ public class StaffChatInboxFragment extends Fragment {
       intent.putExtra(ChatActivity.EXTRA_THREAD_ID, thread.id);
       intent.putExtra(ChatActivity.EXTRA_THREAD_TITLE, buildThreadTitle(thread));
       intent.putExtra(ChatActivity.EXTRA_THREAD_SUBTITLE, buildThreadSubtitle(thread));
+      if (!"CUSTOMER".equalsIgnoreCase(sessionManager.getUserRole())) {
+          intent.putExtra(ChatActivity.EXTRA_THREAD_PHOTO_URL, thread.customerProfilePhotoPath);
+          intent.putExtra(ChatActivity.EXTRA_THREAD_USERNAME, thread.customerUsername);
+          intent.putExtra(ChatActivity.EXTRA_THREAD_STATUS, thread.status);
+          intent.putExtra(ChatActivity.EXTRA_THREAD_ASSIGNEE, thread.employeeUserId);
+      }
       NavTransitions.startActivityWithForward(requireActivity(), intent);
     }
 
@@ -319,12 +325,17 @@ public class StaffChatInboxFragment extends Fragment {
         if ("CUSTOMER".equalsIgnoreCase(sessionManager.getUserRole())) {
             return getString(R.string.chat_subtitle_customer_waiting);
         }
-        if (thread.customerEmail != null && !thread.customerEmail.trim().isEmpty()) {
-            return thread.customerEmail.trim();
-        }
+        StringBuilder sb = new StringBuilder();
         if (thread.customerUsername != null && !thread.customerUsername.trim().isEmpty()) {
-            return thread.customerUsername.trim();
+            sb.append("@").append(thread.customerUsername.trim());
         }
-        return getString(R.string.chat_subtitle_staff_view);
+        if (thread.customerEmail != null && !thread.customerEmail.trim().isEmpty()) {
+            if (sb.length() > 0) sb.append(" · ");
+            sb.append(thread.customerEmail.trim());
+        }
+        if (sb.length() == 0) {
+            return getString(R.string.chat_subtitle_staff_view);
+        }
+        return sb.toString();
     }
 }

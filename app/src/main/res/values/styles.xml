@@ -86,4 +86,9 @@
         <item name="android:backgroundTint">@color/bakery_gold</item>
         <item name="cornerRadius">28dp</item>
     </style>
+
+    <style name="ShapeAppearance.Bakery.Avatar.Circular" parent="">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSize">50%</item>
+    </style>
 </resources>

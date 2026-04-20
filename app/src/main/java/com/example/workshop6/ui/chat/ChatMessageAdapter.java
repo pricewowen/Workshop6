@@ -60,7 +60,7 @@ public class ChatMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHo
     @Override
     public int getItemViewType(int position) {
         ChatMessageDto message = messages.get(position);
-        if (message.isSystem) {
+        if (message.isSystem || message.staffOnly) {
             return TYPE_SYSTEM;
         }
         boolean sent = currentUserUuid != null
@@ -181,7 +181,17 @@ public class ChatMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHo
         }
 
         void bind(ChatMessageDto message) {
-            textMessage.setText(message.text != null ? message.text : "");
+            String stamp = formatSentAt(message.sentAt);
+            String body = message.text != null ? message.text : "";
+            String full;
+            if (message.staffOnly) {
+                full = "AUDIT · " + body + (stamp.isEmpty() ? "" : "  ·  " + stamp);
+                textMessage.setTextColor(0xFF6B8268);
+            } else {
+                full = body + (stamp.isEmpty() ? "" : "  ·  " + stamp);
+                textMessage.setTextColor(0xFF5C4A3E);
+            }
+            textMessage.setText(full);
         }
     }
 }
