@@ -1,3 +1,6 @@
+// Contributor(s): Mason
+// Main: Mason - Product card cells for browse grid.
+
 package com.example.workshop6.ui.products;
 
 import android.view.LayoutInflater;
@@ -19,6 +22,9 @@ import java.text.NumberFormat;
 import java.util.List;
 import java.util.Locale;
 
+/**
+ * Browse grid cells that bind {@link Product} rows with price and thumbnail actions.
+ */
 public class ProductAdapter extends RecyclerView.Adapter<ProductAdapter.ProductViewHolder> {
     private List<Product> productList;
     private OnProductListener listener;

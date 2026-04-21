@@ -1,3 +1,6 @@
+// Contributor(s): Samantha
+// Main: Samantha - Spannable strikethrough and sale price styling for cart and product rows.
+
 package com.example.workshop6.util;
 
 import android.graphics.Typeface;
@@ -8,7 +11,7 @@ import android.text.style.StyleSpan;
 
 import java.text.NumberFormat;
 
-/** Builds "Was $X — now $Y!" with strikethrough on the {@code Was $X} segment. */
+/** Builds Was price then now price with strikethrough on the Was segment and bold on the sale amount. */
 public final class SpecialPriceSpan {
 
     private SpecialPriceSpan() {

@@ -1,7 +1,13 @@
+// Contributor(s): Samantha
+// Main: Samantha - Line in local cart with quantity and unit pricing.
+
 package com.example.workshop6.data.model;
 
 import com.example.workshop6.util.ProductSpecialState;
 
+/**
+ * One cart row with quantity. Line totals apply {@link ProductSpecialState} when the product matches the daily special.
+ */
 public class CartItem {
     private Product product;
     private int quantity;

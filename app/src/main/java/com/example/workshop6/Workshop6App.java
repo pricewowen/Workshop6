@@ -1,3 +1,6 @@
+// Contributor(s): Owen
+// Main: Owen - Cold start session reset API base init and Stripe publishable key wiring.
+
 package com.example.workshop6;
 
 import android.app.Application;
@@ -8,7 +11,7 @@ import com.example.workshop6.data.api.ApiClient;
 import com.stripe.android.PaymentConfiguration;
 
 /**
- * Application class. Data is loaded from the Workshop 7 Spring API via {@link ApiClient}.
+ * Runs once per process. Configures the API base URL, clears persisted session state and attaches Stripe when a publishable key exists.
  */
 public class Workshop6App extends Application {
 
@@ -18,13 +21,11 @@ public class Workshop6App extends Application {
 
         ApiBaseUrl.init(this);
 
-        // Enforce fresh login whenever the app process starts.
-        // This covers emulator restarts and real-device process restarts.
+        // Enforce fresh login on every cold start so emulator and device process restarts cannot reuse stale tokens.
         new SessionManager(this).logout();
         ApiClient.getInstance().clearToken();
 
-        // Initialise Stripe with the publishable key from local.properties.
-        // Add  stripe.publishable.key=pk_test_...  to your local.properties file.
+        // Stripe publishable key comes from local.properties as stripe.publishable.key=pk_test_...
         if (!BuildConfig.STRIPE_PUBLISHABLE_KEY.isEmpty()) {
             PaymentConfiguration.init(this, BuildConfig.STRIPE_PUBLISHABLE_KEY);
         }

@@ -1,3 +1,6 @@
+// Contributor(s): Owen
+// Main: Owen - Multi-step registration profile address validation and optional photo upload.
+
 package com.example.workshop6.auth;
 
 import android.content.Intent;
@@ -44,6 +47,9 @@ import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
 
+/**
+ * Registration wizard that creates Workshop 7 user and customer records before opening the main shell.
+ */
 public class RegisterActivity extends AppCompatActivity {
 
     private static final String STATE_STEP = "register_step";
@@ -384,7 +390,7 @@ public class RegisterActivity extends AppCompatActivity {
 
                 com.example.workshop6.data.api.dto.RegisterAvailabilityResponse body = response.body();
                 if (!response.isSuccessful() || body == null) {
-                    // API unreachable — proceed without pre-check
+                    // API unreachable. Proceed without pre-check.
                     step2EmployeeLinkOffered = false;
                     advanceToStep2WithoutApi();
                     return;
@@ -408,7 +414,7 @@ public class RegisterActivity extends AppCompatActivity {
             public void onFailure(Call<com.example.workshop6.data.api.dto.RegisterAvailabilityResponse> call, Throwable t) {
                 if (isFinishing() || isDestroyed()) return;
                 btnContinue.setEnabled(true);
-                // Network failure — proceed without pre-check
+                // Network failure. Proceed without pre-check.
                 step2EmployeeLinkOffered = false;
                 advanceToStep2WithoutApi();
             }
@@ -1034,7 +1040,7 @@ public class RegisterActivity extends AppCompatActivity {
                 }
 
                 if (pendingPatch == null) {
-                    // Employee link was expected but backend didn't confirm; proceed anyway
+                    // Employee link was expected but backend did not confirm. Proceed anyway.
                     sessionManager.clearGuestProfile();
                     refreshCustomerDisplayNameThenFinish(false);
                     return;

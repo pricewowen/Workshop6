@@ -1,3 +1,6 @@
+// Contributor(s): Owen
+// Main: Owen - Bottom navigation shell session polling and staff visibility rules.
+
 package com.example.workshop6.ui;
 
 import android.content.Context;
@@ -37,6 +40,9 @@ import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
 
+/**
+ * Main shell with bottom navigation, cart badge updates and periodic session checks against the Workshop 7 API.
+ */
 public class MainActivity extends AppCompatActivity {
 
     public static final String EXTRA_OPEN_ME_TAB = "open_me_tab";
@@ -49,8 +55,7 @@ public class MainActivity extends AppCompatActivity {
     /** Minimum spacing between staff-menu refresh calls when not forced. */
     private static final long STAFF_ACCESS_REFRESH_MS = 4_000L;
     /**
-     * {@link ConnectivityManager.NetworkCallback#onLost} can fire during normal Wi‑Fi/cellular handoff.
-     * Wait before treating it as a real outage so we don't clear a valid session.
+     * ConnectivityManager onLost can fire during normal Wi-Fi and cellular handoff. Debounce before treating loss as a real outage so we keep a valid session.
      */
     private static final long NETWORK_LOST_DEBOUNCE_MS = 2_500L;
 
@@ -337,8 +342,10 @@ public class MainActivity extends AppCompatActivity {
     }
 
     /**
-     * After a non-success /me response: only treat clear auth errors as logout.
-     * Other codes (5xx, 404 for staff, etc.) keep the session — transient issues must not wipe the JWT.
+     * Handles failed HTTP responses from {@link ApiService#getCustomerMe()} or
+     * {@link ApiService#getEmployeeMe()} during periodic session checks. Only {@code 401} and
+     * {@code 403} trigger logout. Other codes keep the JWT so transient server issues do not wipe
+     * the session.
      */
     private void handleSessionCheckHttpFailure(BottomNavigationView bottomNav, int httpCode) {
         if (isFinishing() || sessionManager == null || !sessionManager.isLoggedIn()) {
@@ -465,7 +472,7 @@ public class MainActivity extends AppCompatActivity {
 
     /**
      * If the map tab stack shows location detail or a product opened from a location, pop back to
-     * the bakery list (same idea as browse → pop product when reselecting Browse).
+     * the bakery list. Mirrors popping product detail when the user reselects Browse.
      */
     private void popMapStackIfNeeded() {
         if (navController == null || isFinishing()) {

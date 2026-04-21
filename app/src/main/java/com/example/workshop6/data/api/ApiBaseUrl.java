@@ -1,3 +1,6 @@
+// Contributor(s): Owen
+// Main: Owen - Gradle default API URL with optional in-app override in prefs.
+
 package com.example.workshop6.data.api;
 
 import android.annotation.SuppressLint;
@@ -8,8 +11,7 @@ import android.text.TextUtils;
 import com.example.workshop6.BuildConfig;
 
 /**
- * Runtime override of the API base URL so demos can swap laptops without rebuilding.
- * Falls back to {@link BuildConfig#API_BASE_URL} when no override is set.
+ * Runtime override of the API base URL so demos can swap endpoints without rebuilding. Uses BuildConfig.API_BASE_URL when no override is stored.
  */
 public final class ApiBaseUrl {
 

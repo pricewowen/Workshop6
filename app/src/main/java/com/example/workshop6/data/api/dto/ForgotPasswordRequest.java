@@ -1,6 +1,11 @@
+// Contributor(s): Owen
+// Main: Owen - Forgot-password request payload for email delivery.
+
 package com.example.workshop6.data.api.dto;
 
-/** Request body for {@code POST /api/v1/auth/forgot-password}. */
+/**
+ * Gson body for Workshop 7 forgot-password email delivery.
+ */
 public class ForgotPasswordRequest {
     public String email;
 

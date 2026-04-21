@@ -1,3 +1,6 @@
+// Contributor(s): Owen
+// Main: Owen - Retrofit singleton JWT interceptor and timeouts for Workshop 7.
+
 package com.example.workshop6.data.api;
 
 import java.util.concurrent.TimeUnit;
@@ -8,10 +11,7 @@ import retrofit2.Retrofit;
 import retrofit2.converter.gson.GsonConverterFactory;
 
 /**
- * Singleton Retrofit client for the Spring Boot API.
- *
- * Base URL is read from {@link ApiBaseUrl#get()} (override in app, then BuildConfig default).
- * Call {@link #reset()} after changing the override so the next {@link #getInstance()} rebuilds.
+ * Singleton Retrofit client for the Workshop 7 API. Base URL comes from ApiBaseUrl.get. Call reset after changing the base URL so the next getInstance rebuilds the client.
  */
 public class ApiClient {
 
@@ -61,8 +61,7 @@ public class ApiClient {
     }
 
     /**
-     * Discard the current Retrofit instance. The next {@link #getInstance()} call rebuilds
-     * with the latest {@link ApiBaseUrl#get()} value. Caller-held tokens are not preserved.
+     * Discards the current Retrofit instance. The next getInstance call rebuilds with the latest ApiBaseUrl value. Does not preserve caller-held tokens.
      */
     public static synchronized void reset() {
         instance = null;

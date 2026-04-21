@@ -1,3 +1,6 @@
+// Contributor(s): Owen
+// Main: Owen - Lightweight GET probe before login and register.
+
 package com.example.workshop6.util;
 
 import android.os.Handler;
@@ -15,14 +18,14 @@ import okhttp3.Request;
 import okhttp3.Response;
 
 /**
- * Confirms the Spring API is accepting TCP connections (not just that Wi‑Fi is on).
- * Used before login/register validation so "server down" wins over empty-field errors.
+ * Confirms the Spring API is accepting TCP connections (not just that Wi-Fi is on).
+ * Used before login and register validation so server-down messaging wins over empty-field errors.
  */
 public final class ApiReachability {
 
     /**
-     * Cold starts (DNS, TLS, first route) often need more than a couple of seconds on real devices;
-     * keep this aligned with tolerable wait before we show "can't reach server".
+     * Cold starts with DNS, TLS and first route often need more than a couple of seconds on real devices.
+     * Keep this aligned with tolerable wait before we show that the server cannot be reached.
      */
     private static final OkHttpClient PING_CLIENT = new OkHttpClient.Builder()
             .connectTimeout(8, TimeUnit.SECONDS)
@@ -46,9 +49,9 @@ public final class ApiReachability {
     }
 
     /**
-     * Blocking; call only from a background thread. Any HTTP response (or successful TCP to server)
-     * counts as reachable; timeouts and connection refused return false.
-     * Retries a few times so the first probe after radio/DNS wake-up is less likely to false-fail.
+     * Blocking. Call only from a background thread.
+     * Any HTTP response or successful TCP to the server counts as reachable. Timeouts and connection refused return false.
+     * Retries a few times so the first probe after radio or DNS wake-up is less likely to false-fail.
      */
     public static boolean isServerReachable() {
         String url = productsPingUrl();
@@ -87,7 +90,7 @@ public final class ApiReachability {
     }
 
     /**
-     * Runs {@link #isServerReachable()} off the main thread, then posts one of the runnables on the main looper.
+     * Runs isServerReachable off the main thread then posts one of the runnables on the main looper.
      */
     public static void checkThen(Runnable onUnreachableOnMain, Runnable onReachableOnMain) {
         EXEC.execute(() -> {

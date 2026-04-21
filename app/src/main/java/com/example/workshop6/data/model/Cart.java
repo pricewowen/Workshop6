@@ -1,13 +1,19 @@
+// Contributor(s): Samantha
+// Main: Samantha - Cart container and totals for checkout.
+
 package com.example.workshop6.data.model;
 
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * In-memory shopping cart for the customer session with tier and employee discount fields.
+ */
 public class Cart {
     private List<CartItem> items;
     private int customerId;
     private double discountPercent = 0.0;
-    /** Fraction (0–1) applied after tier discount; 0.20 for eligible employee-linked customers. */
+    /** Fraction from 0 to 1 applied after tier discount. Use 0.20 for eligible employee-linked customers. */
     private double employeeDiscountFraction = 0.0;
 
     public Cart(int customerId) {
@@ -24,7 +30,7 @@ public class Cart {
     }
 
     public void addItem(CartItem item) {
-        // Check if product already exists in cart
+        // Merge into an existing row when the same product id is already in the cart.
         for (CartItem existingItem : items) {
             if (existingItem.getProduct().getProductId() == item.getProduct().getProductId()) {
                 existingItem.setQuantity(existingItem.getQuantity() + item.getQuantity());
@@ -81,7 +87,7 @@ public class Cart {
         return items.isEmpty();
     }
 
-    // Methods for discounted prices
+    // Stores loyalty tier percent and employee discount fraction for the dollar helpers below.
     public void applyDiscount(double percent) {
         this.discountPercent = percent;
     }
@@ -94,7 +100,7 @@ public class Cart {
         return discountPercent > 0.0;
     }
 
-    /** Sum of line totals (qty × unit price) before loyalty cart discount. */
+    /** Sum of line totals as quantity times unit price before loyalty cart discount. */
     public double getMerchandiseSubtotal() {
         double total = 0;
         for (CartItem item : items) {
@@ -134,7 +140,7 @@ public class Cart {
         return getMerchandiseSubtotal() * discountPercent;
     }
 
-    /** Merchandise after today’s special and tier discount (before employee discount). */
+    /** Merchandise after today's special and tier discount before employee discount. */
     public double getSubtotalAfterTierDiscount() {
         double v = getMerchandiseSubtotal() - getTierDiscountDollars();
         return Math.max(0, v);

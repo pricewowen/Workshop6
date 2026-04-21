@@ -1,8 +1,13 @@
+// Contributor(s): Owen
+// Main: Owen - Error body when login requires role choice between linked accounts.
+
 package com.example.workshop6.data.api.dto;
 
 import java.util.List;
 
-/** 409 CONFLICT body from {@code /api/v1/auth/login} when employee + customer share a link and credentials match both. */
+/**
+ * Conflict JSON from auth login when linked employee and customer accounts both match the password.
+ */
 public class LoginRoleChoiceErrorBody {
     public String message;
     public List<Choice> choices;

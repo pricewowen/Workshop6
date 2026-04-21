@@ -1,3 +1,6 @@
+// Contributor(s): Owen
+// Main: Owen - AI moderation result UI wiring for review submit flows.
+
 package com.example.workshop6.util;
 
 import android.view.View;
@@ -6,7 +9,7 @@ import androidx.annotation.Nullable;
 
 public final class ReviewModerationUi {
 
-    /** Max chars shown for AI rejection reasons; server prompt asks the model for the same cap. */
+    /** Max chars shown for AI rejection reasons. The server prompt asks the model for the same cap. */
     public static final int MAX_MODERATION_REASON_DISPLAY_CHARS = 80;
 
     private ReviewModerationUi() {

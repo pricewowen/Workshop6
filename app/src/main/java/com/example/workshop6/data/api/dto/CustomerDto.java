@@ -1,9 +1,12 @@
+// Contributor(s): Owen
+// Main: Owen - Customer profile row from account and checkout endpoints.
+
 package com.example.workshop6.data.api.dto;
 
 import com.google.gson.annotations.SerializedName;
 
 /**
- * Mirrors backend {@code CustomerDto} JSON.
+ * Customer profile JSON from Workshop 7 account and checkout responses.
  */
 public class CustomerDto {
     public String id;

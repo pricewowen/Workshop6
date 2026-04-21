@@ -1,3 +1,6 @@
+// Contributor(s): Mason
+// Main: Mason - Text and tag filtering helpers for product browse and search.
+
 package com.example.workshop6.util;
 
 public final class SearchUtils {

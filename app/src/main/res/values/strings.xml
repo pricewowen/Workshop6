@@ -1,7 +1,7 @@
 <resources>
     <string name="app_name">Peelin\' Good</string>
 
-    <!-- Auth — Login -->
+    <!-- Auth section Login -->
     <string name="app_brand">Peelin\' Good</string>
     <string name="login_tagline_line1">Made from</string>
     <string name="login_tagline_line2">scratch.</string>
@@ -44,7 +44,7 @@
     <string name="lost_connection_logout">Lost connection to server. Please sign in again.</string>
     <string name="session_expired">Your session expired. Please sign in again.</string>
 
-    <!-- Auth — Register -->
+    <!-- Auth section Register -->
     <string name="register_heading">Create\naccount.</string>
     <string name="register_step1_label">Step 1 of 2: Account</string>
     <string name="register_step2_label">Step 2 of 2: Your details</string>

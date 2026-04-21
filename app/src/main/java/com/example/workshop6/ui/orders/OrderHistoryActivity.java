@@ -1,3 +1,6 @@
+// Contributor(s): Samantha
+// Main: Samantha - Paginated order history list with status chips.
+
 package com.example.workshop6.ui.orders;
 
 import android.content.Intent;
@@ -52,6 +55,10 @@ import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
 
+/**
+ * Full order history with expandable rows and inline review entry points.
+ * Customers can resume Stripe checkout when an order stays in pending payment.
+ */
 public class OrderHistoryActivity extends AppCompatActivity implements OrderHistoryAdapter.Listener {
 
     private RecyclerView rvOrders;

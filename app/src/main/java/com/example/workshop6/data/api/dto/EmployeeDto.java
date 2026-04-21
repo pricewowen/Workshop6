@@ -1,7 +1,13 @@
+// Contributor(s): Owen
+// Main: Owen - Employee profile and discount eligibility for Me tab.
+
 package com.example.workshop6.data.api.dto;
 
 import com.google.gson.annotations.SerializedName;
 
+/**
+ * Employee profile JSON from Workshop 7 for Me tab and staff edits.
+ */
 public class EmployeeDto {
     public String id;
     @SerializedName("userId")

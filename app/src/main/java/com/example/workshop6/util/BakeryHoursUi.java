@@ -1,3 +1,6 @@
+// Contributor(s): Robbie
+// Main: Robbie - Human-readable bakery hours lines for location detail.
+
 package com.example.workshop6.util;
 
 import androidx.annotation.Nullable;
@@ -8,7 +11,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 
-/** Display helpers for bakery_hours rows (day_of_week 0 = Sunday … 6 = Saturday). */
+/** Display helpers for bakery_hours rows where day_of_week runs 0 Sunday through 6 Saturday. */
 public final class BakeryHoursUi {
 
     private static final String[] DAY_SHORT = {
@@ -25,7 +28,7 @@ public final class BakeryHoursUi {
         return DAY_SHORT[dayOfWeek];
     }
 
-    /** Strips seconds from API time strings (e.g. {@code 07:30:00} → {@code 7:30}). */
+    /** Strips seconds from API time strings so seven thirty with seconds becomes seven thirty display. */
     public static String formatTimeShort(@Nullable String time) {
         if (time == null || time.isEmpty()) {
             return "";

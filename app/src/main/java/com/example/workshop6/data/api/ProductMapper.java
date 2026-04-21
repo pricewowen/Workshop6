@@ -1,14 +1,23 @@
+// Contributor(s): Owen
+// Main: Owen - Android app UI and API integration.
+
 package com.example.workshop6.data.api;
 
 import com.example.workshop6.R;
 import com.example.workshop6.data.api.dto.ProductDto;
 import com.example.workshop6.data.model.Product;
 
+/**
+ * Maps catalog {@link ProductDto} rows into in-memory {@link Product} models for browse and cart flows.
+ */
 public final class ProductMapper {
 
     private ProductMapper() {
     }
 
+    /**
+     * Returns null when the dto or its id is null. Fills a safe description string and optional image URL.
+     */
     public static Product fromDto(ProductDto dto) {
         if (dto == null || dto.id == null) {
             return null;

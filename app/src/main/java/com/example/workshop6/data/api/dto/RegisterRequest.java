@@ -1,14 +1,20 @@
+// Contributor(s): Owen
+// Main: Owen - Registration body for new customer and address creation.
+
 package com.example.workshop6.data.api.dto;
 
 import com.google.gson.annotations.SerializedName;
 
+/**
+ * Gson body for Workshop 7 customer registration with optional employee link password.
+ */
 public class RegisterRequest {
     public String username;
     public String email;
     public String password;
-    /** Optional; helps link a prior guest checkout by phone. */
+    /** Optional. Helps link a prior guest checkout by phone. */
     public String phone;
-    /** Required when email matches an unlinked employee — verifies ownership. */
+    /** Required when email matches an unlinked employee to verify ownership. */
     @SerializedName("employeeLinkPassword")
     public String employeeLinkPassword;
 

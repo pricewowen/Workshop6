@@ -1,6 +1,12 @@
+// Contributor(s): Mason
+// Main: Mason - In-memory product row for catalog and cart mapping.
+
 package com.example.workshop6.data.model;
 
-/** In-memory / API-mapped product for cart and catalog UI. */
+/**
+ * In-memory product row for cart and catalog surfaces.
+ * Usually built from {@link com.example.workshop6.data.api.dto.ProductDto}.
+ */
 public class Product {
     private int productId;
     private String productName;
@@ -9,6 +15,13 @@ public class Product {
     private int imgUrl;
     private String imageUrl;
 
+    /**
+     * @param productId catalog id from Workshop 7.
+     * @param productName display name.
+     * @param productDescription catalog body text.
+     * @param productBasePrice list price in dollars.
+     * @param imgUrl fallback drawable resource id when no remote image exists.
+     */
     public Product(int productId, String productName, String productDescription, Double productBasePrice, int imgUrl) {
         this.productId = productId;
         this.productName = productName;
@@ -17,6 +30,11 @@ public class Product {
         this.imgUrl = imgUrl;
     }
 
+    /**
+     * Same as {@link #Product(int, String, String, Double, int)} plus a remote {@code imageUrl} from the API.
+     *
+     * @param imageUrl CDN or absolute URL string when the catalog row includes art.
+     */
     public Product(int productId, String productName, String productDescription, Double productBasePrice, int imgUrl, String imageUrl) {
         this(productId, productName, productDescription, productBasePrice, imgUrl);
         this.imageUrl = imageUrl;

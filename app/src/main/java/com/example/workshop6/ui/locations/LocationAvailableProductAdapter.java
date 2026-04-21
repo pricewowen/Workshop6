@@ -1,3 +1,6 @@
+// Contributor(s): Robbie
+// Main: Robbie - Products available at selected bakery for pickup.
+
 package com.example.workshop6.ui.locations;
 
 import android.view.LayoutInflater;
@@ -17,6 +20,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
+/**
+ * Pickup catalog subset for one bakery location with list pricing.
+ */
 public class LocationAvailableProductAdapter extends RecyclerView.Adapter<LocationAvailableProductAdapter.VH> {
 
     public interface Listener {

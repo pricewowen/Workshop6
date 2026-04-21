@@ -1,3 +1,6 @@
+// Contributor(s): Samantha
+// Main: Samantha - Order summary rows for history screen.
+
 package com.example.workshop6.ui.orders;
 
 import android.view.LayoutInflater;
@@ -22,6 +25,9 @@ import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 
+/**
+ * Past order rows with totals, dates and optional expand for line detail.
+ */
 public class OrderHistoryAdapter extends RecyclerView.Adapter<OrderHistoryAdapter.OrderViewHolder> {
     private List<OrderHistoryActivity.OrderWithDetails> orders;
     private final SimpleDateFormat dateFormat = new SimpleDateFormat("MMM dd, yyyy", Locale.CANADA);
@@ -236,7 +242,7 @@ public class OrderHistoryAdapter extends RecyclerView.Adapter<OrderHistoryAdapte
 
                 tvItemName.setText(item.productName);
                 tvItemQuantity.setText("x" + item.quantity);
-                // Show pre-tax unit price; quantity is displayed separately.
+                // Show pre-tax unit price. Quantity stays in its own label next to the name.
                 tvItemPrice.setText(MoneyFormat.formatCad(currencyFormat, item.price));
 
                 llItemsContainer.addView(itemView);

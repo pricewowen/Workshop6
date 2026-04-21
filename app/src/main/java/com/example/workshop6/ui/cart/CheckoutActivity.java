@@ -1,3 +1,6 @@
+// Contributor(s): Samantha
+// Main: Samantha - Stripe PaymentSheet checkout and tax breakdown.
+
 package com.example.workshop6.ui.cart;
 
 import android.Manifest;
@@ -166,7 +169,7 @@ public class CheckoutActivity extends AppCompatActivity {
     /** Matches {@code OrderService} / web checkout: flat delivery charge when subtotal is under the threshold. */
     private static final double DELIVERY_FEE_AMOUNT = 7.0;
     private static final double DELIVERY_FREE_THRESHOLD = 50.0;
-    /** Backend {@code OrderService.TAX_RATE_PERCENT} — tax on merchandise only (delivery is not taxed). */
+    /** Backend {@code OrderService.TAX_RATE_PERCENT}. Applies to merchandise only. Delivery is not taxed. */
     private static final double CHECKOUT_TAX_RATE_PERCENT = 5.0;
 
     private String deliveryMethod = "pickup";
@@ -1218,7 +1221,8 @@ public class CheckoutActivity extends AppCompatActivity {
             Calendar day = Calendar.getInstance();
             day.add(Calendar.DAY_OF_YEAR, offset);
 
-            // Calendar.DAY_OF_WEEK: 1=Sun…7=Sat  →  API dayOfWeek: 0=Sun…6=Sat
+            // java.util.Calendar uses Sunday 1 through Saturday 7 for the day-of-week field.
+            // The hours API uses Sunday 0 through Saturday 6 so subtract one here.
             short apiDow = (short) (day.get(Calendar.DAY_OF_WEEK) - 1);
 
             BakeryHourDto entry = null;
@@ -1252,7 +1256,7 @@ public class CheckoutActivity extends AppCompatActivity {
 
             List<Calendar> daySlots = new ArrayList<>();
             while (slot.before(closeTime)) {
-                // Today: only slots at or after minTime; future days: all slots
+                // For today keep slots at or after minTime. For later days include every slot in the window.
                 if (offset > 0 || !slot.before(minTime)) {
                     daySlots.add((Calendar) slot.clone());
                 }
@@ -1433,7 +1437,7 @@ public class CheckoutActivity extends AppCompatActivity {
         return 0d;
     }
 
-    /** Clears inline errors while typing; does not change Review Order enabled state. */
+    /** Clears inline errors while typing. Does not change Review Order enabled state. */
     private void refreshSubmitButtonState() {
         validateForm(false);
     }
@@ -2023,7 +2027,7 @@ public class CheckoutActivity extends AppCompatActivity {
             req.guest = buildGuestFromFields();
         }
 
-        // Server applies today’s special, tier, then employee discount in that order; do not send manualDiscount.
+        // Server applies the daily special plus tier discount plus employee discount in order. Do not send manualDiscount.
         req.pricingLocalDate = TodayDate.isoLocal();
 
         List<CheckoutRequest.CheckoutLineRequest> lines = new ArrayList<>();

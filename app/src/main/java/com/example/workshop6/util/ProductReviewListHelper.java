@@ -1,3 +1,6 @@
+// Contributor(s): Owen
+// Main: Owen - Recycler wiring for product and location review lists.
+
 package com.example.workshop6.util;
 
 import androidx.annotation.Nullable;
@@ -10,7 +13,7 @@ import java.util.Comparator;
 import java.util.List;
 
 /**
- * Approved-review filtering, ordering, and display averages for product and bakery review strips.
+ * Approved-review filtering, ordering and display averages for product and bakery review strips.
  */
 public final class ProductReviewListHelper {
 
@@ -27,7 +30,10 @@ public final class ProductReviewListHelper {
     }
 
     /**
-     * Returns a copy of {@code approvedSorted} filtered by badge (order preserved).
+     * Returns a copy of the approved list filtered by {@code filter}. Keeps source order.
+     *
+     * @param approvedSorted newest-first approved rows or null
+     * @param filter badge filter mode
      */
     public static List<ReviewDto> filterByBadge(
             @Nullable List<ReviewDto> approvedSorted,
@@ -69,12 +75,15 @@ public final class ProductReviewListHelper {
         return new ArrayList<>(approved.subList(0, limit));
     }
 
+    /**
+     * Same as {@link #newestApprovedForDisplay(List, int)} with the default strip limit.
+     */
     public static List<ReviewDto> newestApprovedForDisplay(List<ReviewDto> raw) {
         return newestApprovedForDisplay(raw, DEFAULT_LIMIT);
     }
 
     /**
-     * Arithmetic mean of {@link ReviewDto#rating} for the given list (e.g. already-filtered approved rows).
+     * Arithmetic mean of review rating for the given list such as already filtered approved rows.
      * Matches the on-screen list so the title average cannot disagree with visible stars.
      */
     public static Double averageRating(@Nullable List<ReviewDto> reviews) {
@@ -96,8 +105,8 @@ public final class ProductReviewListHelper {
     }
 
     /**
-     * Prefer {@code approvalDate} when present (e.g. staff-approved), else {@code submittedAt};
-     * ISO strings sort chronologically.
+     * Prefer {@code approvalDate} when set for staff-approved work. Otherwise use {@code submittedAt}.
+     * ISO timestamps sort in chronological order as plain strings.
      */
     private static String sortKeyForNewestFirst(ReviewDto r) {
         if (r.approvalDate != null && !r.approvalDate.trim().isEmpty()) {

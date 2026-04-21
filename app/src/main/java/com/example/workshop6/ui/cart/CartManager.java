@@ -1,3 +1,6 @@
+// Contributor(s): Samantha
+// Main: Samantha - In-memory cart persistence and line item math.
+
 package com.example.workshop6.ui.cart;
 
 import android.content.Context;
@@ -41,7 +44,7 @@ public class CartManager {
         notifyCartChanged();
     }
 
-    // Called when user logs out
+    // Drop the in-memory cart when the session ends so the next login starts empty.
     public void onLogout() {
         currentCart = null;
         notifyCartChanged();

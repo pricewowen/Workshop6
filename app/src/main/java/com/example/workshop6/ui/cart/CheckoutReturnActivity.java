@@ -1,3 +1,6 @@
+// Contributor(s): Samantha
+// Main: Samantha - Stripe return URL handler and confirm resume.
+
 package com.example.workshop6.ui.cart;
 
 import android.content.Intent;
@@ -40,6 +43,9 @@ import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
 
+/**
+ * Handles Stripe return deep links after checkout then confirms payment and shows order summary.
+ */
 public class CheckoutReturnActivity extends AppCompatActivity {
 
     private static final String PENDING_PREFS = "pending_stripe_confirm";

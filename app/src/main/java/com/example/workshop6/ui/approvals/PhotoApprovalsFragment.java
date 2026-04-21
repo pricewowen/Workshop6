@@ -1,3 +1,6 @@
+// Contributor(s): Owen
+// Main: Owen - Pending profile photo moderation queue.
+
 package com.example.workshop6.ui.approvals;
 
 import android.os.Bundle;
@@ -290,7 +293,7 @@ public class PhotoApprovalsFragment extends Fragment {
             } else {
                 holder.ivPhoto.setImageDrawable(initialsDrawable);
             }
-            // Also clear before async load completes (recycled views / race with Glide).
+            // Clear style before async work finishes to avoid recycled-view races with Glide.
             clearApprovalPhotoStyle(holder.ivPhoto);
 
             holder.btnApprove.setOnClickListener(v -> listener.onApprove(c));
@@ -327,7 +330,7 @@ public class PhotoApprovalsFragment extends Fragment {
             return url.replace(".cdn.digitaloceanspaces.com", ".digitaloceanspaces.com");
         }
 
-        /** Approvers see true color; Me / Edit Profile keep grayscale for pending. */
+        /** Approvers see true color while Me and Edit Profile stay grayscale for pending shots. */
         private static void clearApprovalPhotoStyle(ImageView iv) {
             iv.clearColorFilter();
             iv.setImageAlpha(255);

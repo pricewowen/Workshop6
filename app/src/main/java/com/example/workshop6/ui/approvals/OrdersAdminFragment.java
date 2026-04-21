@@ -1,3 +1,6 @@
+// Contributor(s): Owen
+// Main: Owen - Staff order admin slice for approvals tab.
+
 package com.example.workshop6.ui.approvals;
 
 import android.os.Bundle;
@@ -36,6 +39,9 @@ import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
 
+/**
+ * Staff approvals tab slice for browsing orders and pushing status updates through the admin API.
+ */
 public class OrdersAdminFragment extends Fragment {
     private static final List<StatusOption> ALL_STATUS_OPTIONS = Arrays.asList(
             new StatusOption("placed", "Placed"),

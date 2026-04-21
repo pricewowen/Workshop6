@@ -1,3 +1,6 @@
+// Contributor(s): Robbie
+// Main: Robbie - Maps intents distance sorting and hours helpers for bakery locations.
+
 package com.example.workshop6.util;
 
 import android.content.Context;
@@ -17,7 +20,7 @@ public class LocationUtils {
     private static final double EARTH_RADIUS_KM = 6371.0;
 
     /**
-     * Haversine formula — returns distance in kilometres between two lat/lng points.
+     * Haversine distance in kilometres between two latitude and longitude points.
      */
     public static double haversineDistanceKm(double lat1, double lon1, double lat2, double lon2) {
         double dLat = Math.toRadians(lat2 - lat1);
@@ -79,7 +82,7 @@ public class LocationUtils {
 
     /**
      * Computes whether a bakery is open right now from weekly bakery_hours.
-     * Handles overnight ranges (e.g. 18:00 -> 02:00) by checking previous-day carry-over.
+     * Handles overnight ranges that cross midnight by checking previous-day carry-over.
      */
     public static boolean isOpenNow(List<BakeryHourDto> hours) {
         if (hours == null || hours.isEmpty()) {

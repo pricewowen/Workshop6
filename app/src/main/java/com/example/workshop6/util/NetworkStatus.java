@@ -1,3 +1,6 @@
+// Contributor(s): Owen
+// Main: Owen - Live connectivity callbacks for login and main shell.
+
 package com.example.workshop6.util;
 
 import android.content.Context;
@@ -10,15 +13,18 @@ import android.os.Build;
 import androidx.annotation.NonNull;
 
 /**
- * Quick device connectivity check before navigation or auth actions.
- * Actual API health is verified via authenticated calls in {@link com.example.workshop6.ui.MainActivity}.
+ * Quick device connectivity check before navigation or auth actions. MainActivity still re-verifies session with the API.
  */
 public final class NetworkStatus {
 
     private NetworkStatus() {
     }
 
-    /** True when the device reports an active connection with internet access. */
+    /**
+     * True when the device reports a connected network with internet capability.
+     *
+     * @param context any context the implementation resolves to the application context
+     */
     @SuppressWarnings("deprecation")
     public static boolean isOnline(@NonNull Context context) {
         ConnectivityManager cm = (ConnectivityManager) context.getApplicationContext()

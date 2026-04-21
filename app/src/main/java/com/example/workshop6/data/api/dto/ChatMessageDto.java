@@ -1,7 +1,13 @@
+// Contributor(s): Robbie
+// Main: Robbie - Chat message row for staff inbox and thread polling.
+
 package com.example.workshop6.data.api.dto;
 
 import com.google.gson.annotations.SerializedName;
 
+/**
+ * Chat message row JSON from Workshop 7 for thread lists and polling.
+ */
 public class ChatMessageDto {
     public Integer id;
     @SerializedName("threadId")

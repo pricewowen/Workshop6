@@ -1,3 +1,6 @@
+// Contributor(s): Owen
+// Main: Owen - Initials and color chip for profile placeholders.
+
 package com.example.workshop6.util;
 
 import android.content.Context;

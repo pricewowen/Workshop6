@@ -1,3 +1,6 @@
+// Contributor(s): Robbie
+// Main: Robbie - Thread summary rows for staff inbox.
+
 package com.example.workshop6.ui.chat;
 
 import android.view.LayoutInflater;
@@ -22,6 +25,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
+/**
+ * Staff inbox rows for open or closed customer chat threads.
+ */
 public class StaffThreadAdapter extends RecyclerView.Adapter<StaffThreadAdapter.ThreadViewHolder> {
     private static final String STATUS_OPEN = "OPEN";
     private static final DateTimeFormatter MONTH_DAY = DateTimeFormatter.ofPattern("MMM d");

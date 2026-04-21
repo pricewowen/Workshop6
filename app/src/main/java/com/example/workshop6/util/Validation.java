@@ -1,3 +1,6 @@
+// Contributor(s): Owen
+// Main: Owen - Input validation helpers for auth register and profile forms.
+
 package com.example.workshop6.util;
 
 import android.util.Patterns;
@@ -27,7 +30,7 @@ public class Validation {
     private static final Pattern POSTAL_CODE_CA = Pattern.compile("(?i)^[ABCEGHJ-NPRSTVXY]\\d[ABCEGHJ-NPRSTV-Z][ -]?\\d[ABCEGHJ-NPRSTV-Z]\\d$");
     private static final Pattern POSTAL_CODE_US = Pattern.compile("^\\d{5}(-\\d{4})?$");
 
-    /** Username: 3–50 chars, letters, numbers, underscore, hyphen, period. */
+    /** Username from 3 to 50 chars. Letters, digits, underscore, hyphen and period only. */
     private static final int USERNAME_MIN_LENGTH = 3;
     private static final int USERNAME_MAX_LENGTH = 50;
     private static final Pattern USERNAME_PATTERN = Pattern.compile("^[a-zA-Z0-9_.-]+$");
@@ -110,7 +113,7 @@ public class Validation {
     }
 
     /**
-     * Middle initial is optional; when present it must be a single letter.
+     * Middle initial is optional. When present it must be a single letter.
      */
     public static boolean isMiddleInitialValid(@Nullable CharSequence middleInitial) {
         if (isEmpty(middleInitial)) {
@@ -149,7 +152,7 @@ public class Validation {
     }
 
     /**
-     * Username: non-empty, 3–50 chars, only letters, digits, underscore, hyphen, period.
+     * Username must be non-empty with 3 to 50 chars. Only letters, digits, underscore, hyphen and period.
      */
     public static boolean isUsernameValid(@Nullable CharSequence username) {
         if (username == null) return false;

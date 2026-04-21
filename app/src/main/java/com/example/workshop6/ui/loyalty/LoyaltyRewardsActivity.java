@@ -1,3 +1,6 @@
+// Contributor(s): Owen
+// Main: Owen - Loyalty tier explanation and redemption hints.
+
 package com.example.workshop6.ui.loyalty;
 
 import android.content.Intent;
@@ -31,7 +34,8 @@ import retrofit2.Callback;
 import retrofit2.Response;
 
 /**
- * Customer loyalty summary (points, tier, progress). Redemption stays on checkout.
+ * Read-only loyalty summary for points, current tier and progress bars.
+ * Redemption stays on checkout flows instead of this screen.
  */
 public class LoyaltyRewardsActivity extends AppCompatActivity {
 

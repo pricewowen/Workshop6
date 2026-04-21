@@ -1,3 +1,6 @@
+// Contributor(s): Owen
+// Main: Owen - Profile overview and navigation to edit flows.
+
 package com.example.workshop6.ui.profile;
 
 import android.os.Bundle;
@@ -11,6 +14,9 @@ import androidx.fragment.app.Fragment;
 
 import com.example.workshop6.R;
 
+/**
+ * Profile tab shell. Navigation wiring lives in the hosting activity until Workshop 7 expands this surface.
+ */
 public class ProfileFragment extends Fragment {
     @Nullable
     @Override

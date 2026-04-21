@@ -1,3 +1,6 @@
+// Contributor(s): Owen
+// Main: Owen - Me tab profile loyalty shortcuts and staff tools gate.
+
 package com.example.workshop6.ui.me;
 
 import android.Manifest;
@@ -73,7 +76,7 @@ import retrofit2.Response;
 
 public class MeFragment extends Fragment {
     private static final long ME_CACHE_TTL_MS = 30_000L;
-    /** Skip repeat {@code GET /recommendations} while Me is reopened; invalidated on prefs save / logout. */
+    /** Skip repeat {@code GET /recommendations} while Me is reopened. Cache clears on prefs save or logout. */
     private static final long AI_RECOMMENDATIONS_CACHE_TTL_MS = 5 * 60_000L;
     private static long meCacheAtMs = 0L;
     private static String cachedUserKey = null;
@@ -233,7 +236,7 @@ public class MeFragment extends Fragment {
                             new Intent(requireContext(), CustomerPreferencesActivity.class)));
             if (cardEmployeeDiscountHint != null) cardEmployeeDiscountHint.setVisibility(View.GONE);
         } else {
-            // Staff: same two-entry pattern as customers — account (credentials, photo) vs personal info.
+            // Staff follow the same two-entry pattern as customers between account credentials plus photo and personal info.
             view.findViewById(R.id.btn_edit_account).setVisibility(View.VISIBLE);
             view.findViewById(R.id.btn_customer_details).setVisibility(View.VISIBLE);
             view.findViewById(R.id.btn_edit_account).setOnClickListener(v ->
@@ -256,7 +259,7 @@ public class MeFragment extends Fragment {
                 NavTransitions.startActivityWithForward(requireActivity(),
                         new Intent(requireContext(), LoyaltyRewardsActivity.class)));
 
-        // On fresh entry (e.g., immediately after login), force a server read
+        // On fresh entry such as right after login, force a server read
         // so pending-photo state text is accurate right away.
         meCacheAtMs = 0L;
         boolean showedCache = renderCachedMeIfPresent();

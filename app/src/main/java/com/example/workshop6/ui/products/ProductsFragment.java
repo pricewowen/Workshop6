@@ -1,3 +1,6 @@
+// Contributor(s): Mason
+// Main: Mason - Product grid search filters and category chips.
+
 package com.example.workshop6.ui.products;
 
 import android.os.Bundle;
@@ -123,8 +126,8 @@ public class ProductsFragment extends Fragment {
 
         boolean isCustomer = "CUSTOMER".equalsIgnoreCase(sessionManager.getUserRole());
         if (!isCustomer) {
-            // Nav graph start destination is Browse; staff menus skip Shop entirely. Redirect without
-            // toasting — user did not choose to open products.
+            // Nav graph starts on Browse while staff menus skip Shop.
+            // Redirect without toast because the user did not open products here.
             setProductsPageLoading(false);
             Navigation.findNavController(view).navigate(R.id.nav_me);
             return;

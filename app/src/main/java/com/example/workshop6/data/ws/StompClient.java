@@ -1,3 +1,6 @@
+// Contributor(s): Robbie
+// Main: Robbie - STOMP WebSocket client for live chat typing and messages.
+
 package com.example.workshop6.data.ws;
 
 import android.os.Handler;
@@ -19,6 +22,9 @@ import okhttp3.WebSocket;
 import okhttp3.WebSocketListener;
 import okio.ByteString;
 
+/**
+ * Minimal STOMP over OkHttp WebSocket for chat message and typing frames with reconnect backoff.
+ */
 public class StompClient {
 
     public interface FrameListener {
@@ -185,7 +191,7 @@ public class StompClient {
 
     private void handleFrame(String raw) {
         lastInboundMs = System.currentTimeMillis();
-        // Heartbeat: a single newline (or bare) — ignore payload.
+        // Heartbeat frames are a bare newline. Ignore payload on those frames.
         if (raw == null || raw.isEmpty() || "\n".equals(raw)) return;
 
         String trimmed = raw;

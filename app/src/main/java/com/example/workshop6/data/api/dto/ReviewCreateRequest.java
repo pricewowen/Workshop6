@@ -1,7 +1,13 @@
+// Contributor(s): Owen
+// Main: Owen - Submit review payload for AI moderation and approval flow.
+
 package com.example.workshop6.data.api.dto;
 
 import com.google.gson.annotations.SerializedName;
 
+/**
+ * Gson body to create a review through Workshop 7 moderation and approval.
+ */
 public class ReviewCreateRequest {
     public short rating;
     public String comment;

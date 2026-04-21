@@ -1,3 +1,6 @@
+// Contributor(s): Owen
+// Main: Owen - Encrypted session JWT guest profile and failed-login lockout state.
+
 package com.example.workshop6.auth;
 
 import android.content.Context;
@@ -12,6 +15,9 @@ import com.example.workshop6.data.api.ApiClient;
 import com.example.workshop6.data.api.dto.GuestCustomerRequest;
 import com.example.workshop6.ui.cart.CartManager;
 
+/**
+ * Encrypted SharedPreferences for JWT tokens, roles, guest checkout fields and login lockout counters.
+ */
 public class SessionManager {
 
     private static final String PREF_NAME = "workshop6_session";
@@ -19,7 +25,7 @@ public class SessionManager {
     private static final String KEY_USER_ID = "userId";
     private static final String KEY_USER_UUID = "userUuid";
     private static final String KEY_LOGIN_EMAIL = "loginEmail";
-    /** Sign-in username from the API (stable); not overwritten when display name changes. */
+    /** Sign-in username from the API (stable). Display name changes do not overwrite it. */
     private static final String KEY_LOGIN_USERNAME = "loginUsername";
     private static final String KEY_USER_ROLE = "userRole";
     private static final String KEY_USER_NAME = "userName";
@@ -50,7 +56,7 @@ public class SessionManager {
     }
 
     private SharedPreferences createSecurePrefs(Context context) {
-        // Emulator/debug keystore behavior can be unstable; prefer plain prefs in debug builds.
+        // Emulator and debug keystore behavior can be unstable. Prefer plain prefs in debug builds.
         if ((context.getApplicationInfo().flags & ApplicationInfo.FLAG_DEBUGGABLE) != 0) {
             return context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
         }
@@ -86,7 +92,7 @@ public class SessionManager {
                 .putString(KEY_USER_ROLE, role)
                 .putString(KEY_USER_NAME, name)
                 .putLong(KEY_LAST_ACTIVITY_AT, now);
-        // Preserve sign-in username across display-name updates; seed once for older sessions.
+        // Preserve sign-in username across display-name updates. Seed once for older sessions.
         String existingLogin = prefs.getString(KEY_LOGIN_USERNAME, "");
         if (existingLogin.isEmpty()) {
             ed.putString(KEY_LOGIN_USERNAME, name);
@@ -95,8 +101,7 @@ public class SessionManager {
     }
 
     public boolean isLoggedIn() {
-        // Keep login state stable across activity transitions; avoid auto-expiring session
-        // during normal app use where lifecycle timing may vary by device/emulator.
+        // Keep login state stable across activity transitions. Avoid auto-expiring the session when lifecycle timing varies by device or emulator.
         return prefs.getBoolean(KEY_IS_LOGGED_IN, false);
     }
 
@@ -147,7 +152,7 @@ public class SessionManager {
         return prefs.getInt(KEY_USER_ID, -1);
     }
 
-    /** Application user id (UUID) from the auth API; may be empty for legacy sessions. */
+    /** Application user UUID from the auth API. Empty for legacy sessions. */
     public String getUserUuid() {
         return prefs.getString(KEY_USER_UUID, "");
     }

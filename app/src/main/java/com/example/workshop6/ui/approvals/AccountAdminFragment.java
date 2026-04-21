@@ -1,3 +1,6 @@
+// Contributor(s): Owen
+// Main: Owen - Admin user activation and role tools.
+
 package com.example.workshop6.ui.approvals;
 
 import android.content.Context;
@@ -34,6 +37,9 @@ import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
 
+/**
+ * Staff admin tab that lists Workshop 7 users and toggles active state except for the signed-in row.
+ */
 public class AccountAdminFragment extends Fragment {
 
     private SessionManager sessionManager;
@@ -268,9 +274,7 @@ public class AccountAdminFragment extends Fragment {
             }
         }
 
-        /**
-         * Deactivate: cream fill + terracotta outline (secondary). Reactivate: filled primary pill.
-         */
+        // Deactivate uses outlined pill styling. Reactivate uses filled primary pill styling.
         private static void applyAccountToggleStyle(MaterialButton btn, boolean accountActive) {
             Context ctx = btn.getContext();
             Resources res = ctx.getResources();

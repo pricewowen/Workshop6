@@ -1,7 +1,13 @@
+// Contributor(s): Owen
+// Main: Owen - Guest checkout identity and address fields for place order.
+
 package com.example.workshop6.data.api.dto;
 
 import com.google.gson.annotations.SerializedName;
 
+/**
+ * Guest checkout identity and address JSON embedded in Workshop 7 checkout requests.
+ */
 public class GuestCustomerRequest {
     @SerializedName("firstName")
     public String firstName;

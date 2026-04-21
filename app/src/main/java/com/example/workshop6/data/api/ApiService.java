@@ -1,3 +1,6 @@
+// Contributor(s): Owen
+// Main: Owen - Retrofit endpoint declarations for Workshop 7 REST API.
+
 package com.example.workshop6.data.api;
 
 import com.example.workshop6.data.api.dto.AccountProfilePatchRequest;
@@ -53,6 +56,11 @@ import retrofit2.http.Part;
 import retrofit2.http.Query;
 import okhttp3.MultipartBody;
 
+/**
+ * Retrofit interface for Workshop 7 REST endpoints used by browse, cart, orders, chat and account flows.
+ * Path strings are relative to {@link ApiBaseUrl} and match the backend OpenAPI surface under
+ * {@code /api/v1/...}.
+ */
 public interface ApiService {
 
     @POST("api/v1/auth/login")

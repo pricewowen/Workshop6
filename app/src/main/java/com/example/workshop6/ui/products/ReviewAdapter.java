@@ -1,3 +1,6 @@
+// Contributor(s): Mason
+// Main: Mason - Review rows on product detail strip.
+
 package com.example.workshop6.ui.products;
 
 import android.content.Intent;
@@ -20,6 +23,9 @@ import com.google.android.material.imageview.ShapeableImageView;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Horizontal or vertical review rows for product and location detail strips.
+ */
 public class ReviewAdapter extends RecyclerView.Adapter<ReviewAdapter.ReviewViewHolder> {
     private static final int PREVIEW_COMMENT_MAX_CHARS = 50;
 

@@ -1,8 +1,10 @@
+// Contributor(s): Robbie
+// Main: Robbie - Destination paths for staff chat STOMP subscriptions.
+
 package com.example.workshop6.data.ws;
 
 /**
- * WebSocket topic paths for chat threads. Centralizing these prevents silent
- * drift when the backend renames a topic — one grep catches every subscriber.
+ * WebSocket topic paths for chat threads. Centralizing paths avoids mismatches when the backend changes topic names.
  */
 public final class ChatTopics {
 

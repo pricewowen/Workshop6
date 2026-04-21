@@ -1,3 +1,6 @@
+// Contributor(s): Owen
+// Main: Owen - Bitmap scale and sampling helpers for uploads and displays.
+
 package com.example.workshop6.util;
 
 import android.content.Context;
@@ -18,7 +21,7 @@ public final class ImageUtils {
 
     /** Soft limit for gallery picks. */
     public static final long MAX_PHOTO_BYTES = 2L * 1024L * 1024L;
-    /** Max size for gallery picks; camera captures skip this (we compress on save). */
+    /** Max size for gallery picks. Camera captures skip this because we compress on save. */
     public static final long MAX_PHOTO_BYTES_GALLERY = 16L * 1024L * 1024L;
     public static final int MAX_DIMENSION_PX = 1024;
 
@@ -61,12 +64,12 @@ public final class ImageUtils {
     public static String validateProfilePhoto(Context context, Uri uri) {
         if (uri == null) return "Please select a photo.";
 
-        // Format: only standard photo types (JPEG, JPG, PNG; Android camera uses image/jpeg)
+        // Allow only JPEG, JPG or PNG. Android camera reports image/jpeg.
         if (!isAllowedMimeType(context, uri)) {
             return context.getString(com.example.workshop6.R.string.error_photo_format);
         }
 
-        // Skip size check for our own camera capture (we compress on save); apply limit for gallery picks
+        // Skip size check for our own camera capture because we compress on save. Apply the gallery limit for other picks.
         boolean isOurCameraFile = uri.getAuthority() != null
                 && uri.getAuthority().equals(context.getPackageName() + ".fileprovider");
         if (!isOurCameraFile) {
@@ -82,7 +85,7 @@ public final class ImageUtils {
             }
         }
 
-        // Ensure the selected file decodes as an image; large dimensions are resized on upload.
+        // Ensure the selected file decodes as an image. Large dimensions resize on upload.
         try (InputStream is = context.getContentResolver().openInputStream(uri)) {
             if (is == null) return "Could not read the selected image.";
             BitmapFactory.Options opts = new BitmapFactory.Options();
@@ -98,7 +101,7 @@ public final class ImageUtils {
         return null;
     }
 
-    /** Returns a bitmap scaled so neither dimension exceeds maxSize; recycles the input if scaled. */
+    /** Returns a bitmap scaled so neither dimension exceeds maxSize. Recycles the input when a new bitmap is created. */
     private static Bitmap scaleDownToMaxSize(Bitmap bitmap, int maxSize) {
         int w = bitmap.getWidth();
         int h = bitmap.getHeight();

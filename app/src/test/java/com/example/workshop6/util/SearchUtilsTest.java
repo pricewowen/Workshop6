@@ -1,3 +1,6 @@
+// Contributor(s): Owen
+// Main: Owen - Android app UI and API integration.
+
 package com.example.workshop6.util;
 
 import org.junit.Test;
@@ -6,6 +9,9 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
+/**
+ * Covers {@link SearchUtils} normalization plus {@link Validation} limits used by search and checkout text fields.
+ */
 public class SearchUtilsTest {
 
     @Test

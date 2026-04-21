@@ -1,3 +1,6 @@
+// Contributor(s): Robbie
+// Main: Robbie - Google Map with nearby bakeries and search filtering.
+
 package com.example.workshop6.ui.locations;
 
 import android.Manifest;
@@ -56,10 +59,13 @@ import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
 
+/**
+ * Map tab with Google Maps, bakery list and filter chips tied to catalog search text.
+ */
 public class MapFragment extends Fragment {
 
     private static final long MAP_LOAD_MIN_MS = 400L;
-    /** Synthetic tag id for the "Nearby" chip (Browse uses positive API tag ids). */
+    /** Synthetic tag id for the Nearby chip while Browse uses positive API tag ids. */
     private static final int MAP_FILTER_TAG_NEARBY = -2;
     private static final int MAP_FILTER_TAG_4_PLUS_STARS = -3;
     private static final int MAP_FILTER_TAG_OPEN_NOW = -4;
@@ -357,8 +363,8 @@ public class MapFragment extends Fragment {
     }
 
     /**
-     * Loads product catalog and batch product ids per bakery for search (includes non-active batches
-     * so product keywords still match when expiry dates have passed in dev data).
+     * Loads the product catalog then batch product ids per bakery for search haystacks.
+     * Includes non-active batches so keywords still match when expiry dates look odd in dev data.
      */
     private void loadCatalogAndBatchProductSearch() {
         api.getProducts(null, null).enqueue(new Callback<List<ProductDto>>() {
@@ -488,7 +494,8 @@ public class MapFragment extends Fragment {
                 Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
             return;
         }
-        // Show a quick result from cache, then refine with a fresh fix (feels much faster than current-only).
+        // Show last known location from cache first.
+        // Then request a high accuracy fix so the pin updates when cache is stale.
         fusedClient.getLastLocation().addOnCompleteListener(task -> {
             if (task.isSuccessful()) {
                 Location last = task.getResult();

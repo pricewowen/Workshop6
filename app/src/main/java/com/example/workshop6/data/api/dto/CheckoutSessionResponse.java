@@ -1,10 +1,13 @@
+// Contributor(s): Samantha
+// Main: Samantha - Stripe Checkout session client secret and metadata.
+
 package com.example.workshop6.data.api.dto;
 
 import com.google.gson.annotations.SerializedName;
 
 /**
- * Response from {@code POST /api/v1/orders} (checkout). The mobile app does not collect card
- * payments yet; {@link #clientSecret} is reserved for a future Stripe flow.
+ * Checkout POST response with order identifiers and Stripe client secret for PaymentSheet.
+ * The client secret may stay null until the server needs a payment step.
  */
 public class CheckoutSessionResponse {
     @SerializedName("orderId")

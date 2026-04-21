@@ -1,3 +1,6 @@
+// Contributor(s): Robbie
+// Main: Robbie - Message bubbles for staff chat UI.
+
 package com.example.workshop6.ui.chat;
 
 import android.os.Build;
@@ -22,6 +25,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
+/**
+ * Sent, received and system bubbles for staff or customer chat threads.
+ */
 public class ChatMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
 
     private static final int TYPE_SENT = 1;

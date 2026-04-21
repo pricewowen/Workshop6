@@ -1,3 +1,6 @@
+// Contributor(s): Samantha
+// Main: Samantha - Cart lines quantity delivery window and totals.
+
 package com.example.workshop6.ui.cart;
 
 import android.content.Intent;
@@ -110,7 +113,7 @@ public class CartFragment extends Fragment implements CartAdapter.OnCartItemList
         if (adapter == null || api == null) {
             return;
         }
-        // Re-fetch cart in case it was cleared after checkout
+        // Re-fetch cart when returning from checkout in case another flow cleared it.
         cart = cartManager.getCart();
         adapter.updateItems(cart.getItems());
 

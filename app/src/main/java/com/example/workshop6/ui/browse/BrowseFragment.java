@@ -1,3 +1,6 @@
+// Contributor(s): Mason
+// Main: Mason - Browse tab host for product catalog entry.
+
 package com.example.workshop6.ui.browse;
 
 import android.os.Bundle;
@@ -12,7 +15,7 @@ import androidx.fragment.app.Fragment;
 import com.example.workshop6.R;
 
 /**
- * Stub Browse tab — Mason wires in product browsing, search, category filters.
+ * Browse tab host. Product browsing, search and category filters live in nested fragments.
  */
 public class BrowseFragment extends Fragment {
     @Nullable

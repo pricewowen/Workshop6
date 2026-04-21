@@ -1,3 +1,6 @@
+// Contributor(s): Robbie
+// Main: Robbie - Bakery list filtering and sort for map and location search.
+
 package com.example.workshop6.util;
 
 import com.example.workshop6.data.model.BakeryLocationDetails;
@@ -68,7 +71,7 @@ public final class LocationSearchHelper {
     }
 
     /**
-     * Extra searchable text derived from the province field (e.g. ON → ontario).
+     * Extra searchable text from the province field (example ON maps to ontario).
      */
     public static String provinceExpansion(String provinceRaw) {
         if (provinceRaw == null || provinceRaw.trim().isEmpty()) {
@@ -138,7 +141,7 @@ public final class LocationSearchHelper {
         return sb.toString().toLowerCase(Locale.ROOT);
     }
 
-    /** Result of {@link #parseQuery(String)}: optional minimum average rating and remaining text tokens. */
+    /** Result of parseQuery with optional minimum average rating and remaining text tokens. */
     public static final class ParsedLocationQuery {
         public final Double minRating;
         public final String textQuery;
@@ -150,8 +153,8 @@ public final class LocationSearchHelper {
     }
 
     /**
-     * Splits the query into an optional minimum rating (numbers in 0–5, max wins) and remaining text.
-     * Ignores standalone {@code star}, {@code stars}, {@code ★}.
+     * Splits the query into an optional minimum rating from zero to five and remaining text. Max rating wins.
+     * Ignores standalone star stars and star glyph tokens.
      */
     public static ParsedLocationQuery parseQuery(String raw) {
         if (raw == null || raw.trim().isEmpty()) {
@@ -195,7 +198,7 @@ public final class LocationSearchHelper {
     }
 
     /**
-     * When {@code minRating} is set, the location must have an average rating &gt;= that value.
+     * When minRating is set the location average rating must be greater than or equal to that value.
      */
     public static boolean ratingSatisfies(Double averageRating, Double minRating) {
         if (minRating == null) {
@@ -208,9 +211,8 @@ public final class LocationSearchHelper {
     }
 
     /**
-     * Every whitespace-separated token in {@code query} must match {@code haystackLower}.
-     * Tokens of length 1–2 use whole-word matching so {@code on} does not match inside {@code london}.
-     * Longer tokens use substring match (e.g. {@code ontario}, {@code muffin}).
+     * Every whitespace-separated token in the query must appear in haystackLower.
+     * Short tokens use whole-word matching so on does not match inside london. Longer tokens use substring match.
      */
     public static boolean matchesTokens(String queryRaw, String haystackLower) {
         if (queryRaw == null || queryRaw.trim().isEmpty()) {

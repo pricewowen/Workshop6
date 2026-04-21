@@ -1,3 +1,6 @@
+// Contributor(s): Owen
+// Main: Owen - Tier badge styling helpers for Me and orders.
+
 package com.example.workshop6.ui.loyalty;
 
 import android.content.Context;
@@ -10,16 +13,19 @@ import com.example.workshop6.data.api.dto.RewardTierDto;
 import java.text.NumberFormat;
 import java.util.List;
 
-/** Shared loyalty tier resolution and binding for Me and other screens. */
+/**
+ * Shared loyalty tier resolution and view binding for Me, orders and rewards surfaces.
+ */
 public final class LoyaltyTierUi {
 
     private LoyaltyTierUi() {
     }
 
     /**
-     * Uses reward tier definitions: point windows and discount %.
-     * Prefer the tier whose [minPoints, maxPoints] contains the balance; otherwise fall back to
-     * {@code rewardTierId} from the customer payload, then the highest tier with {@code minPoints <= points}.
+     * Resolves the tier from reward tier definitions (point windows and discount percent).
+     * Prefers the tier whose {@code minPoints} and {@code maxPoints} contain the balance. Otherwise
+     * uses {@code rewardTierId} from the customer payload, then the highest tier with
+     * {@code minPoints <= points}.
      */
     public static RewardTierDto resolveCurrentTier(List<RewardTierDto> rewardTiers, int points, Integer assignedTierId) {
         if (rewardTiers == null || rewardTiers.isEmpty()) {
@@ -60,7 +66,7 @@ public final class LoyaltyTierUi {
         return ctx.getString(R.string.loyalty_tier_desc_open_range, pct, minStr);
     }
 
-    /** Points to deduct for one redemption; scales with tier discount (e.g. 5% → 500 pts, 10% → 1000). */
+    /** Points to deduct for one redemption. Scales with tier discount percent into point cost. */
     public static int redeemPointsCost(RewardTierDto tier) {
         if (tier == null || tier.discountRatePercent == null) {
             return 0;
@@ -72,7 +78,7 @@ public final class LoyaltyTierUi {
         return (int) Math.round(pct * 100);
     }
 
-    /** Cart discount as a fraction (e.g. 0.05 for 5%). */
+    /** Cart discount as a fraction where 0.05 means five percent off list price. */
     public static double redeemDiscountFraction(RewardTierDto tier) {
         if (tier == null || tier.discountRatePercent == null) {
             return 0d;
@@ -80,6 +86,9 @@ public final class LoyaltyTierUi {
         return tier.discountRatePercent.doubleValue() / 100.0;
     }
 
+    /**
+     * Fills loyalty summary widgets from {@link #resolveCurrentTier} plus optional next tier progress.
+     */
     public static void bindTierCard(Context ctx, NumberFormat nf, List<RewardTierDto> rewardTiers,
                                     int points, Integer assignedTierId,
                                     TextView tvPoints, TextView tvLevel, TextView tvTierDescription,

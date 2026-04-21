@@ -1,3 +1,6 @@
+// Contributor(s): Robbie
+// Main: Robbie - New chat topic category picker.
+
 package com.example.workshop6.ui.chat;
 
 import android.app.Dialog;
@@ -16,6 +19,9 @@ import com.example.workshop6.data.api.dto.ChatThreadDto;
 import com.google.android.material.bottomsheet.BottomSheetDialog;
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment;
 
+/**
+ * Bottom sheet for picking a chat category or resuming an open thread before compose.
+ */
 public class TopicPickerDialogFragment extends BottomSheetDialogFragment {
 
     public interface Listener {
@@ -32,6 +38,9 @@ public class TopicPickerDialogFragment extends BottomSheetDialogFragment {
     private Listener listener;
     private ChatThreadDto existingThread;
 
+    /**
+     * Builds a picker with optional thread args so staff or customers can resume instead of starting fresh.
+     */
     public static TopicPickerDialogFragment newInstance(@Nullable ChatThreadDto existing) {
         TopicPickerDialogFragment f = new TopicPickerDialogFragment();
         if (existing != null && existing.id != null) {

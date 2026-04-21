@@ -1,3 +1,6 @@
+// Contributor(s): Owen
+// Main: Owen - Android app UI and API integration.
+
 package com.example.workshop6.data.api;
 
 import com.example.workshop6.data.api.dto.ChatMessageDto;
@@ -9,6 +12,9 @@ import java.util.List;
 import retrofit2.Call;
 import retrofit2.http.*;
 
+/**
+ * Narrow Retrofit surface for chat thread and message calls through the same bearer token as {@link ApiService} on {@link ApiClient}.
+ */
 public interface ChatApiService {
 
     @GET("api/v1/chat/threads/me/open")

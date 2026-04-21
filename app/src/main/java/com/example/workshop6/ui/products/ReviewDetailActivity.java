@@ -1,3 +1,6 @@
+// Contributor(s): Owen
+// Main: Owen - Full-screen review detail and moderation context.
+
 package com.example.workshop6.ui.products;
 
 import android.os.Bundle;
@@ -13,15 +16,26 @@ import com.bumptech.glide.Glide;
 import com.example.workshop6.R;
 import com.google.android.material.imageview.ShapeableImageView;
 
+/**
+ * Read-only review drill-down. Callers pass {@code EXTRA_*} string keys on the intent from list adapters.
+ */
 public class ReviewDetailActivity extends AppCompatActivity {
 
+    /** Toolbar title segment for product versus location context. */
     public static final String EXTRA_CONTEXT_TITLE = "review_context_title";
+    /** Display name shown under the toolbar title. */
     public static final String EXTRA_REVIEWER_NAME = "review_reviewer_name";
+    /** Star rating as int or float extra depending on caller. */
     public static final String EXTRA_RATING = "review_rating";
+    /** Full review body text. */
     public static final String EXTRA_COMMENT = "review_comment";
+    /** When true show the verified purchase chip. */
     public static final String EXTRA_VERIFIED = "review_verified";
+    /** When true show the purchased chip. */
     public static final String EXTRA_PURCHASED = "review_purchased";
+    /** HTTPS URL for reviewer profile art when approved. */
     public static final String EXTRA_PHOTO_URL = "review_photo_url";
+    /** When true hide remote art because moderation is still pending. */
     public static final String EXTRA_PHOTO_PENDING = "review_photo_pending";
 
     @Override

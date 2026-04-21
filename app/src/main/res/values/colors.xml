@@ -4,7 +4,7 @@
     <color name="bakery_primary">#3C2A21</color>
     <color name="bakery_primary_dark">#2A1A14</color>
 
-    <!-- Accent: terracotta (was gold — links, prices, active nav, progress) -->
+    <!-- Accent terracotta was gold for links prices active nav and progress -->
     <color name="bakery_gold">#C25F1A</color>
     <color name="bakery_gold_bright">#C25F1A</color>
     <!-- Registration linking hints (distinct from field error red / default helper text) -->
@@ -28,7 +28,7 @@
     <color name="review_badge_verified">#15803D</color>
     <color name="review_badge_purchased">#B45309</color>
 
-    <!-- AI recommendations panel (green — distinct from warm bakery browns/orange) -->
+    <!-- AI recommendations panel green so it reads distinct from warm bakery browns and orange -->
     <color name="ai_recommendations_panel">#DCFCE7</color>
     <color name="ai_recommendations_border">#059669</color>
     <color name="ai_recommendations_title">#064E3B</color>

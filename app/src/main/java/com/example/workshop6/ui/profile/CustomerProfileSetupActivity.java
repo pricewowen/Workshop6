@@ -1,3 +1,6 @@
+// Contributor(s): Owen
+// Main: Owen - First-run customer profile completion wizard.
+
 package com.example.workshop6.ui.profile;
 
 import android.app.Activity;
@@ -45,7 +48,7 @@ import java.util.Locale;
 
 public class CustomerProfileSetupActivity extends AppCompatActivity {
 
-    /** When true, opened from cart/checkout: delivery title, proceed button. */
+    /** When true, opened from cart or checkout with delivery title and proceed button styling. */
     public static final String EXTRA_LAUNCHED_FOR_CHECKOUT = "launched_for_checkout";
     /**
      * With {@link #EXTRA_LAUNCHED_FOR_CHECKOUT}: if true (default), save starts {@link CheckoutActivity} (cart pipeline).
@@ -54,15 +57,15 @@ public class CustomerProfileSetupActivity extends AppCompatActivity {
     public static final String EXTRA_OPEN_CHECKOUT_AFTER_SAVE = "open_checkout_after_save";
     public static final String EXTRA_GUEST_MODE = "guest_mode";
     /**
-     * Guest-only: collect email and/or phone only (no name/address). Ignored when not {@link #EXTRA_GUEST_MODE}.
+     * Guest-only flow collects email or phone without name or address fields. Ignored when not {@link #EXTRA_GUEST_MODE}.
      */
     public static final String EXTRA_MINIMAL_CONTACT_GUEST = "minimal_contact_guest";
 
     private SessionManager sessionManager;
     private ApiService api;
-    /** Non-null when editing an existing customer row (PATCH); null when creating (POST). */
+    /** Non-null when editing an existing customer row (PATCH). Null when creating (POST). */
     private CustomerDto existingProfile;
-    /** Staff: same form as customer personal info; PATCH via {@code /employee/me}. */
+    /** Staff reuse the customer personal info shape. PATCH goes to {@code /employee/me}. */
     private boolean employeePersonalMode;
     private EmployeeDto existingEmployeeProfile;
 
@@ -83,7 +86,7 @@ public class CustomerProfileSetupActivity extends AppCompatActivity {
     private boolean launchedForCheckout;
     private boolean guestMode;
     private boolean minimalContactGuest;
-    /** When launched for checkout: whether to {@code startActivity(CheckoutActivity)} on success (vs. {@code setResult} only). */
+    /** When launched for checkout, true starts {@code CheckoutActivity} on success. False uses only {@code setResult} so the caller owns checkout. */
     private boolean openCheckoutAfterSave;
     private String initialFirstName = "";
     private String initialMiddleInitial = "";

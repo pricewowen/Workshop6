@@ -1,10 +1,13 @@
+// Contributor(s): Mason
+// Main: Mason - Derived flags for whether a product has a daily special.
+
 package com.example.workshop6.util;
 
 import com.example.workshop6.data.api.dto.ProductSpecialTodayDto;
 
 /**
- * In-memory today's product special for pricing cart lines and UI. Updated from
- * {@code GET /api/v1/product-specials/today} (see {@link #updateFromDto}).
+ * In-memory snapshot of the daily product special for pricing cart lines and UI.
+ * Refresh with {@link #updateFromDto} when the product-specials today API returns.
  */
 public final class ProductSpecialState {
 
@@ -56,7 +59,7 @@ public final class ProductSpecialState {
         return 1.0 - (specialDiscountPercent / 100.0);
     }
 
-    /** @return discount percent for UI (e.g. 10.0), or {@code null} if no active special */
+    /** Active discount percent for UI labels or null when no special applies. */
     public static Double getDiscountPercentOrNull() {
         return specialDiscountPercent;
     }

@@ -1,3 +1,6 @@
+// Contributor(s): Robbie
+// Main: Robbie - Customer staff chat thread with STOMP messages.
+
 package com.example.workshop6.ui.chat;
 
 import android.content.Intent;
@@ -321,7 +324,7 @@ public class ChatActivity extends AppCompatActivity {
                     return;
                 }
                 if (response.code() == 400) {
-                    // Most common 400 here is "Thread is closed" — reflect it in the UI instead of failing silently.
+                    // A 400 here usually means the thread is closed. Show closed state instead of failing silently.
                     if (currentThread == null) currentThread = new ChatThreadDto();
                     currentThread.status = "closed";
                     applyClosedState();
@@ -647,7 +650,7 @@ public class ChatActivity extends AppCompatActivity {
         if (threadId == -1) return;
         if (stomp != null) return;
         String token = sessionManager.getToken();
-        // Fresh OkHttpClient: ApiClient exposes no getter, and WS handles its own timeouts.
+        // Fresh OkHttpClient here because ApiClient does not expose its OkHttp instance. WebSocket code sets its own timeouts.
         OkHttpClient wsHttpClient = new OkHttpClient();
         stomp = new StompClient(BuildConfig.API_BASE_URL, token, wsHttpClient);
         stomp.connect(new StompClient.ConnectionListener() {
@@ -708,7 +711,7 @@ public class ChatActivity extends AppCompatActivity {
                 readSubId = stomp.subscribe(
                         ChatTopics.read(threadId),
                         body -> {
-                            // Reserved hook for read receipts; no UI in this scope.
+                            // Reserved hook for read receipts. No UI in this scope.
                         });
                 statusSubId = stomp.subscribe(
                         ChatTopics.status(threadId),

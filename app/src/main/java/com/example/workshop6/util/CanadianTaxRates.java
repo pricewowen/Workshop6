@@ -1,3 +1,6 @@
+// Contributor(s): Owen
+// Main: Owen - GST and PST rates by province for checkout breakdown.
+
 package com.example.workshop6.util;
 
 import java.text.DecimalFormat;

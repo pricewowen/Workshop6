@@ -1,3 +1,6 @@
+// Contributor(s): Owen
+// Main: Owen - Re-auth prompt before sensitive account actions.
+
 package com.example.workshop6.util;
 
 import android.view.LayoutInflater;

@@ -1,3 +1,6 @@
+// Contributor(s): Owen
+// Main: Owen - Edit profile password reauth and photo upload.
+
 package com.example.workshop6.ui.profile;
 
 import android.content.Intent;
@@ -68,7 +71,7 @@ public class EditProfileActivity extends AppCompatActivity {
     /** Snapshot when account fields were last bound (for dirty checks). */
     private String originalAccountUsername = "";
     private String originalAccountEmail = "";
-    /** New password chosen in the change-password dialog; applied on Save after re-auth. */
+    /** New password from the change-password dialog. Applied on Save after re-auth. */
     private String pendingNewPassword = "";
     private ApiService api;
     private View loadingOverlay;
@@ -291,7 +294,7 @@ public class EditProfileActivity extends AppCompatActivity {
         findViewById(R.id.btn_save).setAlpha(1f);
     }
 
-    /** Admin with no employee row: account summary only; edits disabled. */
+    /** Admin with no employee row shows account summary only. Edits stay disabled. */
     private void bindAdminAccountOnlyReadOnly() {
         customerAccountOnlyMode = true;
         loadedCustomer = null;

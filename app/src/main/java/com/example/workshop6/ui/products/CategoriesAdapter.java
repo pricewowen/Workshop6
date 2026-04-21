@@ -1,3 +1,6 @@
+// Contributor(s): Mason
+// Main: Mason - Horizontal category chips for browse.
+
 package com.example.workshop6.ui.products;
 
 import android.view.LayoutInflater;
@@ -14,6 +17,9 @@ import com.example.workshop6.data.model.Category;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Horizontal category chips with a synthetic All row at index zero.
+ */
 public class CategoriesAdapter extends RecyclerView.Adapter<CategoriesAdapter.CategoryViewHolder> {
 
     private List<Category> categoryList;
@@ -21,15 +27,17 @@ public class CategoriesAdapter extends RecyclerView.Adapter<CategoriesAdapter.Ca
     private int selectedPosition = 0;
 
     public interface onCategoryListener{
-        // pass the tagId when item in recyclerview is clicked
+        /** Fires when the user taps a chip. {@code tagId} is -1 for All. */
         void onCategoryClick(int tagId);
     }
 
-    // Constructor receives list of categories
+    /**
+     * Prepends an All category so callers can reset filters without mutating the input list.
+     */
     public CategoriesAdapter(List<Category> categoryList, onCategoryListener listener) {
         this.listener = listener;
 
-        // add an "All" option to the start of the list
+        // Prepend synthetic All so tag id -1 means an unfiltered catalog.
         this.categoryList = new ArrayList<>();
         Category allCategory = new Category(-1, "All");
         this.categoryList.add(allCategory);
@@ -49,11 +57,12 @@ public class CategoriesAdapter extends RecyclerView.Adapter<CategoriesAdapter.Ca
         Category category = categoryList.get(position);
         holder.tvCategoryName.setText(category.getTagName());
 
-        // swap backgrounds based on selected category
+        // Selected chip uses gold background and light text.
         if (position == selectedPosition) {
             holder.tvCategoryName.setBackgroundResource(R.drawable.bg_category_chip_selected);
             holder.tvCategoryName.setTextColor(holder.tvCategoryName.getContext().getColor(R.color.bakery_text_light));
         } else {
+            // Other chips use default chip background and dark text.
             holder.tvCategoryName.setBackgroundResource(R.drawable.bg_category_chip);
             holder.tvCategoryName.setTextColor(holder.tvCategoryName.getContext().getColor(R.color.bakery_text_dark));
         }
@@ -79,7 +88,7 @@ public class CategoriesAdapter extends RecyclerView.Adapter<CategoriesAdapter.Ca
         return categoryList.size();
     }
 
-    /** Programmatic selection (e.g. revert to All when an action cannot complete). */
+    /** Programmatic selection such as reverting to All when a filter action cannot complete. */
     public void setSelectedPosition(int position) {
         if (categoryList.isEmpty()) {
             return;
@@ -91,7 +100,6 @@ public class CategoriesAdapter extends RecyclerView.Adapter<CategoriesAdapter.Ca
         notifyItemChanged(selectedPosition);
     }
 
-    // ViewHolder class
     static class CategoryViewHolder extends RecyclerView.ViewHolder {
         TextView tvCategoryName;
 

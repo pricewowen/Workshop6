@@ -1,3 +1,6 @@
+// Contributor(s): Mason
+// Main: Mason - Product detail pricing tags and add to cart.
+
 package com.example.workshop6.ui.products;
 
 import android.content.res.ColorStateList;
@@ -101,7 +104,7 @@ public class ProductDetailsFragment extends Fragment {
     private ApiService api;
     private Product loadedProduct;
     private final NumberFormat currency = NumberFormat.getCurrencyInstance(Locale.CANADA);
-    /** Overlay stays until hero image, today's special price, and reviews have finished loading. */
+    /** Overlay stays until hero image, today's special price and reviews have finished loading. */
     private boolean revealImageReady;
     private boolean revealSpecialPriceReady;
     private boolean revealReviewsReady;
@@ -357,7 +360,7 @@ public class ProductDetailsFragment extends Fragment {
         });
     }
 
-    /** Same look as {@link CategoriesAdapter} selected row: gold pill, white bold text ({@code item_category} + {@code bg_category_chip_selected}). */
+    /** Same look as {@link CategoriesAdapter} selected row with gold pill and white bold text using {@code item_category} and {@code bg_category_chip_selected}. */
     private void styleProductTagLikeBrowseSelected(Chip chip) {
         float padH = TypedValue.applyDimension(
                 TypedValue.COMPLEX_UNIT_DIP,

@@ -1,3 +1,6 @@
+// Contributor(s): Owen
+// Main: Owen - Sign-in forgot password guest path and lockout handling toward MainActivity.
+
 package com.example.workshop6.auth;
 
 import android.content.Intent;
@@ -41,6 +44,9 @@ import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
 
+/**
+ * Customer and staff login against Workshop 7 with optional guest access and API reachability checks.
+ */
 public class LoginActivity extends AppCompatActivity {
     public static final String EXTRA_ALLOW_GUEST_AUTH = "allow_guest_auth";
 
@@ -125,7 +131,7 @@ public class LoginActivity extends AppCompatActivity {
 
         findViewById(R.id.tv_forgot_password).setOnClickListener(v -> showForgotPasswordDialog());
 
-        // Register link — device online + API reachable before opening registration.
+        // Register link requires the device online and API reachability before opening registration.
         findViewById(R.id.tv_register_link).setOnClickListener(v -> {
             if (!NetworkStatus.isOnline(this)) {
                 tvError.setText(R.string.login_error_no_connection);
@@ -150,7 +156,7 @@ public class LoginActivity extends AppCompatActivity {
                     }
             );
         });
-        // Skip for now — same online + API check as register link before starting guest session.
+        // Guest link uses the same online and API checks as register before starting a guest session.
         findViewById(R.id.tv_guest_link).setOnClickListener(v -> {
             if (!NetworkStatus.isOnline(this)) {
                 tvError.setText(R.string.login_error_no_connection);
@@ -346,7 +352,7 @@ public class LoginActivity extends AppCompatActivity {
                 : R.string.login_error_invalid_username;
     }
 
-    /** Display "Customer" / "Employee" instead of legacy "… account" labels from the API. */
+    /** Display Customer or Employee instead of legacy trailing account labels from the API. */
     private static String shortenLinkedRoleButtonLabel(String label) {
         if (label == null) {
             return "";
@@ -369,7 +375,7 @@ public class LoginActivity extends AppCompatActivity {
                 ? body.message.trim()
                 : getString(R.string.login_role_choice_body);
 
-        // Custom view: readable body + text-style actions in one row with Cancel (do not use setMessage+setItems).
+        // Custom dialog layout shows the body plus text actions and Cancel without mixing setMessage and setItems.
         View content = LayoutInflater.from(this).inflate(R.layout.dialog_login_role_choice, null);
         TextView tvMessage = content.findViewById(R.id.tv_login_role_choice_message);
         LinearLayout actions = content.findViewById(R.id.ll_login_role_choice_actions);

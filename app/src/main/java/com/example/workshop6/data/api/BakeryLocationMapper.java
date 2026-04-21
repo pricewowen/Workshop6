@@ -1,13 +1,22 @@
+// Contributor(s): Owen
+// Main: Owen - Android app UI and API integration.
+
 package com.example.workshop6.data.api;
 
 import com.example.workshop6.data.api.dto.BakeryDto;
 import com.example.workshop6.data.model.BakeryLocationDetails;
 
+/**
+ * Builds {@link BakeryLocationDetails} for map and search screens from a {@link BakeryDto} plus a short hours summary string.
+ */
 public final class BakeryLocationMapper {
 
     private BakeryLocationMapper() {
     }
 
+    /**
+     * Copies coordinates, address parts and image URL when present. Leaves defaults when the dto is null or lacks an id.
+     */
     public static BakeryLocationDetails fromDto(BakeryDto b, String openingHoursSummary) {
         BakeryLocationDetails d = new BakeryLocationDetails();
         if (b == null || b.id == null) {

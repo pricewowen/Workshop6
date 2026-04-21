@@ -1,9 +1,12 @@
+// Contributor(s): Owen
+// Main: Owen - Bootstrap payload for first-time customer setup after login.
+
 package com.example.workshop6.data.api.dto;
 
 import com.google.gson.annotations.SerializedName;
 
 /**
- * POST /api/v1/customers/me — create customer row for the logged-in user.
+ * Gson body for Workshop 7 first-time customer create on the logged-in user account.
  */
 public class CustomerBootstrapRequest {
     @SerializedName("firstName")

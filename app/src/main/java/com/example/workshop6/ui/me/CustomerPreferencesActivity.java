@@ -1,3 +1,6 @@
+// Contributor(s): Owen
+// Main: Owen - AI preference chips save and validation.
+
 package com.example.workshop6.ui.me;
 
 import android.os.Bundle;
@@ -34,6 +37,9 @@ import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
 
+/**
+ * Lets a signed-in customer map each catalog tag to a like, dislike, avoid or allergic preference for Workshop 7 AI.
+ */
 public class CustomerPreferencesActivity extends AppCompatActivity {
 
     private ApiService api;

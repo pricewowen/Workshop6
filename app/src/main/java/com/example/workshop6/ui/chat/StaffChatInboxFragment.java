@@ -1,3 +1,6 @@
+// Contributor(s): Robbie
+// Main: Robbie - Staff inbox thread list and compose entry.
+
 package com.example.workshop6.ui.chat;
 
 import android.content.Intent;
@@ -41,6 +44,9 @@ import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
 
+/**
+ * Staff or customer inbox with filter chips, lightweight polling and entry into {@link ChatActivity}.
+ */
 public class StaffChatInboxFragment extends Fragment {
     private static final int FILTER_GENERAL = -101;
     private static final int FILTER_ORDER_ISSUE = -102;
@@ -294,7 +300,8 @@ public class StaffChatInboxFragment extends Fragment {
 
     private boolean matchesSelectedFilter(ChatThreadDto thread) {
         if (selectedFilterId == -1) {
-            return true; // All
+            // No chip selected so every thread matches
+            return true;
         }
         String category = safe(thread.category).toLowerCase(Locale.ROOT);
         switch (selectedFilterId) {

@@ -1,3 +1,6 @@
+// Contributor(s): Samantha
+// Main: Samantha - Orders tab with active and history sections.
+
 package com.example.workshop6.ui.orders;
 
 import android.os.Bundle;
@@ -11,6 +14,9 @@ import androidx.fragment.app.Fragment;
 
 import com.example.workshop6.R;
 
+/**
+ * Orders tab shell. Active versus history content is composed by the parent navigation graph.
+ */
 public class OrdersFragment extends Fragment {
     @Nullable
     @Override

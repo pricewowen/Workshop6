@@ -15,12 +15,14 @@ This workshop focuses on:
 ## Tech Stack
 
 - Android Studio
-- Java
+- Java (source/target **11** in Gradle; JDK bundled with Android Studio is fine)
+- Android Gradle Plugin 9 (`compileSdk` 36, `minSdk` 24, `targetSdk` 36)
 - AndroidX Navigation Component
 - Retrofit / OkHttp / Gson
 - Material Components for Android
+- Stripe Android SDK (publishable key from Gradle; optional for local dev)
 
-**Workshop 7 backend** must be running (or reachable) for login, catalog, and orders. The app reads **`API_BASE_URL` from Gradle**: default is emulator `http://10.0.2.2:8080/`. For a **physical device**, add to **`local.properties`** (same folder as `settings.gradle.kts`): `api.base.url=http://YOUR_LAN_IP:8080/` then **Sync Project**. Demo users match the **Workshop 7** seed data (see below).
+**Workshop 7 backend** must be reachable for login, catalog, checkout, and chat. Gradle injects **`BuildConfig.API_BASE_URL`** from **`local.properties`** using the key **`api.base.url`**. If you omit it, the default is the **deployed** Workshop 7 API (`https://peelin-good-kdeft.ondigitalocean.app/`). To hit a **local** API from the **emulator**, set `api.base.url=http://10.0.2.2:8080/` (Android Studio’s special alias for the host machine’s loopback). For a **physical device**, use your PC’s LAN address, e.g. `api.base.url=http://192.168.1.10:8080/`. After editing `local.properties`, **Sync Project**. The app can also apply a **runtime base URL override** stored in preferences (`ApiBaseUrl`) so you can switch endpoints without rebuilding. Optional: add `stripe.publishable.key=` for card payment flows. Demo users match the **Workshop 7** seed data (see below).
 
 ## Getting Started
 
@@ -173,4 +175,14 @@ To compile the app and test sources together:
 
 ```bash
 ./gradlew.bat testDebugUnitTest assembleDebug assembleDebugAndroidTest
+```
+
+On macOS or Linux, use `./gradlew` instead of `./gradlew.bat`.
+
+### Module Javadoc (`app`)
+
+To generate HTML Javadoc for the `app` module:
+
+```bash
+./gradlew.bat :app:androidJavadoc
 ```

@@ -1,7 +1,13 @@
+// Contributor(s): Robbie
+// Main: Robbie - Thread summary for staff chat inbox list.
+
 package com.example.workshop6.data.api.dto;
 
 import com.google.gson.annotations.SerializedName;
 
+/**
+ * Chat thread summary JSON from Workshop 7 for staff inbox and headers.
+ */
 public class ChatThreadDto {
     public Integer id;
     @SerializedName("customerUserId")

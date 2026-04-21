@@ -1,3 +1,6 @@
+// Contributor(s): Robbie
+// Main: Robbie - Opening hours rows on bakery detail.
+
 package com.example.workshop6.ui.locations;
 
 import android.view.LayoutInflater;
@@ -15,6 +18,9 @@ import com.example.workshop6.util.BakeryHoursUi;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Sorted opening-hour labels for bakery detail from {@link BakeryHoursUi}.
+ */
 public class BakeryHourRowAdapter extends RecyclerView.Adapter<BakeryHourRowAdapter.VH> {
 
     private final List<BakeryHourDto> rows = new ArrayList<>();

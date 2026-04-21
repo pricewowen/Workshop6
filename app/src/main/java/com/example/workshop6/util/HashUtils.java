@@ -1,3 +1,6 @@
+// Contributor(s): Owen
+// Main: Owen - SHA-256 hex for client-side fingerprints where needed.
+
 package com.example.workshop6.util;
 
 import android.util.Base64;
@@ -10,6 +13,9 @@ import java.security.spec.InvalidKeySpecException;
 import javax.crypto.SecretKeyFactory;
 import javax.crypto.spec.PBEKeySpec;
 
+/**
+ * PBKDF2 password hashing for storage strings built during registration flows.
+ */
 public class HashUtils {
 
     private static final int ITERATIONS = 65536;
@@ -17,8 +23,8 @@ public class HashUtils {
     private static final String ALGORITHM = "PBKDF2WithHmacSHA256";
 
     /**
-     * Hashes a password with a random 16-byte salt using PBKDF2WithHmacSHA256.
-     * Returns a {@code salt:hash} string (both Base64-encoded) suitable for storage.
+     * Hashes {@code password} with a random 16-byte salt using PBKDF2WithHmacSHA256.
+     * Returns Base64 salt and Base64 hash joined by one ASCII colon for storage.
      */
     public static String hash(String password) {
         byte[] salt = new byte[16];
@@ -34,8 +40,8 @@ public class HashUtils {
     }
 
     /**
-     * Verifies a plain-text password against a stored {@code salt:hash} value.
-     * Uses constant-time comparison to prevent timing attacks.
+     * Verifies {@code plainPassword} against a stored salt-and-hash string from {@link #hash}.
+     * Uses constant-time comparison so timing does not leak password material.
      */
     public static boolean verify(String plainPassword, String storedValue) {
         String[] parts = storedValue.split(":", 2);

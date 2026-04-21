@@ -1,3 +1,6 @@
+// Contributor(s): Samantha
+// Main: Samantha - Cart line items with special pricing display.
+
 package com.example.workshop6.ui.cart;
 
 import android.view.LayoutInflater;
@@ -18,6 +21,9 @@ import java.text.NumberFormat;
 import java.util.List;
 import java.util.Locale;
 
+/**
+ * Cart screen rows for quantity edits, special price spans and removal actions.
+ */
 public class CartAdapter extends RecyclerView.Adapter<CartAdapter.CartViewHolder> {
 
     private List<CartItem> cartItems;

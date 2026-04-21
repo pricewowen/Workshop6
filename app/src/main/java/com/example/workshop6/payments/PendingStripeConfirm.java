@@ -1,3 +1,6 @@
+// Contributor(s): Samantha
+// Main: Samantha - Static holder for Stripe return deep link order id and client secret.
+
 package com.example.workshop6.payments;
 
 import android.content.Context;
@@ -21,8 +24,8 @@ import retrofit2.Callback;
 import retrofit2.Response;
 
 /**
- * Persists a post-checkout Stripe confirm so we can finish it if the app is killed or loses network
- * before {@code confirm-stripe-payment} returns. {@link #tryDrain} runs when the user returns to the app.
+ * Persists a post-checkout Stripe confirm so we can finish if the app dies before confirm-stripe-payment returns.
+ * tryDrain runs when the user returns to the app.
  */
 public final class PendingStripeConfirm {
 

@@ -1,3 +1,6 @@
+// Contributor(s): Robbie
+// Main: Robbie - Recycler rows for bakery search results.
+
 package com.example.workshop6.ui.locations;
 
 import android.view.LayoutInflater;
@@ -22,6 +25,9 @@ import com.google.android.material.chip.Chip;
 
 import java.util.Objects;
 
+/**
+ * Diff-backed bakery rows for search with directions and detail chips.
+ */
 public class LocationAdapter extends ListAdapter<BakeryLocationDetails, LocationAdapter.VH> {
 
     public interface Listener {

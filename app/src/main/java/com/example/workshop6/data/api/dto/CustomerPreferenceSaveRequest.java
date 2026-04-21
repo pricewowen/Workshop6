@@ -1,7 +1,13 @@
+// Contributor(s): Owen
+// Main: Owen - Save preference selections from profile UI.
+
 package com.example.workshop6.data.api.dto;
 
 import java.util.List;
 
+/**
+ * Gson body to save taste preference chips for the logged-in customer on Workshop 7.
+ */
 public class CustomerPreferenceSaveRequest {
     public List<PreferenceEntry> preferences;
 

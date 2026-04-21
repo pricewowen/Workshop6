@@ -1,3 +1,6 @@
+// Contributor(s): Samantha
+// Main: Samantha - Order header for history tracking and status display.
+
 package com.example.workshop6.data.api.dto;
 
 import com.google.gson.annotations.SerializedName;
@@ -5,6 +8,9 @@ import com.google.gson.annotations.SerializedName;
 import java.math.BigDecimal;
 import java.util.List;
 
+/**
+ * Order header JSON from Workshop 7 for history and status screens.
+ */
 public class OrderDto {
     public String id;
     @SerializedName("orderNumber")

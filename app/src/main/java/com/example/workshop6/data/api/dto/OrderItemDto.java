@@ -1,9 +1,15 @@
+// Contributor(s): Samantha
+// Main: Samantha - Line item inside order detail and checkout confirmation.
+
 package com.example.workshop6.data.api.dto;
 
 import com.google.gson.annotations.SerializedName;
 
 import java.math.BigDecimal;
 
+/**
+ * Order line JSON from Workshop 7 for detail and confirmation lists.
+ */
 public class OrderItemDto {
     public Integer id;
     @SerializedName("productId")

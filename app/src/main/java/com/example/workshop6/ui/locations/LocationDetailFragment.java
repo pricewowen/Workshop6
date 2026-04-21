@@ -1,3 +1,6 @@
+// Contributor(s): Robbie
+// Main: Robbie - Bakery detail directions hours and map deep link.
+
 package com.example.workshop6.ui.locations;
 
 import android.content.Intent;
@@ -192,7 +195,7 @@ public class LocationDetailFragment extends Fragment {
                         return;
                     }
                     BakeryDto bakery = response.body();
-                    // Fetch batches + products in parallel with hours (was chained after hours; caused late load).
+                    // Fetch batches and products alongside hours so the screen does not wait on hours alone.
                     loadAvailableProducts(view, locationId);
                     api.getBakeryHours(locationId).enqueue(new Callback<List<BakeryHourDto>>() {
                         @Override

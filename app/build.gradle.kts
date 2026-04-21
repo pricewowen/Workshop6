@@ -1,4 +1,7 @@
 import java.util.Properties
+import org.gradle.api.tasks.compile.JavaCompile
+import org.gradle.api.tasks.javadoc.Javadoc
+import org.gradle.external.javadoc.StandardJavadocDocletOptions
 
 plugins {
     alias(libs.plugins.android.application)
@@ -85,4 +88,34 @@ dependencies {
     testImplementation(libs.junit)
     androidTestImplementation(libs.ext.junit)
     androidTestImplementation(libs.espresso.core)
+}
+
+/**
+ * Plain "Generate Javadoc" in the IDE does not put android.jar or AndroidX on the classpath.
+ * Run this instead: ./gradlew :app:androidJavadoc
+ * Output: app/build/docs/javadoc/index.html
+ */
+tasks.register<Javadoc>("androidJavadoc") {
+    group = "documentation"
+    description = "Javadoc for main Java sources with Android SDK and debug compile classpath"
+
+    dependsOn(tasks.named("compileDebugJavaWithJavac"))
+
+    val javaCompile = tasks.named("compileDebugJavaWithJavac", JavaCompile::class.java).get()
+    source = javaCompile.source
+    // AGP 9 new DSL does not expose BaseExtension; javac already has android.jar on bootstrapClasspath.
+    doFirst {
+        classpath = project.objects.fileCollection().from(
+            javaCompile.classpath,
+            javaCompile.options.bootstrapClasspath,
+        )
+    }
+
+    val outDir = layout.buildDirectory.dir("docs/javadoc").get().asFile
+    setDestinationDir(outDir)
+
+    options.encoding = "UTF-8"
+    (options as StandardJavadocDocletOptions).addBooleanOption("Xdoclint:none", true)
+
+    isFailOnError = false
 }

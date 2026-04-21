@@ -1,3 +1,6 @@
+// Contributor(s): Owen
+// Main: Owen - Recommended product cards from Me tab.
+
 package com.example.workshop6.ui.me;
 
 import android.view.LayoutInflater;
@@ -14,6 +17,9 @@ import com.example.workshop6.data.api.dto.ProductRecommendationDto;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Me tab cards for AI product recommendations from Workshop 7.
+ */
 public class MeRecommendationAdapter extends RecyclerView.Adapter<MeRecommendationAdapter.VH> {
 
     public interface Listener {
